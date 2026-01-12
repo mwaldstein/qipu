@@ -1,6 +1,6 @@
 # Qipu Implementation Plan
 
-Status: Initial draft  
+Status: Initial draft (updated with spec gap analysis)  
 Last updated: 2026-01-12
 
 This document tracks implementation progress against the specs in `specs/`.
@@ -34,18 +34,29 @@ All commands depend on these foundational layers.
 
 ### Storage Layer (`specs/storage-format.md`)
 - [ ] **Store discovery** - walk up from cwd to find `.qipu/` (or use `--store`)
+  - [ ] Resolution order: (1) `--store` relative to `--root`, (2) walk up from `--root` or cwd
+  - [ ] Missing-store behavior: commands requiring store must fail with exit code 3
+  - [ ] `qipu init` may create store at default location when missing
 - [ ] **Store initialization** - create `.qipu/`, `notes/`, `mocs/`, `attachments/`, `templates/`, `config.toml`
 - [ ] **Config parsing** - read/write `.qipu/config.toml`
   - [ ] `format_version` field (for forward compatibility)
   - [ ] `id_scheme` field (`hash` | `ulid` | `timestamp`)
   - [ ] `default_note_type` field
   - [ ] `editor` field (editor preference override)
+  - [ ] Config must have sensible defaults so `qipu init` is optional
 - [ ] **Note file parsing** - YAML frontmatter + markdown body
+  - [ ] Required frontmatter fields: `id`, `title`
+  - [ ] Optional frontmatter fields: `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [ ] **Note file writing** - deterministic serialization (stable key order, newline handling)
   - [ ] Preserve newline style (avoid unnecessary file rewrites)
+  - [ ] Avoid writing derived caches unless command explicitly calls for it
 - [ ] **ID generation** - `qp-<hash>` with adaptive length
+  - [ ] IDs must be collision-resistant under parallel creation (multi-agent/multi-branch)
 - [ ] **Slug generation** - `<id>-<slug(title)>.md` filename convention
 - [ ] **Template loading** - load note templates from `templates/`
+- [ ] **Git integration defaults**:
+  - [ ] Commit: `notes/`, `mocs/`, `config.toml`, `templates/`, `attachments/`
+  - [ ] Ignore: `qipu.db`, `.cache/`
 
 ### Knowledge Model (`specs/knowledge-model.md`)
 - [ ] **Note struct** - id, title, type, tags, created, updated, sources, links, body
@@ -59,11 +70,19 @@ All commands depend on these foundational layers.
 - [ ] **`--version` flag** - single line version info, exit 0
 - [ ] **Argument parsing** - global flags (`--store`, `--root`, `--json`, `--token`, `--quiet`, `--verbose`)
   - [ ] `--json` and `--token` are mutually exclusive
+  - [ ] Unknown flags/args must produce exit code 2
 - [ ] **Command dispatch** - route to subcommand handlers
 - [ ] **Exit codes** - 0 success, 1 failure, 2 usage error, 3 data error
 - [ ] **Error formatting** - human vs `--json` error output
 - [ ] **Output determinism** - ensure stable ordering across all outputs
+  - [ ] Truncation must be explicit and deterministic
 - [ ] **Offline operation** - no network access required for normal operation
+- [ ] **CLI design principles** (from `cli-interface.md`):
+  - [ ] Scriptable by default (non-interactive)
+  - [ ] Composable (stdin/stdout friendly)
+  - [ ] Fast for typical repos
+  - [ ] Minimize cognitive overload
+  - [ ] Non-interactive mode for agents
 
 ---
 
@@ -105,6 +124,8 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] `--type` filter
 - [ ] `--since` filter
 - [ ] `--json` output format
+  - [ ] Output: single JSON object OR JSON lines
+  - [ ] Per-note fields: `id`, `title`, `type`, `tags`, `path`, `created`, `updated`
 - [ ] Deterministic ordering (by created_at, id)
 
 ---
@@ -114,11 +135,22 @@ Implements the essential commands for basic note capture and retrieval.
 ### Indexing (`specs/indexing-search.md`)
 - [ ] **Metadata index** - id -> {title, type, tags, path, created, updated}
 - [ ] **Tag index** - tag -> [ids...]
-- [ ] **Link extraction** - parse wiki links `[[id]]` and markdown links from body
+- [ ] **Link extraction** - parse links from body
+  - [ ] Wiki links: `[[id]]` and `[[id|label]]` (with label variant)
+  - [ ] Markdown links: `[label](relative/path/to/note.md)`
+  - [ ] Typed links from frontmatter `links[]`
+  - [ ] Unknown IDs treated as "unresolved" (reported by doctor)
+  - [ ] Links outside the store ignored by default
 - [ ] **Backlink index** - id -> [ids that link to it]
 - [ ] **Graph adjacency list** - inline + typed links
+- [ ] **Related notes approximation** (for discovery):
+  - [ ] Shared tags
+  - [ ] Direct links
+  - [ ] Typed link semantics
+  - [ ] 2-hop neighborhoods (optional)
 - [ ] **Incremental indexing** - track mtimes, re-parse only changed notes
 - [ ] **Cache storage** - `.qipu/.cache/*.json` (gitignored)
+  - [ ] Absence of caches must not break core workflows
 - [ ] `qipu index` command
 - [ ] `qipu index --rebuild` command
 
@@ -152,6 +184,7 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--token` output
 
 ### Graph Traversal (`specs/graph-traversal.md`)
+- [ ] **Inline link semantics** - inline links treated as `type=related`, `source=inline`
 - [ ] `qipu link tree <id>` - traversal tree from note
   - [ ] `--direction <out|in|both>` (default: both)
   - [ ] `--max-depth <n>` (default: 3)
@@ -163,14 +196,21 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--max-children <n>` (optional cap per expanded node)
   - [ ] Cycle detection (mark visited nodes as "(seen)")
   - [ ] Deterministic BFS ordering (sort by edge type, then target id)
-  - [ ] `--json` output
-    - [ ] `nodes[]`, `edges[]`, `spanning_tree[]` fields
+  - [ ] `--json` output - full field specification:
+    - [ ] `root` field (starting note ID)
+    - [ ] `direction` field (out|in|both)
+    - [ ] `max_depth` field
+    - [ ] `truncated` field (boolean)
+    - [ ] `nodes[]` - array of {id, title, type, tags, path}
+    - [ ] `edges[]` - array of {from, to, type, source}
+    - [ ] `spanning_tree[]` - array of {parent, child, depth}
     - [ ] Edge `source` field: `"inline"` | `"typed"`
   - [ ] `--token` output
   - [ ] Truncation reporting when limits hit
 - [ ] `qipu link path <from> <to>` - find path between notes
   - [ ] `--direction`, `--max-depth`, `--typed-only`, `--inline-only` flags
-  - [ ] `--json` output
+  - [ ] `--type <t>` / `--exclude-type <t>` filters
+  - [ ] `--json` output - list of nodes and edges in the chosen path
   - [ ] `--token` output
 
 ---
@@ -190,6 +230,11 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Budget enforcement (`--max-chars`, `--max-tokens`)
 - [ ] Truncation handling (set `truncated=true`, no partial records)
 - [ ] `--with-body` flag for including full note bodies
+- [ ] **Commands supporting `--token`**: `qipu prime`, `qipu context`, `qipu link tree/path/list`
+- [ ] **Progressive disclosure workflow** (document recommended agent pattern):
+  - [ ] 1. Run traversal with `--token --max-chars 8000` for compact index
+  - [ ] 2. Select note IDs from output
+  - [ ] 3. Fetch full content with `qipu context --note <id> --token --with-body --max-chars 16000`
 
 ### `qipu prime` (`specs/llm-context.md`)
 - [ ] Emit bounded session primer (~1-2k tokens)
@@ -210,7 +255,14 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Budgeting: `--max-chars`, `--max-tokens`
 - [ ] Output formats:
   - [ ] Default: markdown bundle with metadata headers
-  - [ ] `--json` output (with `generated_at`, `store`, `notes[]` including `content` and `sources[]`)
+    - [ ] Format: `# Qipu Context Bundle` header
+    - [ ] `Generated:` timestamp, `Store:` path
+    - [ ] `## Note: <title> (<id>)` per note
+    - [ ] Metadata block: Path, Type, Tags, Sources
+    - [ ] `---` separators around note content
+  - [ ] `--json` output (with `generated_at`, `store`, `notes[]`)
+    - [ ] Notes include: `id`, `title`, `type`, `tags`, `path`, `content`
+    - [ ] Sources nested structure: `sources: [{url, title}]`
   - [ ] `--token` output (summaries-first, `--with-body` for full content)
 - [ ] Truncation handling
   - [ ] Explicit truncation marker (e.g., `…[truncated]`) when notes are cut
@@ -223,13 +275,14 @@ Implements the essential commands for basic note capture and retrieval.
 
 ### Export Commands (`specs/export.md`)
 - [ ] `qipu export` command
-- [ ] Bundle export (concatenate notes)
-- [ ] Outline export (MOC-driven ordering)
-- [ ] Bibliography export (extract sources)
-  - [ ] (Future) BibTeX/CSL JSON format support
+- [ ] **Export mode selection** (via `--mode` flag or subcommands):
+  - [ ] Bundle export (concatenate notes) - includes metadata headers per note
+  - [ ] Outline export (MOC-driven ordering)
+  - [ ] Bibliography export (extract sources)
+    - [ ] (Future) BibTeX/CSL JSON format support
 - [ ] Selection inputs: `--note`, `--tag`, `--moc`, `--query`
 - [ ] Deterministic ordering (MOC order or created_at, id)
-- [ ] Link handling options:
+- [ ] Link handling options (conservative defaults to avoid unexpected content rewriting):
   - [ ] Preserve wiki links (default)
   - [ ] Rewrite to markdown links
   - [ ] Rewrite to section anchors
@@ -256,24 +309,33 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] `qipu compact apply <digest-id> --note <id>...` - register compaction
   - [ ] `--notes-file <file>` - read IDs from file
   - [ ] `--from-stdin` - read IDs from stdin
+  - [ ] Idempotent (re-applying same set creates no duplicates)
+  - [ ] Deterministic ordering in stored representation
 - [ ] `qipu compact show <digest-id>` - show compaction set
   - [ ] `--compaction-depth <n>` - depth-limited compaction tree view
+  - [ ] Output includes: `compacts=<N>`, `compaction=<P%>` metrics
 - [ ] `qipu compact status <id>` - show compaction relationships
+  - [ ] Output fields: canonical digest (`canon(id)`), direct compactor (if any), direct compacted set (if digest)
 - [ ] `qipu compact report <digest-id>` - compaction quality metrics
+  - [ ] Output fields: `compacts_direct_count`, `compaction_pct`, boundary edge ratio, staleness indicator, conflicts/cycles
   - [ ] Boundary edge ratio metric
   - [ ] Staleness indicator (sources updated after digest)
 - [ ] `qipu compact suggest` - suggest compaction candidates
-  - [ ] Detailed JSON output shape per spec
+  - [ ] JSON output fields: `ids[]`, node/edge counts, estimated size, boundary edge ratio, suggested command skeleton
 - [ ] `qipu compact guide` - print compaction guidance for LLMs
   - [ ] Include prompt template for digest authoring
+  - [ ] Guidance content: how to choose candidate, review summaries, author digest, register compaction, validate
 - [ ] **Output annotations**: `compacts=<N>`, `compaction=<P%>`, `via=<id>` (in human, `--json`, and `--token` modes)
 - [ ] **Global flags** (affect `show`, `search`, `context`, `link tree`, etc.):
   - [ ] `--no-resolve-compaction` - disable canonicalization, show all notes
+    - [ ] In search: return raw matching notes without redirecting to digest
   - [ ] `--with-compaction-ids` - include compacted note IDs in output
   - [ ] `--compaction-depth <n>` - depth of compaction expansion
   - [ ] `--expand-compaction` - include compacted source note bodies
   - [ ] `--compaction-max-nodes <n>` - optional bound on expansion
 - [ ] **Metrics**: compaction percent calculation, size estimation
+  - [ ] Size basis: summary-sized estimates with `ceil(chars/4)` token heuristic
+  - [ ] (Optional) Depth-aware metrics (compaction percent at depth N)
 - [ ] **Search/traversal behavior**: When search matches compacted note, show `via=<id>` annotation
 
 ---

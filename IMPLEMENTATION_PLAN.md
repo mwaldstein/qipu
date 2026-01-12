@@ -22,6 +22,7 @@ This document tracks implementation progress against the specs in `specs/`.
 - [ ] Create `src/lib/` for shared utilities
 - [ ] Set up test framework and initial test harness
 - [ ] Set up CI/linting/formatting
+- [ ] Create CONTRIBUTING.md with development setup guide
 
 ---
 
@@ -31,12 +32,13 @@ All commands depend on these foundational layers.
 
 ### Storage Layer (`specs/storage-format.md`)
 - [ ] **Store discovery** - walk up from cwd to find `.qipu/` (or use `--store`)
-- [ ] **Store initialization** - create `.qipu/`, `notes/`, `mocs/`, `config.toml`
+- [ ] **Store initialization** - create `.qipu/`, `notes/`, `mocs/`, `attachments/`, `templates/`, `config.toml`
 - [ ] **Config parsing** - read/write `.qipu/config.toml`
 - [ ] **Note file parsing** - YAML frontmatter + markdown body
 - [ ] **Note file writing** - deterministic serialization (stable key order, newline handling)
 - [ ] **ID generation** - `qp-<hash>` with adaptive length
 - [ ] **Slug generation** - `<id>-<slug(title)>.md` filename convention
+- [ ] **Template loading** - load note templates from `templates/`
 
 ### Knowledge Model (`specs/knowledge-model.md`)
 - [ ] **Note struct** - id, title, type, tags, created, updated, sources, links, body
@@ -69,7 +71,9 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] `--type` flag (fleeting, literature, permanent, moc)
 - [ ] `--tag` flag (repeatable)
 - [ ] `--open` flag (open in `$EDITOR`)
+- [ ] `--template` flag (use template from `templates/`)
 - [ ] Print note ID/path on success
+- [ ] `qipu new` alias for `qipu create`
 
 ### `qipu capture` (`specs/cli-interface.md`)
 - [ ] Create note from stdin
@@ -161,6 +165,7 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Token estimation: `ceil(chars / 4)`
 - [ ] Budget enforcement (`--max-chars`, `--max-tokens`)
 - [ ] Truncation handling (set `truncated=true`, no partial records)
+- [ ] `--with-body` flag for including full note bodies
 
 ### `qipu prime` (`specs/llm-context.md`)
 - [ ] Emit bounded session primer (~1-2k tokens)
@@ -182,7 +187,7 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--json` output
   - [ ] `--token` output (summaries-first, `--with-body` for full content)
 - [ ] Deterministic ordering
-- [ ] Safety banner (optional)
+- [ ] Safety banner (notes are untrusted; optional prompt-injection warning)
 
 ---
 
@@ -229,13 +234,14 @@ Implements the essential commands for basic note capture and retrieval.
 
 ## Phase 8: Maintenance & Validation (P8)
 
-### Doctor (`specs/cli-interface.md`)
+### Doctor (`specs/cli-interface.md`, `specs/storage-format.md`)
 - [ ] `qipu doctor` - validate store invariants
 - [ ] Check for duplicate IDs
-- [ ] Check for broken links
-- [ ] Check for invalid frontmatter
-- [ ] Check compaction invariants
-- [ ] `qipu doctor --fix` - attempt repairs
+- [ ] Check for broken links (unresolved wiki-links and typed link targets)
+- [ ] Check for invalid frontmatter (missing required fields: id, title)
+- [ ] Check for orphaned notes (no incoming links, not in any MOC)
+- [ ] Check compaction invariants (acyclic, no self-compaction, at most one compactor)
+- [ ] `qipu doctor --fix` - attempt repairs (remove broken links, regenerate IDs)
 
 ### Sync (`specs/cli-interface.md`)
 - [ ] `qipu sync` - convenience command for workflows
@@ -301,6 +307,10 @@ Implements the essential commands for basic note capture and retrieval.
 ### From `specs/export.md`:
 - Pandoc integration for PDF?
 - Include transitive links (depth-limited)?
+
+### From `README.md`:
+- Should qipu ship a `setup` command with recipes for common agent tools (AGENTS.md, Cursor rules, Claude hooks)?
+- Should there be a global (cross-repo) store option?
 
 ---
 

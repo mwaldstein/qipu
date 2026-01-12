@@ -257,6 +257,7 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--notes-file <file>` - read IDs from file
   - [ ] `--from-stdin` - read IDs from stdin
 - [ ] `qipu compact show <digest-id>` - show compaction set
+  - [ ] `--compaction-depth <n>` - depth-limited compaction tree view
 - [ ] `qipu compact status <id>` - show compaction relationships
 - [ ] `qipu compact report <digest-id>` - compaction quality metrics
   - [ ] Boundary edge ratio metric
@@ -264,7 +265,8 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] `qipu compact suggest` - suggest compaction candidates
   - [ ] Detailed JSON output shape per spec
 - [ ] `qipu compact guide` - print compaction guidance for LLMs
-- [ ] **Output annotations**: `compacts=<N>`, `compaction=<P%>`, `via=<id>`
+  - [ ] Include prompt template for digest authoring
+- [ ] **Output annotations**: `compacts=<N>`, `compaction=<P%>`, `via=<id>` (in human, `--json`, and `--token` modes)
 - [ ] **Global flags** (affect `show`, `search`, `context`, `link tree`, etc.):
   - [ ] `--no-resolve-compaction` - disable canonicalization, show all notes
   - [ ] `--with-compaction-ids` - include compacted note IDs in output
@@ -355,6 +357,10 @@ Implements the essential commands for basic note capture and retrieval.
 ### From `README.md`:
 - Should qipu ship a `setup` command with recipes for common agent tools (AGENTS.md, Cursor rules, Claude hooks)?
 - Should there be a global (cross-repo) store option?
+
+### From `docs/workflows.md`:
+- Should qipu provide a first-class "promote" command (fleeting -> permanent)?
+- Should qipu support per-repo and global stores simultaneously?
 
 ---
 

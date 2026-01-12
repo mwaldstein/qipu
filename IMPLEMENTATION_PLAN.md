@@ -5,6 +5,8 @@ Last updated: 2026-01-12
 
 This document tracks implementation progress against the specs in `specs/`.
 
+**Implementation Status**: No implementation code exists yet. All items below are pending.
+
 ---
 
 ## Phase 0: Project Bootstrap (P0 - Critical Path)
@@ -34,8 +36,13 @@ All commands depend on these foundational layers.
 - [ ] **Store discovery** - walk up from cwd to find `.qipu/` (or use `--store`)
 - [ ] **Store initialization** - create `.qipu/`, `notes/`, `mocs/`, `attachments/`, `templates/`, `config.toml`
 - [ ] **Config parsing** - read/write `.qipu/config.toml`
+  - [ ] `format_version` field (for forward compatibility)
+  - [ ] `id_scheme` field (`hash` | `ulid` | `timestamp`)
+  - [ ] `default_note_type` field
+  - [ ] `editor` field (editor preference override)
 - [ ] **Note file parsing** - YAML frontmatter + markdown body
 - [ ] **Note file writing** - deterministic serialization (stable key order, newline handling)
+  - [ ] Preserve newline style (avoid unnecessary file rewrites)
 - [ ] **ID generation** - `qp-<hash>` with adaptive length
 - [ ] **Slug generation** - `<id>-<slug(title)>.md` filename convention
 - [ ] **Template loading** - load note templates from `templates/`
@@ -48,11 +55,15 @@ All commands depend on these foundational layers.
 - [ ] **Source model** - url, title, accessed
 
 ### CLI Runtime (`specs/cli-tool.md`)
+- [ ] **`--help` flag** - stable help output, exit 0
+- [ ] **`--version` flag** - single line version info, exit 0
 - [ ] **Argument parsing** - global flags (`--store`, `--root`, `--json`, `--token`, `--quiet`, `--verbose`)
+  - [ ] `--json` and `--token` are mutually exclusive
 - [ ] **Command dispatch** - route to subcommand handlers
 - [ ] **Exit codes** - 0 success, 1 failure, 2 usage error, 3 data error
 - [ ] **Error formatting** - human vs `--json` error output
 - [ ] **Output determinism** - ensure stable ordering across all outputs
+- [ ] **Offline operation** - no network access required for normal operation
 
 ---
 
@@ -64,6 +75,7 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Create store at default or specified location
 - [ ] `--stealth` mode (gitignore the store)
 - [ ] `--visible` mode (use `qipu/` instead of `.qipu/`)
+- [ ] `--branch <name>` (optional protected-branch workflow configuration)
 - [ ] Idempotent (safe to run multiple times)
 
 ### `qipu create` / `qipu new` (`specs/cli-interface.md`)
@@ -85,6 +97,7 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Resolve ID or path to note file
 - [ ] Print note content to stdout
 - [ ] `--json` output format
+- [ ] `--links` flag - show links for the note (per `knowledge-model.md`)
 
 ### `qipu list` (`specs/cli-interface.md`)
 - [ ] List all notes
@@ -113,12 +126,16 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] `qipu search <query>` - full-text search in title + body
 - [ ] `--tag` filter
 - [ ] `--type` filter
+- [ ] `--moc` / `--no-moc` filter - include/exclude MOCs from results
 - [ ] `--json` output
 - [ ] Result ranking (title > body, exact tag > text, recency boost)
+- [ ] (Optional) ripgrep integration if available
+- [ ] (Optional) SQLite FTS if `.qipu/qipu.db` is present
 
 ### `qipu inbox` (`specs/cli-interface.md`)
 - [ ] List unprocessed notes (type in {fleeting, literature})
-- [ ] Option to exclude notes already in a MOC
+- [ ] `--no-moc` flag - exclude notes already linked into a MOC
+- [ ] `--json` output
 
 ---
 
@@ -132,22 +149,29 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--typed-only` / `--inline-only`
   - [ ] `--type <t>` filter
   - [ ] `--json` output
+  - [ ] `--token` output
 
 ### Graph Traversal (`specs/graph-traversal.md`)
 - [ ] `qipu link tree <id>` - traversal tree from note
   - [ ] `--direction <out|in|both>` (default: both)
   - [ ] `--max-depth <n>` (default: 3)
-  - [ ] `--type <t>` filter (repeatable)
-  - [ ] `--exclude-type <t>` filter
+  - [ ] `--type <t>` / `--types <csv>` filter (repeatable)
+  - [ ] `--exclude-type <t>` / `--exclude-types <csv>` filter
   - [ ] `--typed-only` / `--inline-only`
   - [ ] `--max-nodes <n>` (optional)
+  - [ ] `--max-edges <n>` (optional cap on edges emitted)
+  - [ ] `--max-children <n>` (optional cap per expanded node)
   - [ ] Cycle detection (mark visited nodes as "(seen)")
   - [ ] Deterministic BFS ordering (sort by edge type, then target id)
-  - [ ] `--json` output (nodes[], edges[], spanning_tree[])
+  - [ ] `--json` output
+    - [ ] `nodes[]`, `edges[]`, `spanning_tree[]` fields
+    - [ ] Edge `source` field: `"inline"` | `"typed"`
+  - [ ] `--token` output
   - [ ] Truncation reporting when limits hit
 - [ ] `qipu link path <from> <to>` - find path between notes
   - [ ] `--direction`, `--max-depth`, `--typed-only`, `--inline-only` flags
   - [ ] `--json` output
+  - [ ] `--token` output
 
 ---
 
@@ -180,12 +204,16 @@ Implements the essential commands for basic note capture and retrieval.
   - [ ] `--note <id>` (repeatable)
   - [ ] `--tag <tag>`
   - [ ] `--moc <id>` (include MOC + linked notes)
+    - [ ] Support both direct list and transitive closure modes
   - [ ] `--query <text>` (search-based selection)
+  - [ ] `--walk <id> --max-depth <n>` (graph traversal shortcut, optional future feature)
 - [ ] Budgeting: `--max-chars`, `--max-tokens`
 - [ ] Output formats:
   - [ ] Default: markdown bundle with metadata headers
-  - [ ] `--json` output
+  - [ ] `--json` output (with `generated_at`, `store`, `notes[]` including `content` and `sources[]`)
   - [ ] `--token` output (summaries-first, `--with-body` for full content)
+- [ ] Truncation handling
+  - [ ] Explicit truncation marker (e.g., `…[truncated]`) when notes are cut
 - [ ] Deterministic ordering
 - [ ] Safety banner (notes are untrusted; optional prompt-injection warning)
 
@@ -198,12 +226,16 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] Bundle export (concatenate notes)
 - [ ] Outline export (MOC-driven ordering)
 - [ ] Bibliography export (extract sources)
+  - [ ] (Future) BibTeX/CSL JSON format support
 - [ ] Selection inputs: `--note`, `--tag`, `--moc`, `--query`
 - [ ] Deterministic ordering (MOC order or created_at, id)
 - [ ] Link handling options:
-  - [ ] Preserve wiki links
+  - [ ] Preserve wiki links (default)
   - [ ] Rewrite to markdown links
   - [ ] Rewrite to section anchors
+- [ ] Attachment handling:
+  - [ ] `--no-attachments` (default - don't copy)
+  - [ ] `--attachments <dir>` - copy attachments to export folder
 - [ ] `--json` output
 
 ---
@@ -215,20 +247,32 @@ Implements the essential commands for basic note capture and retrieval.
 - [ ] **Compaction edges** - `digest -> source` relationships
 - [ ] **Canonicalization** - `canon(id)` function following compaction chains
 - [ ] **Contracted graph** - effective graph after canonicalization
+- [ ] **Visibility rules** - compacted notes hidden by default in resolved view
 - [ ] **Invariant enforcement**:
   - [ ] At most one compactor per note
   - [ ] Acyclic compaction
   - [ ] No self-compaction
   - [ ] All referenced IDs resolve
 - [ ] `qipu compact apply <digest-id> --note <id>...` - register compaction
+  - [ ] `--notes-file <file>` - read IDs from file
+  - [ ] `--from-stdin` - read IDs from stdin
 - [ ] `qipu compact show <digest-id>` - show compaction set
 - [ ] `qipu compact status <id>` - show compaction relationships
 - [ ] `qipu compact report <digest-id>` - compaction quality metrics
+  - [ ] Boundary edge ratio metric
+  - [ ] Staleness indicator (sources updated after digest)
 - [ ] `qipu compact suggest` - suggest compaction candidates
+  - [ ] Detailed JSON output shape per spec
 - [ ] `qipu compact guide` - print compaction guidance for LLMs
 - [ ] **Output annotations**: `compacts=<N>`, `compaction=<P%>`, `via=<id>`
-- [ ] **Flags**: `--no-resolve-compaction`, `--with-compaction-ids`, `--compaction-depth <n>`, `--expand-compaction`
+- [ ] **Global flags** (affect `show`, `search`, `context`, `link tree`, etc.):
+  - [ ] `--no-resolve-compaction` - disable canonicalization, show all notes
+  - [ ] `--with-compaction-ids` - include compacted note IDs in output
+  - [ ] `--compaction-depth <n>` - depth of compaction expansion
+  - [ ] `--expand-compaction` - include compacted source note bodies
+  - [ ] `--compaction-max-nodes <n>` - optional bound on expansion
 - [ ] **Metrics**: compaction percent calculation, size estimation
+- [ ] **Search/traversal behavior**: When search matches compacted note, show `via=<id>` annotation
 
 ---
 
@@ -330,21 +374,39 @@ Phase 2 (Core Commands) -- MVP
 Phase 3 (Indexing) -- required by P4, P5
     |
     +-----> Phase 4 (Graph Traversal)
-    |
-    +-----> Phase 5 (LLM Integration) -- core value prop
-    |
+    |              |
+    +--------------+-----> Phase 5 (LLM Integration) -- core value prop
+    |                      (depends on P4 for MOC transitive closure)
     v
 Phase 6 (Export)
     |
     v
 Phase 7 (Compaction) -- depends on P3, P4, P5
-    |
+    |                    NOTE: Compaction flags are cross-cutting and will
+    |                    require modifications to P2-P5 commands
     v
 Phase 8 (Maintenance)
     |
     v
 Phase 9 (Setup)
 ```
+
+### Cross-Cutting Concerns
+
+The following features span multiple phases and will require modifications across phases:
+
+1. **Compaction resolution (Phase 7)**
+   - Affects: `qipu show`, `qipu search`, `qipu context`, `qipu link tree/path/list`
+   - Global flags (`--no-resolve-compaction`, `--expand-compaction`, etc.) must be added to commands in P2-P5
+   - Plan for this when implementing those commands
+
+2. **Token output format (Phase 5)**
+   - Affects: `qipu link list/tree/path` (P4), `qipu prime`, `qipu context`
+   - The `--token` flag should be planned during P4 implementation
+
+3. **Deterministic output**
+   - All phases: ensure stable ordering in lists, JSON arrays, token output
+   - Required for golden tests and LLM reproducibility
 
 ### Testing Strategy
 - Unit tests for all `src/lib/` utilities

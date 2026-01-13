@@ -20,9 +20,11 @@ This document tracks implementation progress against the specs in `specs/`.
 
 **Phase 4 (Link Management & Graph Traversal)**: COMPLETED
 
-**Testing**: 83 unit tests passing
+**Phase 5 (LLM Integration)**: COMPLETED
 
-**Next Steps**: Phase 5 (LLM Integration)
+**Testing**: 103 unit tests passing
+
+**Next Steps**: Phase 6 (Export)
 
 ---
 
@@ -166,25 +168,25 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ---
 
-## Phase 5: LLM Integration (P5)
+## Phase 5: LLM Integration (P5) - COMPLETED
 
 ### Token-Optimized Output (`specs/token-optimized-output.md`)
 
-- [ ] `--token` output format
-- [ ] Record types: H (header), N (note), S (summary), E (edge), B (body)
-- [ ] Budget enforcement (`--max-chars`, `--max-tokens`)
-- [ ] `--with-body` flag
+- [x] `--token` output format (line-oriented, H/N/S/E/B records)
+- [x] Record types: H (header), N (note), S (summary), E (edge), B (body)
+- [x] Budget enforcement (`--max-chars`, `--max-tokens`)
+- [x] `--with-body` flag
 
 ### `qipu prime` (`specs/llm-context.md`)
 
-- [ ] Emit bounded session primer (~1-2k tokens)
-- [ ] `--json` and `--token` output
+- [x] Emit bounded session primer (~1-2k tokens)
+- [x] `--json` and `--token` output
 
 ### `qipu context` (`specs/llm-context.md`)
 
-- [ ] Bundle selection (`--note`, `--tag`, `--moc`, `--query`)
-- [ ] Budgeting (`--max-chars`, `--max-tokens`)
-- [ ] Output formats (markdown, `--json`, `--token`)
+- [x] Bundle selection (`--note`, `--tag`, `--moc`, `--query`)
+- [x] Budgeting (`--max-chars`, `--max-tokens`)
+- [x] Output formats (markdown, `--json`, `--token`)
 
 ---
 
@@ -256,7 +258,7 @@ Phase 3 (Indexing) - DONE
     |
     +-----> Phase 4 (Graph Traversal) - DONE
     |              |
-    +--------------+-----> Phase 5 (LLM Integration)
+    +--------------+-----> Phase 5 (LLM Integration) - DONE
     |
     v
 Phase 6 (Export)

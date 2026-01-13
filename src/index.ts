@@ -57,3 +57,19 @@ export {
 
 // Re-export indexing types
 export type { NoteMetadata, GraphEdge, StoreIndex } from "./lib/indexing.js";
+
+// Re-export token output utilities
+export {
+  formatHeader,
+  formatNoteRecord,
+  formatSummaryRecord,
+  formatEdgeRecord,
+  formatBodyRecords,
+  formatTokenContext,
+  formatTokenTraversal,
+  formatTokenPrimer,
+  getSummary,
+  estimateTokens,
+  TokenOutputBuilder,
+  TOKEN_VERSION,
+} from "./lib/token-output.js";

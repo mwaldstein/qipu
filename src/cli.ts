@@ -17,6 +17,8 @@ import { indexCommand } from "./commands/index.js";
 import { inboxCommand } from "./commands/inbox.js";
 import { searchCommand } from "./commands/search.js";
 import { linkCommand } from "./commands/link.js";
+import { primeCommand } from "./commands/prime.js";
+import { contextCommand } from "./commands/context.js";
 
 const VERSION = "0.0.0";
 
@@ -52,6 +54,8 @@ program.addCommand(indexCommand);
 program.addCommand(inboxCommand);
 program.addCommand(searchCommand);
 program.addCommand(linkCommand);
+program.addCommand(primeCommand);
+program.addCommand(contextCommand);
 
 // Handle unknown commands
 program.on("command:*", () => {

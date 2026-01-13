@@ -135,6 +135,41 @@ pub enum Commands {
 
     /// Output session-start primer for LLM agents
     Prime,
+
+    /// Build context bundle for LLM integration
+    Context {
+        /// Select notes by ID (can be repeated)
+        #[arg(long, short = 'n', action = clap::ArgAction::Append)]
+        note: Vec<String>,
+
+        /// Select notes by tag
+        #[arg(long)]
+        tag: Option<String>,
+
+        /// Select notes linked from a MOC
+        #[arg(long, short = 'm')]
+        moc: Option<String>,
+
+        /// Select notes by search query
+        #[arg(long)]
+        query: Option<String>,
+
+        /// Maximum output characters (exact budget)
+        #[arg(long)]
+        max_chars: Option<usize>,
+
+        /// Follow nested MOC links transitively
+        #[arg(long)]
+        transitive: bool,
+
+        /// Include full note body content (records format)
+        #[arg(long)]
+        with_body: bool,
+
+        /// Include safety banner for LLM prompt injection prevention
+        #[arg(long)]
+        safety_banner: bool,
+    },
 }
 
 /// Link subcommands

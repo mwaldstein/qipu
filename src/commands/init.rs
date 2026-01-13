@@ -45,7 +45,14 @@ pub fn execute(
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        OutputFormat::Human | OutputFormat::Records => {
+        OutputFormat::Records => {
+            // Header line per spec (specs/records-output.md)
+            println!(
+                "H qipu=1 records=1 store={} mode=init status=ok",
+                store.root().display()
+            );
+        }
+        OutputFormat::Human => {
             println!("Initialized qipu store at {}", store.root().display());
         }
     }

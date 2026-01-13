@@ -12,6 +12,7 @@ use serde::Serialize;
 use walkdir::WalkDir;
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::IndexBuilder;
 use crate::lib::note::Note;
@@ -129,7 +130,10 @@ pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<()> {
     // 6. Check for required frontmatter fields
     check_required_fields(&notes, &mut result);
 
-    // 7. If fix requested, attempt repairs
+    // 7. Check compaction invariants
+    check_compaction_invariants(&notes, &mut result);
+
+    // 8. If fix requested, attempt repairs
     if fix {
         result.fixed_count = attempt_fixes(store, &mut result)?;
     }
@@ -350,6 +354,44 @@ fn check_required_fields(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Check compaction invariants
+/// Per spec (specs/compaction.md):
+/// - At most one compactor per note
+/// - No cycles in compaction chains
+/// - No self-compaction
+/// - All compaction references resolve to existing notes
+fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
+    // Build compaction context - this enforces "at most one compactor" invariant
+    let compaction_ctx = match CompactionContext::build(notes) {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            // Multiple compactors error caught during build
+            result.add_issue(Issue {
+                severity: Severity::Error,
+                category: "compaction-invariant".to_string(),
+                message: e.to_string(),
+                note_id: None,
+                path: None,
+                fixable: false, // Requires manual resolution
+            });
+            return; // Can't continue validation without valid context
+        }
+    };
+
+    // Validate all compaction invariants
+    let errors = compaction_ctx.validate(notes);
+    for error in errors {
+        result.add_issue(Issue {
+            severity: Severity::Error,
+            category: "compaction-invariant".to_string(),
+            message: error,
+            note_id: None,
+            path: None,
+            fixable: false, // Requires manual resolution of compaction relationships
+        });
+    }
+}
+
 /// Attempt to fix issues that are marked as fixable
 fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> {
     let mut fixed = 0;
@@ -557,5 +599,115 @@ mod tests {
         // Should find both broken links
         assert!(result.error_count >= 1); // Typed link is an error
         assert!(result.warning_count >= 1); // Inline link is a warning
+    }
+
+    #[test]
+    fn test_doctor_compaction_cycle() {
+        use crate::lib::note::NoteFrontmatter;
+
+        // Create two notes that compact each other (cycle)
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.compacts = vec!["qp-2".to_string()];
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        // Should detect cycle
+        assert!(result.error_count > 0);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "compaction-invariant" && i.message.contains("cycle")));
+    }
+
+    #[test]
+    fn test_doctor_compaction_self_compaction() {
+        use crate::lib::note::NoteFrontmatter;
+
+        // Create note that compacts itself
+        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        // Should detect self-compaction
+        assert!(result.error_count > 0);
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.category == "compaction-invariant"
+                    && i.message.contains("compacts itself"))
+        );
+    }
+
+    #[test]
+    fn test_doctor_compaction_multiple_compactors() {
+        use crate::lib::note::NoteFrontmatter;
+
+        // Create two digests that both compact the same note
+        let mut digest1 = NoteFrontmatter::new("qp-d1".to_string(), "Digest 1".to_string());
+        digest1.compacts = vec!["qp-1".to_string()];
+
+        let mut digest2 = NoteFrontmatter::new("qp-d2".to_string(), "Digest 2".to_string());
+        digest2.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![
+            Note::new(
+                NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                String::new(),
+            ),
+            Note::new(digest1, String::new()),
+            Note::new(digest2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        // Should detect multiple compactors
+        assert!(result.error_count > 0);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "compaction-invariant"
+                && i.message.contains("multiple compactors")));
+    }
+
+    #[test]
+    fn test_doctor_compaction_valid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        // Create valid compaction: digest compacts two notes
+        let mut digest = NoteFrontmatter::new("qp-digest".to_string(), "Digest".to_string());
+        digest.compacts = vec!["qp-1".to_string(), "qp-2".to_string()];
+
+        let notes = vec![
+            Note::new(
+                NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                String::new(),
+            ),
+            Note::new(
+                NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string()),
+                String::new(),
+            ),
+            Note::new(digest, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        // Should have no errors
+        assert_eq!(result.error_count, 0);
     }
 }

@@ -4,7 +4,8 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
-- **P8.1 & P8.2 Compaction PARTIALLY COMPLETE**: Implemented core compaction model and commands. COMPLETE: `compacts` frontmatter field, CompactionContext with canon() for following chains to topmost digest, cycle detection in canonicalization, multiple compactor detection, validation of all compaction invariants. Commands: `compact apply`, `compact show`, `compact status`, `compact guide` all functional with all three output formats. Idempotent apply, deterministic ordering. NOT YET IMPLEMENTED: `compact report` (quality metrics), `compact suggest` (clustering), integration with existing commands (visibility flags, search annotations, contracted graph), doctor validation.
+- **P9.1 Doctor Compaction Validation COMPLETE**: Implemented compaction invariant validation in doctor command. Doctor now checks for cycles, multiple compactors, self-compaction, and unresolved compaction references. Added 4 unit tests and 2 integration tests for compaction validation. Total test count now 158 (60 unit + 98 integration), all passing. Fixed unused method warning in compaction.rs.
+- **P8.1 & P8.2 Compaction PARTIALLY COMPLETE**: Implemented core compaction model and commands. COMPLETE: `compacts` frontmatter field, CompactionContext with canon() for following chains to topmost digest, cycle detection in canonicalization, multiple compactor detection, validation of all compaction invariants. Commands: `compact apply`, `compact show`, `compact status`, `compact guide` all functional with all three output formats. Idempotent apply, deterministic ordering. NOT YET IMPLEMENTED: `compact report` (quality metrics), `compact suggest` (clustering), integration with existing commands (visibility flags, search annotations, contracted graph).
 - **P6.2 Context Command - Records Output COMPLETE**: Records format for context was already fully implemented. All features complete: `--format records` support, H (header) lines with mode/store/notes count/truncated flag, N (note metadata) lines with id/type/title/tags/path, S (summary) lines, B (body) lines with B-END terminator, `--with-body` flag for including full body content. Additionally implemented source support using D (diagnostic/data) lines with format: `D source url={url} title="{title}" accessed={date} from={note_id}`. Added comprehensive integration test `test_context_records_with_body_and_sources`. Phase 6.2 is now complete.
 - **Fixed unused assignment warning in link.rs**: The `budget_truncated` variable is now properly used in the header output for `qipu link path` records format (line 1245 in src/commands/link.rs). Added `truncated=` field to the header line.
 - **P4.3 Traversal Summary Lines**: Implemented summary lines (S records) in `qipu link tree` and `qipu link path` records output with `--max-chars` budget enforcement (10% safety buffer). Uses existing Note::summary() method with deterministic first-fit allocation. All 95 integration tests + 50 unit tests pass.
@@ -452,7 +453,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Check for duplicate IDs
 - [x] Check for broken links
 - [x] Check for invalid frontmatter
-- [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts) — NOT YET IMPLEMENTED
+- [x] Check for compaction invariant violations (cycles, multi-compactor conflicts, self-compaction, unresolved references)
 - [x] `qipu doctor --fix` - auto-repair where possible
 - [x] Handle corrupted stores: `Store::open_unchecked()` bypasses validation to allow diagnosis
 - [x] Fix missing config files: doctor can now repair stores with missing `config.toml`
@@ -472,6 +473,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `--help` < 100ms
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
+
+**Current test count**: 158 tests (60 unit + 98 integration), all passing
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

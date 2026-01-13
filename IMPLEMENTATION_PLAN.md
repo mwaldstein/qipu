@@ -4,6 +4,8 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.4 Attachments Guidance COMPLETE**: Created comprehensive documentation in docs/attachments.md covering organization, best practices, size guidelines, git integration, and common workflows. Updated literature template with attachment reference examples. Phase 1.4 now fully documented.
+- **P1.4 & P3.2 Storage Format Verification COMPLETE**: Verified and documented that notes are readable/editable without qipu (plain markdown + YAML frontmatter), multi-agent ID collision prevention works (ULID scheme for true collision resistance, hash scheme with timestamp+random for probabilistic resistance), and external links are properly ignored (markdown link extraction filters for qp- pattern). Updated IMPLEMENTATION_PLAN to reflect actual implementation status.
 - **P8.2 Compact Suggest Command COMPLETE**: Implemented `qipu compact suggest` with connected component clustering using density filtering (cohesion threshold 30%, minimum 3 nodes per cluster). Ranks candidates by composite score: size + cohesion + boundary penalty + node count. All three output formats supported (human, json, records). Human output suggests the exact command to apply compaction. Added comprehensive integration test `test_compact_suggest` in tests/cli_tests.rs. Total test count: 164 (60 unit + 104 integration), ALL PASSING.
 - **P4.3 Link List Summary Lines COMPLETE**: Implemented summary lines (S records) for `qipu link list` Records output. When outputting links in Records format, the command now includes N (node metadata) and S (summary) lines for each unique linked note before the E (edge) lines. Follows the same pattern as link tree and link path commands. All 163 tests passing.
 - **P8.2 Compact Report Command COMPLETE**: Implemented `qipu compact report` with comprehensive quality metrics: `compacts_direct_count` (direct source count), `compaction_pct` (size reduction percentage), boundary edge ratio (links from sources pointing outside compaction set), staleness indicator (checks if sources were updated after digest), conflicts/cycles detection (compaction invariant violations). All three output formats supported (human, json, records). Added comprehensive integration test `test_compact_report` in tests/cli_tests.rs. Total test count: 163 (60 unit + 103 integration), ALL PASSING. Note: `qipu compact suggest` remains NOT YET IMPLEMENTED.
@@ -103,7 +105,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Template guidance: encourage link context (explain *why* links exist, not bare lists) - implemented in permanent.md template
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
 - [x] Note file parser (YAML frontmatter + markdown body)
-- [ ] Notes readable and editable without qipu (design constraint)
+- [x] Notes readable and editable without qipu (verified - plain markdown with YAML frontmatter; requires id/title fields for parsing)
 - [x] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [x] Required frontmatter fields: `id`, `title` (parser returns `InvalidFrontmatter` error if missing; also validated by doctor command)
 - [x] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
@@ -111,13 +113,13 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
  - [x] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [x] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
 - [x] ID scheme alternatives: support `ulid` and `timestamp` modes via config
-- [ ] Multi-agent/multi-branch ID collision prevention
+- [x] Multi-agent/multi-branch ID collision prevention (ULID scheme provides cryptographic collision resistance; hash scheme provides probabilistic resistance with timestamp+random suffix)
 - [x] Filename format: `<id>-<slug(title)>.md`
 - [x] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
  - [x] Wiki-link resolution works without rewriting (rewrite is opt-in only)
 - [x] Markdown link resolution to qipu notes
 - [x] Absence of caches must not break core workflows
-- [ ] Attachments guidance: prefer relative markdown links, avoid embedding huge binaries
+- [x] Attachments guidance: comprehensive documentation added in docs/attachments.md; literature template updated with examples
 
 ## Phase 2: Core Note Operations
 
@@ -177,7 +179,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Typed links preserve their explicit type and set `source=typed`
 - [x] Distinguish link source in all outputs: `inline` vs `typed`
 - [x] Track unresolved links for `doctor` reporting
-- [ ] Ignore links outside the store by default
+- [x] Ignore links outside the store by default (verified - markdown link extraction filters for qp- pattern; HTTP/HTTPS URLs and non-note paths are skipped)
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
 
 ### P3.3 Search (`specs/indexing-search.md`, `specs/cli-interface.md`)

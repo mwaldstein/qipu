@@ -1,0 +1,183 @@
+//! `qipu capture` command - create a new note from stdin
+//!
+//! Per spec (specs/cli-interface.md):
+//! - Creates a new note with content read from stdin
+//! - `--title` flag (auto-generate from content if not provided)
+//! - `--type` flag (default: fleeting per spec open question)
+//! - `--tag` flag (repeatable)
+//!
+//! Example usage:
+//! - `pbpaste | qipu capture --type fleeting --tag docs`
+//! - `qipu capture --title "Thoughts on indexing" < notes.txt`
+
+use std::io::{self, Read};
+
+use crate::cli::{Cli, OutputFormat};
+use crate::lib::error::Result;
+use crate::lib::note::NoteType;
+use crate::lib::store::Store;
+
+/// Execute the capture command
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    title: Option<&str>,
+    note_type: Option<NoteType>,
+    tags: &[String],
+) -> Result<()> {
+    // Read content from stdin
+    let mut content = String::new();
+    io::stdin().read_to_string(&mut content)?;
+
+    // Trim trailing whitespace but preserve internal formatting
+    let content = content.trim_end();
+
+    // Generate title from content if not provided
+    let title = match title {
+        Some(t) => t.to_string(),
+        None => generate_title_from_content(content),
+    };
+
+    // Default type is fleeting for captures (per spec open question)
+    let note_type = note_type.or(Some(NoteType::Fleeting));
+
+    // Create note with the captured content
+    let note = store.create_note_with_content(&title, note_type, tags, content)?;
+
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "id": note.id(),
+                "title": note.title(),
+                "type": note.note_type().to_string(),
+                "path": note.path.as_ref().map(|p| p.display().to_string()),
+                "tags": note.frontmatter.tags,
+                "created": note.frontmatter.created,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Human => {
+            println!("{}", note.id());
+            if cli.verbose {
+                if let Some(path) = &note.path {
+                    println!("Captured: {}", path.display());
+                }
+            }
+        }
+        OutputFormat::Records => {
+            // Records format: N <id> <type> "<title>" tags=<csv>
+            let tags_csv = note.frontmatter.tags.join(",");
+            println!(
+                "N {} {} \"{}\" tags={}",
+                note.id(),
+                note.note_type(),
+                note.title(),
+                tags_csv
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Generate a title from the content
+///
+/// Uses the first non-empty line, truncated to reasonable length.
+/// Falls back to "Untitled capture" if content is empty.
+fn generate_title_from_content(content: &str) -> String {
+    const MAX_TITLE_LENGTH: usize = 60;
+
+    // Find first non-empty, non-heading line
+    for line in content.lines() {
+        let line = line.trim();
+
+        // Skip empty lines
+        if line.is_empty() {
+            continue;
+        }
+
+        // Skip markdown headings (we want content, not structure)
+        if line.starts_with('#') {
+            // But extract heading text if it's the only content
+            let heading_text = line.trim_start_matches('#').trim();
+            if !heading_text.is_empty() {
+                return truncate_title(heading_text, MAX_TITLE_LENGTH);
+            }
+            continue;
+        }
+
+        // Skip HTML comments
+        if line.starts_with("<!--") {
+            continue;
+        }
+
+        // Use this line as the title
+        return truncate_title(line, MAX_TITLE_LENGTH);
+    }
+
+    "Untitled capture".to_string()
+}
+
+/// Truncate a title to max length, breaking at word boundary if possible
+fn truncate_title(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        return s.to_string();
+    }
+
+    // Try to break at a word boundary
+    let truncated = &s[..max_len];
+    if let Some(last_space) = truncated.rfind(' ') {
+        if last_space > max_len / 2 {
+            return format!("{}...", &s[..last_space]);
+        }
+    }
+
+    format!("{}...", truncated)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_title_simple() {
+        let content = "This is a simple note\nWith multiple lines";
+        assert_eq!(
+            generate_title_from_content(content),
+            "This is a simple note"
+        );
+    }
+
+    #[test]
+    fn test_generate_title_from_heading() {
+        let content = "# My Heading\n\nSome content";
+        assert_eq!(generate_title_from_content(content), "My Heading");
+    }
+
+    #[test]
+    fn test_generate_title_skip_empty() {
+        let content = "\n\n\nActual content";
+        assert_eq!(generate_title_from_content(content), "Actual content");
+    }
+
+    #[test]
+    fn test_generate_title_empty() {
+        assert_eq!(generate_title_from_content(""), "Untitled capture");
+        assert_eq!(generate_title_from_content("   \n\n  "), "Untitled capture");
+    }
+
+    #[test]
+    fn test_generate_title_truncate() {
+        let content = "This is a very long title that should be truncated because it exceeds the maximum allowed length for a note title";
+        let title = generate_title_from_content(content);
+        assert!(title.len() <= 63); // 60 + "..."
+        assert!(title.ends_with("..."));
+    }
+
+    #[test]
+    fn test_truncate_title_word_boundary() {
+        let title = truncate_title("Hello world this is a test", 15);
+        // Should break at "Hello world" (11 chars) + "..."
+        assert_eq!(title, "Hello world...");
+    }
+}

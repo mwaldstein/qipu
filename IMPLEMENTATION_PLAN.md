@@ -91,10 +91,10 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `--open` flag (launch `$EDITOR`)
 - [x] `qipu new` alias for `create`
 - [x] Template support: use `.qipu/templates/<type>.md` if present
-- [ ] `qipu capture` - create note from stdin
-- [ ] `qipu capture --title`
-- [ ] `qipu capture --type` flag (same options as create)
-- [ ] `qipu capture --tag` flag (repeatable, same as create)
+- [x] `qipu capture` - create note from stdin
+- [x] `qipu capture --title`
+- [x] `qipu capture --type` flag (same options as create)
+- [x] `qipu capture --tag` flag (repeatable, same as create)
 - [x] `qipu show <id-or-path>` - print note to stdout
 - [ ] `qipu show --links` - inspect links for a note
   - [ ] Show inline + typed links

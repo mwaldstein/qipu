@@ -90,6 +90,21 @@ pub enum Commands {
         #[arg(long)]
         exclude_linked: bool,
     },
+
+    /// Create a new note from stdin
+    Capture {
+        /// Note title (auto-generated from content if not provided)
+        #[arg(long, short = 't')]
+        title: Option<String>,
+
+        /// Note type
+        #[arg(long, short = 'T', value_parser = parse_note_type)]
+        r#type: Option<NoteType>,
+
+        /// Tags (can be specified multiple times)
+        #[arg(long, action = clap::ArgAction::Append)]
+        tag: Vec<String>,
+    },
 }
 
 #[derive(Args, Debug, Clone)]

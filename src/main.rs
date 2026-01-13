@@ -229,5 +229,25 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
 
             Ok(())
         }
+
+        Some(Commands::Capture { title, r#type, tag }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::capture::execute(cli, &store, title.as_deref(), *r#type, tag)
+        }
     }
 }

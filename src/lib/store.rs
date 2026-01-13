@@ -267,6 +267,44 @@ impl Store {
         Ok(note)
     }
 
+    /// Create a new note with specific content (used by capture command)
+    pub fn create_note_with_content(
+        &self,
+        title: &str,
+        note_type: Option<NoteType>,
+        tags: &[String],
+        content: &str,
+    ) -> Result<Note> {
+        let existing_ids = self.existing_ids()?;
+        let id = NoteId::generate(self.config.id_scheme, title, &existing_ids);
+
+        let note_type = note_type.unwrap_or(self.config.default_note_type);
+        let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())
+            .with_type(note_type)
+            .with_tags(tags.iter().cloned());
+
+        // Use provided content instead of template
+        let note = Note::new(frontmatter, content.to_string());
+
+        // Determine target directory
+        let target_dir = match note_type {
+            NoteType::Moc => self.mocs_dir(),
+            _ => self.notes_dir(),
+        };
+
+        // Write note to disk
+        let file_name = filename(&id, title);
+        let file_path = target_dir.join(&file_name);
+
+        let markdown = note.to_markdown()?;
+        fs::write(&file_path, markdown)?;
+
+        let mut note = note;
+        note.path = Some(file_path);
+
+        Ok(note)
+    }
+
     /// Load a template for a note type
     fn load_template(&self, note_type: NoteType) -> Result<String> {
         let template_name = format!("{}.md", note_type);

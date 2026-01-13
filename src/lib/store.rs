@@ -392,6 +392,21 @@ impl Store {
 
         Err(QipuError::NoteNotFound { id: id.to_string() })
     }
+
+    /// Save an existing note back to disk
+    ///
+    /// The note must have a valid path set.
+    pub fn save_note(&self, note: &Note) -> Result<()> {
+        let path = note
+            .path
+            .as_ref()
+            .ok_or_else(|| QipuError::Other("cannot save note without path".to_string()))?;
+
+        let content = note.to_markdown()?;
+        fs::write(path, content)?;
+
+        Ok(())
+    }
 }
 
 /// Options for store initialization

@@ -7,7 +7,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Implementation Status
 
-**Current Phase**: Phase 3 in progress (Phases 1-2 complete)  
+**Current Phase**: Phase 4 in progress (Phases 1-3 mostly complete)  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
 
@@ -144,6 +144,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
 
 ### P3.3 Search (`specs/indexing-search.md`, `specs/cli-interface.md`)
+*Note: Search is mostly complete; `--include-mocs`/`--exclude-mocs` not yet implemented.*
 - [x] `qipu search <query>` - search titles + bodies
 - [x] Type/tag filters for search (`--type`, `--tag`)
 - [ ] Include/exclude MOCs option (`--include-mocs`, `--exclude-mocs` or similar)
@@ -166,13 +167,13 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 4: Link Management and Graph Traversal
 
 ### P4.1 Link Commands (`specs/cli-interface.md`)
-- [ ] Typed link types: `related`, `derived-from`, `supports`, `contradicts`, `part-of`
-- [ ] `qipu link add <from> <to> --type <t>` - add typed link
-- [ ] `qipu link remove <from> <to> --type <t>` - remove typed link
-- [ ] `qipu link list <id>` - list links for a note
-- [ ] `--direction` flag (out|in|both, default: both)
-- [ ] `--typed-only`, `--inline-only` filters
-- [ ] `--type` filter for specific link types
+- [x] Typed link types: `related`, `derived-from`, `supports`, `contradicts`, `part-of`
+- [x] `qipu link add <from> <to> --type <t>` - add typed link
+- [x] `qipu link remove <from> <to> --type <t>` - remove typed link
+- [x] `qipu link list <id>` - list links for a note
+- [x] `--direction` flag (out|in|both, default: both)
+- [x] `--typed-only`, `--inline-only` filters
+- [x] `--type` filter for specific link types
 
 ### P4.2 Graph Traversal (`specs/graph-traversal.md`)
 - [ ] `qipu link tree <id>` - traversal tree from note

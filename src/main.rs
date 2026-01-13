@@ -16,7 +16,7 @@ use std::time::Instant;
 use chrono::DateTime;
 use clap::Parser;
 
-use cli::{Cli, Commands, OutputFormat};
+use cli::{Cli, Commands, LinkCommands, OutputFormat};
 use lib::error::{ExitCode as QipuExitCode, QipuError};
 use lib::store::Store;
 
@@ -288,6 +288,53 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             }
 
             commands::search::execute(cli, &store, query, *r#type, tag.as_deref())
+        }
+
+        Some(Commands::Link { command }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            match command {
+                LinkCommands::List {
+                    id_or_path,
+                    direction,
+                    r#type,
+                    typed_only,
+                    inline_only,
+                } => {
+                    let dir = direction
+                        .parse::<commands::link::Direction>()
+                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                    commands::link::execute_list(
+                        cli,
+                        &store,
+                        id_or_path,
+                        dir,
+                        r#type.as_deref(),
+                        *typed_only,
+                        *inline_only,
+                    )
+                }
+                LinkCommands::Add { from, to, r#type } => {
+                    commands::link::execute_add(cli, &store, from, to, *r#type)
+                }
+                LinkCommands::Remove { from, to, r#type } => {
+                    commands::link::execute_remove(cli, &store, from, to, *r#type)
+                }
+            }
         }
     }
 }

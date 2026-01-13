@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 pub use crate::lib::format::OutputFormat;
-use crate::lib::note::NoteType;
+use crate::lib::note::{LinkType, NoteType};
 
 /// Qipu - Zettelkasten-inspired knowledge management CLI
 #[derive(Parser, Debug)]
@@ -126,6 +126,64 @@ pub enum Commands {
         #[arg(long, short)]
         tag: Option<String>,
     },
+
+    /// Manage and traverse note links
+    Link {
+        #[command(subcommand)]
+        command: LinkCommands,
+    },
+}
+
+/// Link subcommands
+#[derive(Subcommand, Debug)]
+pub enum LinkCommands {
+    /// List links for a note
+    List {
+        /// Note ID or file path
+        id_or_path: String,
+
+        /// Direction: out, in, or both
+        #[arg(long, short, default_value = "both")]
+        direction: String,
+
+        /// Filter by link type (related, derived-from, supports, contradicts, part-of)
+        #[arg(long, short = 'T')]
+        r#type: Option<String>,
+
+        /// Show only typed links (from frontmatter)
+        #[arg(long)]
+        typed_only: bool,
+
+        /// Show only inline links (from markdown body)
+        #[arg(long)]
+        inline_only: bool,
+    },
+
+    /// Add a typed link between notes
+    Add {
+        /// Source note ID
+        from: String,
+
+        /// Target note ID
+        to: String,
+
+        /// Link type (related, derived-from, supports, contradicts, part-of)
+        #[arg(long, short = 'T', value_parser = parse_link_type, default_value = "related")]
+        r#type: LinkType,
+    },
+
+    /// Remove a typed link between notes
+    Remove {
+        /// Source note ID
+        from: String,
+
+        /// Target note ID
+        to: String,
+
+        /// Link type (related, derived-from, supports, contradicts, part-of)
+        #[arg(long, short = 'T', value_parser = parse_link_type, default_value = "related")]
+        r#type: LinkType,
+    },
 }
 
 #[derive(Args, Debug, Clone)]
@@ -149,6 +207,11 @@ pub struct CreateArgs {
 /// Parse note type from string
 fn parse_note_type(s: &str) -> Result<NoteType, String> {
     s.parse::<NoteType>().map_err(|e| e.to_string())
+}
+
+/// Parse link type from string
+fn parse_link_type(s: &str) -> Result<LinkType, String> {
+    s.parse::<LinkType>().map_err(|e| e.to_string())
 }
 
 // Implement ValueEnum for OutputFormat to work with clap

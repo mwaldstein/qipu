@@ -129,6 +129,10 @@ pub enum Commands {
         /// Filter by tag
         #[arg(long, short)]
         tag: Option<String>,
+
+        /// Exclude MOCs from search results
+        #[arg(long)]
+        exclude_mocs: bool,
     },
 
     /// Manage and traverse note links

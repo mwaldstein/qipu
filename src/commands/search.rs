@@ -19,6 +19,7 @@ pub fn execute(
     query: &str,
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
+    exclude_mocs: bool,
 ) -> Result<()> {
     // Load or build index
     let cache_dir = store.root().join(".cache");
@@ -35,7 +36,12 @@ pub fn execute(
         }
     };
 
-    let results = search(store, &index, query, type_filter, tag_filter)?;
+    let mut results = search(store, &index, query, type_filter, tag_filter)?;
+
+    // Apply exclude_mocs filter if requested
+    if exclude_mocs {
+        results.retain(|r| r.note_type != NoteType::Moc);
+    }
 
     match cli.format {
         OutputFormat::Json => {

@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P3.3 Search**: Implemented `--exclude-mocs` flag to filter MOCs from search results
 - **P1.4 Templates**: Confirmed all note type templates include appropriate structure and guidance
 - **P2.2 Inbox**: Confirmed default filter (fleeting, literature) is implemented
 - **P1.4 Auto-populated fields**: Implemented automatic `updated` timestamp maintenance - now auto-populated whenever a note is saved
@@ -161,7 +162,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 *Note: Search is mostly complete; `--include-mocs`/`--exclude-mocs` not yet implemented.*
 - [x] `qipu search <query>` - search titles + bodies
 - [x] Type/tag filters for search (`--type`, `--tag`)
-- [ ] Include/exclude MOCs option (`--include-mocs`, `--exclude-mocs` or similar)
+  - [x] Include/exclude MOCs option - implemented `--exclude-mocs` flag
 - [x] Result ranking: title matches > exact tag matches > body matches, recency boost
 - [x] JSON output for search results (schema: id, title, type, tags, path, match_context, relevance)
 - [ ] JSON Lines output option (one object per note) for streaming

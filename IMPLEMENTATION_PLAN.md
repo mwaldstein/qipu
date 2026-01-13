@@ -295,26 +295,28 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Phase 7: Export
 
+**Status**: Export command is now functional and available for use.
+
 ### P7.1 Export Modes (`specs/export.md`)
-- [ ] `qipu export` - export notes to single markdown file
-- [ ] Default output is stdout
-- [ ] `--output <path>` flag to write to file instead of stdout
-- [ ] Selection: `--note`, `--tag`, `--moc`, `--query`
-- [ ] Bundle mode: concatenated markdown with metadata headers
-- [ ] Outline mode: MOC-driven ordering
-- [ ] Bibliography mode: extract sources to markdown bibliography
-  - [ ] Format: markdown list with `- [title](url)` entries (title required; fallback to URL if missing)
-  - [ ] Grouped by note or flat list (design decision)
-  - [ ] Include access date if present: `- [title](url) (accessed YYYY-MM-DD)`
+- [x] `qipu export` - export notes to single markdown file
+- [x] Default output is stdout
+- [x] `--output <path>` flag to write to file instead of stdout
+- [x] Selection: `--note`, `--tag`, `--moc`, `--query`
+- [x] Bundle mode: concatenated markdown with metadata headers
+- [x] Outline mode: MOC-driven ordering
+- [x] Bibliography mode: extract sources to markdown bibliography
+  - [x] Format: markdown list with `- [title](url)` entries (title required; fallback to URL if missing)
+  - [x] Grouped by note or flat list (design decision)
+  - [x] Include access date if present: `- [title](url) (accessed YYYY-MM-DD)`
 - [ ] Future: BibTeX/CSL JSON support (tracked)
 - [ ] Future: transitive link expansion (depth-limited)
 
 ### P7.2 Export Options (`specs/export.md`)
-- [ ] Deterministic ordering (MOC order or created+id)
-- [ ] Link handling: preserve wiki links (default)
+- [x] Deterministic ordering (MOC order or created+id)
+- [x] Link handling: preserve wiki links (default)
 - [ ] Link rewrite option: wiki links to markdown links
 - [ ] Link rewrite option: note links to section anchors in bundle
-- [ ] Conservative defaults (avoid rewriting user content unexpectedly)
+- [x] Conservative defaults (avoid rewriting user content unexpectedly)
 - [ ] Attachment handling: no attachments (default)
 - [ ] Attachment handling: copy to export folder option
 

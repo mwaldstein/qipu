@@ -446,6 +446,46 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             )
         }
 
+        Some(Commands::Export {
+            note,
+            tag,
+            moc,
+            query,
+            output,
+            mode,
+        }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            let export_mode = commands::export::ExportMode::parse(mode)?;
+
+            commands::export::execute(
+                cli,
+                &store,
+                commands::export::ExportOptions {
+                    note_ids: note,
+                    tag: tag.as_deref(),
+                    moc_id: moc.as_deref(),
+                    query: query.as_deref(),
+                    output: output.as_deref(),
+                    mode: export_mode,
+                },
+            )
+        }
+
         Some(Commands::Link { command }) => {
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {

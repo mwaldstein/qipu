@@ -4,6 +4,7 @@ pub mod capture;
 pub mod context;
 pub mod create;
 pub mod doctor;
+pub mod export;
 pub mod index;
 pub mod init;
 pub mod link;

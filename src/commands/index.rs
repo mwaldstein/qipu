@@ -1,0 +1,58 @@
+//! `qipu index` command - build/refresh derived indexes
+//!
+//! Per spec (specs/cli-interface.md, specs/indexing-search.md):
+//! - `qipu index` - build/refresh indexes
+//! - `qipu index --rebuild` - drop and regenerate
+
+use crate::cli::{Cli, OutputFormat};
+use crate::lib::error::Result;
+use crate::lib::index::IndexBuilder;
+use crate::lib::store::Store;
+
+/// Execute the index command
+pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
+    let builder = IndexBuilder::new(store);
+
+    let builder = if rebuild {
+        builder.rebuild()
+    } else {
+        builder.load_existing()?
+    };
+
+    let index = builder.build()?;
+
+    // Save index to cache
+    let cache_dir = store.root().join(".cache");
+    index.save(&cache_dir)?;
+
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "status": "ok",
+                "notes_indexed": index.metadata.len(),
+                "tags_indexed": index.tags.len(),
+                "edges_indexed": index.edges.len(),
+                "unresolved_links": index.unresolved.len(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Human | OutputFormat::Records => {
+            if !cli.quiet {
+                println!("Indexed {} notes", index.metadata.len());
+                if cli.verbose {
+                    println!("  {} tags", index.tags.len());
+                    println!("  {} edges", index.edges.len());
+                    if !index.unresolved.is_empty() {
+                        println!(
+                            "  {} unresolved links: {:?}",
+                            index.unresolved.len(),
+                            index.unresolved
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

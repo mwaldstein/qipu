@@ -249,5 +249,45 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
 
             commands::capture::execute(cli, &store, title.as_deref(), *r#type, tag)
         }
+
+        Some(Commands::Index { rebuild }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::index::execute(cli, &store, *rebuild)
+        }
+
+        Some(Commands::Search { query, r#type, tag }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::search::execute(cli, &store, query, *r#type, tag.as_deref())
+        }
     }
 }

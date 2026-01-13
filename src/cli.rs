@@ -105,6 +105,27 @@ pub enum Commands {
         #[arg(long, action = clap::ArgAction::Append)]
         tag: Vec<String>,
     },
+
+    /// Build or refresh derived indexes
+    Index {
+        /// Drop and regenerate indexes from scratch
+        #[arg(long)]
+        rebuild: bool,
+    },
+
+    /// Search notes by title and body
+    Search {
+        /// Search query
+        query: String,
+
+        /// Filter by note type
+        #[arg(long, short = 'T', value_parser = parse_note_type)]
+        r#type: Option<NoteType>,
+
+        /// Filter by tag
+        #[arg(long, short)]
+        tag: Option<String>,
+    },
 }
 
 #[derive(Args, Debug, Clone)]

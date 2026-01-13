@@ -7,7 +7,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Implementation Status
 
-**Current Phase**: Phase 2 in progress (Phase 1 complete)  
+**Current Phase**: Phase 3 in progress (Phases 1-2 complete)  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
 
@@ -119,38 +119,39 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 3: Indexing and Search
 
 ### P3.1 Index Infrastructure (`specs/indexing-search.md`)
-- [ ] Metadata index: `id -> {title, type, tags, path, created, updated}`
-- [ ] Tag index: `tag -> [ids...]`
-- [ ] Backlink index: `id -> [ids that link to it]`
-  - [ ] Backlinks are **derived** (computed from forward links, not stored explicitly in notes)
-- [ ] Graph adjacency list (inline + typed links)
-- [ ] Cache location: `.qipu/.cache/*.json`
+- [x] Metadata index: `id -> {title, type, tags, path, created, updated}`
+- [x] Tag index: `tag -> [ids...]`
+- [x] Backlink index: `id -> [ids that link to it]`
+  - [x] Backlinks are **derived** (computed from forward links, not stored explicitly in notes)
+- [x] Graph adjacency list (inline + typed links)
+- [x] Cache location: `.qipu/.cache/*.json`
 - [ ] Optional SQLite cache: `.qipu/qipu.db`
   - [ ] When present, enables SQLite FTS (full-text search) acceleration
   - [ ] FTS index populated during `qipu index`
-- [ ] `qipu index` - build/refresh indexes
-- [ ] `qipu index --rebuild` - drop and regenerate
-- [ ] Incremental indexing (track mtimes/hashes)
+- [x] `qipu index` - build/refresh indexes
+- [x] `qipu index --rebuild` - drop and regenerate
+- [x] Incremental indexing (track mtimes/hashes)
 
 ### P3.2 Link Extraction (`specs/indexing-search.md`)
-- [ ] Extract wiki links from note bodies: `[[<id>]]`, `[[<id>|label]]`
-- [ ] Extract markdown links pointing to qipu notes
-- [ ] Extract typed links from frontmatter (`links[]` array)
-- [ ] Inline links assigned default: `type=related`, `source=inline`
-- [ ] Typed links preserve their explicit type and set `source=typed`
-- [ ] Distinguish link source in all outputs: `inline` vs `typed`
-- [ ] Track unresolved links for `doctor` reporting
+- [x] Extract wiki links from note bodies: `[[<id>]]`, `[[<id>|label]]`
+- [x] Extract markdown links pointing to qipu notes
+- [x] Extract typed links from frontmatter (`links[]` array)
+- [x] Inline links assigned default: `type=related`, `source=inline`
+- [x] Typed links preserve their explicit type and set `source=typed`
+- [x] Distinguish link source in all outputs: `inline` vs `typed`
+- [x] Track unresolved links for `doctor` reporting
 - [ ] Ignore links outside the store by default
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
 
 ### P3.3 Search (`specs/indexing-search.md`, `specs/cli-interface.md`)
-- [ ] `qipu search <query>` - search titles + bodies
-- [ ] Type/tag filters for search (`--type`, `--tag`)
+- [x] `qipu search <query>` - search titles + bodies
+- [x] Type/tag filters for search (`--type`, `--tag`)
 - [ ] Include/exclude MOCs option (`--include-mocs`, `--exclude-mocs` or similar)
-- [ ] Result ranking: title matches > exact tag matches > body matches, recency boost
-- [ ] JSON output for search results (schema: id, title, type, tags, path, match_context, relevance)
-- [ ] Search scoped to qipu store only (not source code files)
-- [ ] Simple embedded matcher for smaller stores
+- [x] Result ranking: title matches > exact tag matches > body matches, recency boost
+- [x] JSON output for search results (schema: id, title, type, tags, path, match_context, relevance)
+- [ ] JSON Lines output option (one object per note) for streaming
+- [x] Search scoped to qipu store only (not source code files)
+- [x] Simple embedded matcher for smaller stores
 - [ ] Optional ripgrep integration: detect availability, use if present, fallback to embedded matcher
   - [ ] Detection: check `rg` on PATH (via `which rg` or equivalent)
   - [ ] No version-specific requirements; assume any installed `rg` is compatible

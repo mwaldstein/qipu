@@ -37,6 +37,9 @@ walkdir = "2"
 # Slug generation
 slug = "0.1"
 
+# Regular expressions for link extraction
+regex = "1"
+
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"

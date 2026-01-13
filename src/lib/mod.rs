@@ -7,5 +7,6 @@ pub mod config;
 pub mod error;
 pub mod format;
 pub mod id;
+pub mod index;
 pub mod note;
 pub mod store;

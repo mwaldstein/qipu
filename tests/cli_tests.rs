@@ -543,3 +543,248 @@ fn test_verbose_flag() {
         .success()
         .stderr(predicate::str::contains("discover_store"));
 }
+
+// ============================================================================
+// Index command tests
+// ============================================================================
+
+#[test]
+fn test_index_empty_store() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 0 notes"));
+}
+
+#[test]
+fn test_index_with_notes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "test", "Note 1"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "test", "Note 2"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+}
+
+#[test]
+fn test_index_json_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "index"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"status\": \"ok\""))
+        .stdout(predicate::str::contains("\"notes_indexed\":"));
+}
+
+#[test]
+fn test_index_rebuild() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    // First index
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Rebuild should also work
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+}
+
+// ============================================================================
+// Search command tests
+// ============================================================================
+
+#[test]
+fn test_search_empty_store() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "test"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No results found"));
+}
+
+#[test]
+fn test_search_finds_title() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Knowledge Management"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "knowledge"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Knowledge Management"));
+}
+
+#[test]
+fn test_search_by_tag() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "rust", "Rust Programming"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Other Note"])
+        .assert()
+        .success();
+
+    // Search with tag filter
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--tag", "rust", "programming"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Rust Programming"))
+        .stdout(predicate::str::contains("Other Note").not());
+}
+
+#[test]
+fn test_search_by_type() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "permanent", "Permanent Idea"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "fleeting", "Fleeting Idea"])
+        .assert()
+        .success();
+
+    // Search with type filter
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--type", "permanent", "idea"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Permanent Idea"))
+        .stdout(predicate::str::contains("Fleeting Idea").not());
+}
+
+#[test]
+fn test_search_json_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Search Test Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "search", "test"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"title\": \"Search Test Note\""))
+        .stdout(predicate::str::contains("\"relevance\":"));
+}

@@ -7,6 +7,7 @@ pub mod compaction;
 pub mod config;
 pub mod error;
 pub mod format;
+pub mod git;
 pub mod id;
 pub mod index;
 pub mod note;

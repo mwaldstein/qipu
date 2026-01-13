@@ -13,6 +13,10 @@ use crate::lib::store::Store;
 
 /// Execute the sync command
 pub fn execute(cli: &Cli, store: &Store, validate: bool, fix: bool) -> Result<()> {
+    // Note: Future enhancement - if store.config().branch is set,
+    // could optionally switch to that branch, commit changes, and push.
+    // Per IMPLEMENTATION_PLAN line 509: git commit/push automation is tracked as future work.
+
     // Step 1: Update indexes silently
     let builder = IndexBuilder::new(store);
     let builder = builder.load_existing()?;

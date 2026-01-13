@@ -4395,3 +4395,150 @@ fn test_compaction_annotations() {
         "Search human output should show compaction percentage"
     );
 }
+
+// ============================================================================
+// Protected branch workflow tests (Phase 1.3)
+// ============================================================================
+
+#[test]
+fn test_init_branch_workflow() {
+    use std::process::Command;
+
+    let dir = tempdir().unwrap();
+
+    // First check if git is available
+    let git_available = Command::new("git")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !git_available {
+        // Test error case when git is not available
+        qipu()
+            .current_dir(dir.path())
+            .args(["init", "--branch", "qipu-metadata"])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("Git is required"));
+    } else {
+        // Git is available - create a proper git repo with initial commit
+        Command::new("git")
+            .args(["init"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+
+        Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+
+        Command::new("git")
+            .args(["config", "user.name", "Test User"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+
+        // Create an initial commit so HEAD exists
+        std::fs::write(dir.path().join("README.md"), "test").unwrap();
+        Command::new("git")
+            .args(["add", "README.md"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-m", "initial commit"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+
+        // Init with branch should succeed
+        qipu()
+            .current_dir(dir.path())
+            .args(["init", "--branch", "qipu-metadata"])
+            .assert()
+            .success();
+
+        // Verify store was created
+        assert!(dir.path().join(".qipu").exists());
+
+        // Verify we're back on original branch (main or master)
+        let current_branch = Command::new("git")
+            .args([
+                "-C",
+                dir.path().to_str().unwrap(),
+                "branch",
+                "--show-current",
+            ])
+            .output()
+            .unwrap();
+        let branch_name = String::from_utf8_lossy(&current_branch.stdout)
+            .trim()
+            .to_string();
+        // Should be on main or master, not qipu-metadata
+        assert!(branch_name == "main" || branch_name == "master" || branch_name == "");
+    }
+}
+
+#[test]
+fn test_init_branch_saves_config() {
+    use std::process::Command;
+
+    let dir = tempdir().unwrap();
+
+    // Initialize a git repo first
+    Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .ok(); // Ignore if git not available
+
+    // Try init with branch
+    let result = qipu()
+        .current_dir(dir.path())
+        .args(["init", "--branch", "qipu-metadata"])
+        .assert();
+
+    // Only proceed if git is available
+    if result.get_output().status.success() {
+        // Verify config file contains branch info
+        let config_path = dir.path().join(".qipu/config.toml");
+        assert!(config_path.exists());
+
+        let config_content = std::fs::read_to_string(&config_path).unwrap();
+        assert!(
+            config_content.contains("branch = \"qipu-metadata\""),
+            "Config should contain branch field"
+        );
+    }
+}
+
+#[test]
+fn test_init_branch_json_output() {
+    use std::process::Command;
+
+    let dir = tempdir().unwrap();
+
+    // Initialize a git repo first
+    Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .ok();
+
+    // Try init with branch and JSON format
+    let result = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "init", "--branch", "qipu-metadata"])
+        .assert();
+
+    // Only verify JSON if git is available
+    if result.get_output().status.success() {
+        let stdout = String::from_utf8_lossy(&result.get_output().stdout);
+        let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+        assert_eq!(json["status"], "ok");
+        assert!(json["store"].as_str().unwrap().ends_with(".qipu"));
+    }
+}

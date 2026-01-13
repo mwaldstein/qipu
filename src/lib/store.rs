@@ -165,6 +165,34 @@ impl Store {
         options: InitOptions,
         project_root: Option<&Path>,
     ) -> Result<Self> {
+        // Handle protected branch workflow if requested
+        let original_branch = if let Some(branch_name) = &options.branch {
+            use crate::lib::git;
+
+            // Verify git is available
+            if !git::is_git_available() {
+                return Err(QipuError::Other(
+                    "Git is required for --branch workflow but was not found in PATH. \
+                     Please install git or initialize without --branch."
+                        .to_string(),
+                ));
+            }
+
+            // Determine repository root (use project_root or store parent)
+            let repo_root = project_root
+                .or_else(|| store_root.parent())
+                .ok_or_else(|| {
+                    QipuError::Other(
+                        "Cannot determine repository root for branch workflow".to_string(),
+                    )
+                })?;
+
+            // Setup branch workflow (create/switch to branch)
+            Some(git::setup_branch_workflow(repo_root, branch_name)?)
+        } else {
+            None
+        };
+
         // Create directory structure (idempotent)
         fs::create_dir_all(store_root)?;
         fs::create_dir_all(store_root.join(NOTES_DIR))?;
@@ -175,13 +203,22 @@ impl Store {
 
         // Create default config if missing (avoid rewriting on subsequent init)
         let config_path = store_root.join(CONFIG_FILE);
-        let config = if config_path.exists() {
+        let config_existed = config_path.exists();
+        let mut config = if config_existed {
             StoreConfig::load(&config_path)?
         } else {
-            let config = StoreConfig::default();
-            config.save(&config_path)?;
-            config
+            StoreConfig::default()
         };
+
+        // Store branch name in config for future operations (if provided)
+        if options.branch.is_some() {
+            config.branch = options.branch.clone();
+        }
+
+        // Save config if it's new or if branch was set
+        if !config_existed || options.branch.is_some() {
+            config.save(&config_path)?;
+        }
 
         ensure_store_gitignore(store_root)?;
         ensure_default_templates(&store_root.join(TEMPLATES_DIR))?;
@@ -195,6 +232,17 @@ impl Store {
                     ensure_project_gitignore_entry(&project_gitignore, &entry)?;
                 }
             }
+        }
+
+        // Switch back to original branch if we were using branch workflow
+        if let Some(orig_branch) = original_branch {
+            use crate::lib::git;
+
+            let repo_root = project_root
+                .or_else(|| store_root.parent())
+                .expect("repo_root should be available");
+
+            git::checkout_branch(repo_root, &orig_branch)?;
         }
 
         Ok(Store {
@@ -640,8 +688,7 @@ pub struct InitOptions {
     pub visible: bool,
     /// Stealth mode (add store to .gitignore)
     pub stealth: bool,
-    /// Branch workflow (not yet implemented)
-    #[allow(dead_code)]
+    /// Protected branch workflow (store notes on separate git branch)
     pub branch: Option<String>,
 }
 

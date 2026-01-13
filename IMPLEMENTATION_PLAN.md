@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.3 Protected Branch Workflow COMPLETE**: Implemented `qipu init --branch <name>` for protected-branch workflow. When specified, creates or switches to the specified git branch, initializes .qipu directory on that branch, stores branch name in config.toml for future operations, and automatically switches back to original branch after init. Includes proper error handling when git is not available. Added 3 new integration tests: test_init_branch_workflow, test_init_branch_saves_config, test_init_branch_json_output. Total test count: 182 (61 unit + 121 integration), ALL PASSING.
 - **P8.3 Compaction Annotations COMPLETE**: Implemented `compacts=<N>` and `compaction=<P%>` annotations in list, show, search, and context commands. Annotations appear in all output formats (human, JSON, records). Added comprehensive integration test `test_compaction_annotations`. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
 - **P6.3 Setup Command COMPLETE**: Implemented `qipu setup` command with support for installing, checking, and removing integrations. Includes AGENTS.md standard integration for OpenCode, Cline, Roo-Cline, and other agent tools. All output formats supported (human, json, records). Added 13 comprehensive integration tests. Total test count now 177 (60 unit + 117 integration), ALL PASSING.
 - **P1.4 Attachments Guidance COMPLETE**: Created comprehensive documentation in docs/attachments.md covering organization, best practices, size guidelines, git integration, and common workflows. Updated literature template with attachment reference examples. Phase 1.4 now fully documented.
@@ -90,7 +91,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `qipu init` non-interactive mode for agents
 - [x] `qipu init --stealth` - local-only store (add to .gitignore or store outside repo)
 - [x] `qipu init --visible` - use `qipu/` instead of `.qipu/`
-- [ ] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
+- [x] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
 - [x] Create `config.toml` with format version, default note type, id scheme, editor override
 - [x] Config sensible defaults so `qipu init` is optional for basic use
 - [x] Gitignore handling:
@@ -519,7 +520,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 178 tests (60 unit + 118 integration), ALL PASSING
+**Current test count**: 182 tests (61 unit + 121 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

@@ -32,6 +32,10 @@ pub struct StoreConfig {
     /// Editor override (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+
+    /// Git branch for protected branch workflow (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
 }
 
 fn default_version() -> u32 {
@@ -45,6 +49,7 @@ impl Default for StoreConfig {
             default_note_type: NoteType::default(),
             id_scheme: IdScheme::default(),
             editor: None,
+            branch: None,
         }
     }
 }

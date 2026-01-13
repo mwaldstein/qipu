@@ -140,6 +140,22 @@ pub fn execute(
                                     );
                                 }
                             }
+
+                            // Add compacted IDs if --with-compaction-ids is set
+                            // Per spec (specs/compaction.md line 131)
+                            if cli.with_compaction_ids {
+                                let depth = cli.compaction_depth.unwrap_or(1);
+                                if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                                    &r.id,
+                                    depth,
+                                    cli.compaction_max_nodes,
+                                ) {
+                                    obj_mut.insert(
+                                        "compacted_ids".to_string(),
+                                        serde_json::json!(ids),
+                                    );
+                                }
+                            }
                         }
                     }
 
@@ -194,6 +210,26 @@ pub fn execute(
                             println!("    {}", ctx);
                         }
                     }
+
+                    // Show compacted IDs if --with-compaction-ids is set
+                    // Per spec (specs/compaction.md line 131)
+                    if cli.with_compaction_ids && compacts_count > 0 {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                            &result.id,
+                            depth,
+                            cli.compaction_max_nodes,
+                        ) {
+                            let ids_str = ids.join(", ");
+                            let suffix = if truncated {
+                                let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                                format!(" (truncated, showing {} of {})", max, compacts_count)
+                            } else {
+                                String::new()
+                            };
+                            println!("  Compacted: {}{}", ids_str, suffix);
+                        }
+                    }
                 }
             }
         }
@@ -240,6 +276,28 @@ pub fn execute(
                 );
                 if let Some(ctx) = &result.match_context {
                     println!("S {} {}", result.id, ctx);
+                }
+
+                // Show compacted IDs if --with-compaction-ids is set
+                // Per spec (specs/compaction.md line 131)
+                if cli.with_compaction_ids && compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                        &result.id,
+                        depth,
+                        cli.compaction_max_nodes,
+                    ) {
+                        for id in &ids {
+                            println!("D compacted {} from={}", id, result.id);
+                        }
+                        if truncated {
+                            println!(
+                                "D compacted_truncated max={} total={}",
+                                cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                compacts_count
+                            );
+                        }
+                    }
                 }
             }
         }

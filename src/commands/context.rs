@@ -120,6 +120,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     match cli.format {
         OutputFormat::Json => {
             output_json(
+                cli,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -129,6 +130,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
         OutputFormat::Human => {
             output_human(
+                cli,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -139,6 +141,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
         OutputFormat::Records => {
             output_records(
+                cli,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -298,6 +301,7 @@ fn estimate_note_size(note: &Note, with_body: bool) -> usize {
 
 /// Output in JSON format
 fn output_json(
+    cli: &Cli,
     store_path: &str,
     notes: &[&Note],
     truncated: bool,
@@ -340,6 +344,60 @@ fn output_json(
                     if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
                         obj.insert("compaction_pct".to_string(), serde_json::json!(format!("{:.1}", pct)));
                     }
+
+                    // Add compacted IDs if --with-compaction-ids is set
+                    // Per spec (specs/compaction.md line 131)
+                    if cli.with_compaction_ids {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                            &note.frontmatter.id,
+                            depth,
+                            cli.compaction_max_nodes,
+                        ) {
+                            obj.insert("compacted_ids".to_string(), serde_json::json!(ids));
+                        }
+                    }
+
+                    // Add expanded compacted notes if --expand-compaction is set
+                    // Per spec (specs/compaction.md lines 147-153)
+                    if cli.expand_compaction {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((compacted_notes, _truncated)) = compaction_ctx.get_compacted_notes_expanded(
+                            &note.frontmatter.id,
+                            depth,
+                            cli.compaction_max_nodes,
+                            all_notes,
+                        ) {
+                            obj.insert(
+                                "compacted_notes".to_string(),
+                                serde_json::json!(
+                                    compacted_notes
+                                        .iter()
+                                        .map(|n: &&Note| serde_json::json!({
+                                            "id": n.id(),
+                                            "title": n.title(),
+                                            "type": n.note_type().to_string(),
+                                            "tags": n.frontmatter.tags,
+                                            "path": n.path.as_ref().map(|p| p.display().to_string()),
+                                            "content": n.body,
+                                            "sources": n.frontmatter.sources.iter().map(|s| {
+                                                let mut obj = serde_json::json!({
+                                                    "url": s.url,
+                                                });
+                                                if let Some(title) = &s.title {
+                                                    obj["title"] = serde_json::json!(title);
+                                                }
+                                                if let Some(accessed) = &s.accessed {
+                                                    obj["accessed"] = serde_json::json!(accessed);
+                                                }
+                                                obj
+                                            }).collect::<Vec<_>>(),
+                                        }))
+                                        .collect::<Vec<_>>()
+                                ),
+                            );
+                        }
+                    }
                 }
             }
 
@@ -353,6 +411,7 @@ fn output_json(
 
 /// Output in human-readable markdown format
 fn output_human(
+    cli: &Cli,
     store_path: &str,
     notes: &[&Note],
     truncated: bool,
@@ -400,6 +459,26 @@ fn output_human(
             println!();
         }
 
+        // Show compacted IDs if --with-compaction-ids is set
+        // Per spec (specs/compaction.md line 131)
+        if cli.with_compaction_ids && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                &note.frontmatter.id,
+                depth,
+                cli.compaction_max_nodes,
+            ) {
+                let ids_str = ids.join(", ");
+                let suffix = if truncated {
+                    let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                    format!(" (truncated, showing {} of {})", max, compacts_count)
+                } else {
+                    String::new()
+                };
+                println!("Compacted: {}{}", ids_str, suffix);
+            }
+        }
+
         if !note.frontmatter.sources.is_empty() {
             println!("Sources:");
             for source in &note.frontmatter.sources {
@@ -416,12 +495,62 @@ fn output_human(
         println!("{}", note.body.trim());
         println!();
         println!("---");
+
+        // Expand compacted notes if --expand-compaction is set
+        // Per spec (specs/compaction.md lines 147-153)
+        if cli.expand_compaction && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((compacted_notes, _truncated)) = compaction_ctx
+                .get_compacted_notes_expanded(
+                    &note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                    all_notes,
+                )
+            {
+                println!();
+                println!("### Compacted Notes:");
+                for compacted_note in compacted_notes {
+                    println!();
+                    println!(
+                        "#### Note: {} ({})",
+                        compacted_note.title(),
+                        compacted_note.id()
+                    );
+
+                    if let Some(path) = &compacted_note.path {
+                        println!("Path: {}", path.display());
+                    }
+                    println!("Type: {}", compacted_note.note_type());
+
+                    if !compacted_note.frontmatter.tags.is_empty() {
+                        println!("Tags: {}", compacted_note.frontmatter.tags.join(", "));
+                    }
+
+                    if !compacted_note.frontmatter.sources.is_empty() {
+                        println!("Sources:");
+                        for source in &compacted_note.frontmatter.sources {
+                            if let Some(title) = &source.title {
+                                println!("- {} ({})", title, source.url);
+                            } else {
+                                println!("- {}", source.url);
+                            }
+                        }
+                    }
+
+                    println!();
+                    println!("{}", compacted_note.body.trim());
+                }
+            }
+        }
+
         println!();
     }
 }
 
 /// Output in records format
 fn output_records(
+    cli: &Cli,
     store_path: &str,
     notes: &[&Note],
     truncated: bool,
@@ -479,6 +608,28 @@ fn output_records(
             annotations
         );
 
+        // Show compacted IDs if --with-compaction-ids is set
+        // Per spec (specs/compaction.md line 131)
+        if cli.with_compaction_ids && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                &note.frontmatter.id,
+                depth,
+                cli.compaction_max_nodes,
+            ) {
+                for id in &ids {
+                    println!("D compacted {} from={}", id, note.id());
+                }
+                if truncated {
+                    println!(
+                        "D compacted_truncated max={} total={}",
+                        cli.compaction_max_nodes.unwrap_or(ids.len()),
+                        compacts_count
+                    );
+                }
+            }
+        }
+
         // Summary line
         let summary = note.summary();
         if !summary.is_empty() {
@@ -509,6 +660,76 @@ fn output_records(
                 println!("{}", line);
             }
             println!("B-END");
+        }
+
+        // Expand compacted notes if --expand-compaction is set
+        // Per spec (specs/compaction.md lines 147-153)
+        if cli.expand_compaction && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((compacted_notes, _truncated)) = compaction_ctx
+                .get_compacted_notes_expanded(
+                    &note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                    all_notes,
+                )
+            {
+                for compacted_note in compacted_notes {
+                    let compacted_tags_csv = if compacted_note.frontmatter.tags.is_empty() {
+                        "-".to_string()
+                    } else {
+                        compacted_note.frontmatter.tags.join(",")
+                    };
+
+                    let compacted_path_str = compacted_note
+                        .path
+                        .as_ref()
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_else(|| "-".to_string());
+
+                    println!(
+                        "N {} {} \"{}\" tags={} path={} compacted_from={}",
+                        compacted_note.id(),
+                        compacted_note.note_type(),
+                        compacted_note.title(),
+                        compacted_tags_csv,
+                        compacted_path_str,
+                        note.id()
+                    );
+
+                    // Summary line
+                    let compacted_summary = compacted_note.summary();
+                    if !compacted_summary.is_empty() {
+                        let compacted_summary_line =
+                            compacted_summary.lines().next().unwrap_or("").trim();
+                        if !compacted_summary_line.is_empty() {
+                            println!("S {} {}", compacted_note.id(), compacted_summary_line);
+                        }
+                    }
+
+                    // Sources
+                    for source in &compacted_note.frontmatter.sources {
+                        let title = source.title.as_deref().unwrap_or(&source.url);
+                        let accessed = source.accessed.as_deref().unwrap_or("-");
+                        println!(
+                            "D source url={} title=\"{}\" accessed={} from={}",
+                            source.url,
+                            title,
+                            accessed,
+                            compacted_note.id()
+                        );
+                    }
+
+                    // Body lines (if requested)
+                    if with_body && !compacted_note.body.trim().is_empty() {
+                        println!("B {}", compacted_note.id());
+                        for line in compacted_note.body.lines() {
+                            println!("{}", line);
+                        }
+                        println!("B-END");
+                    }
+                }
+            }
         }
     }
 }

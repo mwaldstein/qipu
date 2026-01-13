@@ -40,6 +40,22 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub no_resolve_compaction: bool,
 
+    /// Include compacted note IDs in output
+    #[arg(long, global = true)]
+    pub with_compaction_ids: bool,
+
+    /// Compaction traversal depth (requires --with-compaction-ids)
+    #[arg(long, global = true)]
+    pub compaction_depth: Option<u32>,
+
+    /// Maximum compacted notes to include in output
+    #[arg(long, global = true)]
+    pub compaction_max_nodes: Option<usize>,
+
+    /// Expand compacted notes to include full content (context command only)
+    #[arg(long, global = true)]
+    pub expand_compaction: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }

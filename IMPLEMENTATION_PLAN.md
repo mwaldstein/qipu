@@ -4,8 +4,12 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.3 Compaction Depth Control Flags COMPLETE**: Implemented all three compaction depth control flags: `--with-compaction-ids` (show compacted IDs), `--compaction-depth <n>` (control expansion depth), and `--compaction-max-nodes <n>` (bounding). These are global flags available across all commands. `--with-compaction-ids` works in list, show, search, context, and all link commands with all three output formats. All flags respect deterministic ordering (sorted by note ID) and include truncation indication when limits hit. Added `get_compacted_ids()` method to CompactionContext. Total test count: 186 (61 unit + 125 integration), ALL PASSING.
+- **P8.3 Expand-Compaction Flag COMPLETE**: Implemented `--expand-compaction` flag for `qipu context` command. When enabled, includes full note content of compacted sources (not just IDs/metadata). Depth-limited by `--compaction-depth` flag and bounded by `--compaction-max-nodes`. Works in all three output formats: human (full note content under "### Compacted Notes:" section), JSON (`compacted_notes` array with full note objects), and records (N, S, B lines for each compacted note). Added `get_compacted_notes_expanded()` method to CompactionContext. Added 4 comprehensive integration tests. Total test count: 186 (61 unit + 125 integration), ALL PASSING.
+- **P8.3 With-Compaction-Ids Flag COMPLETE**: Implemented `--with-compaction-ids` global flag across all commands. When enabled, shows direct compacted note IDs for digest entries. Respects `--compaction-depth` flag (default: depth 1) and `--compaction-max-nodes` for bounding. Implemented in list, show, search, context, and all link commands (list, tree, path). All three output formats supported: human (indented list), JSON (`compacted_ids` array), and records (`D compacted` lines). Includes truncation indicator when max-nodes limit is hit. Total test count: 182 (61 unit + 121 integration), ALL PASSING.
+- **P8.3 Compaction Size Estimation VERIFIED COMPLETE**: Verified that compaction percent calculation and size estimation are fully implemented. The `compaction=<P%>` annotation uses the formula `100 * (1 - digest_size / expanded_size)` with summary-sized character estimation. Handles `expanded_size = 0` edge case correctly (returns 0%). Working in list, show, search, and context commands across all three output formats (human, JSON, records). Total test count: 182 (61 unit + 121 integration), ALL PASSING.
 - **P1.3 Protected Branch Workflow COMPLETE**: Implemented `qipu init --branch <name>` for protected-branch workflow. When specified, creates or switches to the specified git branch, initializes .qipu directory on that branch, stores branch name in config.toml for future operations, and automatically switches back to original branch after init. Includes proper error handling when git is not available. Added 3 new integration tests: test_init_branch_workflow, test_init_branch_saves_config, test_init_branch_json_output. Total test count: 182 (61 unit + 121 integration), ALL PASSING.
-- **P8.3 Compaction Annotations COMPLETE**: Implemented `compacts=<N>` and `compaction=<P%>` annotations in list, show, search, and context commands. Annotations appear in all output formats (human, JSON, records). Added comprehensive integration test `test_compaction_annotations`. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
+- **P8.3 Compaction Annotations COMPLETE**: Implemented `compacts=<N>` and `compaction=<P%>` annotations in list, show, search, and context commands. Annotations appear in all output formats (human, JSON, records). Added comprehensive integration test `test_compaction_annotations`. Total test count: 186 (61 unit + 125 integration), ALL PASSING.
 - **P6.3 Setup Command COMPLETE**: Implemented `qipu setup` command with support for installing, checking, and removing integrations. Includes AGENTS.md standard integration for OpenCode, Cline, Roo-Cline, and other agent tools. All output formats supported (human, json, records). Added 13 comprehensive integration tests. Total test count now 177 (60 unit + 117 integration), ALL PASSING.
 - **P1.4 Attachments Guidance COMPLETE**: Created comprehensive documentation in docs/attachments.md covering organization, best practices, size guidelines, git integration, and common workflows. Updated literature template with attachment reference examples. Phase 1.4 now fully documented.
 - **P1.4 & P3.2 Storage Format Verification COMPLETE**: Verified and documented that notes are readable/editable without qipu (plain markdown + YAML frontmatter), multi-agent ID collision prevention works (ULID scheme for true collision resistance, hash scheme with timestamp+random for probabilistic resistance), and external links are properly ignored (markdown link extraction filters for qp- pattern). Updated IMPLEMENTATION_PLAN to reflect actual implementation status.
@@ -422,12 +426,23 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 **Current status (2026-01-13)**: Implemented compaction annotations across commands. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
 
-- [x] `--no-resolve-compaction` flag for raw view
-  - [x] Working in `link list`, `link tree`, `link path`
-- [ ] `--with-compaction-ids` flag (equivalent to compaction depth 1)
-- [ ] `--compaction-depth <n>` flag (no effect when `--with-compaction-ids` absent)
-- [ ] `--compaction-max-nodes <n>` optional bounding flag
-- [ ] `--expand-compaction` flag for including compacted bodies
+ - [x] `--no-resolve-compaction` flag for raw view
+   - [x] Working in `link list`, `link tree`, `link path`
+ - [x] `--with-compaction-ids` flag (equivalent to compaction depth 1) — COMPLETE
+    - [x] Working in `list`, `show`, `search`, `context` commands
+    - [x] Working in all link commands (`list`, `tree`, `path`)
+    - [x] All three output formats supported (human, JSON, records)
+    - [x] Respects `--compaction-depth` and `--compaction-max-nodes` flags
+    - [x] Deterministic ordering (sorted by note ID)
+    - [x] Truncation indication when limits hit
+- [x] `--compaction-depth <n>` flag — COMPLETE (global flag, works with --with-compaction-ids and --expand-compaction)
+- [x] `--compaction-max-nodes <n>` optional bounding flag — COMPLETE (global flag, works with both --with-compaction-ids and --expand-compaction)
+- [x] `--expand-compaction` flag for including compacted bodies — COMPLETE
+    - [x] Working in `qipu context` command
+    - [x] Includes full note content of compacted sources
+    - [x] Depth-limited by `--compaction-depth` flag
+    - [x] Bounded by `--compaction-max-nodes` flag
+    - [x] All three output formats supported (human, JSON, records)
 - [x] Output annotations: `compacts=<N>` in human/json/records — ✓ COMPLETE
   - [x] Working in `list`, `show`, `search`, `context` commands
   - [x] Appears in all three output formats (human, JSON, records)
@@ -438,11 +453,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Human output: `(via qp-xxxx)` suffix
   - [x] JSON output: `"via": "qp-xxxx"` field
   - [x] Records output: `via=qp-xxxx` field in N line
-  - [x] Applies in search results (canonicalization implemented)
-- [ ] Compaction percent formula: `100 * (1 - digest_size / expanded_size)`
-  - [ ] Handle `expanded_size = 0`: treat compaction percent as 0%
-- [ ] Size estimation: summary-sized chars (same rules as records summary extraction)
-  - [ ] Future: alternate size bases (e.g., body size) as optional flags
+ - [x] Applies in search results (canonicalization implemented)
+- [x] Compaction percent formula: `100 * (1 - digest_size / expanded_size)`
+   - [x] Handle `expanded_size = 0`: treat compaction percent as 0%
+- [x] Size estimation: summary-sized chars (same rules as records summary extraction)
+   - [ ] Future: alternate size bases (e.g., body size) as optional flags
 - [ ] Optional depth-aware metrics (compaction percent at depth N)
 - [ ] Truncation indication when compaction limits hit
 - [ ] Deterministic ordering for compaction expansion (sorted by note id)
@@ -520,7 +535,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 182 tests (61 unit + 121 integration), ALL PASSING
+**Current test count**: 186 tests (61 unit + 125 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

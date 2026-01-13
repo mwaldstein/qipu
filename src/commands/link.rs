@@ -88,6 +88,9 @@ pub fn execute_list(
         None
     };
 
+    // Load all notes for compaction annotations
+    let _all_notes = store.list_notes()?;
+
     // Canonicalize the note ID to get which note's links we should show
     let canonical_id = if let Some(ref ctx) = compaction_ctx {
         ctx.canon(&note_id)?
@@ -169,7 +172,45 @@ pub fn execute_list(
     // Output
     match cli.format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&entries)?);
+            let json_output: Vec<serde_json::Value> = entries
+                .iter()
+                .map(|entry| {
+                    let mut json = serde_json::json!({
+                        "direction": entry.direction,
+                        "id": entry.id,
+                        "type": entry.link_type,
+                        "source": entry.source,
+                    });
+                    if let Some(title) = &entry.title {
+                        json.as_object_mut()
+                            .unwrap()
+                            .insert("title".to_string(), serde_json::json!(title));
+                    }
+
+                    // Add compacted IDs if --with-compaction-ids is set
+                    if cli.with_compaction_ids {
+                        if let Some(ref ctx) = compaction_ctx {
+                            let compacts_count = ctx.get_compacts_count(&entry.id);
+                            if compacts_count > 0 {
+                                let depth = cli.compaction_depth.unwrap_or(1);
+                                if let Some((ids, _truncated)) = ctx.get_compacted_ids(
+                                    &entry.id,
+                                    depth,
+                                    cli.compaction_max_nodes,
+                                ) {
+                                    json.as_object_mut().unwrap().insert(
+                                        "compacted_ids".to_string(),
+                                        serde_json::json!(ids),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    json
+                })
+                .collect();
+            println!("{}", serde_json::to_string_pretty(&json_output)?);
         }
         OutputFormat::Human => {
             if entries.is_empty() {
@@ -192,6 +233,33 @@ pub fn execute_list(
                         "{} {} {} [{}] ({})",
                         dir_arrow, entry.id, title_part, entry.link_type, entry.source
                     );
+
+                    // Show compacted IDs if --with-compaction-ids is set
+                    if cli.with_compaction_ids {
+                        if let Some(ref ctx) = compaction_ctx {
+                            let compacts_count = ctx.get_compacts_count(&entry.id);
+                            if compacts_count > 0 {
+                                let depth = cli.compaction_depth.unwrap_or(1);
+                                if let Some((ids, truncated)) = ctx.get_compacted_ids(
+                                    &entry.id,
+                                    depth,
+                                    cli.compaction_max_nodes,
+                                ) {
+                                    let ids_str = ids.join(", ");
+                                    let suffix = if truncated {
+                                        let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                                        format!(
+                                            " (truncated, showing {} of {})",
+                                            max, compacts_count
+                                        )
+                                    } else {
+                                        String::new()
+                                    };
+                                    println!("  Compacted: {}{}", ids_str, suffix);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -229,6 +297,30 @@ pub fn execute_list(
                         "N {} {} \"{}\" tags={}",
                         link_id, meta.note_type, meta.title, tags_csv
                     );
+
+                    // Show compacted IDs if --with-compaction-ids is set
+                    if cli.with_compaction_ids {
+                        if let Some(ref ctx) = compaction_ctx {
+                            let compacts_count = ctx.get_compacts_count(link_id);
+                            if compacts_count > 0 {
+                                let depth = cli.compaction_depth.unwrap_or(1);
+                                if let Some((ids, truncated)) =
+                                    ctx.get_compacted_ids(link_id, depth, cli.compaction_max_nodes)
+                                {
+                                    for id in &ids {
+                                        println!("D compacted {} from={}", id, link_id);
+                                    }
+                                    if truncated {
+                                        println!(
+                                            "D compacted_truncated max={} total={}",
+                                            cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                            compacts_count
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Load note to get summary
                     if let Ok(note) = store.get_note(link_id) {
@@ -655,6 +747,9 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
         None
     };
 
+    // Load all notes for compaction annotations
+    let _all_notes = store.list_notes()?;
+
     // Canonicalize the root note ID
     let canonical_id = if let Some(ref ctx) = compaction_ctx {
         ctx.canon(&note_id)?
@@ -675,13 +770,38 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
     // Output
     match cli.format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&result)?);
+            let mut json_result = serde_json::to_value(&result)?;
+            // Add compacted IDs if --with-compaction-ids is set
+            if cli.with_compaction_ids {
+                if let Some(ref ctx) = compaction_ctx {
+                    if let Some(nodes) = json_result.get_mut("nodes").and_then(|n| n.as_array_mut())
+                    {
+                        for node in nodes {
+                            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                                let compacts_count = ctx.get_compacts_count(id);
+                                if compacts_count > 0 {
+                                    let depth = cli.compaction_depth.unwrap_or(1);
+                                    if let Some((ids, _truncated)) =
+                                        ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
+                                    {
+                                        node.as_object_mut().unwrap().insert(
+                                            "compacted_ids".to_string(),
+                                            serde_json::json!(ids),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            println!("{}", serde_json::to_string_pretty(&json_result)?);
         }
         OutputFormat::Human => {
-            output_tree_human(cli, &result, &index);
+            output_tree_human(cli, &result, &index, compaction_ctx.as_ref());
         }
         OutputFormat::Records => {
-            output_tree_records(&result, store, &opts);
+            output_tree_records(&result, store, &opts, cli, compaction_ctx.as_ref());
         }
     }
 
@@ -937,7 +1057,12 @@ fn filter_edge(edge: &Edge, opts: &TreeOptions) -> bool {
 }
 
 /// Output tree in human-readable format
-fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
+fn output_tree_human(
+    cli: &Cli,
+    result: &TreeResult,
+    index: &Index,
+    compaction_ctx: Option<&CompactionContext>,
+) {
     if result.nodes.is_empty() {
         if !cli.quiet {
             println!("No nodes found");
@@ -959,6 +1084,8 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
         visited: &HashSet<String>,
         prefix: &str,
         is_last: bool,
+        cli: &Cli,
+        compaction_ctx: Option<&CompactionContext>,
     ) {
         let title = index
             .get_metadata(id)
@@ -974,6 +1101,28 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
         };
 
         println!("{}{}{} \"{}\"", prefix, connector, id, title);
+
+        // Show compacted IDs if --with-compaction-ids is set
+        if cli.with_compaction_ids {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) =
+                        ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
+                    {
+                        let ids_str = ids.join(", ");
+                        let suffix = if truncated {
+                            let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                            format!(" (truncated, showing {} of {})", max, compacts_count)
+                        } else {
+                            String::new()
+                        };
+                        println!("{}  Compacted: {}{}", prefix, ids_str, suffix);
+                    }
+                }
+            }
+        }
 
         if let Some(kids) = children.get(id) {
             let new_prefix = if prefix.is_empty() {
@@ -1011,6 +1160,8 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
                         &new_visited,
                         &new_prefix,
                         is_last_child,
+                        cli,
+                        compaction_ctx,
                     );
                 }
             }
@@ -1019,7 +1170,16 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
 
     let mut initial_visited = HashSet::new();
     initial_visited.insert(result.root.clone());
-    print_tree(&result.root, &children, index, &initial_visited, "", true);
+    print_tree(
+        &result.root,
+        &children,
+        index,
+        &initial_visited,
+        "",
+        true,
+        cli,
+        compaction_ctx,
+    );
 
     if result.truncated {
         println!();
@@ -1034,7 +1194,13 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
 }
 
 /// Output tree in records format
-fn output_tree_records(result: &TreeResult, store: &Store, opts: &TreeOptions) {
+fn output_tree_records(
+    result: &TreeResult,
+    store: &Store,
+    opts: &TreeOptions,
+    cli: &Cli,
+    compaction_ctx: Option<&CompactionContext>,
+) {
     let mut budget_truncated = false;
     let budget = opts.max_chars;
 
@@ -1072,8 +1238,36 @@ fn output_tree_records(result: &TreeResult, store: &Store, opts: &TreeOptions) {
             }
         }
 
+        // Calculate compaction info for this node
+        let mut compacted_lines = Vec::new();
+        if cli.with_compaction_ids {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&node.id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) =
+                        ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                    {
+                        for id in &ids {
+                            compacted_lines.push(format!("D compacted {} from={}", id, node.id));
+                        }
+                        if truncated {
+                            compacted_lines.push(format!(
+                                "D compacted_truncated max={} total={}",
+                                cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                compacts_count
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
         // Check budget before adding (10% safety buffer)
-        let node_size = node_line.len() + 1 + summary_line.as_ref().map_or(0, |s| s.len() + 1);
+        let node_size = node_line.len()
+            + 1
+            + summary_line.as_ref().map_or(0, |s| s.len() + 1)
+            + compacted_lines.iter().map(|l| l.len() + 1).sum::<usize>();
         let node_size_with_buffer = node_size + (node_size / 10);
 
         if let Some(max) = budget {
@@ -1083,7 +1277,7 @@ fn output_tree_records(result: &TreeResult, store: &Store, opts: &TreeOptions) {
             }
         }
 
-        node_lines.push((node_line, summary_line));
+        node_lines.push((node_line, summary_line, compacted_lines));
         used_chars += node_size;
     }
 
@@ -1126,8 +1320,11 @@ fn output_tree_records(result: &TreeResult, store: &Store, opts: &TreeOptions) {
     );
 
     // Output collected lines
-    for (node_line, summary_line) in node_lines {
+    for (node_line, summary_line, compacted_lines) in node_lines {
         println!("{}", node_line);
+        for line in compacted_lines {
+            println!("{}", line);
+        }
         if let Some(s) = summary_line {
             println!("{}", s);
         }
@@ -1173,6 +1370,9 @@ pub fn execute_path(
         None
     };
 
+    // Load all notes for compaction annotations
+    let _all_notes = store.list_notes()?;
+
     // Canonicalize the note IDs
     let canonical_from = if let Some(ref ctx) = compaction_ctx {
         ctx.canon(&from_resolved)?
@@ -1209,13 +1409,38 @@ pub fn execute_path(
     // Output
     match cli.format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&result)?);
+            let mut json_result = serde_json::to_value(&result)?;
+            // Add compacted IDs if --with-compaction-ids is set
+            if cli.with_compaction_ids {
+                if let Some(ref ctx) = compaction_ctx {
+                    if let Some(nodes) = json_result.get_mut("nodes").and_then(|n| n.as_array_mut())
+                    {
+                        for node in nodes {
+                            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                                let compacts_count = ctx.get_compacts_count(id);
+                                if compacts_count > 0 {
+                                    let depth = cli.compaction_depth.unwrap_or(1);
+                                    if let Some((ids, _truncated)) =
+                                        ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
+                                    {
+                                        node.as_object_mut().unwrap().insert(
+                                            "compacted_ids".to_string(),
+                                            serde_json::json!(ids),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            println!("{}", serde_json::to_string_pretty(&json_result)?);
         }
         OutputFormat::Human => {
-            output_path_human(cli, &result);
+            output_path_human(cli, &result, compaction_ctx.as_ref());
         }
         OutputFormat::Records => {
-            output_path_records(&result, store, &opts);
+            output_path_records(&result, store, &opts, cli, compaction_ctx.as_ref());
         }
     }
 
@@ -1360,7 +1585,7 @@ fn bfs_find_path(
 }
 
 /// Output path in human-readable format
-fn output_path_human(cli: &Cli, result: &PathResult) {
+fn output_path_human(cli: &Cli, result: &PathResult, compaction_ctx: Option<&CompactionContext>) {
     if !result.found {
         if !cli.quiet {
             println!("No path found from {} to {}", result.from, result.to);
@@ -1379,6 +1604,28 @@ fn output_path_human(cli: &Cli, result: &PathResult) {
             }
         }
         println!("{} \"{}\"", node.id, node.title);
+
+        // Show compacted IDs if --with-compaction-ids is set
+        if cli.with_compaction_ids {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&node.id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) =
+                        ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                    {
+                        let ids_str = ids.join(", ");
+                        let suffix = if truncated {
+                            let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                            format!(" (truncated, showing {} of {})", max, compacts_count)
+                        } else {
+                            String::new()
+                        };
+                        println!("  Compacted: {}{}", ids_str, suffix);
+                    }
+                }
+            }
+        }
     }
 
     println!();
@@ -1386,7 +1633,13 @@ fn output_path_human(cli: &Cli, result: &PathResult) {
 }
 
 /// Output path in records format
-fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
+fn output_path_records(
+    result: &PathResult,
+    store: &Store,
+    opts: &TreeOptions,
+    cli: &Cli,
+    compaction_ctx: Option<&CompactionContext>,
+) {
     let mut budget_truncated = false;
     let budget = opts.max_chars;
 
@@ -1425,8 +1678,37 @@ fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
                 }
             }
 
+            // Calculate compaction info for this node
+            let mut compacted_lines = Vec::new();
+            if cli.with_compaction_ids {
+                if let Some(ctx) = compaction_ctx {
+                    let compacts_count = ctx.get_compacts_count(&node.id);
+                    if compacts_count > 0 {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, truncated)) =
+                            ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                        {
+                            for id in &ids {
+                                compacted_lines
+                                    .push(format!("D compacted {} from={}", id, node.id));
+                            }
+                            if truncated {
+                                compacted_lines.push(format!(
+                                    "D compacted_truncated max={} total={}",
+                                    cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                    compacts_count
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+
             // Check budget before adding (10% safety buffer)
-            let node_size = node_line.len() + 1 + summary_line.as_ref().map_or(0, |s| s.len() + 1);
+            let node_size = node_line.len()
+                + 1
+                + summary_line.as_ref().map_or(0, |s| s.len() + 1)
+                + compacted_lines.iter().map(|l| l.len() + 1).sum::<usize>();
             let node_size_with_buffer = node_size + (node_size / 10);
 
             if let Some(max) = budget {
@@ -1436,7 +1718,7 @@ fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
                 }
             }
 
-            node_lines.push((node_line, summary_line));
+            node_lines.push((node_line, summary_line, compacted_lines));
             used_chars += node_size;
         }
 
@@ -1480,8 +1762,11 @@ fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
     );
 
     // Output collected lines
-    for (node_line, summary_line) in node_lines {
+    for (node_line, summary_line, compacted_lines) in node_lines {
         println!("{}", node_line);
+        for line in compacted_lines {
+            println!("{}", line);
+        }
         if let Some(s) = summary_line {
             println!("{}", s);
         }

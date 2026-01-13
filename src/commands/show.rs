@@ -63,6 +63,19 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                             serde_json::json!(format!("{:.1}", pct)),
                         );
                     }
+
+                    // Add compacted IDs if --with-compaction-ids is set
+                    // Per spec (specs/compaction.md line 131)
+                    if cli.with_compaction_ids {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                            &note.frontmatter.id,
+                            depth,
+                            cli.compaction_max_nodes,
+                        ) {
+                            obj.insert("compacted_ids".to_string(), serde_json::json!(ids));
+                        }
+                    }
                 }
             }
 
@@ -107,6 +120,28 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 tags_csv,
                 annotations
             );
+
+            // Show compacted IDs if --with-compaction-ids is set
+            // Per spec (specs/compaction.md line 131)
+            if cli.with_compaction_ids && compacts_count > 0 {
+                let depth = cli.compaction_depth.unwrap_or(1);
+                if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                    &note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                ) {
+                    for id in &ids {
+                        println!("D compacted {} from={}", id, note.id());
+                    }
+                    if truncated {
+                        println!(
+                            "D compacted_truncated max={} total={}",
+                            cli.compaction_max_nodes.unwrap_or(ids.len()),
+                            compacts_count
+                        );
+                    }
+                }
+            }
 
             // Summary line
             let summary = note.summary();

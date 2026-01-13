@@ -657,7 +657,7 @@ fn execute_suggest(cli: &Cli) -> Result<()> {
                     .map(|id| format!("--note {}", id))
                     .collect::<Vec<_>>()
                     .join(" ");
-                
+
                 serde_json::json!({
                     "ids": c.ids,
                     "node_count": c.node_count,

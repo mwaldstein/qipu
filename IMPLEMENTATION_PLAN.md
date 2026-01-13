@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P9.2 Sync Command Complete**: Implemented `qipu sync` command with `--validate` and `--fix` flags. Supports all three output formats. Git commit/push automation not implemented (future work). Phase 9.2 is now complete.
 - **P5.1 Records Output Complete**: All primary commands now support records format. Final addition: `qipu init` now outputs proper records format with header line `H qipu=1 records=1 store=<path> mode=init status=ok`. Phase 5.1 is now complete.
 - **P1.3 Config Sensible Defaults**: Implemented default config fallback in Store::open - qipu init is now optional for basic use. Store will use sensible defaults (version 1, fleeting default type, hash ID scheme) when config.toml is missing. Default templates are auto-created on first store open.
 - **P5.1 Records Output**: Implemented records format for `qipu index` command - outputs H (header) with index statistics and D (diagnostic) lines for unresolved links
@@ -437,9 +438,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Fix missing config files: doctor can now repair stores with missing `config.toml`
 
 ### P9.2 Sync Command (`specs/cli-interface.md`)
-- [ ] `qipu sync` - ensure indexes are current
-- [ ] Run validations (optional)
-- [ ] Branch workflow support (optional, for protected-branch mode)
+- [x] `qipu sync` - ensure indexes are current
+- [x] Run validations (optional)
+- [ ] Branch workflow support (optional, for protected-branch mode) - git commit/push automation not implemented
 
 ## Phase 10: Testing and Quality
 

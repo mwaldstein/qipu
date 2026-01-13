@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12 (comprehensive spec audit, minor gaps addressed)
+Last updated: 2026-01-12 (re-audited all specs, minor gaps fixed)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -107,7 +107,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--tag` filter
 - [ ] `--type` filter
 - [ ] `--since` filter
-- [ ] `qipu inbox` - list unprocessed notes (fleeting|literature)
+- [ ] `qipu inbox` - list unprocessed notes
+  - [ ] Default filter: `type in {fleeting, literature}`
 - [ ] `qipu inbox --exclude-linked` - optional filter to exclude notes already linked into a MOC
   - [ ] Define "linked into" semantics: any link (typed or inline) from a MOC pointing to the note
 - [ ] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
@@ -186,7 +187,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Cycle-safe traversal (visited set, "(seen)" markers)
 - [ ] Truncation reporting when limits hit
 - [ ] `qipu link path <from> <to>` - find path between notes
-- [ ] `qipu link path` flags: `--direction`, `--max-depth`, `--typed-only`, `--inline-only`, `--type`
+- [ ] `qipu link path` flags: `--direction`, `--max-depth`, `--typed-only`, `--inline-only`, `--type`, `--exclude-type`
 
 ### P4.3 Traversal Output Formats (`specs/graph-traversal.md`)
 - [ ] Human-readable tree output (optimized for scanning)
@@ -321,7 +322,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `compact apply --from-stdin` - read note IDs from stdin
 - [ ] `compact apply --notes-file <path>` - read note IDs from file
 - [ ] `qipu compact show <digest-id>` - show direct compaction set
-- [ ] `compact show` displays both `compacts=N` AND `compaction=P%` metrics
+  - [ ] Output: list direct compacted note IDs
+  - [ ] Output: `compacts=N` metric (count of direct sources)
+  - [ ] Output: `compaction=P%` metric (estimated savings)
 - [ ] `compact show --compaction-depth <n>` - depth-limited compaction tree
 - [ ] `qipu compact status <id>` - show compaction relationships
 - [ ] `qipu compact report <digest-id>` - compaction quality metrics
@@ -347,8 +350,15 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--expand-compaction` flag for including compacted bodies
 - [ ] Output annotations: `compacts=<N>` in human/json/records
 - [ ] Output annotations: `compaction=<P%>` (estimated savings vs expanding)
+- [ ] Output annotations: `via=<id>` breadcrumb when digest appears due to compacted note match
+  - [ ] Human output: `(via qp-xxxx)` suffix
+  - [ ] JSON output: `"via": "qp-xxxx"` field
+  - [ ] Records output: `via=qp-xxxx` field in N line
+  - [ ] Applies in resolved view (not just search)
 - [ ] Compaction percent formula: `100 * (1 - digest_size / expanded_size)`
+  - [ ] Handle `expanded_size = 0`: treat compaction percent as 0%
 - [ ] Size estimation: summary-sized chars (same rules as records summary extraction)
+  - [ ] Future: alternate size bases (e.g., body size) as optional flags
 - [ ] Optional depth-aware metrics (compaction percent at depth N)
 - [ ] Truncation indication when compaction limits hit
 - [ ] Deterministic ordering for compaction expansion (sorted by note id)

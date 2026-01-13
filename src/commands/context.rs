@@ -10,6 +10,7 @@
 use chrono::Utc;
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::{search, Index, IndexBuilder};
 use crate::lib::note::Note;
@@ -31,6 +32,11 @@ pub struct ContextOptions<'a> {
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
     // Build or load index for searching
     let index = IndexBuilder::new(store).load_existing()?.build()?;
+
+    // Build compaction context for annotations
+    // Per spec (specs/compaction.md lines 116-119)
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
 
     // Collect notes based on selection criteria
     let mut selected_notes: Vec<Note> = Vec::new();
@@ -113,7 +119,13 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     match cli.format {
         OutputFormat::Json => {
-            output_json(&store_path, &notes_to_output, truncated)?;
+            output_json(
+                &store_path,
+                &notes_to_output,
+                truncated,
+                &compaction_ctx,
+                &all_notes,
+            )?;
         }
         OutputFormat::Human => {
             output_human(
@@ -121,6 +133,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &notes_to_output,
                 truncated,
                 options.safety_banner,
+                &compaction_ctx,
+                &all_notes,
             );
         }
         OutputFormat::Records => {
@@ -130,6 +144,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 truncated,
                 options.with_body,
                 options.safety_banner,
+                &compaction_ctx,
+                &all_notes,
             );
         }
     }
@@ -281,13 +297,19 @@ fn estimate_note_size(note: &Note, with_body: bool) -> usize {
 }
 
 /// Output in JSON format
-fn output_json(store_path: &str, notes: &[&Note], truncated: bool) -> Result<()> {
+fn output_json(
+    store_path: &str,
+    notes: &[&Note],
+    truncated: bool,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+) -> Result<()> {
     let output = serde_json::json!({
         "generated_at": Utc::now().to_rfc3339(),
         "store": store_path,
         "truncated": truncated,
         "notes": notes.iter().map(|note| {
-            serde_json::json!({
+            let mut json = serde_json::json!({
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
@@ -306,7 +328,22 @@ fn output_json(store_path: &str, notes: &[&Note], truncated: bool) -> Result<()>
                     }
                     obj
                 }).collect::<Vec<_>>(),
-            })
+            });
+
+            // Add compaction annotations for digest notes
+            // Per spec (specs/compaction.md lines 116-119)
+            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+            if compacts_count > 0 {
+                if let Some(obj) = json.as_object_mut() {
+                    obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
+
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                        obj.insert("compaction_pct".to_string(), serde_json::json!(format!("{:.1}", pct)));
+                    }
+                }
+            }
+
+            json
         }).collect::<Vec<_>>(),
     });
 
@@ -315,7 +352,14 @@ fn output_json(store_path: &str, notes: &[&Note], truncated: bool) -> Result<()>
 }
 
 /// Output in human-readable markdown format
-fn output_human(store_path: &str, notes: &[&Note], truncated: bool, safety_banner: bool) {
+fn output_human(
+    store_path: &str,
+    notes: &[&Note],
+    truncated: bool,
+    safety_banner: bool,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+) {
     println!("# Qipu Context Bundle");
     println!("Generated: {}", Utc::now().to_rfc3339());
     println!("Store: {}", store_path);
@@ -342,6 +386,18 @@ fn output_human(store_path: &str, notes: &[&Note], truncated: bool, safety_banne
 
         if !note.frontmatter.tags.is_empty() {
             println!("Tags: {}", note.frontmatter.tags.join(", "));
+        }
+
+        // Add compaction annotations for digest notes
+        // Per spec (specs/compaction.md lines 116-119)
+        let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+        if compacts_count > 0 {
+            print!("Compaction: compacts={}", compacts_count);
+
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                print!(" compaction={:.0}%", pct);
+            }
+            println!();
         }
 
         if !note.frontmatter.sources.is_empty() {
@@ -371,6 +427,8 @@ fn output_records(
     truncated: bool,
     with_body: bool,
     safety_banner: bool,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
 ) {
     // Header line
     println!(
@@ -399,13 +457,26 @@ fn output_records(
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| "-".to_string());
 
+        // Build compaction annotations for digest notes
+        // Per spec (specs/compaction.md lines 116-119, 125)
+        let mut annotations = String::new();
+        let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+        if compacts_count > 0 {
+            annotations.push_str(&format!(" compacts={}", compacts_count));
+
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                annotations.push_str(&format!(" compaction={:.0}%", pct));
+            }
+        }
+
         println!(
-            "N {} {} \"{}\" tags={} path={}",
+            "N {} {} \"{}\" tags={} path={}{}",
             note.id(),
             note.note_type(),
             note.title(),
             tags_csv,
-            path_str
+            path_str,
+            annotations
         );
 
         // Summary line

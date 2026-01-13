@@ -23,12 +23,14 @@ pub fn execute(
     note_type: Option<NoteType>,
     since: Option<DateTime<Utc>>,
 ) -> Result<()> {
-    let mut notes = store.list_notes()?;
+    let all_notes = store.list_notes()?;
+    let mut notes = all_notes.clone();
 
-    // Apply compaction visibility filter (unless --no-resolve-compaction)
+    // Build compaction context for both filtering and annotations
     // Per spec (specs/compaction.md line 101): hide notes with a compactor by default
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
+
     if !cli.no_resolve_compaction {
-        let compaction_ctx = CompactionContext::build(&notes)?;
         notes.retain(|n| !compaction_ctx.is_compacted(&n.frontmatter.id));
     }
 
@@ -54,7 +56,7 @@ pub fn execute(
             let output: Vec<_> = notes
                 .iter()
                 .map(|n| {
-                    serde_json::json!({
+                    let mut json = serde_json::json!({
                         "id": n.id(),
                         "title": n.title(),
                         "type": n.note_type().to_string(),
@@ -62,7 +64,25 @@ pub fn execute(
                         "path": n.path.as_ref().map(|p| p.display().to_string()),
                         "created": n.frontmatter.created,
                         "updated": n.frontmatter.updated,
-                    })
+                    });
+
+                    // Add compaction annotations for digest notes
+                    // Per spec (specs/compaction.md lines 116-119)
+                    let compacts_count = compaction_ctx.get_compacts_count(&n.frontmatter.id);
+                    if compacts_count > 0 {
+                        if let Some(obj) = json.as_object_mut() {
+                            obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
+
+                            if let Some(pct) = compaction_ctx.get_compaction_pct(n, &all_notes) {
+                                obj.insert(
+                                    "compaction_pct".to_string(),
+                                    serde_json::json!(format!("{:.1}", pct)),
+                                );
+                            }
+                        }
+                    }
+
+                    json
                 })
                 .collect();
             println!("{}", serde_json::to_string_pretty(&output)?);
@@ -80,7 +100,26 @@ pub fn execute(
                         NoteType::Permanent => "P",
                         NoteType::Moc => "M",
                     };
-                    println!("{} [{}] {}", note.id(), type_indicator, note.title());
+
+                    // Build compaction annotations for digest notes
+                    // Per spec (specs/compaction.md lines 116-119)
+                    let mut annotations = String::new();
+                    let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+                    if compacts_count > 0 {
+                        annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
+                            annotations.push_str(&format!(" compaction={:.0}%", pct));
+                        }
+                    }
+
+                    println!(
+                        "{} [{}] {}{}",
+                        note.id(),
+                        type_indicator,
+                        note.title(),
+                        annotations
+                    );
                 }
             }
         }
@@ -97,12 +136,26 @@ pub fn execute(
                 } else {
                     note.frontmatter.tags.join(",")
                 };
+
+                // Build compaction annotations for digest notes
+                // Per spec (specs/compaction.md lines 116-119, 125)
+                let mut annotations = String::new();
+                let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+                if compacts_count > 0 {
+                    annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
+                        annotations.push_str(&format!(" compaction={:.0}%", pct));
+                    }
+                }
+
                 println!(
-                    "N {} {} \"{}\" tags={}",
+                    "N {} {} \"{}\" tags={}{}",
                     note.id(),
                     note.note_type(),
                     note.title(),
-                    tags_csv
+                    tags_csv,
+                    annotations
                 );
             }
         }

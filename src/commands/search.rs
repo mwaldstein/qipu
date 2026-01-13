@@ -95,6 +95,11 @@ pub fn execute(
         results.retain(|r| r.note_type != NoteType::Moc);
     }
 
+    // Load all notes for compaction annotations
+    // Per spec (specs/compaction.md lines 116-119)
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
+
     match cli.format {
         OutputFormat::Json => {
             let output: Vec<_> = results
@@ -115,6 +120,29 @@ pub fn execute(
                             .unwrap()
                             .insert("via".to_string(), serde_json::json!(via));
                     }
+
+                    // Add compaction annotations for digest notes
+                    // Per spec (specs/compaction.md lines 116-119)
+                    let compacts_count = compaction_ctx.get_compacts_count(&r.id);
+                    if compacts_count > 0 {
+                        if let Some(obj_mut) = obj.as_object_mut() {
+                            obj_mut
+                                .insert("compacts".to_string(), serde_json::json!(compacts_count));
+
+                            // For compaction_pct, we need to load the note
+                            if let Ok(note) = store.get_note(&r.id) {
+                                if let Some(pct) =
+                                    compaction_ctx.get_compaction_pct(&note, &all_notes)
+                                {
+                                    obj_mut.insert(
+                                        "compaction_pct".to_string(),
+                                        serde_json::json!(format!("{:.1}", pct)),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
                     obj
                 })
                 .collect();
@@ -133,15 +161,33 @@ pub fn execute(
                         NoteType::Permanent => "P",
                         NoteType::Moc => "M",
                     };
+
+                    // Build annotations
+                    let mut annotations = String::new();
+
                     // Add via annotation if present (per spec: specs/compaction.md line 122)
-                    let via_suffix = result
-                        .via
-                        .as_ref()
-                        .map(|v| format!(" (via {})", v))
-                        .unwrap_or_default();
+                    if let Some(via) = &result.via {
+                        annotations.push_str(&format!(" (via {})", via));
+                    }
+
+                    // Add compaction annotations for digest notes
+                    // Per spec (specs/compaction.md lines 116-119)
+                    let compacts_count = compaction_ctx.get_compacts_count(&result.id);
+                    if compacts_count > 0 {
+                        annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                        // For compaction_pct, we need to load the note
+                        if let Ok(note) = store.get_note(&result.id) {
+                            if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes)
+                            {
+                                annotations.push_str(&format!(" compaction={:.0}%", pct));
+                            }
+                        }
+                    }
+
                     println!(
                         "{} [{}] {}{}",
-                        result.id, type_indicator, result.title, via_suffix
+                        result.id, type_indicator, result.title, annotations
                     );
                     if cli.verbose {
                         if let Some(ctx) = &result.match_context {
@@ -165,15 +211,32 @@ pub fn execute(
                 } else {
                     result.tags.join(",")
                 };
+
+                // Build annotations
+                let mut annotations = String::new();
+
                 // Add via field if present (per spec: specs/compaction.md line 122)
-                let via_field = result
-                    .via
-                    .as_ref()
-                    .map(|v| format!(" via={}", v))
-                    .unwrap_or_default();
+                if let Some(via) = &result.via {
+                    annotations.push_str(&format!(" via={}", via));
+                }
+
+                // Add compaction annotations for digest notes
+                // Per spec (specs/compaction.md lines 116-119, 125)
+                let compacts_count = compaction_ctx.get_compacts_count(&result.id);
+                if compacts_count > 0 {
+                    annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                    // For compaction_pct, we need to load the note
+                    if let Ok(note) = store.get_note(&result.id) {
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                            annotations.push_str(&format!(" compaction={:.0}%", pct));
+                        }
+                    }
+                }
+
                 println!(
                     "N {} {} \"{}\" tags={}{}",
-                    result.id, result.note_type, result.title, tags_csv, via_field
+                    result.id, result.note_type, result.title, tags_csv, annotations
                 );
                 if let Some(ctx) = &result.match_context {
                     println!("S {} {}", result.id, ctx);

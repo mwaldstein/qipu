@@ -8,6 +8,20 @@ use std::collections::{HashMap, HashSet};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 
+/// Estimate note size for compaction metrics
+/// Uses summary-sized content (same as records output)
+/// Per spec: specs/compaction.md lines 168-175
+fn estimate_note_size(note: &Note) -> usize {
+    // Use summary if present in frontmatter
+    if let Some(summary) = &note.frontmatter.summary {
+        return summary.len();
+    }
+
+    // Otherwise use first paragraph or truncated body
+    let summary = note.summary();
+    summary.len()
+}
+
 /// Compaction context - tracks which notes compact which
 #[derive(Debug, Clone)]
 pub struct CompactionContext {
@@ -93,6 +107,51 @@ impl CompactionContext {
     /// Get the notes compacted by a digest
     pub fn get_compacted_notes(&self, digest_id: &str) -> Option<&Vec<String>> {
         self.compacted_by.get(digest_id)
+    }
+
+    /// Get the count of direct notes compacted by this digest
+    /// Returns 0 if not a digest
+    pub fn get_compacts_count(&self, digest_id: &str) -> usize {
+        self.get_compacted_notes(digest_id)
+            .map(|notes| notes.len())
+            .unwrap_or(0)
+    }
+
+    /// Calculate compaction percentage for a digest
+    /// Based on spec lines 156-166 in specs/compaction.md
+    /// Returns None if not a digest or expanded_size is 0
+    pub fn get_compaction_pct(&self, digest: &Note, all_notes: &[Note]) -> Option<f32> {
+        // Check if this is a digest (has compacted notes)
+        let compacted_ids = self.get_compacted_notes(&digest.frontmatter.id)?;
+        if compacted_ids.is_empty() {
+            return None;
+        }
+
+        // Build a map for quick note lookup
+        let note_map: HashMap<&str, &Note> = all_notes
+            .iter()
+            .map(|n| (n.frontmatter.id.as_str(), n))
+            .collect();
+
+        // Calculate digest size using summary
+        let digest_size = estimate_note_size(digest);
+
+        // Calculate expanded size (sum of direct sources)
+        let mut expanded_size = 0usize;
+        for source_id in compacted_ids {
+            if let Some(note) = note_map.get(source_id.as_str()) {
+                expanded_size += estimate_note_size(note);
+            }
+        }
+
+        // If expanded_size is 0, treat as 0% per spec
+        if expanded_size == 0 {
+            return Some(0.0);
+        }
+
+        // compaction_pct = 100 * (1 - digest_size / expanded_size)
+        let ratio = digest_size as f32 / expanded_size as f32;
+        Some(100.0 * (1.0 - ratio))
     }
 
     /// Validate compaction invariants

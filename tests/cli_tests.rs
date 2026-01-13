@@ -3982,7 +3982,9 @@ fn test_setup_list_records() {
         .args(["setup", "--list", "--format", "records"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("H qipu=1 records=1 mode=setup.list"))
+        .stdout(predicate::str::contains(
+            "H qipu=1 records=1 mode=setup.list",
+        ))
         .stdout(predicate::str::contains("D integration name=agents-md"));
 }
 
@@ -4007,13 +4009,16 @@ fn test_setup_print_json() {
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(json["integration"], "agents-md");
-    assert!(json["content"].as_str().unwrap().contains("Qipu Agent Integration"));
+    assert!(json["content"]
+        .as_str()
+        .unwrap()
+        .contains("Qipu Agent Integration"));
 }
 
 #[test]
 fn test_setup_install() {
     let dir = tempdir().unwrap();
-    
+
     // Install
     qipu()
         .current_dir(dir.path())
@@ -4024,7 +4029,7 @@ fn test_setup_install() {
 
     // Verify file was created
     assert!(dir.path().join("AGENTS.md").exists());
-    
+
     // Verify content
     let content = std::fs::read_to_string(dir.path().join("AGENTS.md")).unwrap();
     assert!(content.contains("# Qipu Agent Integration"));
@@ -4033,10 +4038,10 @@ fn test_setup_install() {
 #[test]
 fn test_setup_install_already_exists() {
     let dir = tempdir().unwrap();
-    
+
     // Create AGENTS.md first
     std::fs::write(dir.path().join("AGENTS.md"), "existing content").unwrap();
-    
+
     // Try to install again
     qipu()
         .current_dir(dir.path())
@@ -4044,7 +4049,7 @@ fn test_setup_install_already_exists() {
         .assert()
         .success()
         .stdout(predicate::str::contains("AGENTS.md already exists"));
-    
+
     // Verify original content is preserved
     let content = std::fs::read_to_string(dir.path().join("AGENTS.md")).unwrap();
     assert_eq!(content, "existing content");
@@ -4053,27 +4058,29 @@ fn test_setup_install_already_exists() {
 #[test]
 fn test_setup_check_installed() {
     let dir = tempdir().unwrap();
-    
+
     // Install first
     qipu()
         .current_dir(dir.path())
         .args(["setup", "agents-md"])
         .assert()
         .success();
-    
+
     // Check
     qipu()
         .current_dir(dir.path())
         .args(["setup", "agents-md", "--check"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("AGENTS.md integration is installed"));
+        .stdout(predicate::str::contains(
+            "AGENTS.md integration is installed",
+        ));
 }
 
 #[test]
 fn test_setup_check_not_installed() {
     let dir = tempdir().unwrap();
-    
+
     qipu()
         .current_dir(dir.path())
         .args(["setup", "agents-md", "--check"])
@@ -4085,16 +4092,16 @@ fn test_setup_check_not_installed() {
 #[test]
 fn test_setup_remove() {
     let dir = tempdir().unwrap();
-    
+
     // Install first
     qipu()
         .current_dir(dir.path())
         .args(["setup", "agents-md"])
         .assert()
         .success();
-    
+
     assert!(dir.path().join("AGENTS.md").exists());
-    
+
     // Remove
     qipu()
         .current_dir(dir.path())
@@ -4102,7 +4109,7 @@ fn test_setup_remove() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Removed AGENTS.md"));
-    
+
     // Verify file was removed
     assert!(!dir.path().join("AGENTS.md").exists());
 }
@@ -4110,7 +4117,7 @@ fn test_setup_remove() {
 #[test]
 fn test_setup_remove_not_exists() {
     let dir = tempdir().unwrap();
-    
+
     qipu()
         .current_dir(dir.path())
         .args(["setup", "agents-md", "--remove"])
@@ -4134,5 +4141,257 @@ fn test_setup_no_args_usage_error() {
         .arg("setup")
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("Specify --list, --print, or provide a tool name"));
+        .stderr(predicate::str::contains(
+            "Specify --list, --print, or provide a tool name",
+        ));
+}
+
+// ============================================================================
+// Compaction annotations tests (per specs/compaction.md lines 115-125)
+// ============================================================================
+
+#[test]
+fn test_compaction_annotations() {
+    let tmp = tempdir().unwrap();
+    let store_path = tmp.path();
+
+    // Initialize store
+    qipu()
+        .args(["--store", store_path.to_str().unwrap(), "init"])
+        .assert()
+        .success();
+
+    // Create source notes
+    let note1_output = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "create",
+            "Source Note 1",
+            "--tag",
+            "test",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let note1_id = String::from_utf8_lossy(&note1_output)
+        .lines()
+        .find(|l| l.starts_with("qp-"))
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string();
+
+    let note2_output = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "create",
+            "Source Note 2",
+            "--tag",
+            "test",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let note2_id = String::from_utf8_lossy(&note2_output)
+        .lines()
+        .find(|l| l.starts_with("qp-"))
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string();
+
+    // Create digest note
+    let digest_output = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "create",
+            "Digest Summary",
+            "--tag",
+            "summary",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let digest_id = String::from_utf8_lossy(&digest_output)
+        .lines()
+        .find(|l| l.starts_with("qp-"))
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string();
+
+    // Apply compaction
+    qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "compact",
+            "apply",
+            &digest_id,
+            "--note",
+            &note1_id,
+            "--note",
+            &note2_id,
+        ])
+        .assert()
+        .success();
+
+    // Test list command - human format
+    let list_human = qipu()
+        .args(["--store", store_path.to_str().unwrap(), "list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_human_str = String::from_utf8_lossy(&list_human);
+
+    // Verify digest appears with annotations
+    assert!(
+        list_human_str.contains("compacts=2"),
+        "List human output should show compacts=2"
+    );
+    assert!(
+        list_human_str.contains("compaction="),
+        "List human output should show compaction percentage"
+    );
+
+    // Verify compacted notes are hidden (resolved view)
+    assert!(
+        !list_human_str.contains("Source Note 1"),
+        "Source notes should be hidden in resolved view"
+    );
+    assert!(
+        !list_human_str.contains("Source Note 2"),
+        "Source notes should be hidden in resolved view"
+    );
+
+    // Test list command - JSON format
+    let list_json = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "list",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_json_str = String::from_utf8_lossy(&list_json);
+    assert!(
+        list_json_str.contains("\"compacts\": 2"),
+        "List JSON output should show compacts field"
+    );
+    assert!(
+        list_json_str.contains("\"compaction_pct\""),
+        "List JSON output should show compaction_pct field"
+    );
+
+    // Test list command - Records format
+    let list_records = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "list",
+            "--format",
+            "records",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_records_str = String::from_utf8_lossy(&list_records);
+    assert!(
+        list_records_str.contains("compacts=2"),
+        "List records output should show compacts=2"
+    );
+    assert!(
+        list_records_str.contains("compaction="),
+        "List records output should show compaction percentage"
+    );
+
+    // Test show command - JSON format
+    let show_json = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "show",
+            &digest_id,
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let show_json_str = String::from_utf8_lossy(&show_json);
+    assert!(
+        show_json_str.contains("\"compacts\": 2"),
+        "Show JSON output should show compacts field"
+    );
+    assert!(
+        show_json_str.contains("\"compaction_pct\""),
+        "Show JSON output should show compaction_pct field"
+    );
+
+    // Test context command - JSON format
+    let context_json = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "context",
+            "--note",
+            &digest_id,
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let context_json_str = String::from_utf8_lossy(&context_json);
+    assert!(
+        context_json_str.contains("\"compacts\": 2"),
+        "Context JSON output should show compacts field"
+    );
+    assert!(
+        context_json_str.contains("\"compaction_pct\""),
+        "Context JSON output should show compaction_pct field"
+    );
+
+    // Test search command - human format
+    let search_human = qipu()
+        .args(["--store", store_path.to_str().unwrap(), "search", "Digest"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let search_human_str = String::from_utf8_lossy(&search_human);
+    assert!(
+        search_human_str.contains("compacts=2"),
+        "Search human output should show compacts=2"
+    );
+    assert!(
+        search_human_str.contains("compaction="),
+        "Search human output should show compaction percentage"
+    );
 }

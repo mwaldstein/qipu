@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.3 Compaction Annotations COMPLETE**: Implemented `compacts=<N>` and `compaction=<P%>` annotations in list, show, search, and context commands. Annotations appear in all output formats (human, JSON, records). Added comprehensive integration test `test_compaction_annotations`. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
 - **P6.3 Setup Command COMPLETE**: Implemented `qipu setup` command with support for installing, checking, and removing integrations. Includes AGENTS.md standard integration for OpenCode, Cline, Roo-Cline, and other agent tools. All output formats supported (human, json, records). Added 13 comprehensive integration tests. Total test count now 177 (60 unit + 117 integration), ALL PASSING.
 - **P1.4 Attachments Guidance COMPLETE**: Created comprehensive documentation in docs/attachments.md covering organization, best practices, size guidelines, git integration, and common workflows. Updated literature template with attachment reference examples. Phase 1.4 now fully documented.
 - **P1.4 & P3.2 Storage Format Verification COMPLETE**: Verified and documented that notes are readable/editable without qipu (plain markdown + YAML frontmatter), multi-agent ID collision prevention works (ULID scheme for true collision resistance, hash scheme with timestamp+random for probabilistic resistance), and external links are properly ignored (markdown link extraction filters for qp- pattern). Updated IMPLEMENTATION_PLAN to reflect actual implementation status.
@@ -416,9 +417,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Prompt template for digest authoring
 
 ### P8.3 Compaction Integration (`specs/compaction.md`) — PARTIALLY COMPLETE
-**Note**: Compaction visibility is now implemented for list, search, inbox, and all link commands. ALL THREE link commands (`link list`, `link tree`, `link path`) now fully support canonicalization and edge gathering from compacted notes. Advanced features (depth control, size metrics, expanded compaction) remain as future work.
+**Note**: Compaction visibility is now implemented for list, search, inbox, and all link commands. ALL THREE link commands (`link list`, `link tree`, `link path`) now fully support canonicalization and edge gathering from compacted notes. Compaction annotations (`compacts=<N>` and `compaction=<P%>`) are now working in list, show, search, and context commands. Advanced features (depth control, expanded compaction) remain as future work.
 
-**Current status (2026-01-13)**: Implemented full compaction visibility for link commands. Total test count: 162 (60 unit + 102 integration), ALL PASSING.
+**Current status (2026-01-13)**: Implemented compaction annotations across commands. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
 
 - [x] `--no-resolve-compaction` flag for raw view
   - [x] Working in `link list`, `link tree`, `link path`
@@ -426,8 +427,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--compaction-depth <n>` flag (no effect when `--with-compaction-ids` absent)
 - [ ] `--compaction-max-nodes <n>` optional bounding flag
 - [ ] `--expand-compaction` flag for including compacted bodies
-- [ ] Output annotations: `compacts=<N>` in human/json/records
-- [ ] Output annotations: `compaction=<P%>` (estimated savings vs expanding)
+- [x] Output annotations: `compacts=<N>` in human/json/records — ✓ COMPLETE
+  - [x] Working in `list`, `show`, `search`, `context` commands
+  - [x] Appears in all three output formats (human, JSON, records)
+- [x] Output annotations: `compaction=<P%>` (estimated savings vs expanding) — ✓ COMPLETE
+  - [x] Working in `list`, `show`, `search`, `context` commands
+  - [x] Appears in all three output formats (human, JSON, records)
 - [x] Output annotations: `via=<id>` breadcrumb when digest appears due to compacted note match
   - [x] Human output: `(via qp-xxxx)` suffix
   - [x] JSON output: `"via": "qp-xxxx"` field
@@ -465,6 +470,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - Self-loop detection and removal in contracted graph
 - `--no-resolve-compaction` flag works across all three commands to show raw view
 - Full compaction transparency: when resolution is enabled, the contracted graph behaves as if compacted notes were replaced by their digest
+- Compaction annotations (`compacts=<N>`, `compaction=<P%>`) in list, show, search, and context commands
+- Annotations appear consistently in all three output formats (human, JSON, records)
 
 **Test coverage** (tests/cli_tests.rs, lines 3131-3639):
 - `test_link_list_compaction`: ✓ PASSING (verifies list gathers edges from all compacted notes)
@@ -512,7 +519,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 177 tests (60 unit + 117 integration), ALL PASSING
+**Current test count**: 178 tests (60 unit + 118 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

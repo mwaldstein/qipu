@@ -9,6 +9,7 @@ use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::link::LinkEntry;
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::IndexBuilder;
 use crate::lib::note::Note;
@@ -30,9 +31,14 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
         return execute_show_links(cli, store, &note);
     }
 
+    // Build compaction context for annotations
+    // Per spec (specs/compaction.md lines 116-119)
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
+
     match cli.format {
         OutputFormat::Json => {
-            let output = serde_json::json!({
+            let mut output = serde_json::json!({
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
@@ -44,6 +50,22 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "links": note.frontmatter.links,
                 "body": note.body,
             });
+
+            // Add compaction annotations for digest notes
+            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+            if compacts_count > 0 {
+                if let Some(obj) = output.as_object_mut() {
+                    obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
+
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                        obj.insert(
+                            "compaction_pct".to_string(),
+                            serde_json::json!(format!("{:.1}", pct)),
+                        );
+                    }
+                }
+            }
+
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         OutputFormat::Human => {
@@ -59,18 +81,31 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 note.id()
             );
 
-            // Note metadata line
+            // Note metadata line with compaction annotations
             let tags_csv = if note.frontmatter.tags.is_empty() {
                 "-".to_string()
             } else {
                 note.frontmatter.tags.join(",")
             };
+
+            // Build compaction annotations for digest notes
+            let mut annotations = String::new();
+            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+            if compacts_count > 0 {
+                annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                    annotations.push_str(&format!(" compaction={:.0}%", pct));
+                }
+            }
+
             println!(
-                "N {} {} \"{}\" tags={}",
+                "N {} {} \"{}\" tags={}{}",
                 note.id(),
                 note.note_type(),
                 note.title(),
-                tags_csv
+                tags_csv,
+                annotations
             );
 
             // Summary line

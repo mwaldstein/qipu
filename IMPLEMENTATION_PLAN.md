@@ -8,10 +8,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 1: Foundation (CLI Runtime + Storage)
 
 ### P1.1 Project Scaffolding
-- [ ] Initialize Cargo workspace with `qipu` binary crate
+- [ ] Initialize Cargo workspace with `qipu` binary crate (Rust)
 - [ ] Set up `src/lib/` for shared utilities
-- [ ] Configure release profile for single native binary
+- [ ] Configure release profile for single native binary (no runtime dependencies)
 - [ ] Add basic CI (build + clippy + test)
+- [ ] Cross-platform support: macOS, Linux, Windows
 
 ### P1.2 CLI Runtime (`specs/cli-tool.md`)
 - [ ] Implement argument parsing with `clap`
@@ -23,6 +24,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Unknown flag/arg detection (exit 2)
 - [ ] Verbose timing output (parse args, discover store, load indexes, execute)
 - [ ] Filesystem hygiene: avoid unnecessary file rewrites, preserve newline style
+- [ ] Offline-first: no network access required for normal operation
 
 ### P1.3 Store Discovery (`specs/cli-tool.md`, `specs/storage-format.md`)
 - [ ] `--store` explicit path resolution (relative to `--root` or cwd)
@@ -121,7 +123,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 5: Output Formats
 
 ### P5.1 Records Output (`specs/records-output.md`)
-- [ ] Header line (H): bundle metadata with format version
+- [ ] Header line (H): bundle metadata with `qipu=1 records=1` format version
 - [ ] Note metadata line (N): id, type, title, tags, path
 - [ ] Summary line (S): extracted summary
 - [ ] Edge line (E): from, type, to, source
@@ -196,7 +198,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--compaction-depth` flag for depth-limited expansion
 - [ ] `--compaction-max-nodes` optional bounding flag
 - [ ] `--expand-compaction` flag for including compacted bodies
-- [ ] Compaction percent metric (`compaction=<P%>`)
+- [ ] Compaction percent metric: `100 * (1 - digest_size / expanded_size)`
+- [ ] Size estimation based on summary extraction (chars)
 - [ ] `compacts=<N>` annotation in outputs (human/json/records)
 - [ ] Truncation indication when compaction limits hit
 - [ ] Deterministic ordering for compaction expansion (sorted by note id)
@@ -209,11 +212,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Phase 9: Validation and Maintenance
 
-### P9.1 Doctor Command (`specs/cli-interface.md`, `specs/storage-format.md`)
+### P9.1 Doctor Command (`specs/cli-interface.md`, `specs/storage-format.md`, `specs/compaction.md`)
 - [ ] `qipu doctor` - validate store invariants
 - [ ] Check for duplicate IDs
 - [ ] Check for broken links
 - [ ] Check for invalid frontmatter
+- [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts)
 - [ ] `qipu doctor --fix` - auto-repair where possible
 
 ### P9.2 Sync Command (`specs/cli-interface.md`)

@@ -334,6 +334,60 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 LinkCommands::Remove { from, to, r#type } => {
                     commands::link::execute_remove(cli, &store, from, to, *r#type)
                 }
+                LinkCommands::Tree {
+                    id_or_path,
+                    direction,
+                    max_hops,
+                    r#type,
+                    exclude_type,
+                    typed_only,
+                    inline_only,
+                    max_nodes,
+                    max_edges,
+                    max_fanout,
+                } => {
+                    let dir = direction
+                        .parse::<commands::link::Direction>()
+                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                    let opts = commands::link::TreeOptions {
+                        direction: dir,
+                        max_hops: *max_hops,
+                        type_include: r#type.clone(),
+                        type_exclude: exclude_type.clone(),
+                        typed_only: *typed_only,
+                        inline_only: *inline_only,
+                        max_nodes: *max_nodes,
+                        max_edges: *max_edges,
+                        max_fanout: *max_fanout,
+                    };
+                    commands::link::execute_tree(cli, &store, id_or_path, opts)
+                }
+                LinkCommands::Path {
+                    from,
+                    to,
+                    direction,
+                    max_hops,
+                    r#type,
+                    exclude_type,
+                    typed_only,
+                    inline_only,
+                } => {
+                    let dir = direction
+                        .parse::<commands::link::Direction>()
+                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                    let opts = commands::link::TreeOptions {
+                        direction: dir,
+                        max_hops: *max_hops,
+                        type_include: r#type.clone(),
+                        type_exclude: exclude_type.clone(),
+                        typed_only: *typed_only,
+                        inline_only: *inline_only,
+                        max_nodes: None,
+                        max_edges: None,
+                        max_fanout: None,
+                    };
+                    commands::link::execute_path(cli, &store, from, to, opts)
+                }
             }
         }
     }

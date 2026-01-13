@@ -1,13 +1,13 @@
 # Qipu Implementation Plan
 
 Status: In Progress  
-Last updated: 2026-01-12
+Last updated: 2026-01-13
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
 ## Implementation Status
 
-**Current Phase**: Phase 4 in progress (Phases 1-3 mostly complete)  
+**Current Phase**: Phase 4 mostly complete (Phases 1-3 mostly complete)  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
 
@@ -176,35 +176,35 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `--type` filter for specific link types
 
 ### P4.2 Graph Traversal (`specs/graph-traversal.md`)
-- [ ] `qipu link tree <id>` - traversal tree from note
-- [ ] `--max-hops` (default: 3)
-- [ ] `--direction` flag (out|in|both, default: both)
-- [ ] `--type <t>` (repeatable) / `--types <csv>` type inclusion filters
-- [ ] `--exclude-type <t>` / `--exclude-types <csv>` type exclusion filters
-- [ ] `--typed-only`, `--inline-only` filters
-- [ ] `--max-nodes`, `--max-edges`, `--max-fanout` limits
+- [x] `qipu link tree <id>` - traversal tree from note
+- [x] `--max-hops` (default: 3)
+- [x] `--direction` flag (out|in|both, default: both)
+- [x] `--type <t>` (repeatable) / `--types <csv>` type inclusion filters
+- [x] `--exclude-type <t>` / `--exclude-types <csv>` type exclusion filters
+- [x] `--typed-only`, `--inline-only` filters
+- [x] `--max-nodes`, `--max-edges`, `--max-fanout` limits
   - [ ] `--max-nodes` caps total visited nodes
   - [ ] `--max-edges` caps total edges emitted
   - [ ] `--max-fanout` caps neighbors per expanded node (prevents single hub blow-ups)
   - [ ] No defaults for these limits (unbounded unless specified); deterministic truncation when hit
   - [ ] When multiple limits specified, stop when ANY limit is reached
-- [ ] Deterministic BFS with spanning tree
-- [ ] Neighbor ordering: sort by (edge type, target note id)
-- [ ] Cycle-safe traversal (visited set, "(seen)" markers)
-- [ ] Truncation reporting when limits hit
-- [ ] `qipu link path <from> <to>` - find path between notes
-- [ ] `qipu link path` flags: `--direction`, `--max-hops`, `--typed-only`, `--inline-only`
-- [ ] `qipu link path` type filters: `--type <t>` (repeatable), `--types <csv>`, `--exclude-type <t>`, `--exclude-types <csv>`
+- [x] Deterministic BFS with spanning tree
+- [x] Neighbor ordering: sort by (edge type, target note id)
+- [x] Cycle-safe traversal (visited set, "(seen)" markers)
+- [x] Truncation reporting when limits hit
+- [x] `qipu link path <from> <to>` - find path between notes
+- [x] `qipu link path` flags: `--direction`, `--max-hops`, `--typed-only`, `--inline-only`
+- [x] `qipu link path` type filters: `--type <t>` (repeatable), `--types <csv>`, `--exclude-type <t>`, `--exclude-types <csv>`
 
 ### P4.3 Traversal Output Formats (`specs/graph-traversal.md`)
-- [ ] Human-readable tree output (optimized for scanning)
-- [ ] `qipu link path` human output: simple path listing (node -> node -> node)
-- [ ] JSON output shape: `{root, direction, max_hops, truncated, nodes[], edges[], spanning_tree[]}`
-- [ ] Node objects in JSON: `{id, title, type, tags, path}`
-- [ ] Edge objects include `source` field (`inline` or `typed`)
-- [ ] Edge objects: `{from, to, type, source}`
-- [ ] `spanning_tree[]` with `{from, to, hop}` entries
-- [ ] `qipu link path` JSON: list of nodes and edges in chosen path
+- [x] Human-readable tree output (optimized for scanning)
+- [x] `qipu link path` human output: simple path listing (node -> node -> node)
+- [x] JSON output shape: `{root, direction, max_hops, truncated, nodes[], edges[], spanning_tree[]}`
+- [x] Node objects in JSON: `{id, title, type, tags, path}`
+- [x] Edge objects include `source` field (`inline` or `typed`)
+- [x] Edge objects: `{from, to, type, source}`
+- [x] `spanning_tree[]` with `{from, to, hop}` entries
+- [x] `qipu link path` JSON: list of nodes and edges in chosen path
 - [ ] Records output (see Phase 5)
 - [ ] Integration: traversal results compose cleanly with `qipu context`
 - [ ] Future: multiple start nodes for traversal

@@ -11,6 +11,8 @@ MAX_ITERATIONS=""
 MODEL=""
 PROMPT_FILE=""
 DRY_RUN=false
+CTRL_C_COUNT=0
+STOP_AFTER_ITERATION=false
 
 usage() {
     cat <<'EOF'
@@ -251,6 +253,20 @@ working_tree_changed() {
     echo "false"
 }
 
+# Signal handler for Ctrl-C
+handle_ctrl_c() {
+    CTRL_C_COUNT=$((CTRL_C_COUNT + 1))
+    if [[ $CTRL_C_COUNT -eq 1 ]]; then
+        log_warn "Ctrl-C pressed - will stop after this iteration (press again to stop immediately)"
+        STOP_AFTER_ITERATION=true
+    elif [[ $CTRL_C_COUNT -eq 2 ]]; then
+        log_warn "Ctrl-C pressed again - stopping immediately"
+        exit 130
+    fi
+}
+
+trap handle_ctrl_c INT
+
 log "Starting loop"
 log "Max iterations: $MAX_ITERATIONS"
 log "Prompt: $PROMPT_LABEL"
@@ -295,6 +311,13 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     fi
 
     rm -f "$TEMP_OUTPUT"
+    
+    # Check if we should stop after this iteration
+    if [[ "$STOP_AFTER_ITERATION" == "true" ]]; then
+        log_warn "Stopping after iteration $ITERATION as requested"
+        exit 0
+    fi
+    
     sleep 2
 done
 

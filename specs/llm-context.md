@@ -38,12 +38,12 @@ Recommended contents:
 Requirements:
 - deterministic ordering
 - stable formatting (easy for tools to parse)
-- size controls (`--max-chars` / `--max-tokens` approx)
+- size controls (`--max-chars` exact)
 
-Output profiles:
-- default: markdown (human-friendly)
-- `--json`: tool-friendly
-- `--token`: token-optimized for LLM context injection (see `specs/token-optimized-output.md`)
+Output formats:
+- default: markdown (human-friendly, `--format human`)
+- `--format json`: tool-friendly
+- `--format records`: line-oriented record output for context injection (see `specs/records-output.md`)
 
 ## Bundle selection
 Selection methods (composable):
@@ -81,8 +81,8 @@ Rules:
 - Include metadata headers even if note content is empty.
 - Preserve original note markdown as-is.
 
-## Bundle output format (`--json`)
-For integration with tools, `qipu context --json` should emit:
+## Bundle output format (`--format json`)
+For integration with tools, `qipu context --format json` should emit:
 
 ```json
 {

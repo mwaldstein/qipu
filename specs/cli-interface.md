@@ -5,7 +5,7 @@ Last updated: 2026-01-12
 
 ## CLI principles (beads-aligned)
 - **Scriptable by default**: commands should work non-interactively.
-- **Deterministic output**: especially with `--json`, `prime`, and `context`.
+- **Deterministic output**: especially with `--format json`, `prime`, and `context`.
 - **Composable**: stdin/stdout friendly.
 - **Fast**: listing/search should be instant for typical repos.
 - **Minimize cognitive overload**: prefer flags on existing commands; group related operations.
@@ -13,8 +13,9 @@ Last updated: 2026-01-12
 ## Global flags (proposed)
 - `--store <path>`: path to store root (default: `.qipu/`)
 - `--root <path>`: resolve store relative to this directory (default: cwd)
-- `--json`: machine-readable output (should be supported on all commands)
-- `--token`: token-optimized output for LLM context injection (mutually exclusive with `--json`; see `specs/token-optimized-output.md`)
+- `--format <human|json|records>`: output format (default: `human`)
+  - `json` is stable, machine-readable output (supported on all commands)
+  - `records` is line-oriented, low-overhead output (see `specs/records-output.md`)
 - `--quiet` / `--verbose`
 
 ## Commands
@@ -82,8 +83,8 @@ Subcommands (proposed):
 
 Notes:
 - Default traversal direction should be `both`.
-- `--json` output should be supported for list/tree/path (tool-friendly).
-- `--token` output should be supported for list/tree/path (LLM-friendly; see `specs/token-optimized-output.md`).
+- `--format json` output should be supported for list/tree/path (tool-friendly).
+- `--format records` output should be supported for list/tree/path (low-overhead; see `specs/records-output.md`).
 
 This is intentionally similar to beads’ `bd dep` commands, but for knowledge edges.
 
@@ -103,12 +104,12 @@ Selection options (one or more):
 - `--query <text>` (search-based selection)
 
 Budgeting:
-- `--max-chars <n>` or `--max-tokens <n>` (approx)
+- `--max-chars <n>` (exact)
 
-Output profiles (proposed):
-- default: markdown
-- `--json`
-- `--token` (see `specs/token-optimized-output.md`)
+Output formats (proposed):
+- default: markdown (`--format human`)
+- `--format json`
+- `--format records` (see `specs/records-output.md`)
 
 ### `qipu export`
 Export notes into a single document (e.g., whitepaper notes).
@@ -148,7 +149,7 @@ Validate store invariants.
 ## Output formats
 Human output should be readable and concise.
 
-With `--json`, commands should emit either:
+With `--format json`, commands should emit either:
 - a single JSON object, or
 - JSON lines (one object per note)
 

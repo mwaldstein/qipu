@@ -12,7 +12,7 @@ Project-level vision/goals live in the repo root `README.md`.
 | [`cli-interface.md`](cli-interface.md) | Interface | Commands, flags, output formats, exit codes |
 | [`indexing-search.md`](indexing-search.md) | Navigation | Indexes, backlinks/graph, search semantics |
 | [`graph-traversal.md`](graph-traversal.md) | Retrieval | Graph traversal (tree/path), ordering, JSON shape |
-| [`token-optimized-output.md`](token-optimized-output.md) | Output | Token-optimized formats for LLM context injection |
+| [`records-output.md`](records-output.md) | Output | Line-oriented records for context injection |
 | [`llm-context.md`](llm-context.md) | LLM integration | `prime` + context bundles, budgeting, safety |
 | [`export.md`](export.md) | Export | Bundling/outlines/bibliographies, deterministic ordering |
 | [`compaction.md`](compaction.md) | Compaction | Digest-first navigation and lossless decay |

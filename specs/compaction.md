@@ -122,7 +122,7 @@ Optional but recommended:
 - **Breadcrumb**: `via=<id>` when a digest appears specifically because some compacted note was encountered/matched.
   - For example: a search hit in a compacted note yields a result for the digest with `via=<matching-note-id>`.
 
-Annotations should be available in human output, `--json`, and `--token` modes.
+Annotations should be available in human output, `--format json`, and `--format records` modes.
 
 ## Inspecting compaction contents
 Compaction IDs should be available, but not part of the default output.
@@ -170,8 +170,8 @@ The default `size()` should be aligned with LLM retrieval:
 - Prefer “summary-sized” estimates rather than full bodies.
 
 Recommended default size basis (deterministic):
-- extract a note summary using the same rules as token-optimized summary extraction
-- measure size in estimated tokens using a stable heuristic (e.g., `ceil(chars/4)`)
+- extract a note summary using the same rules as records summary extraction
+- measure size in characters (deterministic)
 
 Qipu may support alternate size bases as future flags (e.g., body size), but must keep defaults stable.
 
@@ -225,12 +225,12 @@ Constraints:
 Recommended approach:
 - use graph methods to find dense, relatively self-contained clumps (community/clump detection)
 - rank candidates by a combination of:
-  - estimated total size (token/chars)
+  - estimated total size (chars)
   - node count
   - cohesion (internal edges)
   - boundary edges (external connectivity)
 
-Recommended outputs (especially for `--json`):
+Recommended outputs (especially for `--format json`):
 - list of candidates, each with:
   - `ids[]`
   - node/edge counts
@@ -243,7 +243,7 @@ Print stable, copy/pasteable guidance intended for LLM tools (and humans) to per
 
 Guidance should include:
 1. How to choose a candidate (`qipu compact suggest`).
-2. How to review candidate summaries (`qipu context --token` in summaries-first mode).
+2. How to review candidate summaries (`qipu context --format records` in summaries-first mode).
 3. How to author a digest note (externally) with a “high signal, low tokens” structure.
 4. How to register compaction (`qipu compact apply`).
 5. How to validate (`qipu compact report`, plus a resolved traversal/search sanity check).
@@ -255,7 +255,7 @@ The guide may include a prompt template such as:
 ### Search
 In the resolved view (default):
 - qipu may match against compacted source note content, but results must surface the **canonical digest**.
-- if a match occurred in a compacted note, annotate the digest result with `via=<matching-source-id>` (or equivalent in JSON/token output).
+- if a match occurred in a compacted note, annotate the digest result with `via=<matching-source-id>` (or equivalent in `--format json`/`--format records` output).
 
 With `--no-resolve-compaction`:
 - qipu should return the raw matching notes (including compacted notes) without redirecting.

@@ -129,8 +129,8 @@ Flags (proposed):
 
 Output:
 - Default: human-readable tree (optimized for scanning)
-- With `--json`: structured traversal result
-- With `--token`: token-optimized traversal output for LLM context injection (see `specs/token-optimized-output.md`)
+- With `--format json`: structured traversal result
+- With `--format records`: line-oriented record output (see `specs/records-output.md`)
 
 ### `qipu link path <from> <to>` (recommended)
 Find a path between two notes.
@@ -147,10 +147,11 @@ Flags (proposed):
 
 Output:
 - Default: a simple path listing
-- With `--json`: list of nodes and edges in the chosen path
+- With `--format json`: list of nodes and edges in the chosen path
+- With `--format records`: line-oriented record output (see `specs/records-output.md`)
 
 ## JSON output (shape)
-`qipu link tree --json` should return a single JSON object.
+`qipu link tree --format json` should return a single JSON object.
 
 Proposed minimal shape:
 ```json
@@ -178,7 +179,7 @@ Notes:
 
 ## Integration with `qipu context`
 Traversal results should compose cleanly into context bundles:
-- users/tools can traverse with `qipu link tree --json`, select a subset of `nodes[]`, and then call `qipu context --note …`
+- users/tools can traverse with `qipu link tree --format json`, select a subset of `nodes[]`, and then call `qipu context --note …`
 
 Future-friendly extension (optional):
 - add `qipu context --walk <id> --max-depth <n> ...` to perform traversal-and-bundle in one command.

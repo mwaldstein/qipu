@@ -23,7 +23,7 @@ LLM coding agents (and the humans driving them) are great at searching the curre
 - **Local/offline-first**: no required network access; no hosted service dependency.
 - **Binary-first distribution**: a single native `qipu` executable (no runtime dependency).
 - **Maximum performance**: baseline commands should feel instant (see `specs/cli-tool.md`).
-- **Agent-optimized ergonomics**: stable IDs, `--json` output, and predictable commands.
+- **Agent-optimized ergonomics**: stable IDs, `--format json` output, and predictable commands.
 
 ## Non-goals
 

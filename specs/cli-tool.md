@@ -12,7 +12,7 @@ This spec focuses on the CLI as a product surface (parsing, dispatch, output pro
 ## In scope
 
 - A single `qipu` executable with stable command/flag parsing.
-- Global flags, output profiles (`human`, `--json`, `--token`), and verbosity controls.
+- Global flags, output profiles (`--format human|json|records`), and verbosity controls.
 - Store discovery and path resolution rules.
 - Error handling and exit codes.
 - Determinism requirements shared across commands.
@@ -63,13 +63,15 @@ Global flags are defined in `specs/cli-interface.md` and must apply consistently
 
 - `--root <path>`: base directory for resolving the store (default: current working directory).
 - `--store <path>`: explicit store root path.
-- `--json`: machine-readable output.
-- `--token`: token-optimized output.
+- `--format <human|json|records>`: output format (default: `human`).
+  - `json`: machine-readable output.
+  - `records`: line-oriented record output.
 - `--quiet` / `--verbose`.
 
 Constraints:
 
-- `--json` and `--token` are mutually exclusive.
+- `--format` may be specified at most once.
+- Unknown `--format` values must produce a usage error (exit code `2`).
 - Unknown flags/args must produce a usage error (exit code `2`).
 
 ### Store discovery and resolution
@@ -98,7 +100,7 @@ For the same inputs and store state:
 - Output formatting must be stable.
 - When truncation/budgeting occurs, it must be explicit and deterministic.
 
-Determinism applies to all output profiles (human / `--json` / `--token`).
+Determinism applies to all output formats (`--format human|json|records`).
 
 ### Exit codes
 
@@ -112,7 +114,7 @@ Exit codes must follow `specs/cli-interface.md`:
 ### Error messages
 
 - Human output may include friendly context.
-- `--json` output must include structured error details (shape defined per command) while still using the correct exit code.
+- With `--format json`, commands must include structured error details (shape defined per command) while still using the correct exit code.
 
 ### Filesystem hygiene
 

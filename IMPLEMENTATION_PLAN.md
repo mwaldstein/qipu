@@ -22,9 +22,11 @@ This document tracks implementation progress against the specs in `specs/`.
 
 **Phase 5 (LLM Integration)**: COMPLETED
 
-**Testing**: 103 unit tests passing
+**Phase 6 (Export)**: COMPLETED
 
-**Next Steps**: Phase 6 (Export)
+**Testing**: 114 unit tests passing
+
+**Next Steps**: Phase 7 (Compaction)
 
 ---
 
@@ -190,13 +192,13 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ---
 
-## Phase 6: Export (P6)
+## Phase 6: Export (P6) - COMPLETED
 
-- [ ] `qipu export` command
-- [ ] Bundle, outline, and bibliography export modes
-- [ ] Selection inputs (`--note`, `--tag`, `--moc`, `--query`)
-- [ ] Link handling options
-- [ ] Attachment handling
+- [x] `qipu export` command
+- [x] Bundle, outline, and bibliography export modes
+- [x] Selection inputs (`--note`, `--tag`, `--moc`, `--query`)
+- [x] Link handling options (preserve, markdown, anchors)
+- [x] Attachment handling (default: no attachments for lightweight exports)
 
 ---
 
@@ -261,7 +263,7 @@ Phase 3 (Indexing) - DONE
     +--------------+-----> Phase 5 (LLM Integration) - DONE
     |
     v
-Phase 6 (Export)
+Phase 6 (Export) - DONE
     |
     v
 Phase 7 (Compaction)

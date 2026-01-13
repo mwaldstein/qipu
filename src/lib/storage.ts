@@ -295,7 +295,7 @@ export function createNote(
     type?: NoteType;
     tags?: string[];
     body?: string;
-    sources?: { url?: string; title?: string }[];
+    sources?: { url?: string; title?: string; accessed?: string }[];
     links?: TypedLink[];
   },
 ): Note {

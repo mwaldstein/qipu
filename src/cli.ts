@@ -19,6 +19,7 @@ import { searchCommand } from "./commands/search.js";
 import { linkCommand } from "./commands/link.js";
 import { primeCommand } from "./commands/prime.js";
 import { contextCommand } from "./commands/context.js";
+import { exportCommand } from "./commands/export.js";
 
 const VERSION = "0.0.0";
 
@@ -56,6 +57,7 @@ program.addCommand(searchCommand);
 program.addCommand(linkCommand);
 program.addCommand(primeCommand);
 program.addCommand(contextCommand);
+program.addCommand(exportCommand);
 
 // Handle unknown commands
 program.on("command:*", () => {

@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12 (gap analysis review)
+Last updated: 2026-01-12 (spec alignment review)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -60,7 +60,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
-- [ ] Create default templates for each note type in `templates/` (fleeting, literature, permanent, moc)
+- [ ] Create default templates for each note type in `templates/` during init (fleeting, literature, permanent, moc)
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
 - [ ] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
@@ -93,6 +93,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] Show inline + typed links
   - [ ] Show direction (outbound vs inbound/backlinks)
   - [ ] Show link type and source (typed vs inline)
+  - [ ] Consistent with `qipu link list` output schema
 
 ### P2.2 Note Listing (`specs/cli-interface.md`)
 - [ ] `qipu list` - list notes
@@ -125,6 +126,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Extract typed links from frontmatter (`links[]` array)
 - [ ] Inline links assigned default: `type=related`, `source=inline`
 - [ ] Typed links preserve their explicit type and set `source=typed`
+- [ ] Distinguish link source in all outputs: `inline` vs `typed`
 - [ ] Track unresolved links for `doctor` reporting
 - [ ] Ignore links outside the store by default
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
@@ -176,6 +178,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu link path` human output: simple path listing (node -> node -> node)
 - [ ] JSON output shape: `{root, direction, max_depth, truncated, nodes[], edges[], spanning_tree[]}`
 - [ ] Edge objects include `source` field (`inline` or `typed`)
+- [ ] Edge objects: `{from, to, type, source}`
 - [ ] `spanning_tree[]` with `{parent, child, depth}` entries
 - [ ] `qipu link path` JSON: list of nodes and edges in chosen path
 - [ ] Records output (see Phase 5)
@@ -187,11 +190,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 5: Output Formats
 
 ### P5.1 Records Output (`specs/records-output.md`)
-- [ ] Header line (H): `qipu=1 records=1`, store path, mode, parameters
+- [ ] Header line (H): `qipu=1 records=1`, store path, mode, parameters, truncated flag
 - [ ] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_depth=`
 - [ ] Header fields for context: `mode=context`, `notes=N`
 - [ ] Note metadata line (N): id, type, title, tags
   - [ ] Include `path=` field only in context mode (not traversal mode)
+  - [ ] Format: `N <id> <type> "<title>" tags=<csv> [path=<path>]`
 - [ ] Summary line (S): `S <id> <summary text>`
 - [ ] Edge line (E): `E <from> <type> <to> <source>` (source = `typed` or `inline`)
 - [ ] Body lines (B): `B <id>` followed by raw markdown
@@ -204,7 +208,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ### P5.2 Budgeting (`specs/records-output.md`, `specs/llm-context.md`)
 - [ ] `--max-chars` exact budget
 - [ ] Truncation handling: set `truncated=true` in header, no partial records unless unavoidable
-- [ ] Truncation marker: `...[truncated]` exact format for partially truncated notes
+- [ ] Truncation marker: `…[truncated]` exact format for partially truncated notes (ellipsis character)
 - [ ] Option: emit final header line indicating truncation (alternative to first-line `truncated=true`)
 - [ ] Deterministic truncation (same selection = same output)
 - [ ] Include complete notes first, truncate only when unavoidable
@@ -230,7 +234,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--moc --transitive` mode: follow nested MOC links (transitive closure)
 - [ ] `--max-chars` budget
 - [ ] Markdown output (default): precise format per spec
-  - [ ] Header: `# Qipu Context Bundle`, generated timestamp, store path
+  - [ ] Exact header: `# Qipu Context Bundle`
+  - [ ] `Generated: <ISO8601>` line
+  - [ ] `Store: <path>` line
   - [ ] Per note: `## Note: <title> (<id>)` header
   - [ ] Metadata lines: `Path:`, `Type:`, `Tags:`, `Sources:`
   - [ ] `Sources:` line: show `- <url>` for each; include title if present; omit line if no sources
@@ -255,8 +261,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 7: Export
 
 ### P7.1 Export Modes (`specs/export.md`)
-- [ ] `qipu export` - export notes to single markdown file
-- [ ] `--output <path>` flag to specify output file (default: stdout)
+- [ ] `qipu export` - export notes to single markdown file (default: stdout)
+- [ ] `--output <path>` flag to specify output file
 - [ ] Selection: `--note`, `--tag`, `--moc`, `--query`
 - [ ] Bundle mode: concatenated markdown with metadata headers
 - [ ] Outline mode: MOC-driven ordering

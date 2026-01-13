@@ -52,6 +52,7 @@ qipu --version
 - `qipu prime` - Prime notes for AI context
 - `qipu export` - Export store data
 - `qipu index` - Manage search index
+- `qipu sync` - Update indexes and optionally validate
 - `qipu doctor` - Check store health
 
 ### Output Formats

@@ -39,3 +39,21 @@ export {
   extractSummary,
   extractHashtags,
 } from "./lib/parsing.js";
+
+// Re-export indexing functions
+export {
+  buildIndex,
+  loadIndex,
+  saveIndex,
+  getIndex,
+  getBacklinks,
+  getNotesByTag,
+  getOutgoingLinks,
+  getIncomingLinks,
+  getAllTags,
+  getMetadata,
+  getIndexPath,
+} from "./lib/indexing.js";
+
+// Re-export indexing types
+export type { NoteMetadata, GraphEdge, StoreIndex } from "./lib/indexing.js";

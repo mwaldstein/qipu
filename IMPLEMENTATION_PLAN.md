@@ -16,9 +16,11 @@ This document tracks implementation progress against the specs in `specs/`.
 
 - All core commands implemented: `init`, `create`, `new`, `capture`, `list`, `show`
 
-**Testing**: 57 unit tests passing
+**Phase 3 (Indexing & Navigation)**: COMPLETED
 
-**Next Steps**: Phase 3 (Indexing & Navigation)
+**Testing**: 73 unit tests passing
+
+**Next Steps**: Phase 4 (Link Management & Graph Traversal)
 
 ---
 
@@ -116,32 +118,32 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ---
 
-## Phase 3: Indexing & Navigation (P3)
+## Phase 3: Indexing & Navigation - COMPLETED
 
 ### Indexing (`specs/indexing-search.md`)
 
-- [ ] Metadata index (id -> {title, type, tags, path, created, updated})
-- [ ] Tag index (tag -> [ids...])
-- [ ] Link extraction (wiki links, markdown links, typed links)
-- [ ] Backlink index
-- [ ] Graph adjacency list
-- [ ] Incremental indexing (track mtimes)
-- [ ] Cache storage (`.qipu/.cache/*.json`)
-- [ ] `qipu index` command
-- [ ] `qipu index --rebuild` command
+- [x] Metadata index (id -> {title, type, tags, path, created, updated})
+- [x] Tag index (tag -> [ids...])
+- [x] Link extraction (wiki links, markdown links, typed links)
+- [x] Backlink index
+- [x] Graph adjacency list
+- [x] Incremental indexing (track mtimes)
+- [x] Cache storage (`.qipu/.cache/*.json`)
+- [x] `qipu index` command
+- [x] `qipu index --rebuild` command
 
 ### Search (`specs/indexing-search.md`)
 
-- [ ] `qipu search <query>` - full-text search
-- [ ] `--tag`, `--type`, `--moc`/`--no-moc` filters
-- [ ] `--json` output
-- [ ] Result ranking
+- [x] `qipu search <query>` - full-text search
+- [x] `--tag`, `--type`, `--moc`/`--no-moc` filters
+- [x] `--json` output
+- [x] Result ranking
 
 ### `qipu inbox` (`specs/cli-interface.md`)
 
-- [ ] List unprocessed notes (type in {fleeting, literature})
-- [ ] `--no-moc` flag
-- [ ] `--json` output
+- [x] List unprocessed notes (type in {fleeting, literature})
+- [x] `--no-moc` flag
+- [x] `--json` output
 
 ---
 
@@ -248,7 +250,7 @@ Phase 1 (Foundation) - DONE
 Phase 2 (Core Commands) - DONE
     |
     v
-Phase 3 (Indexing) -- required by P4, P5
+Phase 3 (Indexing) - DONE
     |
     +-----> Phase 4 (Graph Traversal)
     |              |

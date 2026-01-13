@@ -684,7 +684,6 @@ fn test_store_discovery_walks_up() {
 fn test_explicit_store_path() {
     let dir = tempdir().unwrap();
     let store_dir = dir.path().join("custom-store");
-    std::fs::create_dir_all(&store_dir).unwrap();
 
     // Init at custom location
     qipu()
@@ -693,12 +692,33 @@ fn test_explicit_store_path() {
         .assert()
         .success();
 
+    // Verify structure was created under the explicit store path
+    assert!(store_dir.join("config.toml").exists());
+    assert!(store_dir.join("notes").exists());
+    assert!(store_dir.join("mocs").exists());
+    assert!(store_dir.join("attachments").exists());
+    assert!(store_dir.join("templates").exists());
+
     // Should be able to use with --store
     qipu()
         .current_dir(dir.path())
         .args(["--store", store_dir.to_str().unwrap(), "list"])
         .assert()
         .success();
+}
+
+#[test]
+fn test_store_flag_plain_directory_is_invalid() {
+    let dir = tempdir().unwrap();
+    let store_dir = dir.path().join("not-a-store");
+    std::fs::create_dir_all(&store_dir).unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--store", store_dir.to_str().unwrap(), "list"])
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("invalid store"));
 }
 
 // ============================================================================

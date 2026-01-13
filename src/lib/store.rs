@@ -100,12 +100,10 @@ impl Store {
             });
         }
 
+        validate_store_layout(path)?;
+
         let config_path = path.join(CONFIG_FILE);
-        let config = if config_path.exists() {
-            StoreConfig::load(&config_path)?
-        } else {
-            StoreConfig::default()
-        };
+        let config = StoreConfig::load(&config_path)?;
 
         Ok(Store {
             root: path.to_path_buf(),
@@ -113,58 +111,60 @@ impl Store {
         })
     }
 
-    /// Initialize a new store
-    pub fn init(root: &Path, options: InitOptions) -> Result<Self> {
+    /// Initialize a new store under the given project root.
+    pub fn init(project_root: &Path, options: InitOptions) -> Result<Self> {
         let store_name = if options.visible {
             VISIBLE_STORE_DIR
         } else {
             DEFAULT_STORE_DIR
         };
 
-        let store_path = root.join(store_name);
+        let store_path = project_root.join(store_name);
+        Self::init_at(&store_path, options, Some(project_root))
+    }
 
-        // Create store directory (idempotent)
-        if store_path.exists() {
-            // Already exists - open it instead
-            return Self::open(&store_path);
-        }
+    /// Initialize a store at an explicit store root path.
+    ///
+    /// This is primarily used to support `qipu --store <path> init`.
+    pub fn init_at(
+        store_root: &Path,
+        options: InitOptions,
+        project_root: Option<&Path>,
+    ) -> Result<Self> {
+        // Create directory structure (idempotent)
+        fs::create_dir_all(store_root)?;
+        fs::create_dir_all(store_root.join(NOTES_DIR))?;
+        fs::create_dir_all(store_root.join(MOCS_DIR))?;
+        fs::create_dir_all(store_root.join(ATTACHMENTS_DIR))?;
+        fs::create_dir_all(store_root.join(TEMPLATES_DIR))?;
+        fs::create_dir_all(store_root.join(CACHE_DIR))?;
 
-        // Create directory structure
-        fs::create_dir_all(&store_path)?;
-        fs::create_dir_all(store_path.join(NOTES_DIR))?;
-        fs::create_dir_all(store_path.join(MOCS_DIR))?;
-        fs::create_dir_all(store_path.join(ATTACHMENTS_DIR))?;
-        fs::create_dir_all(store_path.join(TEMPLATES_DIR))?;
-        fs::create_dir_all(store_path.join(CACHE_DIR))?;
+        // Create default config if missing (avoid rewriting on subsequent init)
+        let config_path = store_root.join(CONFIG_FILE);
+        let config = if config_path.exists() {
+            StoreConfig::load(&config_path)?
+        } else {
+            let config = StoreConfig::default();
+            config.save(&config_path)?;
+            config
+        };
 
-        // Create default config
-        let config = StoreConfig::default();
-        config.save(&store_path.join(CONFIG_FILE))?;
+        ensure_store_gitignore(store_root)?;
+        ensure_default_templates(&store_root.join(TEMPLATES_DIR))?;
 
-        // Create .gitignore for store
-        let gitignore_content = "qipu.db\n.cache/\n";
-        fs::write(store_path.join(GITIGNORE_FILE), gitignore_content)?;
-
-        // Create default templates
-        create_default_templates(&store_path.join(TEMPLATES_DIR))?;
-
-        // Handle stealth mode (add to project .gitignore)
+        // Handle stealth mode (add store to project .gitignore)
         if options.stealth {
-            let project_gitignore = root.join(GITIGNORE_FILE);
-            let entry = format!("{}/\n", store_name);
-
-            if project_gitignore.exists() {
-                let content = fs::read_to_string(&project_gitignore)?;
-                if !content.contains(&entry) {
-                    fs::write(&project_gitignore, format!("{}{}", content, entry))?;
+            if let (Some(project_root), Some(store_name)) = (project_root, store_root.file_name()) {
+                if store_root.parent() == Some(project_root) {
+                    let project_gitignore = project_root.join(GITIGNORE_FILE);
+                    let entry = format!("{}/", store_name.to_string_lossy());
+                    ensure_project_gitignore_entry(&project_gitignore, &entry)?;
                 }
-            } else {
-                fs::write(&project_gitignore, entry)?;
             }
         }
 
         Ok(Store {
-            root: store_path,
+            root: store_root.to_path_buf(),
             config,
         })
     }
@@ -409,32 +409,109 @@ impl Store {
     }
 }
 
-/// Options for store initialization
-#[derive(Debug, Clone, Default)]
-pub struct InitOptions {
-    /// Use visible store directory (`qipu/` instead of `.qipu/`)
-    pub visible: bool,
-    /// Stealth mode (add store to .gitignore)
-    pub stealth: bool,
-    /// Branch workflow (not yet implemented)
-    #[allow(dead_code)]
-    pub branch: Option<String>,
+fn validate_store_layout(store_root: &Path) -> Result<()> {
+    let mut missing = Vec::new();
+
+    let config_path = store_root.join(CONFIG_FILE);
+    if !config_path.is_file() {
+        missing.push(CONFIG_FILE.to_string());
+    }
+
+    for (dir_name, label) in [
+        (NOTES_DIR, NOTES_DIR),
+        (MOCS_DIR, MOCS_DIR),
+        (ATTACHMENTS_DIR, ATTACHMENTS_DIR),
+        (TEMPLATES_DIR, TEMPLATES_DIR),
+    ] {
+        let path = store_root.join(dir_name);
+        if !path.is_dir() {
+            missing.push(label.to_string());
+        }
+    }
+
+    // Derived; safe to recreate.
+    let cache_dir = store_root.join(CACHE_DIR);
+    if !cache_dir.exists() {
+        fs::create_dir_all(&cache_dir)?;
+    }
+
+    if !missing.is_empty() {
+        return Err(QipuError::InvalidStore {
+            reason: format!(
+                "missing required store files/dirs: {} (store_root={})",
+                missing.join(", "),
+                store_root.display()
+            ),
+        });
+    }
+
+    Ok(())
 }
 
-/// Create default templates for each note type
-fn create_default_templates(templates_dir: &Path) -> Result<()> {
-    // Fleeting template
-    let fleeting = r#"## Summary
+fn ensure_store_gitignore(store_root: &Path) -> Result<()> {
+    let path = store_root.join(GITIGNORE_FILE);
+    let required = ["qipu.db", ".cache/"];
+
+    if !path.exists() {
+        fs::write(&path, format!("{}\n{}\n", required[0], required[1]))?;
+        return Ok(());
+    }
+
+    let mut content = fs::read_to_string(&path)?;
+    let mut changed = false;
+
+    for entry in required {
+        if !content.lines().any(|l| l.trim() == entry) {
+            if !content.ends_with('\n') {
+                content.push('\n');
+            }
+            content.push_str(entry);
+            content.push('\n');
+            changed = true;
+        }
+    }
+
+    if changed {
+        fs::write(&path, content)?;
+    }
+
+    Ok(())
+}
+
+fn ensure_default_templates(templates_dir: &Path) -> Result<()> {
+    fs::create_dir_all(templates_dir)?;
+
+    let templates = [
+        ("fleeting.md", default_template(NoteType::Fleeting)),
+        ("literature.md", default_template(NoteType::Literature)),
+        ("permanent.md", default_template(NoteType::Permanent)),
+        ("moc.md", default_template(NoteType::Moc)),
+    ];
+
+    for (name, content) in templates {
+        let path = templates_dir.join(name);
+        if !path.exists() {
+            fs::write(path, content)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn default_template(note_type: NoteType) -> &'static str {
+    match note_type {
+        NoteType::Fleeting => {
+            r#"## Summary
 
 <!-- One-sentence summary of this thought -->
 
 ## Notes
 
 <!-- Quick capture - refine later -->
-"#;
-
-    // Literature template
-    let literature = r#"## Summary
+"#
+        }
+        NoteType::Literature => {
+            r#"## Summary
 
 <!-- Key takeaway from this source -->
 
@@ -445,10 +522,10 @@ fn create_default_templates(templates_dir: &Path) -> Result<()> {
 ## Quotes
 
 <!-- Notable quotes from the source -->
-"#;
-
-    // Permanent template
-    let permanent = r#"## Summary
+"#
+        }
+        NoteType::Permanent => {
+            r#"## Summary
 
 <!-- One idea, in your own words, that can stand alone -->
 
@@ -459,10 +536,10 @@ fn create_default_templates(templates_dir: &Path) -> Result<()> {
 ## See Also
 
 <!-- Related notes: explain *why* each is related, not just bare links -->
-"#;
-
-    // MOC template
-    let moc = r#"## Summary
+"#
+        }
+        NoteType::Moc => {
+            r#"## Summary
 
 <!-- What this map covers and why it exists -->
 
@@ -478,15 +555,44 @@ fn create_default_templates(templates_dir: &Path) -> Result<()> {
 
 <!-- Organized links to notes, grouped by subtopic -->
 <!-- Explain what belongs here and why -->
-"#;
+"#
+        }
+    }
+}
 
-    fs::write(templates_dir.join("fleeting.md"), fleeting)?;
-    fs::write(templates_dir.join("literature.md"), literature)?;
-    fs::write(templates_dir.join("permanent.md"), permanent)?;
-    fs::write(templates_dir.join("moc.md"), moc)?;
+fn ensure_project_gitignore_entry(path: &Path, entry: &str) -> Result<()> {
+    if path.exists() {
+        let mut content = fs::read_to_string(path)?;
+        if content.lines().any(|l| l.trim() == entry.trim()) {
+            return Ok(());
+        }
+
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        content.push_str(entry.trim_end_matches('\n'));
+        content.push('\n');
+        fs::write(path, content)?;
+    } else {
+        fs::write(path, format!("{}\n", entry.trim_end_matches('\n')))?;
+    }
 
     Ok(())
 }
+
+/// Options for store initialization
+#[derive(Debug, Clone, Default)]
+pub struct InitOptions {
+    /// Use visible store directory (`qipu/` instead of `.qipu/`)
+    pub visible: bool,
+    /// Stealth mode (add store to .gitignore)
+    pub stealth: bool,
+    /// Branch workflow (not yet implemented)
+    #[allow(dead_code)]
+    pub branch: Option<String>,
+}
+
+// Templates are managed by `ensure_default_templates()`.
 
 /// Strip frontmatter from template content
 fn strip_frontmatter(content: &str) -> String {

@@ -47,6 +47,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Walk-up discovery: at each directory, check if `.qipu/` exists, stop at filesystem root
 - [x] Missing-store detection (exit 3 for commands requiring store)
 - [x] `qipu init` - create store directory structure
+- [x] `qipu init` honors `--store` (initializes directly at explicit store path)
+- [x] Test: `test_explicit_store_path` asserts store layout exists under `--store`
 - [x] `qipu init` idempotent (safe to run multiple times)
 - [x] `qipu init` non-interactive mode for agents
 - [ ] `qipu init --stealth` - local-only store (add to .gitignore or store outside repo)
@@ -57,6 +59,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Gitignore handling:
   - [x] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
   - [ ] Stealth mode: add `.qipu/` to project root `.gitignore`
+- [x] `Store::open` validates store layout (requires `config.toml` plus `notes/`, `mocs/`, `attachments/`, `templates/`)
+- [x] Test: listing against a plain directory via `--store` fails with data error
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [x] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`

@@ -25,7 +25,16 @@ pub fn execute(
         branch,
     };
 
-    let store = Store::init(root, options)?;
+    let store = if let Some(path) = cli.store.as_ref() {
+        let resolved = if path.is_absolute() {
+            path.clone()
+        } else {
+            root.join(path)
+        };
+        Store::init_at(&resolved, options, Some(root))?
+    } else {
+        Store::init(root, options)?
+    };
 
     match cli.format {
         OutputFormat::Json => {

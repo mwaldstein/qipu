@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12 (spec gap analysis, added missing details)
+Last updated: 2026-01-12 (comprehensive spec audit, minor gaps addressed)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -69,6 +69,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Notes readable and editable without qipu (design constraint)
 - [ ] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [ ] Required frontmatter fields: `id`, `title`
+- [ ] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
 - [ ] Optional frontmatter fields: `updated`, `links` array (inline links valid without it)
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [ ] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
@@ -112,7 +113,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
 - [ ] JSON Lines output option (one object per note) for streaming
 - [ ] Deterministic ordering (by created, then id)
-- [ ] Per-command help text (e.g., `qipu list --help`)
+- [ ] Per-command help text: all commands support `<cmd> --help` (e.g., `qipu list --help`, `qipu create --help`)
 
 ## Phase 3: Indexing and Search
 
@@ -122,7 +123,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Backlink index: `id -> [ids that link to it]`
 - [ ] Graph adjacency list (inline + typed links)
 - [ ] Cache location: `.qipu/.cache/*.json`
-- [ ] Optional SQLite cache: `.qipu/qipu.db` (for FTS acceleration)
+- [ ] Optional SQLite cache: `.qipu/qipu.db`
+  - [ ] When present, enables SQLite FTS (full-text search) acceleration
+  - [ ] FTS index populated during `qipu index`
 - [ ] `qipu index` - build/refresh indexes
 - [ ] `qipu index --rebuild` - drop and regenerate
 - [ ] Incremental indexing (track mtimes/hashes)
@@ -429,6 +432,8 @@ Understanding dependencies helps ensure correct implementation order:
 | Records output | P5.1 Records Output format |
 | `qipu compact suggest` | P3.1 Index Infrastructure, P4.2 Graph Traversal |
 | Compaction size estimation (P8.3) | P5.1 Summary extraction rules |
+| P4.3 Records output for traversal | P5.1 Records Output format foundation |
+| All `--format records` commands | P5.1 Records Output format |
 
 ---
 
@@ -436,11 +441,11 @@ Understanding dependencies helps ensure correct implementation order:
 
 These are design decisions noted in specs that may need resolution during implementation.
 
-### Tentative Decisions (in plan, may change)
-- Default store location: `.qipu/` *(tentative: `.qipu/`)*
-- Note ID scheme: hash-based `qp-xxxx` *(tentative: `qp-<hash>` with adaptive length)*
-- Graph traversal: default `--max-depth` *(tentative: 3)*
-- `mocs/` as separate directory vs inside `notes/` *(tentative: separate `mocs/` directory)*
+### Decided (spec-aligned defaults)
+- Default store location: `.qipu/` (per `specs/storage-format.md`)
+- Note ID scheme: `qp-<hash>` with adaptive length (per `specs/knowledge-model.md`)
+- Graph traversal: default `--max-depth` = 3 (per `specs/graph-traversal.md` "recommended default")
+- `mocs/` as separate directory (per `specs/storage-format.md` directory structure)
 
 ### Truly Open
 - Protected-branch workflow details
@@ -472,3 +477,4 @@ These are design decisions noted in specs that may need resolution during implem
 - Context: support "include backlinks" as additional material
 - Records format version selection (`records=1` in header)
 - Digest relationship to note types (5th type? flag? separate concept?)
+- JSON `sources.accessed` field: plan includes it, spec example omits it (enhancement over spec)

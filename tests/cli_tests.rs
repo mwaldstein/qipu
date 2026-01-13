@@ -1059,6 +1059,32 @@ fn test_index_json_format() {
 }
 
 #[test]
+fn test_index_records_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "index"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("H qipu=1 records=1"))
+        .stdout(predicate::str::contains("mode=index"))
+        .stdout(predicate::str::contains("notes=1"));
+}
+
+#[test]
 fn test_index_rebuild() {
     let dir = tempdir().unwrap();
 

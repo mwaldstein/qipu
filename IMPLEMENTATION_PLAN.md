@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P5.1 Records Output**: Implemented records format for `qipu index` command - outputs H (header) with index statistics and D (diagnostic) lines for unresolved links
 - **P1.3 Stealth Mode**: Added integration tests for --stealth gitignore handling; verified functionality complete
 - **P2.2 Per-Command Help**: Verified all commands support --help with comprehensive, well-structured output
 - **P1.2 Cache Hygiene**: Fixed `qipu search` to avoid writing caches - now builds index in-memory if cache missing (run 'qipu index' to persist)
@@ -248,7 +249,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Body lines (B): `B <id>` followed by raw markdown, B-END terminator (in show and context)
 - [x] Summary extraction order: frontmatter `summary` > `## Summary` section (first paragraph) > first paragraph of body > empty
 - [x] Format version in header for downstream tooling detection (`records=1` present)
-- [x] Commands supporting records (partial): most commands now have headers
+- [x] Commands supporting records: all primary commands now support records format (list, show, search, create, capture, inbox, link.*, prime, context, doctor, index)
 - [ ] `--with-body` flag for including full body content (implemented in context, not universal)
 - [ ] `--with-edges` flag (potential, per open question)
 - [x] Empty tags consistently use "-" across all commands

@@ -36,7 +36,31 @@ pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        OutputFormat::Human | OutputFormat::Records => {
+        OutputFormat::Records => {
+            // Header line with index statistics
+            let store_path = cli
+                .store
+                .as_ref()
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| ".qipu".to_string());
+
+            println!(
+                "H qipu=1 records=1 store={} mode=index notes={} tags={} edges={} unresolved={}",
+                store_path,
+                index.metadata.len(),
+                index.tags.len(),
+                index.edges.len(),
+                index.unresolved.len()
+            );
+
+            // Output unresolved links as diagnostic lines if any exist
+            if !index.unresolved.is_empty() {
+                for unresolved in &index.unresolved {
+                    println!("D warning unresolved-link \"{}\"", unresolved);
+                }
+            }
+        }
+        OutputFormat::Human => {
             if !cli.quiet {
                 println!("Indexed {} notes", index.metadata.len());
                 if cli.verbose {

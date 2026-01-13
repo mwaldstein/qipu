@@ -239,15 +239,21 @@ fn estimate_note_size(note: &Note, with_body: bool) -> usize {
         size += 10; // "path=-" or no path
     }
 
-    // Sources - account for markdown/JSON formatting
+    // Sources - account for markdown/JSON/records formatting
+    // In records format, each source is a D line: "D source url=... title="..." accessed=... from=..."
     for source in &note.frontmatter.sources {
-        size += source.url.len() + 30; // URL with formatting
+        size += source.url.len() + 50; // URL with "D source url=" prefix and formatting
         if let Some(title) = &source.title {
-            size += title.len() + 10; // Title with formatting
+            size += title.len() + 15; // Title with 'title=""' formatting
+        } else {
+            size += source.url.len() + 15; // If no title, URL is used as title
         }
         if let Some(accessed) = &source.accessed {
-            size += accessed.len() + 20; // Date with formatting
+            size += accessed.len() + 20; // Date with "accessed=" formatting
+        } else {
+            size += 10; // "accessed=-"
         }
+        size += note.id().len() + 10; // "from=qp-xxx"
     }
 
     // Body or summary
@@ -410,6 +416,19 @@ fn output_records(
             if !summary_line.is_empty() {
                 println!("S {} {}", note.id(), summary_line);
             }
+        }
+
+        // Sources (using D lines like export command)
+        for source in &note.frontmatter.sources {
+            let title = source.title.as_deref().unwrap_or(&source.url);
+            let accessed = source.accessed.as_deref().unwrap_or("-");
+            println!(
+                "D source url={} title=\"{}\" accessed={} from={}",
+                source.url,
+                title,
+                accessed,
+                note.id()
+            );
         }
 
         // Body lines (if requested)

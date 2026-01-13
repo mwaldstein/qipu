@@ -2933,3 +2933,86 @@ fn test_doctor_fix_flag() {
         .success()
         .stdout(predicate::str::contains("Store is healthy"));
 }
+
+#[test]
+fn test_context_records_with_body_and_sources() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with sources manually
+    let note_content = r#"---
+id: qp-test1
+title: Research Note
+type: literature
+tags:
+  - research
+  - testing
+sources:
+  - url: https://example.com/article
+    title: Example Article
+    accessed: 2026-01-13
+  - url: https://example.com/paper
+    title: Another Paper
+---
+
+This is the body of the note.
+
+It has multiple paragraphs.
+"#;
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    let note_path = notes_dir.join("qp-test1-research-note.md");
+    fs::write(&note_path, note_content).unwrap();
+
+    // Rebuild index to pick up the manually created note
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test records format with body
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "records",
+            "context",
+            "--note",
+            "qp-test1",
+            "--with-body",
+        ])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Verify header
+    assert!(stdout.contains("H qipu=1 records=1 mode=context"));
+
+    // Verify note metadata
+    assert!(stdout.contains("N qp-test1 literature \"Research Note\""));
+    assert!(stdout.contains("tags=research,testing"));
+
+    // Verify sources (D lines)
+    assert!(stdout.contains("D source url=https://example.com/article"));
+    assert!(stdout.contains("title=\"Example Article\""));
+    assert!(stdout.contains("accessed=2026-01-13"));
+    assert!(stdout.contains("from=qp-test1"));
+    assert!(stdout.contains("D source url=https://example.com/paper"));
+    assert!(stdout.contains("title=\"Another Paper\""));
+
+    // Verify body is included
+    assert!(stdout.contains("B qp-test1"));
+    assert!(stdout.contains("This is the body of the note."));
+    assert!(stdout.contains("It has multiple paragraphs."));
+    assert!(stdout.contains("B-END"));
+}

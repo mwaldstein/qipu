@@ -1256,14 +1256,16 @@ fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
     // Generate header (budget truncation doesn't apply to path - paths are small)
     // But we include the logic for consistency
     let found_str = if result.found { "true" } else { "false" };
+    let truncated_str = if budget_truncated { "true" } else { "false" };
     println!(
-        "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={}",
+        "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={} truncated={}",
         store.root().display(),
         result.from,
         result.to,
         result.direction,
         found_str,
-        result.path_length
+        result.path_length,
+        truncated_str
     );
 
     // Output collected lines

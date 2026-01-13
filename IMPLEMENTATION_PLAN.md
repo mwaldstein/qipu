@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.3 Stealth Mode**: Added integration tests for --stealth gitignore handling; verified functionality complete
 - **P2.2 Per-Command Help**: Verified all commands support --help with comprehensive, well-structured output
 - **P1.2 Cache Hygiene**: Fixed `qipu search` to avoid writing caches - now builds index in-memory if cache missing (run 'qipu index' to persist)
 - **P1.2 Offline-First**: Verified application is fully offline-first with zero network dependencies
@@ -69,14 +70,14 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Test: `test_explicit_store_path` asserts store layout exists under `--store`
 - [x] `qipu init` idempotent (safe to run multiple times)
 - [x] `qipu init` non-interactive mode for agents
-- [ ] `qipu init --stealth` - local-only store (add to .gitignore or store outside repo)
+- [x] `qipu init --stealth` - local-only store (add to .gitignore or store outside repo)
 - [x] `qipu init --visible` - use `qipu/` instead of `.qipu/`
 - [ ] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
 - [x] Create `config.toml` with format version, default note type, id scheme, editor override
 - [ ] Config sensible defaults so `qipu init` is optional for basic use
 - [x] Gitignore handling:
   - [x] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
-  - [ ] Stealth mode: add `.qipu/` to project root `.gitignore`
+  - [x] Stealth mode: add `.qipu/` to project root `.gitignore`
 - [x] `Store::open` validates store layout (requires `config.toml` plus `notes/`, `mocs/`, `attachments/`, `templates/`)
 - [x] Test: listing against a plain directory via `--store` fails with data error
 

@@ -172,6 +172,155 @@ fn test_init_json_format() {
 }
 
 // ============================================================================
+// Stealth mode tests
+// ============================================================================
+
+#[test]
+fn test_init_stealth_adds_to_project_gitignore() {
+    let dir = tempdir().unwrap();
+
+    // Create a .gitignore with some existing content
+    let gitignore_path = dir.path().join(".gitignore");
+    std::fs::write(&gitignore_path, "*.log\n*.tmp\n").unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--stealth"])
+        .assert()
+        .success();
+
+    // Verify store was created
+    assert!(dir.path().join(".qipu").exists());
+
+    // Verify .gitignore has the .qipu/ entry with trailing slash
+    let gitignore_content = std::fs::read_to_string(&gitignore_path).unwrap();
+    assert!(gitignore_content.contains(".qipu/"));
+    assert!(gitignore_content.contains("*.log")); // Original content preserved
+    assert!(gitignore_content.contains("*.tmp"));
+}
+
+#[test]
+fn test_init_stealth_creates_gitignore_if_not_exists() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--stealth"])
+        .assert()
+        .success();
+
+    // Verify .gitignore was created with .qipu/ entry
+    let gitignore_path = dir.path().join(".gitignore");
+    assert!(gitignore_path.exists());
+
+    let gitignore_content = std::fs::read_to_string(&gitignore_path).unwrap();
+    assert!(gitignore_content.contains(".qipu/"));
+}
+
+#[test]
+fn test_init_stealth_idempotent() {
+    let dir = tempdir().unwrap();
+
+    // Run init --stealth twice
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--stealth"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--stealth"])
+        .assert()
+        .success();
+
+    // Verify .gitignore doesn't have duplicate entries
+    let gitignore_path = dir.path().join(".gitignore");
+    let gitignore_content = std::fs::read_to_string(&gitignore_path).unwrap();
+
+    let entry_count = gitignore_content
+        .lines()
+        .filter(|l| l.trim() == ".qipu/")
+        .count();
+    assert_eq!(
+        entry_count, 1,
+        "Expected exactly one .qipu/ entry, found {}",
+        entry_count
+    );
+}
+
+#[test]
+fn test_init_stealth_creates_store_internal_gitignore() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--stealth"])
+        .assert()
+        .success();
+
+    // Verify store-internal .gitignore exists
+    let store_gitignore_path = dir.path().join(".qipu/.gitignore");
+    assert!(
+        store_gitignore_path.exists(),
+        "Store-internal .gitignore should exist"
+    );
+
+    let store_gitignore_content = std::fs::read_to_string(&store_gitignore_path).unwrap();
+    assert!(
+        store_gitignore_content.contains("qipu.db"),
+        "Store .gitignore should contain qipu.db"
+    );
+    assert!(
+        store_gitignore_content.contains(".cache/"),
+        "Store .gitignore should contain .cache/"
+    );
+}
+
+#[test]
+fn test_init_without_stealth_no_project_gitignore_modification() {
+    let dir = tempdir().unwrap();
+
+    // Create a .gitignore with some existing content
+    let gitignore_path = dir.path().join(".gitignore");
+    std::fs::write(&gitignore_path, "*.log\n*.tmp\n").unwrap();
+
+    // Run init without --stealth
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Verify .gitignore was NOT modified
+    let gitignore_content = std::fs::read_to_string(&gitignore_path).unwrap();
+    assert!(
+        !gitignore_content.contains(".qipu/"),
+        "Project .gitignore should not contain .qipu/ without --stealth"
+    );
+    assert_eq!(gitignore_content, "*.log\n*.tmp\n");
+}
+
+#[test]
+fn test_init_without_stealth_no_gitignore_created() {
+    let dir = tempdir().unwrap();
+
+    // Run init without --stealth
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Verify project root .gitignore was NOT created
+    let gitignore_path = dir.path().join(".gitignore");
+    assert!(
+        !gitignore_path.exists(),
+        "Project .gitignore should not be created without --stealth"
+    );
+}
+
+// ============================================================================
 // Create command tests
 // ============================================================================
 

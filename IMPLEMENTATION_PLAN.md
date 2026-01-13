@@ -1,6 +1,6 @@
 # Qipu Implementation Plan
 
-Last updated: 2026-01-12 (revised - spec gaps addressed)
+Last updated: 2026-01-12 (revised - open questions resolved)
 
 This document tracks implementation progress against the specs in `specs/`.
 
@@ -160,6 +160,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Inline links assigned `type=related, source=inline` at index-time
 - [ ] Ignore links outside the store by default
 - [ ] Handle unresolved links gracefully
+- [ ] Wiki-link canonicalization opt-in: `qipu index` may rewrite wiki-links to markdown links (disabled by default)
 
 ### 3.3 `qipu index`
 - [ ] Build/update all indexes
@@ -249,7 +250,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Summary extraction order: frontmatter `summary` > `## Summary` section > first paragraph
 - [ ] Default token estimator: `ceil(chars / 4)`
 - [ ] `--with-body` flag (include body lines, default summaries-only)
-- [ ] `--with-edges` flag (include edge records, default: TBD per spec open question)
+- [ ] `--with-edges` flag (include edge records, default: off - edges opt-in for clarity)
 - [ ] `--max-chars`, `--max-tokens` budgeting (approximate, deterministic)
 - [ ] Do not emit partial records when truncating
 - [ ] Truncation: set `truncated=true` in H record or emit trailing truncation header
@@ -367,7 +368,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Rule: when `--with-compaction-ids` is absent, `--compaction-depth` has no effect
 - [ ] `--compaction-max-nodes <n>` bound for expansion
 - [ ] Truncation indication when `--compaction-max-nodes` limit is hit
-- [ ] `--expand-compaction` flag for context (include compacted source note bodies, depth-limited)
+- [ ] `--expand-compaction` flag for context and traversal (include compacted source note bodies, depth-limited)
 - [ ] Budget interaction: expanded sources count toward `--max-tokens`/`--max-chars`
 - [ ] Search canonicalization (return canonical digest, annotate `via=<matching-source-id>`)
 - [ ] Search: source note content IS searchable, but results surface canonical digest
@@ -424,7 +425,7 @@ See `specs/` for detailed open questions on:
 - CLI interface (interactive pickers, default behaviors)
 - Indexing (JSON vs SQLite, backlink embedding)
 - Graph traversal (default depth, link materialization, default `--max-nodes`)
-- Token output (versioning, default `--with-edges` behavior)
+- Token output (versioning) - NOTE: `--with-edges` resolved as opt-in (default off)
 - Compaction (inactive edges, MOC exclusions, "leaf source" concept)
 - LLM context (summarization, backlinks in context)
 - Export (Pandoc integration, transitive links)
@@ -437,7 +438,7 @@ These items are noted in specs as open questions but may warrant implementation:
 - [ ] Duplicate/near-duplicate detection for notes
 - [ ] Graph: `neighbors`, `subgraph`, `cycles` traversal queries
 - [ ] Link materialization (opt-in inline → typed link conversion)
-- [ ] Wiki-link canonicalization in `qipu index` (rewrite to markdown links)
+- [ ] Wiki-link canonicalization in `qipu index` (rewrite to markdown links) - now tracked in Phase 3.2
 - [ ] `--tokenizer` option for model-specific token estimation
 - [ ] `--token-version` flag for format stability
 - [ ] Bibliography export formats (BibTeX, CSL JSON)

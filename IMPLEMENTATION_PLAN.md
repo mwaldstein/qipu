@@ -114,8 +114,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `--since` filter
 - [x] `qipu inbox` - list unprocessed notes
   - [ ] Default filter: `type in {fleeting, literature}`
-- [ ] `qipu inbox --exclude-linked` - optional filter to exclude notes already linked into a MOC
-  - [ ] Define "linked into" semantics: any link (typed or inline) from a MOC pointing to the note
+- [x] `qipu inbox --exclude-linked` - optional filter to exclude notes already linked into a MOC
+  - [x] Define "linked into" semantics: any link (typed or inline) from a MOC pointing to the note
 - [x] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
 - [ ] JSON Lines output option (one object per note) for streaming
 - [x] Deterministic ordering (by created, then id)

@@ -194,7 +194,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             commands::show::execute(cli, &store, id_or_path, *links)
         }
 
-        Some(Commands::Inbox { exclude_linked: _ }) => {
+        Some(Commands::Inbox { exclude_linked }) => {
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {
                 let resolved = if path.is_absolute() {
@@ -214,7 +214,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             // Inbox is essentially list with type filter for fleeting/literature
             // For now, filter for fleeting and literature types
             let notes = store.list_notes()?;
-            let inbox_notes: Vec<_> = notes
+            let mut inbox_notes: Vec<_> = notes
                 .into_iter()
                 .filter(|n| {
                     matches!(
@@ -223,6 +223,25 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                     )
                 })
                 .collect();
+
+            // If --exclude-linked is specified, filter out notes linked from any MOC
+            if *exclude_linked {
+                let index = lib::index::IndexBuilder::new(&store).build()?;
+
+                // Build a set of note IDs that are linked from MOCs
+                let mut linked_from_mocs = std::collections::HashSet::new();
+                for edge in &index.edges {
+                    // Check if the source note is a MOC
+                    if let Some(source_meta) = index.get_metadata(&edge.from) {
+                        if source_meta.note_type == lib::note::NoteType::Moc {
+                            linked_from_mocs.insert(edge.to.clone());
+                        }
+                    }
+                }
+
+                // Filter out notes that are linked from MOCs
+                inbox_notes.retain(|n| !linked_from_mocs.contains(n.id()));
+            }
 
             match cli.format {
                 OutputFormat::Json => {

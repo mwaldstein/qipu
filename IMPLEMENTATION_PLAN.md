@@ -22,6 +22,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--format` validation (human|json|records, error on unknown)
 - [ ] Unknown flag/arg detection (exit 2)
 - [ ] Verbose timing output (parse args, discover store, load indexes, execute)
+- [ ] Filesystem hygiene: avoid unnecessary file rewrites, preserve newline style
 
 ### P1.3 Store Discovery (`specs/cli-tool.md`, `specs/storage-format.md`)
 - [ ] `--store` explicit path resolution (relative to `--root` or cwd)
@@ -30,7 +31,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu init` - create store directory structure
 - [ ] `qipu init --stealth` - local-only store (add to .gitignore)
 - [ ] `qipu init --visible` - use `qipu/` instead of `.qipu/`
-- [ ] Create `config.toml` with format version, default note type, id scheme
+- [ ] `qipu init --branch <name>` - protected-branch workflow configuration
+- [ ] Create `config.toml` with format version, default note type, id scheme, editor override
+- [ ] Default gitignore entries for `.qipu/qipu.db` and `.qipu/.cache/` (non-stealth mode)
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
@@ -51,6 +54,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu new` alias for `create`
 - [ ] `qipu capture` - create note from stdin
 - [ ] `qipu capture --title`
+- [ ] `qipu capture --type` and `--tag` flags (same as create)
 - [ ] `qipu show <id-or-path>` - print note to stdout
 
 ### P2.2 Note Listing (`specs/cli-interface.md`)
@@ -59,7 +63,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--type` filter
 - [ ] `--since` filter
 - [ ] `qipu inbox` - list unprocessed notes (fleeting|literature, not in MOC)
-- [ ] JSON output for list commands
+- [ ] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
 - [ ] Deterministic ordering (by created, then id)
 
 ## Phase 3: Indexing and Search
@@ -70,6 +74,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Backlink index: `id -> [ids that link to it]`
 - [ ] Graph adjacency list (inline + typed links)
 - [ ] Cache location: `.qipu/.cache/*.json`
+- [ ] Optional SQLite cache: `.qipu/qipu.db` (for FTS acceleration)
 - [ ] `qipu index` - build/refresh indexes
 - [ ] `qipu index --rebuild` - drop and regenerate
 - [ ] Incremental indexing (track mtimes/hashes)
@@ -90,6 +95,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 4: Link Management and Graph Traversal
 
 ### P4.1 Link Commands (`specs/cli-interface.md`)
+- [ ] Typed link types: `related`, `derived-from`, `supports`, `contradicts`, `part-of`
 - [ ] `qipu link add <from> <to> --type <t>` - add typed link
 - [ ] `qipu link remove <from> <to> --type <t>` - remove typed link
 - [ ] `qipu link list <id>` - list links for a note
@@ -133,6 +139,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu prime` - session-start primer
 - [ ] Deterministic, bounded output (~1-2k tokens)
 - [ ] Contents: qipu explanation, command reference, store location, top MOCs, recent notes
+- [ ] `--format records` support for prime output
 
 ### P6.2 Context Command (`specs/llm-context.md`)
 - [ ] `qipu context` - build context bundle
@@ -170,11 +177,13 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ### P8.1 Compaction Model (`specs/compaction.md`)
 - [ ] Digest note type (note that summarizes other notes)
 - [ ] Compaction edge storage in frontmatter
-- [ ] `canon(id)` function: follow compaction chains to topmost digest
-- [ ] Invariant enforcement: one compactor per note, acyclic, no self-compaction
+- [ ] `canon(id)` function: follow compaction chains to topmost digest (cycle-safe via visited set)
+- [ ] Invariant enforcement: one compactor per note, acyclic, no self-compaction, all IDs resolve
+- [ ] Deterministic error behavior for invariant violations (never "pick arbitrarily")
 
 ### P8.2 Compaction Commands (`specs/compaction.md`)
 - [ ] `qipu compact apply <digest-id> --note <id>...` - register compaction
+- [ ] `qipu compact apply` input ergonomics: `--from-stdin`, `--notes-file`
 - [ ] `qipu compact show <digest-id>` - show direct compaction set
 - [ ] `qipu compact status <id>` - show compaction relationships
 - [ ] `qipu compact report <digest-id>` - compaction quality metrics
@@ -185,8 +194,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--no-resolve-compaction` flag for raw view
 - [ ] `--with-compaction-ids` flag for showing compacted IDs
 - [ ] `--compaction-depth` flag for depth-limited expansion
+- [ ] `--compaction-max-nodes` optional bounding flag
 - [ ] `--expand-compaction` flag for including compacted bodies
-- [ ] Compaction percent metric
+- [ ] Compaction percent metric (`compaction=<P%>`)
+- [ ] `compacts=<N>` annotation in outputs (human/json/records)
+- [ ] Truncation indication when compaction limits hit
+- [ ] Deterministic ordering for compaction expansion (sorted by note id)
 - [ ] Contracted graph for resolved view traversals
 
 ### P8.4 Search/Traversal with Compaction (`specs/compaction.md`)
@@ -221,6 +234,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu prime` output
 - [ ] `qipu context` output (all formats)
 - [ ] `qipu link tree` output (all formats)
+- [ ] `qipu link list` output (all formats)
+- [ ] `qipu link path` output (all formats)
 
 ---
 

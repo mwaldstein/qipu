@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.2 Compact Suggest Command COMPLETE**: Implemented `qipu compact suggest` with connected component clustering using density filtering (cohesion threshold 30%, minimum 3 nodes per cluster). Ranks candidates by composite score: size + cohesion + boundary penalty + node count. All three output formats supported (human, json, records). Human output suggests the exact command to apply compaction. Added comprehensive integration test `test_compact_suggest` in tests/cli_tests.rs. Total test count: 164 (60 unit + 104 integration), ALL PASSING.
 - **P4.3 Link List Summary Lines COMPLETE**: Implemented summary lines (S records) for `qipu link list` Records output. When outputting links in Records format, the command now includes N (node metadata) and S (summary) lines for each unique linked note before the E (edge) lines. Follows the same pattern as link tree and link path commands. All 163 tests passing.
 - **P8.2 Compact Report Command COMPLETE**: Implemented `qipu compact report` with comprehensive quality metrics: `compacts_direct_count` (direct source count), `compaction_pct` (size reduction percentage), boundary edge ratio (links from sources pointing outside compaction set), staleness indicator (checks if sources were updated after digest), conflicts/cycles detection (compaction invariant violations). All three output formats supported (human, json, records). Added comprehensive integration test `test_compact_report` in tests/cli_tests.rs. Total test count: 163 (60 unit + 103 integration), ALL PASSING. Note: `qipu compact suggest` remains NOT YET IMPLEMENTED.
 - **P8.3 Compaction Visibility for Link Commands COMPLETE**: Implemented full compaction visibility for all three link commands (`link list`, `link tree`, `link path`). All commands now support canonicalization and edge gathering from compacted notes. When compaction resolution is enabled (default), digest notes appear with all edges from their compacted sources. `--no-resolve-compaction` flag works across all three commands to show raw view. Added 4 comprehensive integration tests (lines 3131-3639 in tests/cli_tests.rs). Total test count: 162 (60 unit + 102 integration), ALL PASSING. Files modified: src/commands/link.rs.
@@ -399,11 +400,14 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Boundary edge ratio (links from sources pointing outside compaction set)
   - [x] Staleness indicator (sources updated after digest)
   - [x] Conflicts/cycles if present
-- [ ] `qipu compact suggest` - suggest compaction candidates (NOT YET IMPLEMENTED)
-  - [ ] Deterministic for same graph
-  - [ ] Approach: community/clump detection
-  - [ ] Ranking: size, node count, cohesion (internal edges), boundary edges
-  - [ ] Output (JSON): `ids[]`, node/edge counts, estimated size, boundary edge ratio, suggested command skeleton
+- [x] `qipu compact suggest` - suggest compaction candidates ✓ COMPLETE
+  - [x] Deterministic for same graph
+  - [x] Approach: connected component clustering with density filtering
+  - [x] Filtering: cohesion threshold 30%, minimum 3 nodes per cluster
+  - [x] Ranking: composite score (size + cohesion + boundary penalty + node count)
+  - [x] Output (JSON): `ids[]`, node/edge counts, estimated size, boundary edge ratio, cohesion metrics
+  - [x] Human output: ranked table with suggested apply command
+  - [x] Records output: H (header), C (cluster) lines with full metrics
 - [x] `qipu compact guide` - print compaction guidance
   - [x] 5-step guidance: find candidates, review summaries, author digest, register, validate
   - [x] Prompt template for digest authoring
@@ -505,7 +509,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 163 tests (60 unit + 103 integration), ALL PASSING
+**Current test count**: 164 tests (60 unit + 104 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

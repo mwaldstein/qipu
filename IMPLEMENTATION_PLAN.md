@@ -8,95 +8,279 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ## Current Status
 
-This implementation plan is intentionally technology-agnostic and does not track completion.
+**No source code exists yet.** The `src/` directory has not been created.
 
-Use it as a proposed work breakdown against `specs/`.
+The spec `cli-tool.md` mandates Rust + Cargo. All items below are unimplemented.
 
 ---
 
-## Phase 0: Project Bootstrap
+## Priority Order
 
-- [ ] Choose implementation language/toolchain aligned with `specs/cli-tool.md`.
-- [ ] Establish project structure for a single native `qipu` executable.
-- [ ] Set up testing harness for deterministic integration + golden tests.
-- [ ] Set up CI for build + tests across platforms.
+Work items are listed in dependency order. Complete each phase before starting the next.
+
+---
+
+## Phase 0: Project Bootstrap (BLOCKING - START HERE)
+
+- [ ] Initialize Cargo project (`cargo init --name qipu`)
+- [ ] Create `src/` directory structure
+- [ ] Add core dependencies (clap, serde, toml, etc.)
+- [ ] Set up integration test harness (temp directory stores)
+- [ ] Set up golden test infrastructure
+- [ ] Configure CI (build + test across Linux/macOS/Windows)
 
 ---
 
 ## Phase 1: Foundation
 
-- [ ] Store discovery (walk up from cwd; support `--store` and `--root`).
-- [ ] Store initialization and directory layout.
-- [ ] Config parsing (TOML) and defaults.
-- [ ] Note parsing (frontmatter + markdown body) and deterministic serialization.
-- [ ] ID and slug generation per spec.
-- [ ] CLI runtime skeleton: `--help`, `--version`, global flags, exit codes.
-- [ ] Deterministic error formatting for `--json`.
+### 1.1 CLI Runtime Skeleton
+- [ ] Implement `qipu --help` (clap-based, stable output)
+- [ ] Implement `qipu --version` (single line, exit 0)
+- [ ] Global flags: `--root`, `--store`, `--json`, `--token`, `--quiet`, `--verbose`
+- [ ] Exit code handling (0=success, 1=failure, 2=usage, 3=data error)
+- [ ] `--json` and `--token` mutual exclusivity enforcement
+
+### 1.2 Store Discovery
+- [ ] Walk up from cwd to find `.qipu/` directory
+- [ ] Support `--store <path>` explicit override
+- [ ] Support `--root <path>` base directory
+- [ ] Missing-store detection (exit code 3)
+
+### 1.3 Config System
+- [ ] Parse `.qipu/config.toml`
+- [ ] Define sensible defaults (format version, note type, id scheme)
+- [ ] Config validation
+
+### 1.4 Note Model (`src/lib/note.rs`)
+- [ ] YAML frontmatter parsing (id, title, type, created, updated, tags, sources, links)
+- [ ] Markdown body extraction
+- [ ] Deterministic serialization (stable key order, stable formatting)
+- [ ] Required field validation (id, title)
+
+### 1.5 ID Generation (`src/lib/id.rs`)
+- [ ] Hash-based ID scheme: `qp-<hash>` with adaptive length
+- [ ] Slug generation from title (lowercase, hyphenated)
+- [ ] Filename format: `<id>-<slug>.md`
+- [ ] Collision detection support
+
+### 1.6 Error Handling (`src/lib/error.rs`)
+- [ ] Structured error types
+- [ ] Human-friendly error messages (default)
+- [ ] JSON error output when `--json` is set
 
 ---
 
 ## Phase 2: Core Commands
 
-- [ ] `qipu init` (idempotent; `--stealth`, `--visible`, optional `--branch`).
-- [ ] `qipu create` / `qipu new` (new note; tags/types; optional `--open` and templates).
-- [ ] `qipu capture` (stdin to note; supports non-interactive workflows).
-- [ ] `qipu list` (filters; deterministic ordering; `--json`).
-- [ ] `qipu show <id-or-path>` (resolve; print; `--json`).
+### 2.1 `qipu init`
+- [ ] Create `.qipu/` directory structure (notes/, mocs/, attachments/, templates/)
+- [ ] Create default `config.toml`
+- [ ] Idempotent behavior (safe to run multiple times)
+- [ ] `--stealth` flag (add to .gitignore)
+- [ ] `--visible` flag (use `qipu/` instead of `.qipu/`)
+- [ ] `--branch` flag (protected-branch workflow config)
+
+### 2.2 `qipu create` / `qipu new`
+- [ ] Create note with generated ID and slug
+- [ ] `--type <fleeting|literature|permanent|moc>` flag
+- [ ] `--tag <tag>` flag (repeatable)
+- [ ] `--open` flag (open in $EDITOR)
+- [ ] Template support
+- [ ] Print ID/path on success
+- [ ] `--json` output
+
+### 2.3 `qipu capture`
+- [ ] Read note content from stdin
+- [ ] `--title` flag
+- [ ] `--type` and `--tag` flags
+- [ ] Non-interactive workflow support
+- [ ] `--json` output
+
+### 2.4 `qipu list`
+- [ ] List all notes with metadata
+- [ ] `--tag <tag>` filter
+- [ ] `--type <type>` filter
+- [ ] `--since <date>` filter
+- [ ] Deterministic ordering (created_at, id)
+- [ ] `--json` output (JSON lines or array)
+
+### 2.5 `qipu show <id-or-path>`
+- [ ] Resolve ID or path to note
+- [ ] Print note content
+- [ ] `--json` output (full note metadata + content)
 
 ---
 
 ## Phase 3: Indexing & Navigation
 
-- [ ] Build/update indexes per `specs/indexing-search.md`.
-- [ ] Implement `qipu index` (incremental; `--rebuild`).
-- [ ] Implement `qipu search <query>` (filters; ranking; `--json`).
-- [ ] Implement `qipu inbox` (unprocessed note queue; `--json`).
+### 3.1 Index Infrastructure (`src/lib/index.rs`)
+- [ ] Metadata index: id -> {title, type, tags, path, created, updated}
+- [ ] Tag index: tag -> [ids...]
+- [ ] Backlink index: id -> [ids that link to it]
+- [ ] Graph adjacency list (inline + typed links)
+- [ ] Cache location: `.qipu/.cache/*.json`
+
+### 3.2 Link Extraction
+- [ ] Parse wiki links: `[[<id>]]`, `[[<id>|label]]`
+- [ ] Parse markdown links to qipu notes
+- [ ] Extract typed links from frontmatter
+- [ ] Handle unresolved links gracefully
+
+### 3.3 `qipu index`
+- [ ] Build/update all indexes
+- [ ] Incremental indexing (track mtimes)
+- [ ] `--rebuild` flag (drop and regenerate)
+
+### 3.4 `qipu search <query>`
+- [ ] Full-text search (title + body)
+- [ ] `--tag`, `--type` filters
+- [ ] Result ranking (title > body, exact > partial)
+- [ ] `--json` output
+
+### 3.5 `qipu inbox`
+- [ ] List unprocessed notes (fleeting, literature)
+- [ ] Exclude notes linked into MOCs (optional)
+- [ ] `--json` output
 
 ---
 
 ## Phase 4: Link Management & Graph Traversal
 
-- [ ] Implement `qipu link add/remove/list` per `specs/cli-interface.md`.
-- [ ] Implement `qipu link tree/path` per `specs/graph-traversal.md`.
-- [ ] Ensure `--json` and `--token` output shapes are stable.
+### 4.1 `qipu link add/remove/list`
+- [ ] `qipu link add <from> <to> --type <type>`
+- [ ] `qipu link remove <from> <to> --type <type>`
+- [ ] `qipu link list <id> [--direction out|in|both] [--typed-only|--inline-only] [--type <t>]`
+- [ ] Update frontmatter links array on add/remove
+- [ ] `--json` output
+
+### 4.2 `qipu link tree <id>`
+- [ ] BFS traversal with deterministic ordering
+- [ ] `--direction <out|in|both>` (default: both)
+- [ ] `--max-depth <n>` (default: 3)
+- [ ] `--typed-only`, `--inline-only`, `--type`, `--exclude-type` filters
+- [ ] `--max-nodes` limit
+- [ ] Cycle detection (mark as "(seen)")
+- [ ] Truncation reporting
+- [ ] Human-readable tree output
+- [ ] `--json` output (nodes, edges, spanning_tree)
+- [ ] `--token` output (per token-optimized-output spec)
+
+### 4.3 `qipu link path <from> <to>`
+- [ ] Find shortest path between notes
+- [ ] Same filter flags as tree
+- [ ] Human-readable path output
+- [ ] `--json` output
 
 ---
 
-## Phase 5: LLM Integration (P5)
+## Phase 5: LLM Integration
 
-- [ ] Implement token-optimized output per `specs/token-optimized-output.md`.
-- [ ] Implement `qipu prime` per `specs/llm-context.md`.
-- [ ] Implement `qipu context` per `specs/llm-context.md`.
+### 5.1 Token-Optimized Output (`src/lib/token.rs`)
+- [ ] Header line format (H record)
+- [ ] Note metadata line format (N record)
+- [ ] Summary line format (S record)
+- [ ] Edge line format (E record)
+- [ ] Body lines format (B record)
+- [ ] Summary extraction (frontmatter > ## Summary section > first paragraph)
+
+### 5.2 `qipu prime`
+- [ ] Emit bounded primer (~1-2k tokens)
+- [ ] Include: qipu explanation, command reference, store location
+- [ ] Include: top MOCs, recently updated notes
+- [ ] Deterministic, stable output
+- [ ] `--json` output
+- [ ] `--token` output
+
+### 5.3 `qipu context`
+- [ ] Bundle selection: `--note`, `--tag`, `--moc`, `--query`
+- [ ] MOC modes: direct list, transitive closure
+- [ ] Budgeting: `--max-chars`, `--max-tokens`
+- [ ] Markdown output format (per llm-context spec)
+- [ ] `--json` output
+- [ ] `--token` output (summaries-first, optional `--with-body`)
+- [ ] Truncation handling (complete notes, explicit markers)
+- [ ] Safety banner option
 
 ---
 
-## Phase 6: Export (P6)
+## Phase 6: Export
 
-- [ ] Implement `qipu export` per `specs/export.md`.
+### 6.1 `qipu export`
+- [ ] Bundle export mode (concatenate selected notes)
+- [ ] Outline export mode (MOC-first ordering)
+- [ ] Bibliography export mode (extract sources)
+- [ ] Selection: `--note`, `--tag`, `--moc`, `--query`
+- [ ] Deterministic ordering (MOC order or created_at,id)
+- [ ] Link handling options (preserve, rewrite to markdown, rewrite to anchors)
+- [ ] Attachment handling (`--no-attachments` default)
 
 ---
 
-## Phase 7: Compaction (P7)
+## Phase 7: Compaction
 
+### 7.1 Digest Model
 - [ ] Digest note type
-- [ ] Compaction edges and canonicalization
-- [ ] `qipu compact apply/show/status/report/suggest/guide` commands
-- [ ] Global compaction flags for other commands
+- [ ] Compaction edges in frontmatter (digest -> sources)
+- [ ] Invariants: one compactor per note, acyclic, no self-compaction
+
+### 7.2 Canonicalization (`src/lib/compaction.rs`)
+- [ ] `canon(id)` function (follow compaction chain)
+- [ ] Contracted graph computation
+- [ ] Cycle detection and error handling
+
+### 7.3 Visibility & Metrics
+- [ ] Hidden-by-default for compacted notes
+- [ ] `--no-resolve-compaction` flag
+- [ ] `compacts=<N>` annotation
+- [ ] `compaction=<P%>` metric calculation
+- [ ] `via=<id>` breadcrumb for search hits
+
+### 7.4 Compaction Commands
+- [ ] `qipu compact apply <digest-id> --note <id>...`
+- [ ] `qipu compact show <digest-id>` (with `--compaction-depth`)
+- [ ] `qipu compact status <id>`
+- [ ] `qipu compact report <digest-id>` (mechanical checks)
+- [ ] `qipu compact suggest` (candidate detection)
+- [ ] `qipu compact guide` (LLM guidance prompt)
+
+### 7.5 Compaction Integration
+- [ ] `--with-compaction-ids`, `--compaction-depth` flags
+- [ ] `--expand-compaction` for context/traversal
+- [ ] Search canonicalization (return digest, annotate via)
+- [ ] Traversal on contracted graph
 
 ---
 
-## Phase 8: Maintenance & Validation (P8)
+## Phase 8: Maintenance & Validation
 
-- [ ] `qipu doctor` - validate store invariants
-- [ ] `qipu doctor --fix` - attempt repairs
-- [ ] `qipu sync` - convenience workflow command
+### 8.1 `qipu doctor`
+- [ ] Check for duplicate IDs
+- [ ] Check for broken links
+- [ ] Check for invalid frontmatter
+- [ ] Check for compaction invariant violations
+- [ ] Report unresolved links
+- [ ] `--json` output
+
+### 8.2 `qipu doctor --fix`
+- [ ] Attempt automatic repairs where safe
+- [ ] Report unfixable issues
+
+### 8.3 `qipu sync`
+- [ ] Run `qipu index`
+- [ ] Run `qipu doctor`
+- [ ] Optional git commit/push (if branch mode configured)
 
 ---
 
-## Phase 9: Setup & Integration (P9)
+## Phase 9: Setup & Integration
 
-- [ ] `qipu setup --list/--print/<tool>/--check/--remove`
-- [ ] AGENTS.md integration
+### 9.1 `qipu setup`
+- [ ] `qipu setup --list` (available tools)
+- [ ] `qipu setup <tool>` (install integration)
+- [ ] `qipu setup --print` (print without installing)
+- [ ] `qipu setup <tool> --check` (verify installation)
+- [ ] `qipu setup <tool> --remove` (uninstall)
+- [ ] AGENTS.md integration recipe
 
 ---
 
@@ -121,36 +305,54 @@ See `specs/` for detailed open questions on:
 ### Dependency Graph (Phases)
 
 ```
-Phase 0 (Bootstrap)
-    |
-    v
-Phase 1 (Foundation)
-    |
-    v
-Phase 2 (Core Commands)
-    |
-    v
-Phase 3 (Indexing)
-    |
-    +-----> Phase 4 (Graph Traversal)
-    |              |
-    +--------------+-----> Phase 5 (LLM Integration)
-    |
-    v
-Phase 6 (Export)
-    |
-    v
-Phase 7 (Compaction)
-    |
-    v
-Phase 8 (Maintenance)
-    |
-    v
-Phase 9 (Setup)
+Phase 0 (Bootstrap) ─────────────────────────────────┐
+    │                                                │
+    v                                                │
+Phase 1 (Foundation)                                 │
+    │                                                │
+    v                                                │
+Phase 2 (Core Commands)                              │
+    │                                                │
+    v                                                │
+Phase 3 (Indexing) ──────────────────────────────────┤
+    │                                                │
+    ├────────> Phase 4 (Graph Traversal)             │
+    │                     │                          │
+    └─────────────────────┴────> Phase 5 (LLM)       │
+                                     │               │
+                                     v               │
+                               Phase 6 (Export)      │
+                                     │               │
+                                     v               │
+                               Phase 7 (Compaction)  │
+                                     │               │
+                                     v               │
+                               Phase 8 (Maintenance) │
+                                     │               │
+                                     v               │
+                               Phase 9 (Setup) ──────┘
 ```
 
 ### Testing Strategy
 
 - Integration tests for CLI commands (temporary directory stores)
-- Golden tests for deterministic outputs
-- Property-based tests where useful (e.g. ID collision resistance)
+- Golden tests for deterministic outputs (`prime`, `context`, traversal)
+- Property-based tests (ID collision resistance, parsing round-trips)
+- Performance benchmarks (meet budget targets from cli-tool.md)
+
+### Recommended Crate Dependencies
+
+- `clap` - CLI argument parsing
+- `serde`, `serde_yaml`, `serde_json` - serialization
+- `toml` - config parsing
+- `chrono` - timestamps
+- `uuid` or custom hash - ID generation
+- `regex` - link extraction
+- `walkdir` - directory traversal
+- `anyhow` or `thiserror` - error handling
+
+### Performance Targets (from cli-tool.md)
+
+- `qipu --help` / `--version`: < 100ms
+- `qipu list` (~1k notes): < 200ms
+- `qipu search` (~10k notes): < 1s (with indexes)

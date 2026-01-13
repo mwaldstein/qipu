@@ -82,6 +82,10 @@ pub enum Commands {
     Show {
         /// Note ID or file path
         id_or_path: String,
+
+        /// Show links for the note (inline + typed links, both directions)
+        #[arg(long)]
+        links: bool,
     },
 
     /// List unprocessed notes (fleeting/literature)

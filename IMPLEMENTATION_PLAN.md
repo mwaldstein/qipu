@@ -96,11 +96,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `qipu capture --type` flag (same options as create)
 - [x] `qipu capture --tag` flag (repeatable, same as create)
 - [x] `qipu show <id-or-path>` - print note to stdout
-- [ ] `qipu show --links` - inspect links for a note
-  - [ ] Show inline + typed links
-  - [ ] Show direction (outbound vs inbound/backlinks)
-  - [ ] Show link type and source (typed vs inline)
-  - [ ] Consistent with `qipu link list` output schema
+- [x] `qipu show --links` - inspect links for a note
+  - [x] Show inline + typed links
+  - [x] Show direction (outbound vs inbound/backlinks)
+  - [x] Show link type and source (typed vs inline)
+  - [x] Consistent with `qipu link list` output schema
 
 ### P2.2 Note Listing (`specs/cli-interface.md`)
 - [x] `qipu list` - list notes

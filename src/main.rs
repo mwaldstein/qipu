@@ -130,7 +130,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             commands::list::execute(cli, &store, tag.as_deref(), *r#type, since_dt)
         }
 
-        Some(Commands::Show { id_or_path }) => {
+        Some(Commands::Show { id_or_path, links }) => {
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {
                 let resolved = if path.is_absolute() {
@@ -147,7 +147,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
 
-            commands::show::execute(cli, &store, id_or_path)
+            commands::show::execute(cli, &store, id_or_path, *links)
         }
 
         Some(Commands::Inbox { exclude_linked: _ }) => {

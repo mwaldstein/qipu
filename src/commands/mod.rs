@@ -12,5 +12,6 @@ pub mod link;
 pub mod list;
 pub mod prime;
 pub mod search;
+pub mod setup;
 pub mod show;
 pub mod sync;

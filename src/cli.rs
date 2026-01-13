@@ -148,6 +148,28 @@ pub enum Commands {
     /// Output session-start primer for LLM agents
     Prime,
 
+    /// Install qipu integration instructions for agent tools
+    Setup {
+        /// List available integrations
+        #[arg(long)]
+        list: bool,
+
+        /// Tool/integration name (e.g., agents-md)
+        tool: Option<String>,
+
+        /// Print integration instructions to stdout
+        #[arg(long)]
+        print: bool,
+
+        /// Check if integration is installed
+        #[arg(long)]
+        check: bool,
+
+        /// Remove integration
+        #[arg(long)]
+        remove: bool,
+    },
+
     /// Validate store invariants and optionally repair issues
     Doctor {
         /// Auto-repair issues where possible

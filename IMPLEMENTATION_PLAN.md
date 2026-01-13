@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P6.3 Setup Command COMPLETE**: Implemented `qipu setup` command with support for installing, checking, and removing integrations. Includes AGENTS.md standard integration for OpenCode, Cline, Roo-Cline, and other agent tools. All output formats supported (human, json, records). Added 13 comprehensive integration tests. Total test count now 177 (60 unit + 117 integration), ALL PASSING.
 - **P1.4 Attachments Guidance COMPLETE**: Created comprehensive documentation in docs/attachments.md covering organization, best practices, size guidelines, git integration, and common workflows. Updated literature template with attachment reference examples. Phase 1.4 now fully documented.
 - **P1.4 & P3.2 Storage Format Verification COMPLETE**: Verified and documented that notes are readable/editable without qipu (plain markdown + YAML frontmatter), multi-agent ID collision prevention works (ULID scheme for true collision resistance, hash scheme with timestamp+random for probabilistic resistance), and external links are properly ignored (markdown link extraction filters for qp- pattern). Updated IMPLEMENTATION_PLAN to reflect actual implementation status.
 - **P8.2 Compact Suggest Command COMPLETE**: Implemented `qipu compact suggest` with connected component clustering using density filtering (cohesion threshold 30%, minimum 3 nodes per cluster). Ranks candidates by composite score: size + cohesion + boundary penalty + node count. All three output formats supported (human, json, records). Human output suggests the exact command to apply compaction. Added comprehensive integration test `test_compact_suggest` in tests/cli_tests.rs. Total test count: 164 (60 unit + 104 integration), ALL PASSING.
@@ -329,12 +330,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Banner appears at start of output (before notes) when enabled
 
 ### P6.3 Setup Command (`specs/cli-interface.md`, `specs/llm-context.md`)
-- [ ] `qipu setup --list` - list available integrations
-- [ ] `qipu setup <tool>` - install integration
-- [ ] `qipu setup --print` - print integration instructions
-- [ ] `qipu setup <tool> --check` - verify installation
-- [ ] `qipu setup <tool> --remove` - remove integration
-- [ ] AGENTS.md integration recipe
+- [x] `qipu setup --list` - list available integrations
+- [x] `qipu setup <tool>` - install integration
+- [x] `qipu setup --print` - print integration instructions
+- [x] `qipu setup <tool> --check` - verify installation
+- [x] `qipu setup <tool> --remove` - remove integration
+- [x] AGENTS.md integration recipe
 
 ## Phase 7: Export
 
@@ -511,7 +512,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 164 tests (60 unit + 104 integration), ALL PASSING
+**Current test count**: 177 tests (60 unit + 117 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

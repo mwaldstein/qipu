@@ -401,6 +401,14 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             commands::prime::execute(cli, &store)
         }
 
+        Some(Commands::Setup {
+            list,
+            tool,
+            print,
+            check,
+            remove,
+        }) => commands::setup::execute(cli, *list, tool.as_deref(), *print, *check, *remove),
+
         Some(Commands::Doctor { fix }) => {
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {

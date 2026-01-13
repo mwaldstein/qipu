@@ -47,7 +47,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Implementation Status
 
-**Current Phase**: Phase 9.1 (Doctor) complete; Phase 4 mostly complete (Phases 1-3 mostly complete)  
+**Current Phase**: Phase 8 (Compaction) complete; Phases 1-7 mostly complete; Phase 9 (Doctor) complete  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
 
@@ -421,10 +421,10 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] 5-step guidance: find candidates, review summaries, author digest, register, validate
   - [x] Prompt template for digest authoring
 
-### P8.3 Compaction Integration (`specs/compaction.md`) — PARTIALLY COMPLETE
-**Note**: Compaction visibility is now implemented for list, search, inbox, and all link commands. ALL THREE link commands (`link list`, `link tree`, `link path`) now fully support canonicalization and edge gathering from compacted notes. Compaction annotations (`compacts=<N>` and `compaction=<P%>`) are now working in list, show, search, and context commands. Advanced features (depth control, expanded compaction) remain as future work.
+### P8.3 Compaction Integration (`specs/compaction.md`) — ✓ COMPLETE
+**Note**: All compaction integration features are now fully implemented. Compaction visibility is implemented for list, search, inbox, and all link commands. ALL THREE link commands (`link list`, `link tree`, `link path`) fully support canonicalization and edge gathering from compacted notes. Compaction annotations (`compacts=<N>` and `compaction=<P%>`) are working in list, show, search, and context commands. Depth control and expansion features are complete.
 
-**Current status (2026-01-13)**: Implemented compaction annotations across commands. Total test count: 178 (60 unit + 118 integration), ALL PASSING.
+**Current status (2026-01-13)**: Complete compaction integration implemented. Total test count: 186 (61 unit + 125 integration), ALL PASSING.
 
  - [x] `--no-resolve-compaction` flag for raw view
    - [x] Working in `link list`, `link tree`, `link path`

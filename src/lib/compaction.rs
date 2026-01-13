@@ -81,7 +81,6 @@ impl CompactionContext {
     }
 
     /// Check if a note is compacted by any digest
-    #[allow(dead_code)] // Reserved for future use in list/search/context commands
     pub fn is_compacted(&self, id: &str) -> bool {
         self.compactors.contains_key(id)
     }

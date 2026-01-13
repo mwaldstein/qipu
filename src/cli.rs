@@ -36,6 +36,10 @@ pub struct Cli {
     #[arg(long, short, global = true)]
     pub verbose: bool,
 
+    /// Disable compaction resolution (show raw compacted notes)
+    #[arg(long, global = true)]
+    pub no_resolve_compaction: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }

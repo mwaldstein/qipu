@@ -214,6 +214,19 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             // Inbox is essentially list with type filter for fleeting/literature
             // For now, filter for fleeting and literature types
             let notes = store.list_notes()?;
+
+            // Apply compaction visibility filter (unless --no-resolve-compaction)
+            // Per spec (specs/compaction.md line 101): hide notes with a compactor by default
+            let notes = if !cli.no_resolve_compaction {
+                let compaction_ctx = lib::compaction::CompactionContext::build(&notes)?;
+                notes
+                    .into_iter()
+                    .filter(|n| !compaction_ctx.is_compacted(&n.frontmatter.id))
+                    .collect()
+            } else {
+                notes
+            };
+
             let mut inbox_notes: Vec<_> = notes
                 .into_iter()
                 .filter(|n| {

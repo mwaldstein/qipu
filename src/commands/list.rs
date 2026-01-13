@@ -5,10 +5,12 @@
 //! - `--type` filter
 //! - `--since` filter
 //! - Deterministic ordering (by created, then id)
+//! - Compaction visibility (specs/compaction.md): hide compacted notes by default
 
 use chrono::{DateTime, Utc};
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
@@ -22,6 +24,13 @@ pub fn execute(
     since: Option<DateTime<Utc>>,
 ) -> Result<()> {
     let mut notes = store.list_notes()?;
+
+    // Apply compaction visibility filter (unless --no-resolve-compaction)
+    // Per spec (specs/compaction.md line 101): hide notes with a compactor by default
+    if !cli.no_resolve_compaction {
+        let compaction_ctx = CompactionContext::build(&notes)?;
+        notes.retain(|n| !compaction_ctx.is_compacted(&n.frontmatter.id));
+    }
 
     // Apply filters
     if let Some(tag) = tag {

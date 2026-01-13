@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.3 Compaction Visibility PARTIALLY COMPLETE**: Implemented basic compaction visibility for list/inbox/search commands. COMPLETE: `--no-resolve-compaction` flag for raw view, visibility rules (notes with compactor are hidden by default in list, search, inbox), `via=<id>` breadcrumb annotations in all output formats (human, JSON, records) for search results. Search now canonicalizes matched IDs and surfaces digest notes with via annotations when compacted notes match. NOT YET IMPLEMENTED: `--with-compaction-ids`, `--compaction-depth <n>` for commands other than compact show, `--compaction-max-nodes <n>`, `--expand-compaction`, `compacts=<N>` and `compaction=<P%>` annotations, size estimation metrics, truncation indication, contracted graph for traversals.
 - **P9.1 Doctor Compaction Validation COMPLETE**: Implemented compaction invariant validation in doctor command. Doctor now checks for cycles, multiple compactors, self-compaction, and unresolved compaction references. Added 4 unit tests and 2 integration tests for compaction validation. Total test count now 158 (60 unit + 98 integration), all passing. Fixed unused method warning in compaction.rs.
 - **P8.1 & P8.2 Compaction PARTIALLY COMPLETE**: Implemented core compaction model and commands. COMPLETE: `compacts` frontmatter field, CompactionContext with canon() for following chains to topmost digest, cycle detection in canonicalization, multiple compactor detection, validation of all compaction invariants. Commands: `compact apply`, `compact show`, `compact status`, `compact guide` all functional with all three output formats. Idempotent apply, deterministic ordering. NOT YET IMPLEMENTED: `compact report` (quality metrics), `compact suggest` (clustering), integration with existing commands (visibility flags, search annotations, contracted graph).
 - **P6.2 Context Command - Records Output COMPLETE**: Records format for context was already fully implemented. All features complete: `--format records` support, H (header) lines with mode/store/notes count/truncated flag, N (note metadata) lines with id/type/title/tags/path, S (summary) lines, B (body) lines with B-END terminator, `--with-body` flag for including full body content. Additionally implemented source support using D (diagnostic/data) lines with format: `D source url={url} title="{title}" accessed={date} from={note_id}`. Added comprehensive integration test `test_context_records_with_body_and_sources`. Phase 6.2 is now complete.
@@ -404,21 +405,21 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] 5-step guidance: find candidates, review summaries, author digest, register, validate
   - [x] Prompt template for digest authoring
 
-### P8.3 Compaction Integration (`specs/compaction.md`) — NOT YET IMPLEMENTED
-**Note**: This is future work. The core compaction model and commands are functional, but integration with existing commands (list, search, context, etc.) has not been implemented yet.
+### P8.3 Compaction Integration (`specs/compaction.md`) — PARTIALLY COMPLETE
+**Note**: Basic compaction visibility is now implemented for list, search, and inbox commands. Notes with compactors are hidden by default, and search results show via annotations when compacted notes match. Advanced features (depth control, size metrics, contracted graph) remain as future work.
 
-- [ ] `--no-resolve-compaction` flag for raw view
+- [x] `--no-resolve-compaction` flag for raw view
 - [ ] `--with-compaction-ids` flag (equivalent to compaction depth 1)
 - [ ] `--compaction-depth <n>` flag (no effect when `--with-compaction-ids` absent)
 - [ ] `--compaction-max-nodes <n>` optional bounding flag
 - [ ] `--expand-compaction` flag for including compacted bodies
 - [ ] Output annotations: `compacts=<N>` in human/json/records
 - [ ] Output annotations: `compaction=<P%>` (estimated savings vs expanding)
-- [ ] Output annotations: `via=<id>` breadcrumb when digest appears due to compacted note match
-  - [ ] Human output: `(via qp-xxxx)` suffix
-  - [ ] JSON output: `"via": "qp-xxxx"` field
-  - [ ] Records output: `via=qp-xxxx` field in N line
-  - [ ] Applies in resolved view (not just search)
+- [x] Output annotations: `via=<id>` breadcrumb when digest appears due to compacted note match
+  - [x] Human output: `(via qp-xxxx)` suffix
+  - [x] JSON output: `"via": "qp-xxxx"` field
+  - [x] Records output: `via=qp-xxxx` field in N line
+  - [x] Applies in search results (canonicalization implemented)
 - [ ] Compaction percent formula: `100 * (1 - digest_size / expanded_size)`
   - [ ] Handle `expanded_size = 0`: treat compaction percent as 0%
 - [ ] Size estimation: summary-sized chars (same rules as records summary extraction)
@@ -430,19 +431,20 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] Map node IDs through `canon(id)`
   - [ ] Merge duplicate nodes
   - [ ] Drop self-loops introduced by contraction
-- [ ] Visibility: notes with compactor are hidden by default in most commands
-  - [ ] Affects: `qipu list`, `qipu search`, `qipu inbox`, `qipu link tree/list/path`
-  - [ ] Use `--no-resolve-compaction` to show compacted notes
+- [x] Visibility: notes with compactor are hidden by default in most commands
+  - [x] Affects: `qipu list`, `qipu search`, `qipu inbox`
+  - [ ] Affects: `qipu link tree/list/path` (NOT YET IMPLEMENTED)
+  - [x] Use `--no-resolve-compaction` to show compacted notes
 
-### P8.4 Search/Traversal with Compaction (`specs/compaction.md`) — NOT YET IMPLEMENTED
-**Note**: This is future work. Search and traversal do not yet integrate with compaction.
+### P8.4 Search/Traversal with Compaction (`specs/compaction.md`) — PARTIALLY COMPLETE
+**Note**: Search now has basic compaction support (canonicalization with via annotations). Traversal does not yet use contracted graph.
 
-- [ ] Search matches compacted notes but surfaces canonical digest
-- [ ] `via=<id>` annotation for indirect matches in all output formats:
-  - [ ] Human output: `(via qp-xxxx)` suffix
-  - [ ] JSON output: `"via": "qp-xxxx"` field
-  - [ ] Records output: `via=qp-xxxx` field in N line
-- [ ] Traversal operates on contracted graph by default
+- [x] Search matches compacted notes but surfaces canonical digest
+- [x] `via=<id>` annotation for indirect matches in all output formats:
+  - [x] Human output: `(via qp-xxxx)` suffix
+  - [x] JSON output: `"via": "qp-xxxx"` field
+  - [x] Records output: `via=qp-xxxx` field in N line
+- [ ] Traversal operates on contracted graph by default (NOT YET IMPLEMENTED)
 - [ ] Traversal `--with-compaction-ids`: include direct compaction IDs without expanding bodies
 - [ ] Traversal `--expand-compaction`: include compacted sources depth-limited
 

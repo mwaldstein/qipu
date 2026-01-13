@@ -463,7 +463,7 @@ fn extract_links(
 /// Search results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
-    /// Note ID
+    /// Note ID (may be canonical digest if compaction is resolved)
     pub id: String,
     /// Note title
     pub title: String,
@@ -479,6 +479,11 @@ pub struct SearchResult {
     pub match_context: Option<String>,
     /// Relevance score (higher is better)
     pub relevance: f64,
+    /// Via field - indicates which compacted note triggered this result
+    /// Per spec (specs/compaction.md line 122): when a digest appears because
+    /// a compacted note matched, annotate with via=<matching-note-id>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 /// Check if ripgrep is available on the system
@@ -634,6 +639,7 @@ fn search_with_ripgrep(
             path: meta.path.clone(),
             match_context,
             relevance,
+            via: None,
         });
     }
 
@@ -756,6 +762,7 @@ fn search_embedded(
                 path: meta.path.clone(),
                 match_context,
                 relevance,
+                via: None,
             });
         }
     }

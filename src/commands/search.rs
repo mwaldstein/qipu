@@ -5,10 +5,14 @@
 //! - `--type` filter
 //! - `--tag` filter
 //! - Result ranking: title > exact tag > body, recency boost
+//! - Compaction resolution (specs/compaction.md): show canonical digests with via= annotations
+
+use std::collections::HashMap;
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
-use crate::lib::index::{search, Index, IndexBuilder};
+use crate::lib::index::{search, Index, IndexBuilder, SearchResult};
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
 
@@ -36,6 +40,56 @@ pub fn execute(
 
     let mut results = search(store, &index, query, type_filter, tag_filter)?;
 
+    // Apply compaction resolution (unless --no-resolve-compaction)
+    // Per spec (specs/compaction.md lines 254-261): when a compacted note matches,
+    // surface the canonical digest with via=<matching-note-id> annotation
+    if !cli.no_resolve_compaction {
+        let notes = store.list_notes()?;
+        let compaction_ctx = CompactionContext::build(&notes)?;
+
+        // Group results by canonical ID, preserving the highest relevance and via field
+        let mut canonical_results: HashMap<String, SearchResult> = HashMap::new();
+
+        for mut result in results {
+            let canonical_id = compaction_ctx.canon(&result.id)?;
+
+            // If the note was compacted, we need to replace it with its digest
+            if canonical_id != result.id {
+                // This is a compacted note - fetch the digest's metadata
+                if let Some(digest_meta) = index.get_metadata(&canonical_id) {
+                    result.via = Some(result.id.clone());
+                    result.id = canonical_id.clone();
+                    result.title = digest_meta.title.clone();
+                    result.note_type = digest_meta.note_type;
+                    result.tags = digest_meta.tags.clone();
+                    result.path = digest_meta.path.clone();
+                }
+            }
+
+            // Keep the highest relevance result for each canonical ID
+            canonical_results
+                .entry(result.id.clone())
+                .and_modify(|existing| {
+                    if result.relevance > existing.relevance {
+                        *existing = result.clone();
+                    } else if result.via.is_some() && existing.via.is_none() {
+                        // Prefer keeping the via field if we have it
+                        existing.via = result.via.clone();
+                    }
+                })
+                .or_insert(result);
+        }
+
+        results = canonical_results.into_values().collect();
+
+        // Re-sort by relevance after canonicalization
+        results.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    }
+
     // Apply exclude_mocs filter if requested
     if exclude_mocs {
         results.retain(|r| r.note_type != NoteType::Moc);
@@ -46,7 +100,7 @@ pub fn execute(
             let output: Vec<_> = results
                 .iter()
                 .map(|r| {
-                    serde_json::json!({
+                    let mut obj = serde_json::json!({
                         "id": r.id,
                         "title": r.title,
                         "type": r.note_type.to_string(),
@@ -54,7 +108,14 @@ pub fn execute(
                         "path": r.path,
                         "match_context": r.match_context,
                         "relevance": r.relevance,
-                    })
+                    });
+                    // Add via field if present (per spec: specs/compaction.md line 122)
+                    if let Some(via) = &r.via {
+                        obj.as_object_mut()
+                            .unwrap()
+                            .insert("via".to_string(), serde_json::json!(via));
+                    }
+                    obj
                 })
                 .collect();
             println!("{}", serde_json::to_string_pretty(&output)?);
@@ -72,7 +133,16 @@ pub fn execute(
                         NoteType::Permanent => "P",
                         NoteType::Moc => "M",
                     };
-                    println!("{} [{}] {}", result.id, type_indicator, result.title);
+                    // Add via annotation if present (per spec: specs/compaction.md line 122)
+                    let via_suffix = result
+                        .via
+                        .as_ref()
+                        .map(|v| format!(" (via {})", v))
+                        .unwrap_or_default();
+                    println!(
+                        "{} [{}] {}{}",
+                        result.id, type_indicator, result.title, via_suffix
+                    );
                     if cli.verbose {
                         if let Some(ctx) = &result.match_context {
                             println!("    {}", ctx);
@@ -95,9 +165,15 @@ pub fn execute(
                 } else {
                     result.tags.join(",")
                 };
+                // Add via field if present (per spec: specs/compaction.md line 122)
+                let via_field = result
+                    .via
+                    .as_ref()
+                    .map(|v| format!(" via={}", v))
+                    .unwrap_or_default();
                 println!(
-                    "N {} {} \"{}\" tags={}",
-                    result.id, result.note_type, result.title, tags_csv
+                    "N {} {} \"{}\" tags={}{}",
+                    result.id, result.note_type, result.title, tags_csv, via_field
                 );
                 if let Some(ctx) = &result.match_context {
                     println!("S {} {}", result.id, ctx);

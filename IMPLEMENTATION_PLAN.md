@@ -4,9 +4,11 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P2.2 Inbox**: Confirmed default filter (fleeting, literature) is implemented
 - **P1.4 Auto-populated fields**: Implemented automatic `updated` timestamp maintenance - now auto-populated whenever a note is saved
 - **P5.2 Budgeting**: Completed exact budget enforcement for `qipu context --max-chars` with 10% safety buffer
 - **P1.4 Storage Format**: Confirmed required frontmatter field validation (`id`, `title`) already implemented in parser and doctor command
+- **P4.2 Graph Traversal**: Confirmed `--max-nodes`, `--max-edges`, `--max-fanout` limits are fully implemented with proper truncation reporting
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -118,7 +120,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `--type` filter
 - [x] `--since` filter
 - [x] `qipu inbox` - list unprocessed notes
-  - [ ] Default filter: `type in {fleeting, literature}`
+  - [x] Default filter: `type in {fleeting, literature}`
 - [x] `qipu inbox --exclude-linked` - optional filter to exclude notes already linked into a MOC
   - [x] Define "linked into" semantics: any link (typed or inline) from a MOC pointing to the note
 - [x] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
@@ -193,11 +195,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `--exclude-type <t>` / `--exclude-types <csv>` type exclusion filters
 - [x] `--typed-only`, `--inline-only` filters
 - [x] `--max-nodes`, `--max-edges`, `--max-fanout` limits
-  - [ ] `--max-nodes` caps total visited nodes
-  - [ ] `--max-edges` caps total edges emitted
-  - [ ] `--max-fanout` caps neighbors per expanded node (prevents single hub blow-ups)
-  - [ ] No defaults for these limits (unbounded unless specified); deterministic truncation when hit
-  - [ ] When multiple limits specified, stop when ANY limit is reached
+  - [x] `--max-nodes` caps total visited nodes
+  - [x] `--max-edges` caps total edges emitted
+  - [x] `--max-fanout` caps neighbors per expanded node (prevents single hub blow-ups)
+  - [x] No defaults for these limits (unbounded unless specified); deterministic truncation when hit
+  - [x] When multiple limits specified, stop when ANY limit is reached
 - [x] Deterministic BFS with spanning tree
 - [x] Neighbor ordering: sort by (edge type, target note id)
 - [x] Cycle-safe traversal (visited set, "(seen)" markers)

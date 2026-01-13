@@ -1,0 +1,49 @@
+[package]
+name = "qipu"
+version = "0.1.0"
+edition = "2021"
+description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
+authors = ["Qipu Contributors"]
+license = "MIT"
+repository = "https://github.com/anomalyco/qipu"
+keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+# CLI argument parsing
+clap = { version = "4", features = ["derive", "env"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# ID generation
+sha2 = "0.10"
+hex = "0.4"
+ulid = "1"
+
+# File system utilities
+walkdir = "2"
+
+# Slug generation
+slug = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

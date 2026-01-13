@@ -4,3 +4,8 @@ dist/
 *.log
 .qipu/qipu.db
 .qipu/.cache/
+
+
+# Added by cargo
+
+/target

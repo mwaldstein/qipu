@@ -1,0 +1,233 @@
+//! Qipu - Zettelkasten-inspired knowledge management CLI
+//!
+//! A command-line tool for capturing research, distilling insights,
+//! and navigating knowledge via links, tags, and Maps of Content.
+
+mod cli;
+mod commands;
+#[path = "lib/mod.rs"]
+mod lib;
+
+use std::env;
+use std::path::PathBuf;
+use std::process::ExitCode;
+use std::time::Instant;
+
+use chrono::DateTime;
+use clap::Parser;
+
+use cli::{Cli, Commands, OutputFormat};
+use lib::error::{ExitCode as QipuExitCode, QipuError};
+use lib::store::Store;
+
+fn main() -> ExitCode {
+    let start = Instant::now();
+
+    let cli = Cli::parse();
+
+    if cli.verbose {
+        eprintln!("parse_args: {:?}", start.elapsed());
+    }
+
+    let result = run(&cli, start);
+
+    match result {
+        Ok(()) => ExitCode::from(QipuExitCode::Success as u8),
+        Err(e) => {
+            let exit_code = e.exit_code();
+
+            if cli.format == OutputFormat::Json {
+                eprintln!("{}", e.to_json());
+            } else if !cli.quiet {
+                eprintln!("error: {}", e);
+            }
+
+            ExitCode::from(exit_code as u8)
+        }
+    }
+}
+
+fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
+    // Determine the root directory
+    let root = cli
+        .root
+        .clone()
+        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+
+    if cli.verbose {
+        eprintln!("resolve_root: {:?}", start.elapsed());
+    }
+
+    // Handle commands
+    match &cli.command {
+        None => {
+            // No subcommand - show help
+            // clap handles this automatically with --help, but we can provide a hint
+            println!("qipu {}", env!("CARGO_PKG_VERSION"));
+            println!();
+            println!("A Zettelkasten-inspired knowledge management CLI.");
+            println!();
+            println!("Run `qipu --help` for usage information.");
+            Ok(())
+        }
+
+        Some(Commands::Init {
+            visible,
+            stealth,
+            branch,
+        }) => commands::init::execute(cli, &root, *stealth, *visible, branch.clone()),
+
+        Some(Commands::Create(args)) | Some(Commands::New(args)) => {
+            // Discover or require existing store
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::create::execute(cli, &store, &args.title, args.r#type, &args.tag, args.open)
+        }
+
+        Some(Commands::List { tag, r#type, since }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            // Parse since date if provided
+            let since_dt = since
+                .as_ref()
+                .map(|s| {
+                    DateTime::parse_from_rfc3339(s)
+                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                        .map_err(|e| {
+                            QipuError::Other(format!("invalid --since date '{}': {}", s, e))
+                        })
+                })
+                .transpose()?;
+
+            commands::list::execute(cli, &store, tag.as_deref(), *r#type, since_dt)
+        }
+
+        Some(Commands::Show { id_or_path }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::show::execute(cli, &store, id_or_path)
+        }
+
+        Some(Commands::Inbox { exclude_linked: _ }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            // Inbox is essentially list with type filter for fleeting/literature
+            // For now, filter for fleeting and literature types
+            let notes = store.list_notes()?;
+            let inbox_notes: Vec<_> = notes
+                .into_iter()
+                .filter(|n| {
+                    matches!(
+                        n.note_type(),
+                        lib::note::NoteType::Fleeting | lib::note::NoteType::Literature
+                    )
+                })
+                .collect();
+
+            match cli.format {
+                OutputFormat::Json => {
+                    let output: Vec<_> = inbox_notes
+                        .iter()
+                        .map(|n| {
+                            serde_json::json!({
+                                "id": n.id(),
+                                "title": n.title(),
+                                "type": n.note_type().to_string(),
+                                "tags": n.frontmatter.tags,
+                                "path": n.path.as_ref().map(|p| p.display().to_string()),
+                                "created": n.frontmatter.created,
+                            })
+                        })
+                        .collect();
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    if inbox_notes.is_empty() {
+                        if !cli.quiet {
+                            println!("Inbox is empty");
+                        }
+                    } else {
+                        for note in &inbox_notes {
+                            let type_indicator = match note.note_type() {
+                                lib::note::NoteType::Fleeting => "F",
+                                lib::note::NoteType::Literature => "L",
+                                _ => "?",
+                            };
+                            println!("{} [{}] {}", note.id(), type_indicator, note.title());
+                        }
+                    }
+                }
+                OutputFormat::Records => {
+                    for note in &inbox_notes {
+                        let tags_csv = note.frontmatter.tags.join(",");
+                        println!(
+                            "N {} {} \"{}\" tags={}",
+                            note.id(),
+                            note.note_type(),
+                            note.title(),
+                            tags_csv
+                        );
+                    }
+                }
+            }
+
+            Ok(())
+        }
+    }
+}

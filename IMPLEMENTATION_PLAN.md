@@ -1,82 +1,82 @@
 # Qipu Implementation Plan
 
-Status: Greenfield  
-Last updated: 2026-01-12 (re-audited all specs, addressed gaps: --max-edges, --output, --with-body, csv type filters, backlinks derivation note)
+Status: In Progress  
+Last updated: 2026-01-12
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
 ## Implementation Status
 
-**Current Phase**: Not started (greenfield)  
-**Source Location**: `src/` (not yet created)  
-**Shared Utilities**: `src/lib/` (not yet created)
+**Current Phase**: Phase 2 in progress (Phase 1 complete)  
+**Source Location**: `src/`  
+**Shared Utilities**: `src/lib/`
 
 ## Phase 1: Foundation (CLI Runtime + Storage)
 
 ### P1.1 Project Scaffolding
-- [ ] Initialize Cargo workspace with `qipu` binary crate (Rust)
-- [ ] Set up `src/lib/` for shared utilities
-- [ ] Configure release profile for single native binary (no runtime dependencies)
+- [x] Initialize Cargo workspace with `qipu` binary crate (Rust)
+- [x] Set up `src/lib/` for shared utilities
+- [x] Configure release profile for single native binary (no runtime dependencies)
 - [ ] Add basic CI (build + clippy + test)
-- [ ] Cross-platform support: macOS, Linux, Windows
-- [ ] Avoid heavyweight runtime, JIT warmup, or background daemons (per `specs/cli-tool.md`)
+- [x] Cross-platform support: macOS, Linux, Windows
+- [x] Avoid heavyweight runtime, JIT warmup, or background daemons (per `specs/cli-tool.md`)
 
 ### P1.2 CLI Runtime (`specs/cli-tool.md`)
-- [ ] Implement argument parsing with `clap`
-- [ ] `qipu --help` - stable help output, exit 0
-- [ ] `qipu --version` - single-line version, exit 0
-- [ ] Global flags: `--root`, `--store`, `--format`, `--quiet`, `--verbose`
-- [ ] Exit codes: 0 (success), 1 (failure), 2 (usage), 3 (data error)
-- [ ] `--format` validation (human|json|records, error on unknown)
+- [x] Implement argument parsing with `clap`
+- [x] `qipu --help` - stable help output, exit 0
+- [x] `qipu --version` - single-line version, exit 0
+- [x] Global flags: `--root`, `--store`, `--format`, `--quiet`, `--verbose`
+- [x] Exit codes: 0 (success), 1 (failure), 2 (usage), 3 (data error)
+- [x] `--format` validation (human|json|records, error on unknown)
 - [ ] `--format` may be specified at most once (exit 2 if repeated)
-- [ ] Unknown flag/arg detection (exit 2)
-- [ ] Verbose timing output (parse args, discover store, load indexes, execute)
-- [ ] Timing output deterministic in shape (keys/labels stable)
+- [x] Unknown flag/arg detection (exit 2)
+- [x] Verbose timing output (parse args, discover store, load indexes, execute)
+- [x] Timing output deterministic in shape (keys/labels stable)
 - [ ] Filesystem hygiene: avoid unnecessary file rewrites, preserve newline style
 - [ ] Avoid writing derived caches unless command explicitly calls for it
 - [ ] Offline-first: no network access required for normal operation
-- [ ] Determinism: when truncation/budgeting occurs, must be explicit and deterministic
+- [x] Determinism: when truncation/budgeting occurs, must be explicit and deterministic
 - [ ] JSON error output: structured error details with `--format json`
   - [ ] Define error schema per command category
   - [ ] Include error code, message, and context fields
   - [ ] Use correct exit code alongside JSON error output
 
 ### P1.3 Store Discovery (`specs/cli-tool.md`, `specs/storage-format.md`)
-- [ ] `--store` explicit path resolution (relative to `--root` or cwd)
-- [ ] `--root` defaults to cwd if omitted
-- [ ] Walk-up discovery: at each directory, check if `.qipu/` exists, stop at filesystem root
-- [ ] Missing-store detection (exit 3 for commands requiring store)
-- [ ] `qipu init` - create store directory structure
-- [ ] `qipu init` idempotent (safe to run multiple times)
-- [ ] `qipu init` non-interactive mode for agents
+- [x] `--store` explicit path resolution (relative to `--root` or cwd)
+- [x] `--root` defaults to cwd if omitted
+- [x] Walk-up discovery: at each directory, check if `.qipu/` exists, stop at filesystem root
+- [x] Missing-store detection (exit 3 for commands requiring store)
+- [x] `qipu init` - create store directory structure
+- [x] `qipu init` idempotent (safe to run multiple times)
+- [x] `qipu init` non-interactive mode for agents
 - [ ] `qipu init --stealth` - local-only store (add to .gitignore or store outside repo)
-- [ ] `qipu init --visible` - use `qipu/` instead of `.qipu/`
+- [x] `qipu init --visible` - use `qipu/` instead of `.qipu/`
 - [ ] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
-- [ ] Create `config.toml` with format version, default note type, id scheme, editor override
+- [x] Create `config.toml` with format version, default note type, id scheme, editor override
 - [ ] Config sensible defaults so `qipu init` is optional for basic use
-- [ ] Gitignore handling:
-  - [ ] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
+- [x] Gitignore handling:
+  - [x] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
   - [ ] Stealth mode: add `.qipu/` to project root `.gitignore`
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
-- [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
-- [ ] Create default templates for each note type in `templates/` during init (fleeting, literature, permanent, moc)
+- [x] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
+- [x] Create default templates for each note type in `templates/` during init (fleeting, literature, permanent, moc)
 - [ ] MOC template structure: include "what belongs here" placeholder, subtopic groupings, ordered reading path guidance
 - [ ] Template guidance: encourage atomicity ("one idea per note")
 - [ ] Template guidance: encourage link context (explain *why* links exist, not bare lists)
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
-- [ ] Note file parser (YAML frontmatter + markdown body)
+- [x] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
-- [ ] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
+- [x] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [ ] Required frontmatter fields: `id`, `title`
 - [ ] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
 - [ ] Optional frontmatter fields: `updated`, `links` array (inline links valid without it)
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
-- [ ] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
-- [ ] ID scheme alternatives: support `ulid` and `timestamp` modes via config
+- [x] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
+- [x] ID scheme alternatives: support `ulid` and `timestamp` modes via config
 - [ ] Multi-agent/multi-branch ID collision prevention
-- [ ] Filename format: `<id>-<slug(title)>.md`
-- [ ] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
+- [x] Filename format: `<id>-<slug(title)>.md`
+- [x] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
 - [ ] Wiki-link resolution works without rewriting (rewrite is opt-in only)
 - [ ] Markdown link resolution to qipu notes
 - [ ] Absence of caches must not break core workflows
@@ -85,17 +85,17 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 2: Core Note Operations
 
 ### P2.1 Note CRUD (`specs/cli-interface.md`)
-- [ ] `qipu create <title>` - create new note, print id/path
-- [ ] `--type` flag (fleeting|literature|permanent|moc)
-- [ ] `--tag` flag (repeatable)
-- [ ] `--open` flag (launch `$EDITOR`)
-- [ ] `qipu new` alias for `create`
-- [ ] Template support: use `.qipu/templates/<type>.md` if present
+- [x] `qipu create <title>` - create new note, print id/path
+- [x] `--type` flag (fleeting|literature|permanent|moc)
+- [x] `--tag` flag (repeatable)
+- [x] `--open` flag (launch `$EDITOR`)
+- [x] `qipu new` alias for `create`
+- [x] Template support: use `.qipu/templates/<type>.md` if present
 - [ ] `qipu capture` - create note from stdin
 - [ ] `qipu capture --title`
 - [ ] `qipu capture --type` flag (same options as create)
 - [ ] `qipu capture --tag` flag (repeatable, same as create)
-- [ ] `qipu show <id-or-path>` - print note to stdout
+- [x] `qipu show <id-or-path>` - print note to stdout
 - [ ] `qipu show --links` - inspect links for a note
   - [ ] Show inline + typed links
   - [ ] Show direction (outbound vs inbound/backlinks)
@@ -103,17 +103,17 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] Consistent with `qipu link list` output schema
 
 ### P2.2 Note Listing (`specs/cli-interface.md`)
-- [ ] `qipu list` - list notes
-- [ ] `--tag` filter
-- [ ] `--type` filter
-- [ ] `--since` filter
-- [ ] `qipu inbox` - list unprocessed notes
+- [x] `qipu list` - list notes
+- [x] `--tag` filter
+- [x] `--type` filter
+- [x] `--since` filter
+- [x] `qipu inbox` - list unprocessed notes
   - [ ] Default filter: `type in {fleeting, literature}`
 - [ ] `qipu inbox --exclude-linked` - optional filter to exclude notes already linked into a MOC
   - [ ] Define "linked into" semantics: any link (typed or inline) from a MOC pointing to the note
-- [ ] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
+- [x] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
 - [ ] JSON Lines output option (one object per note) for streaming
-- [ ] Deterministic ordering (by created, then id)
+- [x] Deterministic ordering (by created, then id)
 - [ ] Per-command help text: all commands support `<cmd> --help` (e.g., `qipu list --help`, `qipu create --help`)
 
 ## Phase 3: Indexing and Search

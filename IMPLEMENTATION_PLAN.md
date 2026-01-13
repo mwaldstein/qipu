@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12 (plan review)
+Last updated: 2026-01-12 (gap analysis review)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -54,9 +54,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
 - [ ] Create `config.toml` with format version, default note type, id scheme, editor override
 - [ ] Config sensible defaults so `qipu init` is optional for basic use
-- [ ] Default gitignore entries for `.qipu/qipu.db` and `.qipu/.cache/` (always, regardless of mode)
-- [ ] Stealth mode: gitignore entire `.qipu/` directory
-- [ ] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
+- [ ] Gitignore handling:
+  - [ ] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
+  - [ ] Stealth mode: add `.qipu/` to project root `.gitignore`
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
@@ -67,6 +67,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [ ] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
+- [ ] ID scheme alternatives: support `ulid` and `timestamp` modes via config
 - [ ] Multi-agent/multi-branch ID collision prevention
 - [ ] Filename format: `<id>-<slug(title)>.md`
 - [ ] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
@@ -181,6 +182,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Integration: traversal results compose cleanly with `qipu context`
 - [ ] Future: multiple start nodes for traversal
 - [ ] Future: `qipu context --walk <id> --max-depth <n>` for traverse-and-bundle in one command
+- [ ] Future: additional traversal queries (`neighbors`, `subgraph`, `cycles`)
 
 ## Phase 5: Output Formats
 
@@ -428,6 +430,7 @@ These are design decisions noted in specs that may need resolution during implem
 - Pandoc integration for PDF export
 - Export transitive link expansion (depth-limited)
 - Records `--with-edges` default behavior
+- Records `--with-body` default behavior (summaries-only default?)
 - Tag aliases support
 - Knowledge lifecycle tooling (promote fleeting -> permanent)
 - Attachment organization: per-note folders vs flat
@@ -436,6 +439,7 @@ These are design decisions noted in specs that may need resolution during implem
 - Compaction: "leaf source" vs "intermediate digest" concept in outputs
 - Graph traversal: default `--max-nodes` limit
 - Graph traversal: auto-materialize inline links into frontmatter
+- Graph traversal: additional queries beyond tree/path (neighbors, subgraph, cycles)
 - Backlinks: embed into notes (opt-in) or keep fully derived
 - Lightweight automatic summarization (without LLM)
 - Context: support "include backlinks" as additional material

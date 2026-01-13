@@ -316,6 +316,10 @@ pub enum LinkCommands {
         /// Maximum neighbors per node
         #[arg(long)]
         max_fanout: Option<usize>,
+
+        /// Maximum output characters (exact budget, records format only)
+        #[arg(long)]
+        max_chars: Option<usize>,
     },
 
     /// Find path between two notes
@@ -349,6 +353,10 @@ pub enum LinkCommands {
         /// Show only inline links (from markdown body)
         #[arg(long)]
         inline_only: bool,
+
+        /// Maximum output characters (exact budget, records format only)
+        #[arg(long)]
+        max_chars: Option<usize>,
     },
 }
 

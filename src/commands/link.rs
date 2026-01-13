@@ -490,6 +490,8 @@ pub struct TreeOptions {
     pub max_edges: Option<usize>,
     /// Maximum neighbors per node
     pub max_fanout: Option<usize>,
+    /// Maximum output characters (records format only)
+    pub max_chars: Option<usize>,
 }
 
 impl Default for TreeOptions {
@@ -504,6 +506,7 @@ impl Default for TreeOptions {
             max_nodes: None,
             max_edges: None,
             max_fanout: None,
+            max_chars: None,
         }
     }
 }
@@ -577,7 +580,7 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
             output_tree_human(cli, &result, &index);
         }
         OutputFormat::Records => {
-            output_tree_records(&result, store);
+            output_tree_records(&result, store, &opts);
         }
     }
 
@@ -886,9 +889,88 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
 }
 
 /// Output tree in records format
-fn output_tree_records(result: &TreeResult, store: &Store) {
-    // Header per spec (specs/records-output.md)
-    let truncated_str = if result.truncated { "true" } else { "false" };
+fn output_tree_records(result: &TreeResult, store: &Store, opts: &TreeOptions) {
+    let mut budget_truncated = false;
+    let budget = opts.max_chars;
+
+    // Collect output lines with budget tracking
+    let mut node_lines = Vec::new();
+    let mut edge_lines = Vec::new();
+    let mut used_chars = 0;
+
+    // Estimate header size (we'll generate it later with correct truncated flag)
+    let header_estimate = 200; // Conservative estimate
+    used_chars += header_estimate;
+
+    // Generate node lines (including summaries)
+    for node in &result.nodes {
+        let tags_csv = if node.tags.is_empty() {
+            "-".to_string()
+        } else {
+            node.tags.join(",")
+        };
+        let node_line = format!(
+            "N {} {} \"{}\" tags={}",
+            node.id, node.note_type, node.title, tags_csv
+        );
+
+        let mut summary_line = None;
+        // Load note to get summary (per spec: prefer summaries over full bodies)
+        if let Ok(note) = store.get_note(&node.id) {
+            let summary = note.summary();
+            if !summary.is_empty() {
+                // Truncate summary to single line
+                let summary_text = summary.lines().next().unwrap_or("").trim();
+                if !summary_text.is_empty() {
+                    summary_line = Some(format!("S {} {}", node.id, summary_text));
+                }
+            }
+        }
+
+        // Check budget before adding (10% safety buffer)
+        let node_size = node_line.len() + 1 + summary_line.as_ref().map_or(0, |s| s.len() + 1);
+        let node_size_with_buffer = node_size + (node_size / 10);
+
+        if let Some(max) = budget {
+            if used_chars + node_size_with_buffer > max {
+                budget_truncated = true;
+                break;
+            }
+        }
+
+        node_lines.push((node_line, summary_line));
+        used_chars += node_size;
+    }
+
+    // Generate edge lines
+    if !budget_truncated {
+        for edge in &result.edges {
+            let edge_line = format!(
+                "E {} {} {} {}",
+                edge.from, edge.link_type, edge.to, edge.source
+            );
+
+            let edge_size = edge_line.len() + 1;
+            let edge_size_with_buffer = edge_size + (edge_size / 10);
+
+            if let Some(max) = budget {
+                if used_chars + edge_size_with_buffer > max {
+                    budget_truncated = true;
+                    break;
+                }
+            }
+
+            edge_lines.push(edge_line);
+            used_chars += edge_size;
+        }
+    }
+
+    // Now generate header with correct truncated flag
+    let truncated_str = if result.truncated || budget_truncated {
+        "true"
+    } else {
+        "false"
+    };
     println!(
         "H qipu=1 records=1 store={} mode=link.tree root={} direction={} max_hops={} truncated={}",
         store.root().display(),
@@ -898,25 +980,16 @@ fn output_tree_records(result: &TreeResult, store: &Store) {
         truncated_str
     );
 
-    // Nodes
-    for node in &result.nodes {
-        let tags_csv = if node.tags.is_empty() {
-            "-".to_string()
-        } else {
-            node.tags.join(",")
-        };
-        println!(
-            "N {} {} \"{}\" tags={}",
-            node.id, node.note_type, node.title, tags_csv
-        );
+    // Output collected lines
+    for (node_line, summary_line) in node_lines {
+        println!("{}", node_line);
+        if let Some(s) = summary_line {
+            println!("{}", s);
+        }
     }
 
-    // Edges
-    for edge in &result.edges {
-        println!(
-            "E {} {} {} {}",
-            edge.from, edge.link_type, edge.to, edge.source
-        );
+    for edge_line in edge_lines {
+        println!("{}", edge_line);
     }
 }
 
@@ -971,7 +1044,7 @@ pub fn execute_path(
             output_path_human(cli, &result);
         }
         OutputFormat::Records => {
-            output_path_records(&result, store);
+            output_path_records(&result, store, &opts);
         }
     }
 
@@ -1102,8 +1175,86 @@ fn output_path_human(cli: &Cli, result: &PathResult) {
 }
 
 /// Output path in records format
-fn output_path_records(result: &PathResult, store: &Store) {
-    // Header per spec (specs/records-output.md)
+fn output_path_records(result: &PathResult, store: &Store, opts: &TreeOptions) {
+    let mut budget_truncated = false;
+    let budget = opts.max_chars;
+
+    // Collect output lines with budget tracking (only if path was found)
+    let mut node_lines = Vec::new();
+    let mut edge_lines = Vec::new();
+    let mut used_chars = 0;
+
+    // Estimate header size
+    let header_estimate = 250; // Conservative estimate
+    used_chars += header_estimate;
+
+    if result.found {
+        // Generate node lines (including summaries)
+        for node in &result.nodes {
+            let tags_csv = if node.tags.is_empty() {
+                "-".to_string()
+            } else {
+                node.tags.join(",")
+            };
+            let node_line = format!(
+                "N {} {} \"{}\" tags={}",
+                node.id, node.note_type, node.title, tags_csv
+            );
+
+            let mut summary_line = None;
+            // Load note to get summary (per spec: prefer summaries over full bodies)
+            if let Ok(note) = store.get_note(&node.id) {
+                let summary = note.summary();
+                if !summary.is_empty() {
+                    // Truncate summary to single line
+                    let summary_text = summary.lines().next().unwrap_or("").trim();
+                    if !summary_text.is_empty() {
+                        summary_line = Some(format!("S {} {}", node.id, summary_text));
+                    }
+                }
+            }
+
+            // Check budget before adding (10% safety buffer)
+            let node_size = node_line.len() + 1 + summary_line.as_ref().map_or(0, |s| s.len() + 1);
+            let node_size_with_buffer = node_size + (node_size / 10);
+
+            if let Some(max) = budget {
+                if used_chars + node_size_with_buffer > max {
+                    budget_truncated = true;
+                    break;
+                }
+            }
+
+            node_lines.push((node_line, summary_line));
+            used_chars += node_size;
+        }
+
+        // Generate edge lines
+        if !budget_truncated {
+            for edge in &result.edges {
+                let edge_line = format!(
+                    "E {} {} {} {}",
+                    edge.from, edge.link_type, edge.to, edge.source
+                );
+
+                let edge_size = edge_line.len() + 1;
+                let edge_size_with_buffer = edge_size + (edge_size / 10);
+
+                if let Some(max) = budget {
+                    if used_chars + edge_size_with_buffer > max {
+                        budget_truncated = true;
+                        break;
+                    }
+                }
+
+                edge_lines.push(edge_line);
+                used_chars += edge_size;
+            }
+        }
+    }
+
+    // Generate header (budget truncation doesn't apply to path - paths are small)
+    // But we include the logic for consistency
     let found_str = if result.found { "true" } else { "false" };
     println!(
         "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={}",
@@ -1115,27 +1266,16 @@ fn output_path_records(result: &PathResult, store: &Store) {
         result.path_length
     );
 
-    if result.found {
-        // Nodes
-        for node in &result.nodes {
-            let tags_csv = if node.tags.is_empty() {
-                "-".to_string()
-            } else {
-                node.tags.join(",")
-            };
-            println!(
-                "N {} {} \"{}\" tags={}",
-                node.id, node.note_type, node.title, tags_csv
-            );
+    // Output collected lines
+    for (node_line, summary_line) in node_lines {
+        println!("{}", node_line);
+        if let Some(s) = summary_line {
+            println!("{}", s);
         }
+    }
 
-        // Edges
-        for edge in &result.edges {
-            println!(
-                "E {} {} {} {}",
-                edge.from, edge.link_type, edge.to, edge.source
-            );
-        }
+    for edge_line in edge_lines {
+        println!("{}", edge_line);
     }
 }
 

@@ -586,6 +586,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                     max_nodes,
                     max_edges,
                     max_fanout,
+                    max_chars,
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
@@ -600,6 +601,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                         max_nodes: *max_nodes,
                         max_edges: *max_edges,
                         max_fanout: *max_fanout,
+                        max_chars: *max_chars,
                     };
                     commands::link::execute_tree(cli, &store, id_or_path, opts)
                 }
@@ -612,6 +614,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                     exclude_type,
                     typed_only,
                     inline_only,
+                    max_chars,
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
@@ -626,6 +629,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                         max_nodes: None,
                         max_edges: None,
                         max_fanout: None,
+                        max_chars: *max_chars,
                     };
                     commands::link::execute_path(cli, &store, from, to, opts)
                 }

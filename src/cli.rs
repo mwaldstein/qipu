@@ -151,6 +151,17 @@ pub enum Commands {
         fix: bool,
     },
 
+    /// Sync store: update indexes and optionally validate
+    Sync {
+        /// Run doctor validation after syncing
+        #[arg(long)]
+        validate: bool,
+
+        /// Auto-repair issues if validation is enabled
+        #[arg(long)]
+        fix: bool,
+    },
+
     /// Build context bundle for LLM integration
     Context {
         /// Select notes by ID (can be repeated)

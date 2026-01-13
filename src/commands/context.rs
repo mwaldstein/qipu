@@ -15,19 +15,20 @@ use crate::lib::index::{search, Index, IndexBuilder};
 use crate::lib::note::Note;
 use crate::lib::store::Store;
 
+/// Options for the context command
+pub struct ContextOptions<'a> {
+    pub note_ids: &'a [String],
+    pub tag: Option<&'a str>,
+    pub moc_id: Option<&'a str>,
+    pub query: Option<&'a str>,
+    pub max_chars: Option<usize>,
+    pub transitive: bool,
+    pub with_body: bool,
+    pub safety_banner: bool,
+}
+
 /// Execute the context command
-pub fn execute(
-    cli: &Cli,
-    store: &Store,
-    note_ids: &[String],
-    tag: Option<&str>,
-    moc_id: Option<&str>,
-    query: Option<&str>,
-    max_chars: Option<usize>,
-    transitive: bool,
-    with_body: bool,
-    safety_banner: bool,
-) -> Result<()> {
+pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
     // Build or load index for searching
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
@@ -36,7 +37,7 @@ pub fn execute(
     let mut seen_ids = std::collections::HashSet::new();
 
     // Selection by explicit note IDs
-    for id in note_ids {
+    for id in options.note_ids {
         if seen_ids.insert(id.clone()) {
             match store.get_note(id) {
                 Ok(note) => selected_notes.push(note),
@@ -48,20 +49,20 @@ pub fn execute(
     }
 
     // Selection by tag
-    if let Some(tag_name) = tag {
+    if let Some(tag_name) = options.tag {
         let notes = store.list_notes()?;
         for note in notes {
-            if note.frontmatter.tags.contains(&tag_name.to_string()) {
-                if seen_ids.insert(note.id().to_string()) {
-                    selected_notes.push(note);
-                }
+            if note.frontmatter.tags.contains(&tag_name.to_string())
+                && seen_ids.insert(note.id().to_string())
+            {
+                selected_notes.push(note);
             }
         }
     }
 
     // Selection by MOC
-    if let Some(moc) = moc_id {
-        let linked_notes = get_moc_linked_notes(store, &index, moc, transitive)?;
+    if let Some(moc) = options.moc_id {
+        let linked_notes = get_moc_linked_notes(store, &index, moc, options.transitive)?;
         for note in linked_notes {
             if seen_ids.insert(note.id().to_string()) {
                 selected_notes.push(note);
@@ -70,7 +71,7 @@ pub fn execute(
     }
 
     // Selection by query
-    if let Some(q) = query {
+    if let Some(q) = options.query {
         let results = search(store, &index, q, None, None)?;
         for result in results {
             if seen_ids.insert(result.id.clone()) {
@@ -82,7 +83,11 @@ pub fn execute(
     }
 
     // If no selection criteria provided, return error
-    if note_ids.is_empty() && tag.is_none() && moc_id.is_none() && query.is_none() {
+    if options.note_ids.is_empty()
+        && options.tag.is_none()
+        && options.moc_id.is_none()
+        && options.query.is_none()
+    {
         return Err(QipuError::Other(
             "no selection criteria provided. Use --note, --tag, --moc, or --query".to_string(),
         ));
@@ -100,7 +105,8 @@ pub fn execute(
     });
 
     // Apply budgeting
-    let (truncated, notes_to_output) = apply_budget(&selected_notes, max_chars, with_body);
+    let (truncated, notes_to_output) =
+        apply_budget(&selected_notes, options.max_chars, options.with_body);
 
     // Output in requested format
     let store_path = store.root().display().to_string();
@@ -110,15 +116,20 @@ pub fn execute(
             output_json(&store_path, &notes_to_output, truncated)?;
         }
         OutputFormat::Human => {
-            output_human(&store_path, &notes_to_output, truncated, safety_banner);
+            output_human(
+                &store_path,
+                &notes_to_output,
+                truncated,
+                options.safety_banner,
+            );
         }
         OutputFormat::Records => {
             output_records(
                 &store_path,
                 &notes_to_output,
                 truncated,
-                with_body,
-                safety_banner,
+                options.with_body,
+                options.safety_banner,
             );
         }
     }

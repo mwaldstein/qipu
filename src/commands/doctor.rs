@@ -206,7 +206,7 @@ fn scan_notes(store: &Store) -> (Vec<Note>, Vec<(String, String)>) {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            if path.extension().map_or(false, |e| e == "md") {
+            if path.extension().is_some_and(|e| e == "md") {
                 match fs::read_to_string(path) {
                     Ok(content) => match Note::parse(&content, Some(path.to_path_buf())) {
                         Ok(note) => notes.push(note),
@@ -384,10 +384,10 @@ fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> {
                         let original_len = note.frontmatter.links.len();
                         note.frontmatter.links.retain(|l| valid_ids.contains(&l.id));
 
-                        if note.frontmatter.links.len() < original_len {
-                            if store.save_note(&note).is_ok() {
-                                fixed += 1;
-                            }
+                        if note.frontmatter.links.len() < original_len
+                            && store.save_note(&note).is_ok()
+                        {
+                            fixed += 1;
                         }
                     }
                 }

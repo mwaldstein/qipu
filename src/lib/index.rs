@@ -146,6 +146,7 @@ impl Index {
     }
 
     /// Get all note IDs
+    #[allow(dead_code)]
     pub fn note_ids(&self) -> impl Iterator<Item = &str> {
         self.metadata.keys().map(|s| s.as_str())
     }
@@ -156,6 +157,7 @@ impl Index {
     }
 
     /// Get notes by tag
+    #[allow(dead_code)]
     pub fn get_notes_by_tag(&self, tag: &str) -> Vec<&str> {
         self.tags
             .get(tag)
@@ -174,6 +176,7 @@ impl Index {
     }
 
     /// Get all edges for a note (both directions)
+    #[allow(dead_code)]
     pub fn get_all_edges(&self, id: &str) -> Vec<&Edge> {
         self.edges
             .iter()
@@ -476,7 +479,7 @@ pub fn search(
 
     let mut results = Vec::new();
 
-    for (_id, meta) in &index.metadata {
+    for meta in index.metadata.values() {
         // Apply type filter
         if let Some(t) = type_filter {
             if meta.note_type != t {

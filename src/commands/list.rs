@@ -36,7 +36,7 @@ pub fn execute(
         notes.retain(|n| {
             n.frontmatter
                 .created
-                .map_or(false, |created| created >= since)
+                .is_some_and(|created| created >= since)
         });
     }
 

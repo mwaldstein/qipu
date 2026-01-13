@@ -233,7 +233,7 @@ impl Store {
                 .into_iter()
                 .filter_map(|e| e.ok())
             {
-                if entry.path().extension().map_or(false, |e| e == "md") {
+                if entry.path().extension().is_some_and(|e| e == "md") {
                     // Try to extract ID from filename (format: qp-xxxx-slug.md)
                     if let Some(name) = entry.path().file_stem() {
                         let name = name.to_string_lossy();
@@ -360,7 +360,7 @@ impl Store {
                 .filter_map(|e| e.ok())
             {
                 let path = entry.path();
-                if path.extension().map_or(false, |e| e == "md") {
+                if path.extension().is_some_and(|e| e == "md") {
                     match Note::parse(&fs::read_to_string(path)?, Some(path.to_path_buf())) {
                         Ok(note) => notes.push(note),
                         Err(e) => {
@@ -400,7 +400,7 @@ impl Store {
                 .filter_map(|e| e.ok())
             {
                 let path = entry.path();
-                if path.extension().map_or(false, |e| e == "md") {
+                if path.extension().is_some_and(|e| e == "md") {
                     // Check if filename starts with the ID
                     if let Some(name) = path.file_stem() {
                         let name = name.to_string_lossy();
@@ -622,9 +622,9 @@ pub struct InitOptions {
 /// Strip frontmatter from template content
 fn strip_frontmatter(content: &str) -> String {
     let content = content.trim_start();
-    if content.starts_with("---") {
-        if let Some(end) = content[3..].find("\n---") {
-            let after_fm = &content[3 + end + 4..];
+    if let Some(stripped) = content.strip_prefix("---") {
+        if let Some(end) = stripped.find("\n---") {
+            let after_fm = &stripped[end + 4..];
             return after_fm.trim_start_matches('\n').to_string();
         }
     }

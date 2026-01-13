@@ -433,14 +433,16 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             commands::context::execute(
                 cli,
                 &store,
-                note,
-                tag.as_deref(),
-                moc.as_deref(),
-                query.as_deref(),
-                *max_chars,
-                *transitive,
-                *with_body,
-                *safety_banner,
+                commands::context::ContextOptions {
+                    note_ids: note,
+                    tag: tag.as_deref(),
+                    moc_id: moc.as_deref(),
+                    query: query.as_deref(),
+                    max_chars: *max_chars,
+                    transitive: *transitive,
+                    with_body: *with_body,
+                    safety_banner: *safety_banner,
+                },
             )
         }
 
@@ -471,7 +473,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
-                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                        .map_err(lib::error::QipuError::Other)?;
                     commands::link::execute_list(
                         cli,
                         &store,
@@ -502,7 +504,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
-                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                        .map_err(lib::error::QipuError::Other)?;
                     let opts = commands::link::TreeOptions {
                         direction: dir,
                         max_hops: *max_hops,
@@ -528,7 +530,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
-                        .map_err(|e| lib::error::QipuError::Other(e))?;
+                        .map_err(lib::error::QipuError::Other)?;
                     let opts = commands::link::TreeOptions {
                         direction: dir,
                         max_hops: *max_hops,

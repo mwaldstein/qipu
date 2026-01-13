@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12 (spec alignment review)
+Last updated: 2026-01-12 (spec alignment review, gap analysis complete)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -61,16 +61,22 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
 - [ ] Create default templates for each note type in `templates/` during init (fleeting, literature, permanent, moc)
+- [ ] MOC template structure: include "what belongs here" placeholder, subtopic groupings, ordered reading path guidance
+- [ ] Template guidance: encourage atomicity ("one idea per note")
+- [ ] Template guidance: encourage link context (explain *why* links exist, not bare lists)
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
 - [ ] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
 - [ ] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
+- [ ] Required frontmatter fields: `id`, `title`
+- [ ] Optional frontmatter fields: `updated`, `links` array (inline links valid without it)
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [ ] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
 - [ ] ID scheme alternatives: support `ulid` and `timestamp` modes via config
 - [ ] Multi-agent/multi-branch ID collision prevention
 - [ ] Filename format: `<id>-<slug(title)>.md`
 - [ ] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
+- [ ] Wiki-link resolution works without rewriting (rewrite is opt-in only)
 - [ ] Markdown link resolution to qipu notes
 - [ ] Absence of caches must not break core workflows
 - [ ] Attachments guidance: prefer relative markdown links, avoid embedding huge binaries
@@ -177,6 +183,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Human-readable tree output (optimized for scanning)
 - [ ] `qipu link path` human output: simple path listing (node -> node -> node)
 - [ ] JSON output shape: `{root, direction, max_depth, truncated, nodes[], edges[], spanning_tree[]}`
+- [ ] Node objects in JSON: `{id, title, type, tags, path}`
 - [ ] Edge objects include `source` field (`inline` or `typed`)
 - [ ] Edge objects: `{from, to, type, source}`
 - [ ] `spanning_tree[]` with `{parent, child, depth}` entries
@@ -229,6 +236,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ### P6.2 Context Command (`specs/llm-context.md`)
 - [ ] `qipu context` - build context bundle
+- [ ] Deterministic ordering for notes in bundle
+- [ ] Stable formatting (consistent across runs, easy for tools to parse)
 - [ ] Selection: `--note` (repeatable), `--tag`, `--moc`, `--query`
 - [ ] `--moc` direct list mode: include links listed in the MOC (default)
 - [ ] `--moc --transitive` mode: follow nested MOC links (transitive closure)
@@ -427,7 +436,7 @@ These are design decisions noted in specs that may need resolution during implem
 - Global (cross-repo) store option
 - Note type taxonomy: enforce vs allow arbitrary
 - Minimal typed link set (proposed: related, derived-from, supports, contradicts, part-of)
-- Duplicate/merge detection (beads analog: `bd duplicates`/`bd merge`)
+- Duplicate/merge detection (beads analog: `bd duplicates`/`bd merge`) - **future feature candidate**
 - Flat vs date-partitioned note paths
 - JSON vs SQLite indexes (or both)
 - Interactive pickers (fzf-style) as optional UX
@@ -438,7 +447,7 @@ These are design decisions noted in specs that may need resolution during implem
 - Records `--with-edges` default behavior
 - Records `--with-body` default behavior (summaries-only default?)
 - Tag aliases support
-- Knowledge lifecycle tooling (promote fleeting -> permanent)
+- Knowledge lifecycle tooling (promote fleeting -> permanent) - **future feature candidate**
 - Attachment organization: per-note folders vs flat
 - Compaction: "inactive" edges for history/versioning
 - Compaction: exclude MOCs/spec notes from suggestions by default

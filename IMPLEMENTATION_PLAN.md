@@ -4,11 +4,13 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.4 Templates**: Confirmed all note type templates include appropriate structure and guidance
 - **P2.2 Inbox**: Confirmed default filter (fleeting, literature) is implemented
 - **P1.4 Auto-populated fields**: Implemented automatic `updated` timestamp maintenance - now auto-populated whenever a note is saved
 - **P5.2 Budgeting**: Completed exact budget enforcement for `qipu context --max-chars` with 10% safety buffer
 - **P1.4 Storage Format**: Confirmed required frontmatter field validation (`id`, `title`) already implemented in parser and doctor command
 - **P4.2 Graph Traversal**: Confirmed `--max-nodes`, `--max-edges`, `--max-fanout` limits are fully implemented with proper truncation reporting
+- **P5.2 Budgeting**: Confirmed truncation implementation - deterministic, complete notes first, truncated flag in headers
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -73,9 +75,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [x] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
 - [x] Create default templates for each note type in `templates/` during init (fleeting, literature, permanent, moc)
-- [ ] MOC template structure: include "what belongs here" placeholder, subtopic groupings, ordered reading path guidance
-- [ ] Template guidance: encourage atomicity ("one idea per note")
-- [ ] Template guidance: encourage link context (explain *why* links exist, not bare lists)
+- [x] MOC template structure: include "what belongs here" placeholder, subtopic groupings, ordered reading path guidance
+- [x] Template guidance: encourage atomicity ("one idea per note") - implemented in permanent.md template
+- [x] Template guidance: encourage link context (explain *why* links exist, not bare lists) - implemented in permanent.md template
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
 - [x] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
@@ -244,11 +246,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ### P5.2 Budgeting (`specs/records-output.md`, `specs/llm-context.md`)
 - [x] `--max-chars` exact budget (implementation uses 10% safety buffer to ensure budget is never exceeded)
-- [ ] Truncation handling: set `truncated=true` in header, no partial records unless unavoidable
+- [x] Truncation handling: set `truncated=true` in header, no partial records unless unavoidable
 - [ ] Truncation marker: `…[truncated]` exact format for partially truncated notes (ellipsis character)
 - [ ] Option: emit final header line indicating truncation (alternative to first-line `truncated=true`)
-- [ ] Deterministic truncation (same selection = same output)
-- [ ] Include complete notes first, truncate only when unavoidable
+- [x] Deterministic truncation (same selection = same output) - uses deterministic ordering (created, id)
+- [x] Include complete notes first, truncate only when unavoidable - uses greedy first-fit algorithm
 - [ ] Handle unavoidable partial records gracefully with clear truncation markers
 - [ ] Progressive disclosure workflow documentation (traverse summaries → expand selected)
 

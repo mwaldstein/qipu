@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.2 Compact Report Command COMPLETE**: Implemented `qipu compact report` with comprehensive quality metrics: `compacts_direct_count` (direct source count), `compaction_pct` (size reduction percentage), boundary edge ratio (links from sources pointing outside compaction set), staleness indicator (checks if sources were updated after digest), conflicts/cycles detection (compaction invariant violations). All three output formats supported (human, json, records). Added comprehensive integration test `test_compact_report` in tests/cli_tests.rs. Total test count: 163 (60 unit + 103 integration), ALL PASSING. Note: `qipu compact suggest` remains NOT YET IMPLEMENTED.
 - **P8.3 Compaction Visibility for Link Commands COMPLETE**: Implemented full compaction visibility for all three link commands (`link list`, `link tree`, `link path`). All commands now support canonicalization and edge gathering from compacted notes. When compaction resolution is enabled (default), digest notes appear with all edges from their compacted sources. `--no-resolve-compaction` flag works across all three commands to show raw view. Added 4 comprehensive integration tests (lines 3131-3639 in tests/cli_tests.rs). Total test count: 162 (60 unit + 102 integration), ALL PASSING. Files modified: src/commands/link.rs.
 - **P8.3 Compaction Visibility PARTIALLY COMPLETE**: Implemented basic compaction visibility for list/inbox/search commands. COMPLETE: `--no-resolve-compaction` flag for raw view, visibility rules (notes with compactor are hidden by default in list, search, inbox), `via=<id>` breadcrumb annotations in all output formats (human, JSON, records) for search results. Search now canonicalizes matched IDs and surfaces digest notes with via annotations when compacted notes match. NOT YET IMPLEMENTED: `--with-compaction-ids`, `--compaction-depth <n>` for commands other than compact show, `--compaction-max-nodes <n>`, `--expand-compaction`, `compacts=<N>` and `compaction=<P%>` annotations, size estimation metrics, truncation indication.
 - **P9.1 Doctor Compaction Validation COMPLETE**: Implemented compaction invariant validation in doctor command. Doctor now checks for cycles, multiple compactors, self-compaction, and unresolved compaction references. Added 4 unit tests and 2 integration tests for compaction validation. Total test count now 158 (60 unit + 98 integration), all passing. Fixed unused method warning in compaction.rs.
@@ -391,12 +392,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `qipu compact status <id>` - show compaction relationships (compactor, canonical, compacted notes)
 - [x] All commands support all three output formats (human, json, records)
 - [x] Deterministic ordering in outputs (sorted by ID)
-- [ ] `qipu compact report <digest-id>` - compaction quality metrics (NOT YET IMPLEMENTED)
-  - [ ] `compacts_direct_count`
-  - [ ] `compaction_pct`
-  - [ ] Boundary edge ratio (links from sources pointing outside compaction set)
-  - [ ] Staleness indicator (sources updated after digest)
-  - [ ] Conflicts/cycles if present
+- [x] `qipu compact report <digest-id>` - compaction quality metrics
+  - [x] `compacts_direct_count`
+  - [x] `compaction_pct`
+  - [x] Boundary edge ratio (links from sources pointing outside compaction set)
+  - [x] Staleness indicator (sources updated after digest)
+  - [x] Conflicts/cycles if present
 - [ ] `qipu compact suggest` - suggest compaction candidates (NOT YET IMPLEMENTED)
   - [ ] Deterministic for same graph
   - [ ] Approach: community/clump detection
@@ -503,7 +504,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 162 tests (60 unit + 102 integration), ALL PASSING
+**Current test count**: 163 tests (60 unit + 103 integration), ALL PASSING
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

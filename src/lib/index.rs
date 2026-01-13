@@ -9,6 +9,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::SystemTime;
 
 use chrono::{DateTime, Utc};
@@ -480,8 +481,174 @@ pub struct SearchResult {
     pub relevance: f64,
 }
 
-/// Simple text search over the index
-pub fn search(
+/// Check if ripgrep is available on the system
+fn is_ripgrep_available() -> bool {
+    Command::new("rg")
+        .arg("--version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+/// Search using ripgrep for faster file finding
+///
+/// This is an optimization that leverages ripgrep if available.
+/// Falls back to embedded search if ripgrep is not found.
+fn search_with_ripgrep(
+    store: &Store,
+    index: &Index,
+    query: &str,
+    type_filter: Option<NoteType>,
+    tag_filter: Option<&str>,
+) -> Result<Vec<SearchResult>> {
+    let query_lower = query.to_lowercase();
+    let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
+
+    // Use ripgrep to find files containing any query term
+    let mut rg_cmd = Command::new("rg");
+    rg_cmd
+        .arg("--files-with-matches")
+        .arg("--case-insensitive")
+        .arg("--no-heading")
+        .arg("--with-filename");
+
+    // Add search pattern (OR all terms together)
+    let pattern = query_terms.join("|");
+    rg_cmd.arg(&pattern);
+
+    // Search in notes and mocs directories
+    rg_cmd.arg(store.root().join("notes"));
+    rg_cmd.arg(store.root().join("mocs"));
+
+    let output = match rg_cmd.output() {
+        Ok(output) => output,
+        Err(_) => {
+            // If ripgrep fails to run, fall back to embedded search
+            return search_embedded(store, index, query, type_filter, tag_filter);
+        }
+    };
+
+    // If ripgrep returned an error (e.g., no matches found), it's not a problem
+    // We just continue with empty results for ripgrep and filter from index
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let matching_paths: HashSet<PathBuf> = stdout
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .collect();
+
+    // If ripgrep found no matches, use embedded search as fallback
+    // (ripgrep exit code 1 means no matches, not an error)
+    if matching_paths.is_empty() && !output.status.success() {
+        return search_embedded(store, index, query, type_filter, tag_filter);
+    }
+
+    // Build results from matching files using index metadata
+    let mut results = Vec::new();
+
+    for meta in index.metadata.values() {
+        // Skip if path doesn't match ripgrep results
+        let path = PathBuf::from(&meta.path);
+        if !matching_paths.contains(&path) {
+            continue;
+        }
+
+        // Apply type filter
+        if let Some(t) = type_filter {
+            if meta.note_type != t {
+                continue;
+            }
+        }
+
+        // Apply tag filter
+        if let Some(tag) = tag_filter {
+            if !meta.tags.contains(&tag.to_string()) {
+                continue;
+            }
+        }
+
+        // Calculate relevance score (same logic as embedded search)
+        let mut relevance = 0.0;
+        let mut match_context = None;
+
+        let title_lower = meta.title.to_lowercase();
+
+        // Title matches (high weight)
+        for term in &query_terms {
+            if title_lower.contains(term) {
+                relevance += 10.0;
+                if title_lower == *term {
+                    relevance += 5.0;
+                }
+            }
+        }
+
+        // Tag matches (medium weight)
+        for tag in &meta.tags {
+            let tag_lower = tag.to_lowercase();
+            for term in &query_terms {
+                if tag_lower == *term {
+                    relevance += 7.0;
+                } else if tag_lower.contains(term) {
+                    relevance += 3.0;
+                }
+            }
+        }
+
+        // Body search for context extraction and additional relevance
+        if let Ok(note) = store.get_note(&meta.id) {
+            let body_lower = note.body.to_lowercase();
+            for term in &query_terms {
+                if body_lower.contains(term) {
+                    relevance += 2.0;
+
+                    // Extract context snippet for first match
+                    if match_context.is_none() {
+                        if let Some(pos) = body_lower.find(term) {
+                            let start = pos.saturating_sub(40);
+                            let end = (pos + term.len() + 40).min(note.body.len());
+                            let snippet = &note.body[start..end];
+                            let snippet = snippet.replace('\n', " ");
+                            match_context = Some(format!("...{}...", snippet.trim()));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Recency boost (prefer recently created notes)
+        if let Some(created) = meta.created {
+            let age_days = (Utc::now() - created).num_days();
+            if age_days < 7 {
+                relevance += 1.0;
+            } else if age_days < 30 {
+                relevance += 0.5;
+            }
+        }
+
+        results.push(SearchResult {
+            id: meta.id.clone(),
+            title: meta.title.clone(),
+            note_type: meta.note_type,
+            tags: meta.tags.clone(),
+            path: meta.path.clone(),
+            match_context,
+            relevance,
+        });
+    }
+
+    // Sort by relevance (descending)
+    results.sort_by(|a, b| {
+        b.relevance
+            .partial_cmp(&a.relevance)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    Ok(results)
+}
+
+/// Embedded text search (fallback when ripgrep not available)
+fn search_embedded(
     store: &Store,
     index: &Index,
     query: &str,
@@ -601,6 +768,27 @@ pub fn search(
     });
 
     Ok(results)
+}
+
+/// Simple text search over the index
+///
+/// Uses ripgrep if available for faster file finding, otherwise falls back
+/// to embedded matcher. Ranking: title matches > exact tag matches > body matches,
+/// with recency boost.
+pub fn search(
+    store: &Store,
+    index: &Index,
+    query: &str,
+    type_filter: Option<NoteType>,
+    tag_filter: Option<&str>,
+) -> Result<Vec<SearchResult>> {
+    // Try ripgrep first if available (faster for large stores)
+    if is_ripgrep_available() {
+        return search_with_ripgrep(store, index, query, type_filter, tag_filter);
+    }
+
+    // Fall back to embedded search
+    search_embedded(store, index, query, type_filter, tag_filter)
 }
 
 #[cfg(test)]

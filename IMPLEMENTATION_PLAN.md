@@ -169,7 +169,6 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
 
 ### P3.3 Search (`specs/indexing-search.md`, `specs/cli-interface.md`)
-*Note: Search is mostly complete; `--include-mocs`/`--exclude-mocs` not yet implemented.*
 - [x] `qipu search <query>` - search titles + bodies
 - [x] Type/tag filters for search (`--type`, `--tag`)
   - [x] Include/exclude MOCs option - implemented `--exclude-mocs` flag
@@ -178,9 +177,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] JSON Lines output option (one object per note) for streaming
 - [x] Search scoped to qipu store only (not source code files)
 - [x] Simple embedded matcher for smaller stores
-- [ ] Optional ripgrep integration: detect availability, use if present, fallback to embedded matcher
-  - [ ] Detection: check `rg` on PATH (via `which rg` or equivalent)
-  - [ ] No version-specific requirements; assume any installed `rg` is compatible
+- [x] Optional ripgrep integration: detect availability, use if present, fallback to embedded matcher
+  - [x] Detection: check `rg` on PATH via `Command::new("rg").arg("--version")`
+  - [x] No version-specific requirements; any installed `rg` works
+  - [x] Implementation: uses ripgrep for faster file finding, falls back to embedded matcher
+  - [x] Behavior: transparent to users - significantly faster body text search on large stores
 
 ### P3.4 Related Notes (`specs/indexing-search.md`) — Enhancement/Future
 *Note: No explicit command in spec; these are approximation methods for future relatedness features.*

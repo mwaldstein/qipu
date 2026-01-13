@@ -207,6 +207,43 @@ pub fn execute_list(
                     Direction::Both => "both",
                 }
             );
+
+            // Collect unique note IDs from entries (excluding the queried note itself)
+            let mut unique_ids: Vec<String> = entries
+                .iter()
+                .map(|e| e.id.clone())
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect();
+            unique_ids.sort(); // Deterministic ordering
+
+            // Output N (node) and S (summary) lines for linked notes
+            for link_id in &unique_ids {
+                if let Some(meta) = index.get_metadata(link_id) {
+                    let tags_csv = if meta.tags.is_empty() {
+                        "-".to_string()
+                    } else {
+                        meta.tags.join(",")
+                    };
+                    println!(
+                        "N {} {} \"{}\" tags={}",
+                        link_id, meta.note_type, meta.title, tags_csv
+                    );
+
+                    // Load note to get summary
+                    if let Ok(note) = store.get_note(link_id) {
+                        let summary = note.summary();
+                        if !summary.is_empty() {
+                            // Truncate summary to single line
+                            let summary_text = summary.lines().next().unwrap_or("").trim();
+                            if !summary_text.is_empty() {
+                                println!("S {} {}", link_id, summary_text);
+                            }
+                        }
+                    }
+                }
+            }
+
             // Edge lines
             for entry in &entries {
                 // E <from> <type> <to> <source>

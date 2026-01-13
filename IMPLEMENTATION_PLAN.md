@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P4.3 Link List Summary Lines COMPLETE**: Implemented summary lines (S records) for `qipu link list` Records output. When outputting links in Records format, the command now includes N (node metadata) and S (summary) lines for each unique linked note before the E (edge) lines. Follows the same pattern as link tree and link path commands. All 163 tests passing.
 - **P8.2 Compact Report Command COMPLETE**: Implemented `qipu compact report` with comprehensive quality metrics: `compacts_direct_count` (direct source count), `compaction_pct` (size reduction percentage), boundary edge ratio (links from sources pointing outside compaction set), staleness indicator (checks if sources were updated after digest), conflicts/cycles detection (compaction invariant violations). All three output formats supported (human, json, records). Added comprehensive integration test `test_compact_report` in tests/cli_tests.rs. Total test count: 163 (60 unit + 103 integration), ALL PASSING. Note: `qipu compact suggest` remains NOT YET IMPLEMENTED.
 - **P8.3 Compaction Visibility for Link Commands COMPLETE**: Implemented full compaction visibility for all three link commands (`link list`, `link tree`, `link path`). All commands now support canonicalization and edge gathering from compacted notes. When compaction resolution is enabled (default), digest notes appear with all edges from their compacted sources. `--no-resolve-compaction` flag works across all three commands to show raw view. Added 4 comprehensive integration tests (lines 3131-3639 in tests/cli_tests.rs). Total test count: 162 (60 unit + 102 integration), ALL PASSING. Files modified: src/commands/link.rs.
 - **P8.3 Compaction Visibility PARTIALLY COMPLETE**: Implemented basic compaction visibility for list/inbox/search commands. COMPLETE: `--no-resolve-compaction` flag for raw view, visibility rules (notes with compactor are hidden by default in list, search, inbox), `via=<id>` breadcrumb annotations in all output formats (human, JSON, records) for search results. Search now canonicalizes matched IDs and surfaces digest notes with via annotations when compacted notes match. NOT YET IMPLEMENTED: `--with-compaction-ids`, `--compaction-depth <n>` for commands other than compact show, `--compaction-max-nodes <n>`, `--expand-compaction`, `compacts=<N>` and `compaction=<P%>` annotations, size estimation metrics, truncation indication.
@@ -244,7 +245,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Records output: H (header), N (node), S (summary), E (edge) lines
 - [x] Summary lines (S records) for `qipu link tree` and `qipu link path`
 - [x] `--max-chars` budget enforcement with 10% safety buffer for tree/path commands
-- [ ] Summary lines for `qipu link list` (lower priority - list typically small)
+- [x] Summary lines for `qipu link list`
 - [ ] Integration: traversal results compose cleanly with `qipu context`
 - [ ] Future: multiple start nodes for traversal
 - [ ] Future: `qipu context --walk <id> --max-hops <n>` for traverse-and-bundle in one command

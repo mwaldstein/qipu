@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 Status: Greenfield  
-Last updated: 2026-01-12
+Last updated: 2026-01-12 (plan review)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -47,9 +47,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Config sensible defaults so `qipu init` is optional for basic use
 - [ ] Default gitignore entries for `.qipu/qipu.db` and `.qipu/.cache/` (always, regardless of mode)
 - [ ] Stealth mode: gitignore entire `.qipu/` directory
+- [ ] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
 
 ### P1.4 Storage Format (`specs/storage-format.md`)
 - [ ] Directory structure: `notes/`, `mocs/`, `attachments/`, `templates/`, `.cache/`
+- [ ] Create default templates for each note type in `templates/`
 - [ ] Specific cache files: `index.json`, `tags.json`, `backlinks.json`, `graph.json`
 - [ ] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
@@ -70,12 +72,13 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `--tag` flag (repeatable)
 - [ ] `--open` flag (launch `$EDITOR`)
 - [ ] `qipu new` alias for `create`
+- [ ] Template support: use `.qipu/templates/<type>.md` if present
 - [ ] `qipu capture` - create note from stdin
 - [ ] `qipu capture --title`
 - [ ] `qipu capture --type` flag (same options as create)
 - [ ] `qipu capture --tag` flag (repeatable, same as create)
 - [ ] `qipu show <id-or-path>` - print note to stdout
-- [ ] `qipu show --links` - inspect typed links for a note
+- [ ] `qipu show --links` - inspect typed links for a note (inline + typed, direction)
 
 ### P2.2 Note Listing (`specs/cli-interface.md`)
 - [ ] `qipu list` - list notes
@@ -102,10 +105,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Incremental indexing (track mtimes/hashes)
 
 ### P3.2 Link Extraction (`specs/indexing-search.md`)
-- [ ] Extract wiki links from note bodies
+- [ ] Extract wiki links from note bodies: `[[<id>]]`, `[[<id>|label]]`
 - [ ] Extract markdown links pointing to qipu notes
-- [ ] Extract typed links from frontmatter
+- [ ] Extract typed links from frontmatter (`links[]` array)
 - [ ] Inline links assigned default: `type=related`, `source=inline`
+- [ ] Typed links preserve their explicit type and set `source=typed`
 - [ ] Track unresolved links for `doctor` reporting
 - [ ] Ignore links outside the store by default
 - [ ] Optional wiki-link to markdown link rewriting (opt-in via `qipu index`)
@@ -180,9 +184,10 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ### P5.2 Budgeting (`specs/records-output.md`, `specs/llm-context.md`)
 - [ ] `--max-chars` exact budget
 - [ ] Truncation handling: set `truncated=true` in header, no partial records unless unavoidable
-- [ ] Truncation marker: `...[truncated]` for partially truncated notes
+- [ ] Truncation marker: `...[truncated]` exact format for partially truncated notes
 - [ ] Final header line option for truncation indication
 - [ ] Deterministic truncation (same selection = same output)
+- [ ] Include complete notes first, truncate only when unavoidable
 - [ ] Progressive disclosure workflow documentation (traverse summaries → expand selected)
 
 ## Phase 6: LLM Integration
@@ -197,8 +202,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ### P6.2 Context Command (`specs/llm-context.md`)
 - [ ] `qipu context` - build context bundle
-- [ ] Selection: `--note`, `--tag`, `--moc`, `--query`
-- [ ] `--moc` supports both "direct list" and "transitive closure" modes
+- [ ] Selection: `--note` (repeatable), `--tag`, `--moc`, `--query`
+- [ ] `--moc` direct list mode: include links listed in the MOC
+- [ ] `--moc` transitive closure mode: follow nested MOC links
 - [ ] `--max-chars` budget
 - [ ] Markdown output (default): precise format per spec
   - [ ] Header: `# Qipu Context Bundle`, generated timestamp, store path
@@ -257,7 +263,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] `qipu compact apply <digest-id> --note <id>...` - register compaction
 - [ ] `compact apply` validates invariants (cycles, multi-compactor conflicts)
 - [ ] `compact apply` idempotent (re-applying same set creates no duplicates)
-- [ ] `compact apply` input ergonomics: `--from-stdin`, `--notes-file`
+- [ ] `compact apply --from-stdin` - read note IDs from stdin
+- [ ] `compact apply --notes-file <path>` - read note IDs from file
 - [ ] `qipu compact show <digest-id>` - show direct compaction set
 - [ ] `compact show` displays both `compacts=N` AND `compaction=P%` metrics
 - [ ] `compact show --compaction-depth <n>` - depth-limited compaction tree
@@ -370,3 +377,13 @@ These are design decisions noted in specs that may need resolution during implem
 - Tag aliases support
 - Knowledge lifecycle tooling (promote fleeting -> permanent)
 - Attachment organization: per-note folders vs flat
+- Compaction: "inactive" edges for history/versioning
+- Compaction: exclude MOCs/spec notes from suggestions by default
+- Compaction: "leaf source" vs "intermediate digest" concept in outputs
+- Graph traversal: default `--max-depth` of 2 vs 3
+- Graph traversal: default `--max-nodes` limit
+- Graph traversal: auto-materialize inline links into frontmatter
+- Backlinks: embed into notes (opt-in) or keep fully derived
+- Lightweight automatic summarization (without LLM)
+- Context: support "include backlinks" as additional material
+- Records format version selection (`records=1` in header)

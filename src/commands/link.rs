@@ -147,9 +147,10 @@ pub fn execute_list(
             }
         }
         OutputFormat::Records => {
-            // Header line
+            // Header line per spec (specs/records-output.md)
             println!(
-                "H qipu=1 records=1 mode=link.list id={} direction={}",
+                "H qipu=1 records=1 store={} mode=link.list id={} direction={}",
+                store.root().display(),
                 note_id,
                 match direction {
                     Direction::Out => "out",
@@ -221,7 +222,10 @@ pub fn execute_add(
                     );
                 }
                 OutputFormat::Records => {
-                    println!("H qipu=1 records=1 mode=link.add status=unchanged");
+                    println!(
+                        "H qipu=1 records=1 store={} mode=link.add status=unchanged",
+                        store.root().display()
+                    );
                     println!("E {} {} {} typed", from_resolved, link_type, to_resolved);
                 }
             }
@@ -260,7 +264,10 @@ pub fn execute_add(
             }
         }
         OutputFormat::Records => {
-            println!("H qipu=1 records=1 mode=link.add status=added");
+            println!(
+                "H qipu=1 records=1 store={} mode=link.add status=added",
+                store.root().display()
+            );
             println!("E {} {} {} typed", from_resolved, link_type, to_resolved);
         }
     }
@@ -315,7 +322,10 @@ pub fn execute_remove(
                     );
                 }
                 OutputFormat::Records => {
-                    println!("H qipu=1 records=1 mode=link.remove status=not_found");
+                    println!(
+                        "H qipu=1 records=1 store={} mode=link.remove status=not_found",
+                        store.root().display()
+                    );
                 }
             }
         }
@@ -347,7 +357,10 @@ pub fn execute_remove(
             }
         }
         OutputFormat::Records => {
-            println!("H qipu=1 records=1 mode=link.remove status=removed");
+            println!(
+                "H qipu=1 records=1 store={} mode=link.remove status=removed",
+                store.root().display()
+            );
             println!("E {} {} {} typed", from_resolved, link_type, to_resolved);
         }
     }
@@ -564,7 +577,7 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
             output_tree_human(cli, &result, &index);
         }
         OutputFormat::Records => {
-            output_tree_records(&result);
+            output_tree_records(&result, store);
         }
     }
 
@@ -873,17 +886,25 @@ fn output_tree_human(cli: &Cli, result: &TreeResult, index: &Index) {
 }
 
 /// Output tree in records format
-fn output_tree_records(result: &TreeResult) {
-    // Header
+fn output_tree_records(result: &TreeResult, store: &Store) {
+    // Header per spec (specs/records-output.md)
     let truncated_str = if result.truncated { "true" } else { "false" };
     println!(
-        "H qipu=1 records=1 mode=link.tree root={} direction={} max_hops={} truncated={}",
-        result.root, result.direction, result.max_hops, truncated_str
+        "H qipu=1 records=1 store={} mode=link.tree root={} direction={} max_hops={} truncated={}",
+        store.root().display(),
+        result.root,
+        result.direction,
+        result.max_hops,
+        truncated_str
     );
 
     // Nodes
     for node in &result.nodes {
-        let tags_csv = node.tags.join(",");
+        let tags_csv = if node.tags.is_empty() {
+            "-".to_string()
+        } else {
+            node.tags.join(",")
+        };
         println!(
             "N {} {} \"{}\" tags={}",
             node.id, node.note_type, node.title, tags_csv
@@ -950,7 +971,7 @@ pub fn execute_path(
             output_path_human(cli, &result);
         }
         OutputFormat::Records => {
-            output_path_records(&result);
+            output_path_records(&result, store);
         }
     }
 
@@ -1081,18 +1102,27 @@ fn output_path_human(cli: &Cli, result: &PathResult) {
 }
 
 /// Output path in records format
-fn output_path_records(result: &PathResult) {
-    // Header
+fn output_path_records(result: &PathResult, store: &Store) {
+    // Header per spec (specs/records-output.md)
     let found_str = if result.found { "true" } else { "false" };
     println!(
-        "H qipu=1 records=1 mode=link.path from={} to={} direction={} found={} length={}",
-        result.from, result.to, result.direction, found_str, result.path_length
+        "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={}",
+        store.root().display(),
+        result.from,
+        result.to,
+        result.direction,
+        found_str,
+        result.path_length
     );
 
     if result.found {
         // Nodes
         for node in &result.nodes {
-            let tags_csv = node.tags.join(",");
+            let tags_csv = if node.tags.is_empty() {
+                "-".to_string()
+            } else {
+                node.tags.join(",")
+            };
             println!(
                 "N {} {} \"{}\" tags={}",
                 node.id, node.note_type, node.title, tags_csv

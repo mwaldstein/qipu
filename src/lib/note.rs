@@ -169,6 +169,9 @@ pub struct NoteFrontmatter {
     /// Typed links to other notes (optional)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<TypedLink>,
+    /// Optional summary field for records output (per specs/records-output.md)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
 }
 
 impl NoteFrontmatter {
@@ -183,6 +186,7 @@ impl NoteFrontmatter {
             tags: Vec::new(),
             sources: Vec::new(),
             links: Vec::new(),
+            summary: None,
         }
     }
 
@@ -271,12 +275,19 @@ impl Note {
     /// 3. First paragraph
     /// 4. Empty string
     pub fn summary(&self) -> String {
-        // Check for ## Summary section
+        // 1. Check frontmatter summary field first
+        if let Some(summary) = &self.frontmatter.summary {
+            if !summary.is_empty() {
+                return summary.clone();
+            }
+        }
+
+        // 2. Check for ## Summary section
         if let Some(summary) = extract_summary_section(&self.body) {
             return summary;
         }
 
-        // Fall back to first paragraph
+        // 3. Fall back to first paragraph
         extract_first_paragraph(&self.body).unwrap_or_default()
     }
 }
@@ -332,9 +343,12 @@ fn parse_frontmatter(content: &str, path: Option<&PathBuf>) -> Result<(NoteFront
 }
 
 /// Extract content from a `## Summary` section
+///
+/// Per spec (specs/records-output.md): extracts "first paragraph under it"
 fn extract_summary_section(body: &str) -> Option<String> {
     let lines: Vec<&str> = body.lines().collect();
     let mut in_summary = false;
+    let mut in_first_paragraph = false;
     let mut summary_lines = Vec::new();
 
     for line in lines {
@@ -347,6 +361,20 @@ fn extract_summary_section(body: &str) -> Option<String> {
             if line.starts_with("## ") || line.starts_with("# ") {
                 break;
             }
+
+            // Skip leading empty lines
+            if !in_first_paragraph && line.trim().is_empty() {
+                continue;
+            }
+
+            // Start collecting the first paragraph
+            in_first_paragraph = true;
+
+            // Stop at the end of the first paragraph (empty line)
+            if line.trim().is_empty() {
+                break;
+            }
+
             summary_lines.push(line);
         }
     }
@@ -355,14 +383,8 @@ fn extract_summary_section(body: &str) -> Option<String> {
         return None;
     }
 
-    // Trim leading/trailing empty lines and join
-    let summary = summary_lines
-        .into_iter()
-        .skip_while(|l| l.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim_end()
-        .to_string();
+    // Join lines and trim
+    let summary = summary_lines.join("\n").trim_end().to_string();
 
     if summary.is_empty() {
         None
@@ -489,5 +511,42 @@ Second paragraph.
 "#;
         let para = extract_first_paragraph(body).unwrap();
         assert_eq!(para, "First paragraph line one. First paragraph line two.");
+    }
+
+    #[test]
+    fn test_summary_from_frontmatter() {
+        let content = r#"---
+id: qp-test
+title: Test Note
+summary: This is the frontmatter summary.
+---
+
+## Summary
+This is the body summary section.
+
+Body content.
+"#;
+
+        let note = Note::parse(content, None).unwrap();
+        // Frontmatter summary should take precedence
+        assert_eq!(note.summary(), "This is the frontmatter summary.");
+    }
+
+    #[test]
+    fn test_summary_fallback_to_section() {
+        let content = r#"---
+id: qp-test
+title: Test Note
+---
+
+## Summary
+This is the body summary section.
+
+Body content.
+"#;
+
+        let note = Note::parse(content, None).unwrap();
+        // Should fall back to ## Summary section
+        assert_eq!(note.summary(), "This is the body summary section.");
     }
 }

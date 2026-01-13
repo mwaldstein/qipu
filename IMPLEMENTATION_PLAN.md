@@ -214,20 +214,21 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 5: Output Formats
 
 ### P5.1 Records Output (`specs/records-output.md`)
-- [ ] Header line (H): `qipu=1 records=1`, store path, mode, parameters, truncated flag
-- [ ] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_hops=`
-- [ ] Header fields for context: `mode=context`, `notes=N`
-- [ ] Note metadata line (N): id, type, title, tags
-  - [ ] Include `path=` field only in context mode (not traversal mode)
-  - [ ] Format: `N <id> <type> "<title>" tags=<csv> [path=<path>]`
-- [ ] Summary line (S): `S <id> <summary text>`
-- [ ] Edge line (E): `E <from> <type> <to> <source>` (source = `typed` or `inline`)
-- [ ] Body lines (B): `B <id>` followed by raw markdown
-- [ ] Summary extraction order: frontmatter `summary` > `## Summary` section > first paragraph > empty
-- [ ] Format version in header for downstream tooling detection
-- [ ] Commands supporting records: `qipu prime`, `qipu context`, `qipu link tree/path/list`
-- [ ] `--with-body` flag for including full body content
+- [x] Header line (H): `qipu=1 records=1`, store path, mode, parameters, truncated flag
+- [x] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_hops=`; also list, search, show, create, capture, inbox, link.list, link.path, link.add, link.remove
+- [x] Header fields for context: `mode=context`, `notes=N`, `truncated=`
+- [x] Note metadata line (N): id, type, title, tags
+  - [x] Include `path=` field only in context mode (not traversal mode)
+  - [x] Format: `N <id> <type> "<title>" tags=<csv> [path=<path>]`
+- [x] Summary line (S): `S <id> <summary text>`
+- [x] Edge line (E): `E <from> <type> <to> <source>` (source = `typed` or `inline`)
+- [x] Body lines (B): `B <id>` followed by raw markdown, B-END terminator (in show and context)
+- [x] Summary extraction order: frontmatter `summary` > `## Summary` section (first paragraph) > first paragraph of body > empty
+- [x] Format version in header for downstream tooling detection (`records=1` present)
+- [x] Commands supporting records (partial): most commands now have headers
+- [ ] `--with-body` flag for including full body content (implemented in context, not universal)
 - [ ] `--with-edges` flag (potential, per open question)
+- [x] Empty tags consistently use "-" across all commands
 
 ### P5.2 Budgeting (`specs/records-output.md`, `specs/llm-context.md`)
 - [ ] `--max-chars` exact budget

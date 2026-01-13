@@ -44,8 +44,19 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str) -> Result<()> {
             print!("{}", content);
         }
         OutputFormat::Records => {
+            // Header line per spec (specs/records-output.md)
+            println!(
+                "H qipu=1 records=1 store={} mode=show id={}",
+                store.root().display(),
+                note.id()
+            );
+
             // Note metadata line
-            let tags_csv = note.frontmatter.tags.join(",");
+            let tags_csv = if note.frontmatter.tags.is_empty() {
+                "-".to_string()
+            } else {
+                note.frontmatter.tags.join(",")
+            };
             println!(
                 "N {} {} \"{}\" tags={}",
                 note.id(),
@@ -57,14 +68,17 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str) -> Result<()> {
             // Summary line
             let summary = note.summary();
             if !summary.is_empty() {
-                println!("S {} {}", note.id(), summary);
+                // Only output first line of summary per spec
+                let first_line = summary.lines().next().unwrap_or(&summary);
+                println!("S {} {}", note.id(), first_line);
             }
 
-            // Body lines
+            // Body lines with terminator
             println!("B {}", note.id());
             for line in note.body.lines() {
                 println!("{}", line);
             }
+            println!("B-END");
         }
     }
 

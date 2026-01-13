@@ -1137,9 +1137,8 @@ fn test_link_list_records_format() {
         .args(["--format", "records", "link", "list", &id1])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "H qipu=1 records=1 mode=link.list",
-        ))
+        .stdout(predicate::str::contains("H qipu=1 records=1 store="))
+        .stdout(predicate::str::contains("mode=link.list"))
         .stdout(predicate::str::contains("E "));
 }
 
@@ -1318,9 +1317,8 @@ fn test_link_tree_records_format() {
         .args(["--format", "records", "link", "tree", &id])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "H qipu=1 records=1 mode=link.tree",
-        ))
+        .stdout(predicate::str::contains("H qipu=1 records=1 store="))
+        .stdout(predicate::str::contains("mode=link.tree"))
         .stdout(predicate::str::contains("N "));
 }
 
@@ -1675,9 +1673,8 @@ fn test_link_path_records_format() {
         .args(["--format", "records", "link", "path", &id1, &id2])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "H qipu=1 records=1 mode=link.path",
-        ))
+        .stdout(predicate::str::contains("H qipu=1 records=1 store="))
+        .stdout(predicate::str::contains("mode=link.path"))
         .stdout(predicate::str::contains("found=true"));
 }
 

@@ -214,8 +214,18 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                     }
                 }
                 OutputFormat::Records => {
+                    // Header line per spec (specs/records-output.md)
+                    println!(
+                        "H qipu=1 records=1 store={} mode=inbox notes={}",
+                        store.root().display(),
+                        inbox_notes.len()
+                    );
                     for note in &inbox_notes {
-                        let tags_csv = note.frontmatter.tags.join(",");
+                        let tags_csv = if note.frontmatter.tags.is_empty() {
+                            "-".to_string()
+                        } else {
+                            note.frontmatter.tags.join(",")
+                        };
                         println!(
                             "N {} {} \"{}\" tags={}",
                             note.id(),

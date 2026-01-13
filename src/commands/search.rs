@@ -78,8 +78,19 @@ pub fn execute(
             }
         }
         OutputFormat::Records => {
+            // Header line per spec (specs/records-output.md)
+            println!(
+                "H qipu=1 records=1 store={} mode=search query=\"{}\" results={}",
+                store.root().display(),
+                query.replace('"', "\\\""),
+                results.len()
+            );
             for result in &results {
-                let tags_csv = result.tags.join(",");
+                let tags_csv = if result.tags.is_empty() {
+                    "-".to_string()
+                } else {
+                    result.tags.join(",")
+                };
                 println!(
                     "N {} {} \"{}\" tags={}",
                     result.id, result.note_type, result.title, tags_csv

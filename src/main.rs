@@ -290,6 +290,26 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
             commands::search::execute(cli, &store, query, *r#type, tag.as_deref())
         }
 
+        Some(Commands::Prime) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::prime::execute(cli, &store)
+        }
+
         Some(Commands::Link { command }) => {
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {

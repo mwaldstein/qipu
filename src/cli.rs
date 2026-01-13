@@ -132,6 +132,9 @@ pub enum Commands {
         #[command(subcommand)]
         command: LinkCommands,
     },
+
+    /// Output session-start primer for LLM agents
+    Prime,
 }
 
 /// Link subcommands

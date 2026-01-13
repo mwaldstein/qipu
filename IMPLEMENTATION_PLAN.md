@@ -242,14 +242,14 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 6: LLM Integration
 
 ### P6.1 Prime Command (`specs/llm-context.md`)
-- [ ] `qipu prime` - session-start primer
-- [ ] Deterministic ordering
-- [ ] Stable formatting
-- [ ] Bounded output (~1-2k tokens)
-- [ ] Contents: qipu explanation, command reference, store location
-- [ ] Contents: top MOCs (selection criteria: recently updated, most linked)
-- [ ] Contents: recently updated notes (bounded count, e.g., 5-10)
-- [ ] `--format records` support for prime output
+- [x] `qipu prime` - session-start primer
+- [x] Deterministic ordering
+- [x] Stable formatting
+- [x] Bounded output (~1-2k tokens)
+- [x] Contents: qipu explanation, command reference, store location
+- [x] Contents: top MOCs (selection criteria: recently updated, most linked)
+- [x] Contents: recently updated notes (bounded count, e.g., 5-10)
+- [x] `--format records` support for prime output
 
 ### P6.2 Context Command (`specs/llm-context.md`)
 - [ ] `qipu context` - build context bundle

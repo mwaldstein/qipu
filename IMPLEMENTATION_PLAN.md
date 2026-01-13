@@ -18,9 +18,11 @@ This document tracks implementation progress against the specs in `specs/`.
 
 **Phase 3 (Indexing & Navigation)**: COMPLETED
 
-**Testing**: 73 unit tests passing
+**Phase 4 (Link Management & Graph Traversal)**: COMPLETED
 
-**Next Steps**: Phase 4 (Link Management & Graph Traversal)
+**Testing**: 83 unit tests passing
+
+**Next Steps**: Phase 5 (LLM Integration)
 
 ---
 
@@ -147,20 +149,20 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ---
 
-## Phase 4: Link Management & Graph Traversal (P4)
+## Phase 4: Link Management & Graph Traversal - COMPLETED
 
 ### Link Commands
 
-- [ ] `qipu link add <from> <to> --type <t>`
-- [ ] `qipu link remove <from> <to> --type <t>`
-- [ ] `qipu link list <id>` with direction/type filters
+- [x] `qipu link add <from> <to> --type <t>`
+- [x] `qipu link remove <from> <to> --type <t>`
+- [x] `qipu link list <id>` with direction/type filters
 
 ### Graph Traversal
 
-- [ ] `qipu link tree <id>` with depth, type, direction options
-- [ ] `qipu link path <from> <to>`
-- [ ] Cycle detection
-- [ ] `--json` and `--token` output formats
+- [x] `qipu link tree <id>` with depth, type, direction options
+- [x] `qipu link path <from> <to>`
+- [x] Cycle detection (BFS traversal handles cycles)
+- [x] `--json` and `--token` output formats
 
 ---
 
@@ -252,7 +254,7 @@ Phase 2 (Core Commands) - DONE
     v
 Phase 3 (Indexing) - DONE
     |
-    +-----> Phase 4 (Graph Traversal)
+    +-----> Phase 4 (Graph Traversal) - DONE
     |              |
     +--------------+-----> Phase 5 (LLM Integration)
     |

@@ -16,6 +16,7 @@ import { showCommand } from "./commands/show.js";
 import { indexCommand } from "./commands/index.js";
 import { inboxCommand } from "./commands/inbox.js";
 import { searchCommand } from "./commands/search.js";
+import { linkCommand } from "./commands/link.js";
 
 const VERSION = "0.0.0";
 
@@ -50,6 +51,7 @@ program.addCommand(showCommand);
 program.addCommand(indexCommand);
 program.addCommand(inboxCommand);
 program.addCommand(searchCommand);
+program.addCommand(linkCommand);
 
 // Handle unknown commands
 program.on("command:*", () => {

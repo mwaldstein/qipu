@@ -315,7 +315,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Phase 7: Export
 
-**Status**: Export command is now functional and available for use.
+**Status**: Export command is now functional and available for use. All three output formats (human, JSON, records) are fully supported.
 
 ### P7.1 Export Modes (`specs/export.md`)
 - [x] `qipu export` - export notes to single markdown file
@@ -328,6 +328,11 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Format: markdown list with `- [title](url)` entries (title required; fallback to URL if missing)
   - [x] Grouped by note or flat list (design decision)
   - [x] Include access date if present: `- [title](url) (accessed YYYY-MM-DD)`
+  - [x] Bibliography mode in records format: uses D (diagnostic) lines for each source
+- [x] Output format support:
+  - [x] `--format human` (default): human-readable markdown bundle
+  - [x] `--format json`: structured JSON with full note metadata including sources
+  - [x] `--format records`: H (header), N (note), S (summary), B (body) lines per spec
 - [ ] Future: BibTeX/CSL JSON support (tracked)
 - [ ] Future: transitive link expansion (depth-limited)
 

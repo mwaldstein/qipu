@@ -53,6 +53,8 @@ pub struct ExportOptions<'a> {
 
 /// Execute the export command
 pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
+    use crate::cli::OutputFormat;
+
     // Build or load index for searching
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
@@ -66,11 +68,26 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         return Ok(());
     }
 
-    // Generate output based on export mode
-    let output_content = match options.mode {
-        ExportMode::Bundle => export_bundle(&selected_notes, store)?,
-        ExportMode::Outline => export_outline(&selected_notes, store, &index, options.moc_id)?,
-        ExportMode::Bibliography => export_bibliography(&selected_notes)?,
+    // Generate output based on format and mode
+    let output_content = match cli.format {
+        OutputFormat::Human => {
+            // Generate markdown output based on export mode
+            match options.mode {
+                ExportMode::Bundle => export_bundle(&selected_notes, store)?,
+                ExportMode::Outline => {
+                    export_outline(&selected_notes, store, &index, options.moc_id)?
+                }
+                ExportMode::Bibliography => export_bibliography(&selected_notes)?,
+            }
+        }
+        OutputFormat::Json => {
+            // JSON output: list of notes with metadata
+            export_json(&selected_notes, store, &options)?
+        }
+        OutputFormat::Records => {
+            // Records output: low-overhead format
+            export_records(&selected_notes, store, &options)?
+        }
     };
 
     // Write output to file or stdout
@@ -340,6 +357,131 @@ fn export_bibliography(notes: &[Note]) -> Result<String> {
 
         output.push_str(&format!(" — from: {}", note.title()));
         output.push('\n');
+    }
+
+    Ok(output)
+}
+
+/// Export in JSON format
+fn export_json(notes: &[Note], store: &Store, options: &ExportOptions) -> Result<String> {
+    let mode_str = match options.mode {
+        ExportMode::Bundle => "bundle",
+        ExportMode::Outline => "outline",
+        ExportMode::Bibliography => "bibliography",
+    };
+
+    let output = serde_json::json!({
+        "store": store.root().display().to_string(),
+        "mode": mode_str,
+        "notes": notes.iter().map(|note| {
+            serde_json::json!({
+                "id": note.id(),
+                "title": note.title(),
+                "type": note.note_type().to_string(),
+                "tags": note.frontmatter.tags,
+                "path": note.path.as_ref().map(|p| p.display().to_string()),
+                "created": note.frontmatter.created,
+                "updated": note.frontmatter.updated,
+                "content": note.body,
+                "sources": note.frontmatter.sources.iter().map(|s| {
+                    let mut obj = serde_json::json!({
+                        "url": s.url,
+                    });
+                    if let Some(title) = &s.title {
+                        obj["title"] = serde_json::json!(title);
+                    }
+                    if let Some(accessed) = &s.accessed {
+                        obj["accessed"] = serde_json::json!(accessed);
+                    }
+                    obj
+                }).collect::<Vec<_>>(),
+            })
+        }).collect::<Vec<_>>(),
+    });
+
+    Ok(serde_json::to_string_pretty(&output)?)
+}
+
+/// Export in Records format (low-overhead for context injection)
+fn export_records(notes: &[Note], store: &Store, options: &ExportOptions) -> Result<String> {
+    let mut output = String::new();
+
+    // Header line per spec (specs/records-output.md)
+    let mode_str = match options.mode {
+        ExportMode::Bundle => "export.bundle",
+        ExportMode::Outline => "export.outline",
+        ExportMode::Bibliography => "export.bibliography",
+    };
+
+    output.push_str(&format!(
+        "H qipu=1 records=1 store={} mode={} notes={} truncated=false\n",
+        store.root().display(),
+        mode_str,
+        notes.len()
+    ));
+
+    // For bibliography mode, output is different
+    if options.mode == ExportMode::Bibliography {
+        // Collect all sources
+        let mut all_sources = Vec::new();
+        for note in notes {
+            for source in &note.frontmatter.sources {
+                all_sources.push((note, source));
+            }
+        }
+
+        // Sort sources by URL for deterministic output
+        all_sources.sort_by(|a, b| a.1.url.cmp(&b.1.url));
+
+        // Output source lines (D for data/diagnostic lines)
+        for (note, source) in all_sources {
+            let title = source.title.as_deref().unwrap_or(&source.url);
+            let accessed = source.accessed.as_deref().unwrap_or("-");
+            output.push_str(&format!(
+                "D source url={} title=\"{}\" accessed={} from={}\n",
+                source.url,
+                title,
+                accessed,
+                note.id()
+            ));
+        }
+
+        return Ok(output);
+    }
+
+    // For bundle/outline modes: output notes with metadata and summaries
+    for note in notes {
+        let tags_csv = if note.frontmatter.tags.is_empty() {
+            "-".to_string()
+        } else {
+            note.frontmatter.tags.join(",")
+        };
+
+        // Note metadata line
+        output.push_str(&format!(
+            "N {} {} \"{}\" tags={}\n",
+            note.id(),
+            note.note_type(),
+            note.title(),
+            tags_csv
+        ));
+
+        // Summary line (if available)
+        let summary = note.summary();
+        if !summary.is_empty() {
+            output.push_str(&format!("S {} {}\n", note.id(), summary));
+        }
+
+        // Body content (optional, could be controlled by --with-body flag in future)
+        // For now, include bodies in export since that's the primary use case
+        if !note.body.is_empty() {
+            output.push_str(&format!("B {}\n", note.id()));
+            output.push_str(&note.body);
+            if !note.body.ends_with('\n') {
+                output.push('\n');
+            }
+            output.push_str("B-END\n");
+        }
     }
 
     Ok(output)

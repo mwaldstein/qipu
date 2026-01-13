@@ -4,7 +4,8 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
-- **P8.3 Compaction Visibility PARTIALLY COMPLETE**: Implemented basic compaction visibility for list/inbox/search commands. COMPLETE: `--no-resolve-compaction` flag for raw view, visibility rules (notes with compactor are hidden by default in list, search, inbox), `via=<id>` breadcrumb annotations in all output formats (human, JSON, records) for search results. Search now canonicalizes matched IDs and surfaces digest notes with via annotations when compacted notes match. NOT YET IMPLEMENTED: `--with-compaction-ids`, `--compaction-depth <n>` for commands other than compact show, `--compaction-max-nodes <n>`, `--expand-compaction`, `compacts=<N>` and `compaction=<P%>` annotations, size estimation metrics, truncation indication, contracted graph for traversals.
+- **P8.3 Compaction Visibility for Link Commands PARTIALLY COMPLETE**: Implemented compaction visibility for link commands. COMPLETE: `link list` fully working with canonicalization and edge gathering from compacted notes (100 of 102 tests pass). PARTIAL: `link tree` and `link path` have basic canonicalization but don't gather edges from compacted notes yet (each has 1 failing test). `--no-resolve-compaction` flag works across all three commands. Added 4 comprehensive integration tests (lines 3131-3639 in tests/cli_tests.rs). Total test count: 162 (60 unit + 102 integration), 100 passing, 2 failing. Files modified: src/commands/link.rs. REMAINING WORK: Fix edge gathering in tree/path traversal to match link list implementation.
+- **P8.3 Compaction Visibility PARTIALLY COMPLETE**: Implemented basic compaction visibility for list/inbox/search commands. COMPLETE: `--no-resolve-compaction` flag for raw view, visibility rules (notes with compactor are hidden by default in list, search, inbox), `via=<id>` breadcrumb annotations in all output formats (human, JSON, records) for search results. Search now canonicalizes matched IDs and surfaces digest notes with via annotations when compacted notes match. NOT YET IMPLEMENTED: `--with-compaction-ids`, `--compaction-depth <n>` for commands other than compact show, `--compaction-max-nodes <n>`, `--expand-compaction`, `compacts=<N>` and `compaction=<P%>` annotations, size estimation metrics, truncation indication.
 - **P9.1 Doctor Compaction Validation COMPLETE**: Implemented compaction invariant validation in doctor command. Doctor now checks for cycles, multiple compactors, self-compaction, and unresolved compaction references. Added 4 unit tests and 2 integration tests for compaction validation. Total test count now 158 (60 unit + 98 integration), all passing. Fixed unused method warning in compaction.rs.
 - **P8.1 & P8.2 Compaction PARTIALLY COMPLETE**: Implemented core compaction model and commands. COMPLETE: `compacts` frontmatter field, CompactionContext with canon() for following chains to topmost digest, cycle detection in canonicalization, multiple compactor detection, validation of all compaction invariants. Commands: `compact apply`, `compact show`, `compact status`, `compact guide` all functional with all three output formats. Idempotent apply, deterministic ordering. NOT YET IMPLEMENTED: `compact report` (quality metrics), `compact suggest` (clustering), integration with existing commands (visibility flags, search annotations, contracted graph).
 - **P6.2 Context Command - Records Output COMPLETE**: Records format for context was already fully implemented. All features complete: `--format records` support, H (header) lines with mode/store/notes count/truncated flag, N (note metadata) lines with id/type/title/tags/path, S (summary) lines, B (body) lines with B-END terminator, `--with-body` flag for including full body content. Additionally implemented source support using D (diagnostic/data) lines with format: `D source url={url} title="{title}" accessed={date} from={note_id}`. Added comprehensive integration test `test_context_records_with_body_and_sources`. Phase 6.2 is now complete.
@@ -406,9 +407,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [x] Prompt template for digest authoring
 
 ### P8.3 Compaction Integration (`specs/compaction.md`) — PARTIALLY COMPLETE
-**Note**: Basic compaction visibility is now implemented for list, search, and inbox commands. Notes with compactors are hidden by default, and search results show via annotations when compacted notes match. Advanced features (depth control, size metrics, contracted graph) remain as future work.
+**Note**: Basic compaction visibility is now implemented for list, search, and inbox commands. Link commands have partial implementation: `link list` fully working (100 of 102 tests pass), `link tree` and `link path` partially working (each has 1 failing test). Advanced features (depth control, size metrics) remain as future work.
+
+**Current status (2026-01-13)**: Implemented compaction visibility for link commands. Total test count: 162 (60 unit + 102 integration), 100 passing, 2 failing.
 
 - [x] `--no-resolve-compaction` flag for raw view
+  - [x] Working in `link list`, `link tree`, `link path`
 - [ ] `--with-compaction-ids` flag (equivalent to compaction depth 1)
 - [ ] `--compaction-depth <n>` flag (no effect when `--with-compaction-ids` absent)
 - [ ] `--compaction-max-nodes <n>` optional bounding flag
@@ -427,14 +431,41 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Optional depth-aware metrics (compaction percent at depth N)
 - [ ] Truncation indication when compaction limits hit
 - [ ] Deterministic ordering for compaction expansion (sorted by note id)
-- [ ] Contracted graph for resolved view traversals
-  - [ ] Map node IDs through `canon(id)`
-  - [ ] Merge duplicate nodes
-  - [ ] Drop self-loops introduced by contraction
+- [x] Contracted graph for resolved view traversals — PARTIALLY COMPLETE
+  - [x] Map node IDs through `canon(id)` during traversal (tree/path)
+  - [x] Drop self-loops introduced by contraction
+  - [ ] Gather edges from all compacted notes (COMPLETE for `link list`, NOT YET for `link tree/path`)
+  - [ ] Merge duplicate nodes (implementation detail)
 - [x] Visibility: notes with compactor are hidden by default in most commands
   - [x] Affects: `qipu list`, `qipu search`, `qipu inbox`
-  - [ ] Affects: `qipu link tree/list/path` (NOT YET IMPLEMENTED)
+  - [x] Affects: `qipu link list` (COMPLETE — 100% working)
+  - [~] Affects: `qipu link tree` (PARTIAL — basic canonicalization works, edge gathering incomplete, 1 test failing)
+  - [~] Affects: `qipu link path` (PARTIAL — basic canonicalization works, edge gathering incomplete, 1 test failing)
   - [x] Use `--no-resolve-compaction` to show compacted notes
+
+**Link command implementation details** (src/commands/link.rs):
+- `execute_list()`: ✓ Canonicalizes target IDs and gathers edges from all compacted notes (COMPLETE)
+- `execute_tree()`: ~ Accepts CompactionContext, canonicalizes root ID, but doesn't gather edges from compacted notes during traversal
+- `execute_path()`: ~ Accepts CompactionContext, canonicalizes endpoint IDs, but doesn't gather edges from compacted notes during traversal
+- `bfs_traverse()`: ~ Canonicalizes node IDs during traversal, drops self-loops, but doesn't gather edges from compacted notes
+- `bfs_find_path()`: ~ Canonicalizes node IDs during path search, drops self-loops, but doesn't gather edges from compacted notes
+
+**What works**:
+- `link list` canonicalizes target IDs and gathers edges from all compacted notes → digest appears with all edges
+- Basic compaction resolution in tree/path (root/endpoints canonicalized)
+- Self-loop detection and removal in contracted graph
+- `--no-resolve-compaction` flag works across all three commands
+
+**What needs fixing**:
+- `link tree` and `link path` need to gather edges from all compacted notes (like `link list` does)
+- Currently only root/endpoints are canonicalized; edge traversal doesn't gather from compacted notes
+- This causes tests `test_link_tree_compaction` and `test_link_path_compaction` to fail (1 failure each)
+
+**Test coverage** (tests/cli_tests.rs, lines 3131-3639):
+- `test_link_list_compaction`: ✓ PASSING (verifies list gathers edges from all compacted notes)
+- `test_link_tree_compaction`: ✗ FAILING (tree doesn't gather edges from compacted notes)
+- `test_link_path_compaction`: ✗ FAILING (path doesn't gather edges from compacted notes)
+- `test_link_no_resolve_compaction_flag`: ✓ PASSING (verifies raw view shows compacted notes)
 
 ### P8.4 Search/Traversal with Compaction (`specs/compaction.md`) — PARTIALLY COMPLETE
 **Note**: Search now has basic compaction support (canonicalization with via annotations). Traversal does not yet use contracted graph.
@@ -476,7 +507,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] `list` 1k notes < 200ms
   - [ ] `search` 10k notes < 1s (with indexes)
 
-**Current test count**: 158 tests (60 unit + 98 integration), all passing
+**Current test count**: 162 tests (60 unit + 102 integration), 100 passing, 2 failing
+- Failing tests: `test_link_tree_compaction`, `test_link_path_compaction` (edge gathering from compacted notes not yet implemented in tree/path traversal)
 
 ### P10.2 Golden Tests
 - [ ] `qipu --help` output

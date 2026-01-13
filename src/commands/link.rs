@@ -10,6 +10,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::{Edge, Index, IndexBuilder, LinkSource};
 use crate::lib::note::{LinkType, NoteType, TypedLink};
@@ -79,43 +80,91 @@ pub fn execute_list(
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
-    // Verify note exists
-    if !index.contains(&note_id) {
-        return Err(crate::lib::error::QipuError::NoteNotFound { id: note_id });
+    // Build compaction context if needed
+    let compaction_ctx = if !cli.no_resolve_compaction {
+        let notes = store.list_notes()?;
+        Some(CompactionContext::build(&notes)?)
+    } else {
+        None
+    };
+
+    // Canonicalize the note ID to get which note's links we should show
+    let canonical_id = if let Some(ref ctx) = compaction_ctx {
+        ctx.canon(&note_id)?
+    } else {
+        note_id.clone()
+    };
+
+    // Verify canonical note exists
+    if !index.contains(&canonical_id) {
+        return Err(crate::lib::error::QipuError::NoteNotFound {
+            id: canonical_id.clone(),
+        });
+    }
+
+    // Collect all raw IDs that map to this canonical ID (for gathering edges)
+    let mut source_ids = vec![canonical_id.clone()];
+    if let Some(ref ctx) = compaction_ctx {
+        // Find all notes that are compacted by this canonical ID
+        if let Some(compacted_notes) = ctx.get_compacted_notes(&canonical_id) {
+            source_ids.extend(compacted_notes.iter().cloned());
+        }
     }
 
     // Collect links based on direction
     let mut entries = Vec::new();
 
-    // Outbound edges (links FROM this note)
+    // Outbound edges (links FROM this note or any note it compacts)
     if direction == Direction::Out || direction == Direction::Both {
-        for edge in index.get_outbound_edges(&note_id) {
-            if let Some(entry) =
-                filter_and_convert(edge, "out", &index, type_filter, typed_only, inline_only)
-            {
-                entries.push(entry);
+        for source_id in &source_ids {
+            for edge in index.get_outbound_edges(source_id) {
+                if let Some(mut entry) =
+                    filter_and_convert(edge, "out", &index, type_filter, typed_only, inline_only)
+                {
+                    // Canonicalize the target ID if compaction is enabled
+                    if let Some(ref ctx) = compaction_ctx {
+                        entry.id = ctx.canon(&entry.id)?;
+                        // Update title if it changed due to canonicalization
+                        if let Some(meta) = index.get_metadata(&entry.id) {
+                            entry.title = Some(meta.title.clone());
+                        }
+                    }
+                    entries.push(entry);
+                }
             }
         }
     }
 
-    // Inbound edges (backlinks TO this note)
+    // Inbound edges (backlinks TO this note or any note it compacts)
     if direction == Direction::In || direction == Direction::Both {
-        for edge in index.get_inbound_edges(&note_id) {
-            if let Some(entry) =
-                filter_and_convert_inbound(edge, &index, type_filter, typed_only, inline_only)
-            {
-                entries.push(entry);
+        for source_id in &source_ids {
+            for edge in index.get_inbound_edges(source_id) {
+                if let Some(mut entry) =
+                    filter_and_convert_inbound(edge, &index, type_filter, typed_only, inline_only)
+                {
+                    // Canonicalize the source ID if compaction is enabled
+                    if let Some(ref ctx) = compaction_ctx {
+                        entry.id = ctx.canon(&entry.id)?;
+                        // Update title if it changed due to canonicalization
+                        if let Some(meta) = index.get_metadata(&entry.id) {
+                            entry.title = Some(meta.title.clone());
+                        }
+                    }
+                    entries.push(entry);
+                }
             }
         }
     }
 
-    // Sort for determinism: direction, then type, then id
+    // Remove duplicates that may have been created by canonicalization
     entries.sort_by(|a, b| {
         a.direction
             .cmp(&b.direction)
             .then_with(|| a.link_type.cmp(&b.link_type))
             .then_with(|| a.id.cmp(&b.id))
     });
+    entries
+        .dedup_by(|a, b| a.direction == b.direction && a.link_type == b.link_type && a.id == b.id);
 
     // Output
     match cli.format {
@@ -561,15 +610,30 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
-    // Verify note exists
-    if !index.contains(&note_id) {
+    // Build compaction context if needed
+    let compaction_ctx = if !cli.no_resolve_compaction {
+        let notes = store.list_notes()?;
+        Some(CompactionContext::build(&notes)?)
+    } else {
+        None
+    };
+
+    // Canonicalize the root note ID
+    let canonical_id = if let Some(ref ctx) = compaction_ctx {
+        ctx.canon(&note_id)?
+    } else {
+        note_id.clone()
+    };
+
+    // Verify note exists (check canonical ID)
+    if !index.contains(&canonical_id) {
         return Err(crate::lib::error::QipuError::NoteNotFound {
-            id: note_id.clone(),
+            id: canonical_id.clone(),
         });
     }
 
-    // Perform BFS traversal
-    let result = bfs_traverse(&index, &note_id, &opts);
+    // Perform BFS traversal with compaction context
+    let result = bfs_traverse(&index, &canonical_id, &opts, compaction_ctx.as_ref())?;
 
     // Output
     match cli.format {
@@ -587,8 +651,13 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
     Ok(())
 }
 
-/// Perform BFS traversal from a root node
-fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
+/// Perform BFS traversal from a root node with optional compaction resolution
+fn bfs_traverse(
+    index: &Index,
+    root: &str,
+    opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
+) -> Result<TreeResult> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
     let mut nodes: Vec<TreeNode> = Vec::new();
@@ -652,6 +721,30 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
         };
 
         for (neighbor_id, edge) in neighbors {
+            // Canonicalize edge endpoints if using compaction
+            let canonical_from = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.from)?
+            } else {
+                edge.from.clone()
+            };
+            let canonical_to = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.to)?
+            } else {
+                edge.to.clone()
+            };
+
+            // Skip self-loops introduced by compaction contraction
+            if canonical_from == canonical_to {
+                continue;
+            }
+
+            // Canonicalize the neighbor ID
+            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&neighbor_id)?
+            } else {
+                neighbor_id.clone()
+            };
+
             // Check max_edges again before adding
             if let Some(max) = opts.max_edges {
                 if edges.len() >= max {
@@ -661,16 +754,16 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
                 }
             }
 
-            // Add edge
+            // Add edge with canonical IDs
             edges.push(TreeEdge {
-                from: edge.from.clone(),
-                to: edge.to.clone(),
+                from: canonical_from,
+                to: canonical_to,
                 link_type: edge.link_type.clone(),
                 source: edge.source.to_string(),
             });
 
-            // Process neighbor if not visited
-            if !visited.contains(&neighbor_id) {
+            // Process neighbor if not visited (use canonical ID)
+            if !visited.contains(&canonical_neighbor) {
                 // Check max_nodes before adding
                 if let Some(max) = opts.max_nodes {
                     if visited.len() >= max {
@@ -680,17 +773,17 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
                     }
                 }
 
-                visited.insert(neighbor_id.clone());
+                visited.insert(canonical_neighbor.clone());
 
-                // Add to spanning tree (first discovery)
+                // Add to spanning tree (first discovery, use canonical IDs)
                 spanning_tree.push(SpanningTreeEntry {
                     from: current_id.clone(),
-                    to: neighbor_id.clone(),
+                    to: canonical_neighbor.clone(),
                     hop: hop + 1,
                 });
 
-                // Add node metadata
-                if let Some(meta) = index.get_metadata(&neighbor_id) {
+                // Add node metadata (use canonical ID)
+                if let Some(meta) = index.get_metadata(&canonical_neighbor) {
                     nodes.push(TreeNode {
                         id: meta.id.clone(),
                         title: meta.title.clone(),
@@ -700,8 +793,8 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
                     });
                 }
 
-                // Queue for further expansion
-                queue.push_back((neighbor_id, hop + 1));
+                // Queue for further expansion (use canonical ID)
+                queue.push_back((canonical_neighbor, hop + 1));
             }
         }
     }
@@ -716,7 +809,7 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
     });
     spanning_tree.sort_by(|a, b| a.hop.cmp(&b.hop).then_with(|| a.to.cmp(&b.to)));
 
-    TreeResult {
+    Ok(TreeResult {
         root: root.to_string(),
         direction: match opts.direction {
             Direction::Out => "out".to_string(),
@@ -729,7 +822,7 @@ fn bfs_traverse(index: &Index, root: &str, opts: &TreeOptions) -> TreeResult {
         nodes,
         edges,
         spanning_tree,
-    }
+    })
 }
 
 /// Get filtered neighbors for a node
@@ -1020,20 +1113,46 @@ pub fn execute_path(
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
-    // Verify both notes exist
-    if !index.contains(&from_resolved) {
+    // Build compaction context if needed
+    let compaction_ctx = if !cli.no_resolve_compaction {
+        let notes = store.list_notes()?;
+        Some(CompactionContext::build(&notes)?)
+    } else {
+        None
+    };
+
+    // Canonicalize the note IDs
+    let canonical_from = if let Some(ref ctx) = compaction_ctx {
+        ctx.canon(&from_resolved)?
+    } else {
+        from_resolved.clone()
+    };
+    let canonical_to = if let Some(ref ctx) = compaction_ctx {
+        ctx.canon(&to_resolved)?
+    } else {
+        to_resolved.clone()
+    };
+
+    // Verify both notes exist (check canonical IDs)
+    if !index.contains(&canonical_from) {
         return Err(crate::lib::error::QipuError::NoteNotFound {
-            id: from_resolved.clone(),
+            id: canonical_from.clone(),
         });
     }
-    if !index.contains(&to_resolved) {
+    if !index.contains(&canonical_to) {
         return Err(crate::lib::error::QipuError::NoteNotFound {
-            id: to_resolved.clone(),
+            id: canonical_to.clone(),
         });
     }
 
-    // Find path using BFS
-    let result = bfs_find_path(&index, &from_resolved, &to_resolved, &opts);
+    // Find path using BFS with compaction context
+    let result = bfs_find_path(
+        &index,
+        &canonical_from,
+        &canonical_to,
+        &opts,
+        compaction_ctx.as_ref(),
+    )?;
 
     // Output
     match cli.format {
@@ -1051,8 +1170,14 @@ pub fn execute_path(
     Ok(())
 }
 
-/// Find path between two nodes using BFS
-fn bfs_find_path(index: &Index, from: &str, to: &str, opts: &TreeOptions) -> PathResult {
+/// Find path between two nodes using BFS with optional compaction resolution
+fn bfs_find_path(
+    index: &Index,
+    from: &str,
+    to: &str,
+    opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
+) -> Result<PathResult> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
     let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
@@ -1079,10 +1204,44 @@ fn bfs_find_path(index: &Index, from: &str, to: &str, opts: &TreeOptions) -> Pat
         let neighbors = get_filtered_neighbors(index, &current_id, opts);
 
         for (neighbor_id, edge) in neighbors {
-            if !visited.contains(&neighbor_id) {
-                visited.insert(neighbor_id.clone());
-                predecessors.insert(neighbor_id.clone(), (current_id.clone(), edge.clone()));
-                queue.push_back((neighbor_id, hop + 1));
+            // Canonicalize edge endpoints if using compaction
+            let canonical_from = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.from)?
+            } else {
+                edge.from.clone()
+            };
+            let canonical_to = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.to)?
+            } else {
+                edge.to.clone()
+            };
+
+            // Skip self-loops introduced by compaction contraction
+            if canonical_from == canonical_to {
+                continue;
+            }
+
+            // Canonicalize the neighbor ID
+            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&neighbor_id)?
+            } else {
+                neighbor_id.clone()
+            };
+
+            if !visited.contains(&canonical_neighbor) {
+                visited.insert(canonical_neighbor.clone());
+                // Store canonical edge
+                let canonical_edge = Edge {
+                    from: canonical_from,
+                    to: canonical_to,
+                    link_type: edge.link_type.clone(),
+                    source: edge.source,
+                };
+                predecessors.insert(
+                    canonical_neighbor.clone(),
+                    (current_id.clone(), canonical_edge),
+                );
+                queue.push_back((canonical_neighbor, hop + 1));
             }
         }
     }
@@ -1133,7 +1292,7 @@ fn bfs_find_path(index: &Index, from: &str, to: &str, opts: &TreeOptions) -> Pat
         (Vec::new(), Vec::new())
     };
 
-    PathResult {
+    Ok(PathResult {
         from: from.to_string(),
         to: to.to_string(),
         direction: match opts.direction {
@@ -1145,7 +1304,7 @@ fn bfs_find_path(index: &Index, from: &str, to: &str, opts: &TreeOptions) -> Pat
         path_length: edges.len(),
         nodes,
         edges,
-    }
+    })
 }
 
 /// Output path in human-readable format

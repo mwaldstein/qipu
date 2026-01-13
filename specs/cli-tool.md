@@ -52,7 +52,9 @@ Targets (approximate, p95 on a typical developer laptop):
 
 Implementation implications:
 
-- Prefer a compiled systems language suitable for single-binary distribution (e.g. Go or Rust).
+- The reference implementation language is Rust.
+- Use Cargo as the build system.
+- The build must produce a single `qipu` native executable suitable for release artifacts.
 - Avoid designs that require a heavyweight runtime, JIT warmup, or spawning background daemons for baseline commands.
 
 ### Global flags

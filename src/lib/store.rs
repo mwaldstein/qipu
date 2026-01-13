@@ -111,6 +111,31 @@ impl Store {
         })
     }
 
+    /// Open a store without validation.
+    ///
+    /// This is used by commands like `doctor` that need to access a potentially
+    /// corrupted store to diagnose and repair issues.
+    pub fn open_unchecked(path: &Path) -> Result<Self> {
+        if !path.is_dir() {
+            return Err(QipuError::StoreNotFound {
+                search_root: path.to_path_buf(),
+            });
+        }
+
+        let config_path = path.join(CONFIG_FILE);
+        let config = if config_path.exists() {
+            StoreConfig::load(&config_path)?
+        } else {
+            // Use default config if missing
+            StoreConfig::default()
+        };
+
+        Ok(Store {
+            root: path.to_path_buf(),
+            config,
+        })
+    }
+
     /// Initialize a new store under the given project root.
     pub fn init(project_root: &Path, options: InitOptions) -> Result<Self> {
         let store_name = if options.visible {

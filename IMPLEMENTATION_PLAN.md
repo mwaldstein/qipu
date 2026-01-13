@@ -403,6 +403,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Check for invalid frontmatter
 - [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts)
 - [x] `qipu doctor --fix` - auto-repair where possible
+- [x] Handle corrupted stores: `Store::open_unchecked()` bypasses validation to allow diagnosis
+- [x] Fix missing config files: doctor can now repair stores with missing `config.toml`
 
 ### P9.2 Sync Command (`specs/cli-interface.md`)
 - [ ] `qipu sync` - ensure indexes are current

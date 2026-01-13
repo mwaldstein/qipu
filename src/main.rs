@@ -372,9 +372,29 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 } else {
                     root.join(path)
                 };
-                Store::open(&resolved)?
+                // Use open_unchecked for doctor to allow diagnosing corrupted stores
+                Store::open_unchecked(&resolved)?
             } else {
-                Store::discover(&root)?
+                // Try discover first, fall back to unchecked if discovery fails
+                match Store::discover(&root) {
+                    Ok(store) => store,
+                    Err(_) => {
+                        // If discovery fails, try to find a .qipu directory and open unchecked
+                        let qipu_path = root.join(".qipu");
+                        if qipu_path.is_dir() {
+                            Store::open_unchecked(&qipu_path)?
+                        } else {
+                            let visible_path = root.join("qipu");
+                            if visible_path.is_dir() {
+                                Store::open_unchecked(&visible_path)?
+                            } else {
+                                return Err(QipuError::StoreNotFound {
+                                    search_root: root.clone(),
+                                });
+                            }
+                        }
+                    }
+                }
             };
 
             if cli.verbose {

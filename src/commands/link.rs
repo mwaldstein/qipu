@@ -706,8 +706,8 @@ fn bfs_traverse(
             continue;
         }
 
-        // Get neighbors based on direction
-        let neighbors = get_filtered_neighbors(index, &current_id, opts);
+        // Get neighbors based on direction (gather edges from all compacted notes)
+        let neighbors = get_filtered_neighbors(index, &current_id, opts, compaction_ctx);
 
         // Apply max_fanout
         let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {
@@ -830,23 +830,38 @@ fn get_filtered_neighbors<'a>(
     index: &'a Index,
     id: &str,
     opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
 ) -> Vec<(String, &'a Edge)> {
     let mut neighbors: Vec<(String, &Edge)> = Vec::new();
 
-    // Get outbound edges
+    // Collect all source IDs that map to this ID (for gathering edges)
+    // This includes the ID itself plus any notes compacted by this ID
+    let mut source_ids = vec![id.to_string()];
+    if let Some(ctx) = compaction_ctx {
+        // Find all notes that are compacted by this ID
+        if let Some(compacted_notes) = ctx.get_compacted_notes(id) {
+            source_ids.extend(compacted_notes.iter().cloned());
+        }
+    }
+
+    // Get outbound edges from ALL source IDs
     if opts.direction == Direction::Out || opts.direction == Direction::Both {
-        for edge in index.get_outbound_edges(id) {
-            if filter_edge(edge, opts) {
-                neighbors.push((edge.to.clone(), edge));
+        for source_id in &source_ids {
+            for edge in index.get_outbound_edges(source_id) {
+                if filter_edge(edge, opts) {
+                    neighbors.push((edge.to.clone(), edge));
+                }
             }
         }
     }
 
-    // Get inbound edges (backlinks)
+    // Get inbound edges to ALL source IDs (backlinks)
     if opts.direction == Direction::In || opts.direction == Direction::Both {
-        for edge in index.get_inbound_edges(id) {
-            if filter_edge(edge, opts) {
-                neighbors.push((edge.from.clone(), edge));
+        for source_id in &source_ids {
+            for edge in index.get_inbound_edges(source_id) {
+                if filter_edge(edge, opts) {
+                    neighbors.push((edge.from.clone(), edge));
+                }
             }
         }
     }
@@ -1200,8 +1215,8 @@ fn bfs_find_path(
             continue;
         }
 
-        // Get neighbors
-        let neighbors = get_filtered_neighbors(index, &current_id, opts);
+        // Get neighbors (gather edges from all compacted notes)
+        let neighbors = get_filtered_neighbors(index, &current_id, opts, compaction_ctx);
 
         for (neighbor_id, edge) in neighbors {
             // Canonicalize edge endpoints if using compaction

@@ -3128,7 +3128,7 @@ It has multiple paragraphs.
     assert!(stdout.contains("B-END"));
 }
 // ============================================================================
-// Compaction visibility tests for link commands  
+// Compaction visibility tests for link commands
 // ============================================================================
 
 #[test]
@@ -3203,7 +3203,7 @@ fn test_link_list_with_compaction() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    
+
     // Should show canonical ID (digest)
     assert!(stdout.contains(&digest_id));
     // Should NOT show compacted note
@@ -3216,7 +3216,7 @@ fn test_link_list_with_compaction() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    
+
     assert!(stdout.contains(&id1));
 }
 
@@ -3286,10 +3286,7 @@ fn test_link_tree_with_compaction() {
             let note_content = fs::read_to_string(entry.path()).unwrap();
             let new_content = note_content.replace(
                 &format!("id: {}", digest_id),
-                &format!(
-                    "id: {}\ncompacts:\n  - {}\n  - {}",
-                    digest_id, id1, id2
-                ),
+                &format!("id: {}\ncompacts:\n  - {}\n  - {}", digest_id, id1, id2),
             );
             fs::write(entry.path(), new_content).unwrap();
             break;

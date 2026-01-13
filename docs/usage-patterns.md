@@ -1,6 +1,10 @@
-# Workflows and Usage Patterns
+# Usage Patterns and Workflows
 
-This document contains guidance and examples. It is not intended to be an implementable spec.
+This document is early, non-authoritative guidance and examples.
+
+It describes intended usage patterns, not requirements. CLI commands shown here may be aspirational and can drift from the current implementation.
+
+Treat `specs/` as the source of truth for anything implementable.
 
 Status: Draft  
 Last updated: 2026-01-12

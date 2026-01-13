@@ -7,7 +7,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Implementation Status
 
-**Current Phase**: Phase 4 mostly complete (Phases 1-3 mostly complete)  
+**Current Phase**: Phase 9.1 (Doctor) complete; Phase 4 mostly complete (Phases 1-3 mostly complete)  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
 
@@ -393,12 +393,12 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 ## Phase 9: Validation and Maintenance
 
 ### P9.1 Doctor Command (`specs/cli-interface.md`, `specs/storage-format.md`, `specs/compaction.md`)
-- [ ] `qipu doctor` - validate store invariants
-- [ ] Check for duplicate IDs
-- [ ] Check for broken links
-- [ ] Check for invalid frontmatter
+- [x] `qipu doctor` - validate store invariants
+- [x] Check for duplicate IDs
+- [x] Check for broken links
+- [x] Check for invalid frontmatter
 - [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts)
-- [ ] `qipu doctor --fix` - auto-repair where possible
+- [x] `qipu doctor --fix` - auto-repair where possible
 
 ### P9.2 Sync Command (`specs/cli-interface.md`)
 - [ ] `qipu sync` - ensure indexes are current

@@ -140,6 +140,13 @@ pub enum Commands {
     /// Output session-start primer for LLM agents
     Prime,
 
+    /// Validate store invariants and optionally repair issues
+    Doctor {
+        /// Auto-repair issues where possible
+        #[arg(long)]
+        fix: bool,
+    },
+
     /// Build context bundle for LLM integration
     Context {
         /// Select notes by ID (can be repeated)

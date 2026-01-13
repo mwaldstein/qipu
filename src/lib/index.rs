@@ -137,11 +137,29 @@ impl Index {
     }
 
     /// Save index to cache directory
+    ///
+    /// Per specs/cli-tool.md: "Avoid writing derived caches unless command explicitly calls for it"
+    /// This function only writes if the index content has actually changed.
     pub fn save(&self, cache_dir: &Path) -> Result<()> {
         fs::create_dir_all(cache_dir)?;
         let index_path = cache_dir.join("index.json");
-        let content = serde_json::to_string_pretty(self)?;
-        fs::write(index_path, content)?;
+        let new_content = serde_json::to_string_pretty(self)?;
+
+        // Filesystem hygiene: only write if content actually changed
+        // This avoids unnecessary cache file timestamp updates
+        let should_write = if index_path.exists() {
+            match fs::read_to_string(&index_path) {
+                Ok(existing) => existing != new_content,
+                Err(_) => true, // If we can't read, write anyway
+            }
+        } else {
+            true // File doesn't exist, must write
+        };
+
+        if should_write {
+            fs::write(index_path, new_content)?;
+        }
+
         Ok(())
     }
 

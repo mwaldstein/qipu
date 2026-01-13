@@ -422,6 +422,9 @@ impl Store {
     ///
     /// The note must have a valid path set.
     /// Automatically updates the `updated` timestamp to the current time.
+    ///
+    /// Per specs/cli-tool.md: "Avoid rewriting files unnecessarily"
+    /// This function compares the new content with existing content and only writes if changed.
     pub fn save_note(&self, note: &mut Note) -> Result<()> {
         let path = note
             .path
@@ -431,8 +434,22 @@ impl Store {
         // Auto-populate the updated timestamp
         note.frontmatter.updated = Some(chrono::Utc::now());
 
-        let content = note.to_markdown()?;
-        fs::write(path, content)?;
+        let new_content = note.to_markdown()?;
+
+        // Filesystem hygiene: only write if content actually changed
+        // This preserves timestamps and avoids unnecessary git churn
+        let should_write = if path.exists() {
+            match fs::read_to_string(path) {
+                Ok(existing) => existing != new_content,
+                Err(_) => true, // If we can't read, write anyway
+            }
+        } else {
+            true // File doesn't exist, must write
+        };
+
+        if should_write {
+            fs::write(path, new_content)?;
+        }
 
         Ok(())
     }

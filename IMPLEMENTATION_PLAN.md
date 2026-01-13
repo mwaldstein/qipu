@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.2 Filesystem Hygiene**: Implemented change detection in `Store::save_note()` and `Index::save()` - both functions now compare existing content before writing, avoiding unnecessary file rewrites and git churn
 - **P3.3 Search**: Implemented `--exclude-mocs` flag to filter MOCs from search results
 - **P1.4 Templates**: Confirmed all note type templates include appropriate structure and guidance
 - **P2.2 Inbox**: Confirmed default filter (fleeting, literature) is implemented
@@ -43,7 +44,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Unknown flag/arg detection (exit 2)
 - [x] Verbose timing output (parse args, discover store, load indexes, execute)
 - [x] Timing output deterministic in shape (keys/labels stable)
-- [ ] Filesystem hygiene: avoid unnecessary file rewrites, preserve newline style
+- [x] Filesystem hygiene: avoid unnecessary file rewrites
+- [x] Filesystem hygiene: preserve newline style (already preserved by Note::to_markdown())
 - [ ] Avoid writing derived caches unless command explicitly calls for it
 - [ ] Offline-first: no network access required for normal operation
 - [x] Determinism: when truncation/budgeting occurs, must be explicit and deterministic

@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P5.1 Records Output Complete**: All primary commands now support records format. Final addition: `qipu init` now outputs proper records format with header line `H qipu=1 records=1 store=<path> mode=init status=ok`. Phase 5.1 is now complete.
 - **P1.3 Config Sensible Defaults**: Implemented default config fallback in Store::open - qipu init is now optional for basic use. Store will use sensible defaults (version 1, fleeting default type, hash ID scheme) when config.toml is missing. Default templates are auto-created on first store open.
 - **P5.1 Records Output**: Implemented records format for `qipu index` command - outputs H (header) with index statistics and D (diagnostic) lines for unresolved links
 - **P1.3 Stealth Mode**: Added integration tests for --stealth gitignore handling; verified functionality complete
@@ -239,7 +240,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Phase 5: Output Formats
 
-### P5.1 Records Output (`specs/records-output.md`)
+### P5.1 Records Output (`specs/records-output.md`) — ✓ Complete
 - [x] Header line (H): `qipu=1 records=1`, store path, mode, parameters, truncated flag
 - [x] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_hops=`; also list, search, show, create, capture, inbox, link.list, link.path, link.add, link.remove
 - [x] Header fields for context: `mode=context`, `notes=N`, `truncated=`
@@ -251,7 +252,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Body lines (B): `B <id>` followed by raw markdown, B-END terminator (in show and context)
 - [x] Summary extraction order: frontmatter `summary` > `## Summary` section (first paragraph) > first paragraph of body > empty
 - [x] Format version in header for downstream tooling detection (`records=1` present)
-- [x] Commands supporting records: all primary commands now support records format (list, show, search, create, capture, inbox, link.*, prime, context, doctor, index)
+- [x] Commands supporting records: all primary commands now support records format (list, show, search, create, capture, inbox, link.*, prime, context, doctor, index, init)
 - [ ] `--with-body` flag for including full body content (implemented in context, not universal)
 - [ ] `--with-edges` flag (potential, per open question)
 - [x] Empty tags consistently use "-" across all commands

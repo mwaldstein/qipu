@@ -1,6 +1,6 @@
 # Qipu Implementation Plan
 
-Last updated: 2026-01-12
+Last updated: 2026-01-12 (revised)
 
 This document tracks implementation progress against the specs in `specs/`.
 
@@ -39,6 +39,8 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Global flags: `--root`, `--store`, `--json`, `--token`, `--quiet`, `--verbose`
 - [ ] Exit code handling (0=success, 1=failure, 2=usage, 3=data error)
 - [ ] `--json` and `--token` mutual exclusivity enforcement
+- [ ] `--verbose` timing output for major phases (parse args, discover store, load indexes, execute)
+- [ ] Timing output deterministic in shape (keys/labels stable)
 
 ### 1.2 Store Discovery
 - [ ] Walk up from cwd to find `.qipu/` directory
@@ -108,6 +110,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Resolve ID or path to note
 - [ ] Print note content
 - [ ] `--json` output (full note metadata + content)
+- [ ] `--links` flag (show links from/to note)
 
 ---
 
@@ -134,7 +137,9 @@ Work items are listed in dependency order. Complete each phase before starting t
 ### 3.4 `qipu search <query>`
 - [ ] Full-text search (title + body)
 - [ ] `--tag`, `--type` filters
+- [ ] `--include-mocs`, `--exclude-mocs` filters
 - [ ] Result ranking (title > body, exact > partial)
+- [ ] Recency boost for recently updated notes
 - [ ] `--json` output
 
 ### 3.5 `qipu inbox`
@@ -176,12 +181,14 @@ Work items are listed in dependency order. Complete each phase before starting t
 ## Phase 5: LLM Integration
 
 ### 5.1 Token-Optimized Output (`src/lib/token.rs`)
-- [ ] Header line format (H record)
+- [ ] Header line format (H record) with format version (`token=1`)
 - [ ] Note metadata line format (N record)
 - [ ] Summary line format (S record)
 - [ ] Edge line format (E record)
 - [ ] Body lines format (B record)
 - [ ] Summary extraction (frontmatter > ## Summary section > first paragraph)
+- [ ] `--with-body` flag (include body lines, default summaries-only)
+- [ ] `--with-edges` flag (include edge records)
 
 ### 5.2 `qipu prime`
 - [ ] Emit bounded primer (~1-2k tokens)
@@ -193,13 +200,14 @@ Work items are listed in dependency order. Complete each phase before starting t
 
 ### 5.3 `qipu context`
 - [ ] Bundle selection: `--note`, `--tag`, `--moc`, `--query`
-- [ ] MOC modes: direct list, transitive closure
+- [ ] MOC modes: `--moc-mode direct` (default) vs `--moc-mode transitive`
+- [ ] `--walk <id>` shortcut for graph-based context (traversal from ID)
 - [ ] Budgeting: `--max-chars`, `--max-tokens`
 - [ ] Markdown output format (per llm-context spec)
 - [ ] `--json` output
 - [ ] `--token` output (summaries-first, optional `--with-body`)
 - [ ] Truncation handling (complete notes, explicit markers)
-- [ ] Safety banner option
+- [ ] `--safety-banner` flag (prepend warning about untrusted content)
 
 ---
 
@@ -237,17 +245,34 @@ Work items are listed in dependency order. Complete each phase before starting t
 
 ### 7.4 Compaction Commands
 - [ ] `qipu compact apply <digest-id> --note <id>...`
+  - [ ] `--from-stdin` (read IDs from stdin)
+  - [ ] `--notes-file <path>` (read IDs from file)
+  - [ ] Invariant validation (no cycles, no multi-compactor conflicts)
+  - [ ] Idempotent behavior
 - [ ] `qipu compact show <digest-id>` (with `--compaction-depth`)
 - [ ] `qipu compact status <id>`
 - [ ] `qipu compact report <digest-id>` (mechanical checks)
+  - [ ] `compacts_direct_count`
+  - [ ] `compaction_pct`
+  - [ ] Boundary edge ratio
+  - [ ] Staleness indicator (sources updated after digest)
+  - [ ] Conflicts/cycles detection
 - [ ] `qipu compact suggest` (candidate detection)
+  - [ ] Community/clump detection algorithm
+  - [ ] Ranking by size, cohesion, boundary edges
+  - [ ] `--json` output with candidate list and suggested commands
 - [ ] `qipu compact guide` (LLM guidance prompt)
+  - [ ] Steps: suggest → review → author → apply → validate
+  - [ ] Prompt template for digest authoring
 
 ### 7.5 Compaction Integration
+- [ ] `--no-resolve-compaction` flag (show raw view, disable canonicalization)
 - [ ] `--with-compaction-ids`, `--compaction-depth` flags
+- [ ] `--compaction-max-nodes <n>` bound for expansion
 - [ ] `--expand-compaction` for context/traversal
-- [ ] Search canonicalization (return digest, annotate via)
+- [ ] Search canonicalization (return digest, annotate `via=<id>`)
 - [ ] Traversal on contracted graph
+- [ ] Output annotations: `compacts=<N>`, `compaction=<P%>`
 
 ---
 
@@ -257,7 +282,11 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Check for duplicate IDs
 - [ ] Check for broken links
 - [ ] Check for invalid frontmatter
-- [ ] Check for compaction invariant violations
+- [ ] Check for compaction invariant violations:
+  - [ ] Cycle detection in compaction chains
+  - [ ] Multi-compactor conflicts
+  - [ ] Self-compaction
+  - [ ] Compaction staleness (sources updated after digest)
 - [ ] Report unresolved links
 - [ ] `--json` output
 
@@ -298,6 +327,19 @@ See `specs/` for detailed open questions on:
 - LLM context (summarization, backlinks)
 - Export (Pandoc integration, transitive links)
 
+## Future Considerations (from open questions)
+
+These items are noted in specs as open questions but may warrant implementation:
+
+- [ ] `qipu promote` command (upgrade fleeting → permanent notes)
+- [ ] Duplicate/near-duplicate detection for notes
+- [ ] Graph: `neighbors`, `subgraph`, `cycles` traversal queries
+- [ ] Link materialization (opt-in inline → typed link conversion)
+- [ ] `--tokenizer` option for model-specific token estimation
+- [ ] `--token-version` flag for format stability
+- [ ] Bibliography export formats (BibTeX, CSL JSON)
+- [ ] Global (cross-repo) store option
+
 ---
 
 ## Implementation Notes
@@ -337,6 +379,7 @@ Phase 3 (Indexing) ────────────────────�
 
 - Integration tests for CLI commands (temporary directory stores)
 - Golden tests for deterministic outputs (`prime`, `context`, traversal)
+- Golden tests for `--verbose` timing output shape (deterministic keys/labels)
 - Property-based tests (ID collision resistance, parsing round-trips)
 - Performance benchmarks (meet budget targets from cli-tool.md)
 

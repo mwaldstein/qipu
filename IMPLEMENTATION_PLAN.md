@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.3 Config Sensible Defaults**: Implemented default config fallback in Store::open - qipu init is now optional for basic use. Store will use sensible defaults (version 1, fleeting default type, hash ID scheme) when config.toml is missing. Default templates are auto-created on first store open.
 - **P5.1 Records Output**: Implemented records format for `qipu index` command - outputs H (header) with index statistics and D (diagnostic) lines for unresolved links
 - **P1.3 Stealth Mode**: Added integration tests for --stealth gitignore handling; verified functionality complete
 - **P2.2 Per-Command Help**: Verified all commands support --help with comprehensive, well-structured output
@@ -56,7 +57,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Avoid writing derived caches unless command explicitly calls for it
 - [x] Offline-first: no network access required for normal operation
 - [x] Determinism: when truncation/budgeting occurs, must be explicit and deterministic
-- [x] JSON error output: structured error details with `--format json`
+- [x] JSON error output: structured error details with `--format json` (Implemented in src/lib/error.rs with to_json() method)
   - [x] Define baseline error schema (code/type/message)
   - [ ] Include per-command context fields (future)
   - [x] Use correct exit code alongside JSON error output
@@ -75,7 +76,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] `qipu init --visible` - use `qipu/` instead of `.qipu/`
 - [ ] `qipu init --branch <name>` - protected-branch workflow (notes on separate branch like `qipu-metadata`)
 - [x] Create `config.toml` with format version, default note type, id scheme, editor override
-- [ ] Config sensible defaults so `qipu init` is optional for basic use
+- [x] Config sensible defaults so `qipu init` is optional for basic use
 - [x] Gitignore handling:
   - [x] Normal mode: create `.qipu/.gitignore` with `qipu.db` and `.cache/` entries
   - [x] Stealth mode: add `.qipu/` to project root `.gitignore`

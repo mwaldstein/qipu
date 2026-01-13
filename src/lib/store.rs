@@ -103,7 +103,16 @@ impl Store {
         validate_store_layout(path)?;
 
         let config_path = path.join(CONFIG_FILE);
-        let config = StoreConfig::load(&config_path)?;
+        let config = if config_path.exists() {
+            StoreConfig::load(&config_path)?
+        } else {
+            // Use default config if missing (per spec: config should have sensible defaults)
+            StoreConfig::default()
+        };
+
+        // Ensure default templates exist (idempotent, only creates missing ones)
+        let templates_dir = path.join(TEMPLATES_DIR);
+        ensure_default_templates(&templates_dir)?;
 
         Ok(Store {
             root: path.to_path_buf(),
@@ -458,10 +467,8 @@ impl Store {
 fn validate_store_layout(store_root: &Path) -> Result<()> {
     let mut missing = Vec::new();
 
-    let config_path = store_root.join(CONFIG_FILE);
-    if !config_path.is_file() {
-        missing.push(CONFIG_FILE.to_string());
-    }
+    // Config is no longer required; use defaults if missing (per spec)
+    // Only validate required directories
 
     for (dir_name, label) in [
         (NOTES_DIR, NOTES_DIR),
@@ -484,7 +491,7 @@ fn validate_store_layout(store_root: &Path) -> Result<()> {
     if !missing.is_empty() {
         return Err(QipuError::InvalidStore {
             reason: format!(
-                "missing required store files/dirs: {} (store_root={})",
+                "missing required store dirs: {} (store_root={})",
                 missing.join(", "),
                 store_root.display()
             ),
@@ -667,6 +674,8 @@ fn default_body(note_type: NoteType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lib::config::STORE_FORMAT_VERSION;
+    use crate::lib::id::IdScheme;
     use tempfile::tempdir;
 
     #[test]
@@ -724,5 +733,32 @@ mod tests {
 
         let notes = store.list_notes().unwrap();
         assert_eq!(notes.len(), 2);
+    }
+
+    #[test]
+    fn test_store_without_config() {
+        // Test that store works with default config when config.toml is missing
+        let dir = tempdir().unwrap();
+        let store_root = dir.path().join(DEFAULT_STORE_DIR);
+
+        // Create minimal store structure without config.toml
+        fs::create_dir_all(store_root.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(store_root.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(store_root.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(store_root.join(TEMPLATES_DIR)).unwrap();
+
+        // Should open successfully with default config
+        let store = Store::open(&store_root).unwrap();
+        assert_eq!(store.config().version, STORE_FORMAT_VERSION);
+        assert_eq!(store.config().default_note_type, NoteType::Fleeting);
+        assert_eq!(store.config().id_scheme, IdScheme::Hash);
+
+        // Should be able to create notes
+        let note = store.create_note("Test Note", None, &[]).unwrap();
+        assert!(note.id().starts_with("qp-"));
+
+        // Templates should be auto-created
+        assert!(store.templates_dir().join("fleeting.md").exists());
+        assert!(store.templates_dir().join("permanent.md").exists());
     }
 }

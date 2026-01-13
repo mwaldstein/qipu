@@ -175,15 +175,15 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ### P4.2 Graph Traversal (`specs/graph-traversal.md`)
 - [ ] `qipu link tree <id>` - traversal tree from note
-- [ ] `--max-depth` (default: 3)
+- [ ] `--max-hops` (default: 3)
 - [ ] `--direction` flag (out|in|both, default: both)
 - [ ] `--type <t>` (repeatable) / `--types <csv>` type inclusion filters
 - [ ] `--exclude-type <t>` / `--exclude-types <csv>` type exclusion filters
 - [ ] `--typed-only`, `--inline-only` filters
-- [ ] `--max-nodes`, `--max-edges`, `--max-children` limits
+- [ ] `--max-nodes`, `--max-edges`, `--max-fanout` limits
   - [ ] `--max-nodes` caps total visited nodes
   - [ ] `--max-edges` caps total edges emitted
-  - [ ] `--max-children` caps children per expanded node (prevents single hub blow-ups)
+  - [ ] `--max-fanout` caps neighbors per expanded node (prevents single hub blow-ups)
   - [ ] No defaults for these limits (unbounded unless specified); deterministic truncation when hit
   - [ ] When multiple limits specified, stop when ANY limit is reached
 - [ ] Deterministic BFS with spanning tree
@@ -191,29 +191,29 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Cycle-safe traversal (visited set, "(seen)" markers)
 - [ ] Truncation reporting when limits hit
 - [ ] `qipu link path <from> <to>` - find path between notes
-- [ ] `qipu link path` flags: `--direction`, `--max-depth`, `--typed-only`, `--inline-only`
+- [ ] `qipu link path` flags: `--direction`, `--max-hops`, `--typed-only`, `--inline-only`
 - [ ] `qipu link path` type filters: `--type <t>` (repeatable), `--types <csv>`, `--exclude-type <t>`, `--exclude-types <csv>`
 
 ### P4.3 Traversal Output Formats (`specs/graph-traversal.md`)
 - [ ] Human-readable tree output (optimized for scanning)
 - [ ] `qipu link path` human output: simple path listing (node -> node -> node)
-- [ ] JSON output shape: `{root, direction, max_depth, truncated, nodes[], edges[], spanning_tree[]}`
+- [ ] JSON output shape: `{root, direction, max_hops, truncated, nodes[], edges[], spanning_tree[]}`
 - [ ] Node objects in JSON: `{id, title, type, tags, path}`
 - [ ] Edge objects include `source` field (`inline` or `typed`)
 - [ ] Edge objects: `{from, to, type, source}`
-- [ ] `spanning_tree[]` with `{parent, child, depth}` entries
+- [ ] `spanning_tree[]` with `{from, to, hop}` entries
 - [ ] `qipu link path` JSON: list of nodes and edges in chosen path
 - [ ] Records output (see Phase 5)
 - [ ] Integration: traversal results compose cleanly with `qipu context`
 - [ ] Future: multiple start nodes for traversal
-- [ ] Future: `qipu context --walk <id> --max-depth <n>` for traverse-and-bundle in one command
+- [ ] Future: `qipu context --walk <id> --max-hops <n>` for traverse-and-bundle in one command
 - [ ] Future: additional traversal queries (`neighbors`, `subgraph`, `cycles`)
 
 ## Phase 5: Output Formats
 
 ### P5.1 Records Output (`specs/records-output.md`)
 - [ ] Header line (H): `qipu=1 records=1`, store path, mode, parameters, truncated flag
-- [ ] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_depth=`
+- [ ] Header fields per mode: `mode=link.tree` with `root=`, `direction=`, `max_hops=`
 - [ ] Header fields for context: `mode=context`, `notes=N`
 - [ ] Note metadata line (N): id, type, title, tags
   - [ ] Include `path=` field only in context mode (not traversal mode)
@@ -461,7 +461,7 @@ These are design decisions noted in specs that may need resolution during implem
 ### Decided (spec-aligned defaults)
 - Default store location: `.qipu/` (per `specs/storage-format.md`)
 - Note ID scheme: `qp-<hash>` with adaptive length (per `specs/knowledge-model.md`)
-- Graph traversal: default `--max-depth` = 3 (per `specs/graph-traversal.md` "recommended default")
+- Graph traversal: default `--max-hops` = 3 (per `specs/graph-traversal.md` "recommended default")
 - `mocs/` as separate directory (per `specs/storage-format.md` directory structure)
 
 ### Truly Open

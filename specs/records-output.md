@@ -63,7 +63,7 @@ The grammar does not need to be perfectly machine-parseable (that’s what `--fo
 
 ### Example: records output for a traversal
 ```
-H qipu=1 records=1 store=.qipu/ mode=link.tree root=qp-a1b2 direction=both max_depth=3 truncated=false
+H qipu=1 records=1 store=.qipu/ mode=link.tree root=qp-a1b2 direction=both max_hops=3 truncated=false
 N qp-a1b2 permanent "Zettelkasten note types" tags=zettelkasten,qipu
 E qp-a1b2 supports qp-3e7a typed
 E qp-a1b2 related qp-f14c3 inline
@@ -101,7 +101,7 @@ When a budget is exceeded:
 ## Progressive disclosure workflow (LLM-friendly)
 A recommended agent workflow:
 1. Run traversal in records mode to get a small graph neighborhood:
-   - `qipu link tree <id> --max-depth 2 --format records --max-chars 8000`
+   - `qipu link tree <id> --max-hops 2 --format records --max-chars 8000`
 2. Select note IDs from that output.
 3. Fetch full content only for selected notes:
    - `qipu context --note <id> --format records --with-body --max-chars 16000`

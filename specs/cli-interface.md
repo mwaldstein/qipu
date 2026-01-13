@@ -78,8 +78,8 @@ Subcommands (proposed):
 - `qipu link add <from> <to> --type <related|derived-from|supports|contradicts|part-of>`
 - `qipu link remove <from> <to> --type <...>`
 - `qipu link list <id-or-path> [--direction <out|in|both>] [--typed-only|--inline-only] [--type <t>]`
-- `qipu link tree <id-or-path> [--direction <out|in|both>] [--max-depth <n>] [--typed-only|--inline-only] [--type <t>]`
-- `qipu link path <from> <to> [--direction <out|in|both>] [--max-depth <n>] [--typed-only|--inline-only] [--type <t>]`
+- `qipu link tree <id-or-path> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>]`
+- `qipu link path <from> <to> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>]`
 
 Notes:
 - Default traversal direction should be `both`.

@@ -81,12 +81,12 @@ The user should be able to restrict traversal via flags:
 
 ### Depth and size limits
 Traversal must be bounded. At minimum:
-- `--max-depth <n>` (recommended default: 3)
+- `--max-hops <n>` (recommended default: 3)
 
 Optional additional controls:
 - `--max-nodes <n>` overall cap on visited nodes
 - `--max-edges <n>` overall cap on edges emitted
-- `--max-children <n>` cap per expanded node (prevents blow-ups)
+- `--max-fanout <n>` cap neighbors per expanded node (prevents blow-ups)
 
 When limits are hit, output must explicitly report truncation.
 
@@ -99,7 +99,7 @@ Recommended ordering rules:
   2. target note `id`
 
 Traversal algorithm recommendation:
-- Use a deterministic BFS to compute first-discovery parents (a spanning tree)
+- Use a deterministic BFS to compute first-discovery predecessors (a spanning tree)
 - Render the spanning tree as the primary tree view
 
 ### De-duplication and cycles
@@ -120,7 +120,7 @@ Show a traversal tree rooted at the given note.
 
 Flags (proposed):
 - `--direction <out|in|both>` (default: `both`)
-- `--max-depth <n>` (default: `3`)
+- `--max-hops <n>` (default: `3`)
 - `--type <t>` (repeatable) / `--types <csv>` (include only these typed link types)
 - `--exclude-type <t>` / `--exclude-types <csv>`
 - `--typed-only` (exclude inline links)
@@ -143,7 +143,7 @@ Flags (proposed):
 - `--direction <out|in|both>` (default: `both`)
 - `--typed-only` / `--inline-only`
 - `--type/--exclude-type` filters
-- `--max-depth <n>`
+- `--max-hops <n>`
 
 Output:
 - Default: a simple path listing
@@ -158,7 +158,7 @@ Proposed minimal shape:
 {
   "root": "qp-a1b2",
   "direction": "both",
-  "max_depth": 3,
+  "max_hops": 3,
   "truncated": false,
   "nodes": [
     {"id": "qp-a1b2", "title": "…", "type": "…", "tags": ["…"], "path": "…"}
@@ -168,23 +168,23 @@ Proposed minimal shape:
     {"from": "qp-a1b2", "to": "qp-3e7a", "type": "supports", "source": "typed"}
   ],
   "spanning_tree": [
-    {"parent": "qp-a1b2", "child": "qp-f14c3", "depth": 1}
+    {"from": "qp-a1b2", "to": "qp-f14c3", "hop": 1}
   ]
 }
 ```
 
 Notes:
 - `edges[]` represents the effective edge set encountered during traversal.
-- `spanning_tree[]` encodes the deterministic “tree view” projection.
+- `spanning_tree[]` encodes the deterministic “tree view” projection (via first-discovery predecessor edges).
 
 ## Integration with `qipu context`
 Traversal results should compose cleanly into context bundles:
 - users/tools can traverse with `qipu link tree --format json`, select a subset of `nodes[]`, and then call `qipu context --note …`
 
 Future-friendly extension (optional):
-- add `qipu context --walk <id> --max-depth <n> ...` to perform traversal-and-bundle in one command.
+- add `qipu context --walk <id> --max-hops <n> ...` to perform traversal-and-bundle in one command.
 
 ## Open questions
-- Default limits: should the default `--max-depth` be 2 or 3? Should there be a default `--max-nodes`?
+- Default limits: should the default `--max-hops` be 2 or 3? Should there be a default `--max-nodes`?
 - Should qipu ever materialize inline links into `links[]` automatically, or only as an explicit opt-in?
 - Do we want additional first-class traversal queries beyond `tree` and `path` (e.g., `neighbors`, `subgraph`, `cycles`)?

@@ -421,11 +421,15 @@ impl Store {
     /// Save an existing note back to disk
     ///
     /// The note must have a valid path set.
-    pub fn save_note(&self, note: &Note) -> Result<()> {
+    /// Automatically updates the `updated` timestamp to the current time.
+    pub fn save_note(&self, note: &mut Note) -> Result<()> {
         let path = note
             .path
             .as_ref()
             .ok_or_else(|| QipuError::Other("cannot save note without path".to_string()))?;
+
+        // Auto-populate the updated timestamp
+        note.frontmatter.updated = Some(chrono::Utc::now());
 
         let content = note.to_markdown()?;
         fs::write(path, content)?;

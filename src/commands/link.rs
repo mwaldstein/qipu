@@ -240,7 +240,7 @@ pub fn execute_add(
     });
 
     // Save the note
-    store.save_note(&from_note)?;
+    store.save_note(&mut from_note)?;
 
     // Output
     match cli.format {
@@ -333,7 +333,7 @@ pub fn execute_remove(
     }
 
     // Save the note
-    store.save_note(&from_note)?;
+    store.save_note(&mut from_note)?;
 
     // Output
     match cli.format {

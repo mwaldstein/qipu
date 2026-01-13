@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.4 Auto-populated fields**: Implemented automatic `updated` timestamp maintenance - now auto-populated whenever a note is saved
 - **P5.2 Budgeting**: Completed exact budget enforcement for `qipu context --max-chars` with 10% safety buffer
 - **P1.4 Storage Format**: Confirmed required frontmatter field validation (`id`, `title`) already implemented in parser and doctor command
 
@@ -78,8 +79,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Notes readable and editable without qipu (design constraint)
 - [x] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
 - [x] Required frontmatter fields: `id`, `title` (parser returns `InvalidFrontmatter` error if missing; also validated by doctor command)
-- [ ] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
-- [ ] Optional frontmatter fields: `updated`, `links` array (inline links valid without it)
+- [x] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
+- [x] Optional frontmatter fields: `updated` (auto-maintained on save), `links` array (inline links valid without it)
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [x] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
 - [x] ID scheme alternatives: support `ulid` and `timestamp` modes via config

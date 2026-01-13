@@ -385,7 +385,7 @@ fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> {
                         note.frontmatter.links.retain(|l| valid_ids.contains(&l.id));
 
                         if note.frontmatter.links.len() < original_len
-                            && store.save_note(&note).is_ok()
+                            && store.save_note(&mut note).is_ok()
                         {
                             fixed += 1;
                         }

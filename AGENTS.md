@@ -72,6 +72,6 @@ Run the test suite:
 cargo test
 ```
 
-- 103 integration tests in `tests/cli_tests.rs`
+- 104 integration tests in `tests/cli_tests.rs`
 - 60 unit tests in `src/*/tests`
 - All tests currently passing

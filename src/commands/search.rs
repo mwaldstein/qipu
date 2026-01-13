@@ -21,18 +21,16 @@ pub fn execute(
     tag_filter: Option<&str>,
     exclude_mocs: bool,
 ) -> Result<()> {
-    // Load or build index
+    // Load or build index (read-only - don't save)
     let cache_dir = store.root().join(".cache");
     let index = match Index::load(&cache_dir) {
         Ok(idx) if !idx.metadata.is_empty() => idx,
         _ => {
-            // Index doesn't exist or is empty - build it
+            // Index doesn't exist or is empty - build it in-memory
             if cli.verbose {
-                eprintln!("Building index...");
+                eprintln!("Building index in-memory (run 'qipu index' to cache)...");
             }
-            let index = IndexBuilder::new(store).build()?;
-            index.save(&cache_dir)?;
-            index
+            IndexBuilder::new(store).build()?
         }
     };
 

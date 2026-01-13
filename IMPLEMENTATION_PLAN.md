@@ -4,6 +4,8 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P1.2 Cache Hygiene**: Fixed `qipu search` to avoid writing caches - now builds index in-memory if cache missing (run 'qipu index' to persist)
+- **P1.2 Offline-First**: Verified application is fully offline-first with zero network dependencies
 - **P1.2 Filesystem Hygiene**: Implemented change detection in `Store::save_note()` and `Index::save()` - both functions now compare existing content before writing, avoiding unnecessary file rewrites and git churn
 - **P3.3 Search**: Implemented `--exclude-mocs` flag to filter MOCs from search results
 - **P1.4 Templates**: Confirmed all note type templates include appropriate structure and guidance
@@ -46,8 +48,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Timing output deterministic in shape (keys/labels stable)
 - [x] Filesystem hygiene: avoid unnecessary file rewrites
 - [x] Filesystem hygiene: preserve newline style (already preserved by Note::to_markdown())
-- [ ] Avoid writing derived caches unless command explicitly calls for it
-- [ ] Offline-first: no network access required for normal operation
+- [x] Avoid writing derived caches unless command explicitly calls for it
+- [x] Offline-first: no network access required for normal operation
 - [x] Determinism: when truncation/budgeting occurs, must be explicit and deterministic
 - [x] JSON error output: structured error details with `--format json`
   - [x] Define baseline error schema (code/type/message)

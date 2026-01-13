@@ -239,6 +239,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_max_constants() {
         // Ensure we have reasonable defaults
         assert!(MAX_MOCS > 0 && MAX_MOCS <= 10);

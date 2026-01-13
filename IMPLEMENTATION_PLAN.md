@@ -17,7 +17,8 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Initialize Cargo workspace with `qipu` binary crate (Rust)
 - [x] Set up `src/lib/` for shared utilities
 - [x] Configure release profile for single native binary (no runtime dependencies)
-- [ ] Add basic CI (build + clippy + test)
+- [x] Add basic CI (build + clippy + test)
+  - CI runs on ubuntu, macos, and windows with full test coverage
 - [x] Cross-platform support: macOS, Linux, Windows
 - [x] Avoid heavyweight runtime, JIT warmup, or background daemons (per `specs/cli-tool.md`)
 

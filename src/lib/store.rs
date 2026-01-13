@@ -667,7 +667,7 @@ mod tests {
             visible: true,
             ..Default::default()
         };
-        let store = Store::init(dir.path(), options).unwrap();
+        let _store = Store::init(dir.path(), options).unwrap();
 
         assert!(dir.path().join(VISIBLE_STORE_DIR).exists());
     }

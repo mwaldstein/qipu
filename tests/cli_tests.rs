@@ -2,13 +2,13 @@
 //!
 //! These tests run the qipu binary and verify correct behavior per spec.
 
-use assert_cmd::Command;
+use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 /// Get a Command for qipu
 fn qipu() -> Command {
-    Command::cargo_bin("qipu").unwrap()
+    cargo_bin_cmd!("qipu")
 }
 
 // ============================================================================

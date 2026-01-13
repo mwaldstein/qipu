@@ -28,7 +28,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Global flags: `--root`, `--store`, `--format`, `--quiet`, `--verbose`
 - [x] Exit codes: 0 (success), 1 (failure), 2 (usage), 3 (data error)
 - [x] `--format` validation (human|json|records, error on unknown)
-- [ ] `--format` may be specified at most once (exit 2 if repeated)
+- [x] `--format` may be specified at most once (exit 2 if repeated)
 - [x] Unknown flag/arg detection (exit 2)
 - [x] Verbose timing output (parse args, discover store, load indexes, execute)
 - [x] Timing output deterministic in shape (keys/labels stable)
@@ -36,10 +36,10 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Avoid writing derived caches unless command explicitly calls for it
 - [ ] Offline-first: no network access required for normal operation
 - [x] Determinism: when truncation/budgeting occurs, must be explicit and deterministic
-- [ ] JSON error output: structured error details with `--format json`
-  - [ ] Define error schema per command category
-  - [ ] Include error code, message, and context fields
-  - [ ] Use correct exit code alongside JSON error output
+- [x] JSON error output: structured error details with `--format json`
+  - [x] Define baseline error schema (code/type/message)
+  - [ ] Include per-command context fields (future)
+  - [x] Use correct exit code alongside JSON error output
 
 ### P1.3 Store Discovery (`specs/cli-tool.md`, `specs/storage-format.md`)
 - [x] `--store` explicit path resolution (relative to `--root` or cwd)
@@ -427,8 +427,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [ ] Error output golden tests:
   - [ ] Missing store error (exit 3)
   - [ ] Invalid frontmatter error (exit 3)
-  - [ ] Usage error for unknown flags (exit 2)
-  - [ ] JSON error output shapes per command
+  - [x] Usage error for unknown flags (exit 2)
+  - [x] JSON error envelope emitted for clap/usage errors when `--format json` is present
+  - [ ] JSON error output shapes per command (future: per-command context fields)
 
 ## Phase 11: Distribution
 

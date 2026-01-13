@@ -45,6 +45,9 @@ pub enum QipuError {
     #[error("missing required argument: {0}")]
     MissingArgument(String),
 
+    #[error("{0}")]
+    UsageError(String),
+
     // Data/store errors (exit code 3)
     #[error("store not found (searched from {search_root:?})")]
     StoreNotFound { search_root: PathBuf },
@@ -92,7 +95,8 @@ impl QipuError {
             QipuError::UnknownFormat(_)
             | QipuError::DuplicateFormat
             | QipuError::UnknownArgument(_)
-            | QipuError::MissingArgument(_) => ExitCode::Usage,
+            | QipuError::MissingArgument(_)
+            | QipuError::UsageError(_) => ExitCode::Usage,
 
             // Data/store errors
             QipuError::StoreNotFound { .. }
@@ -130,6 +134,7 @@ impl QipuError {
             QipuError::DuplicateFormat => "duplicate_format",
             QipuError::UnknownArgument(_) => "unknown_argument",
             QipuError::MissingArgument(_) => "missing_argument",
+            QipuError::UsageError(_) => "usage_error",
             QipuError::StoreNotFound { .. } => "store_not_found",
             QipuError::StoreAlreadyExists { .. } => "store_already_exists",
             QipuError::InvalidStore { .. } => "invalid_store",

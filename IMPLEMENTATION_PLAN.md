@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P2.2 Per-Command Help**: Verified all commands support --help with comprehensive, well-structured output
 - **P1.2 Cache Hygiene**: Fixed `qipu search` to avoid writing caches - now builds index in-memory if cache missing (run 'qipu index' to persist)
 - **P1.2 Offline-First**: Verified application is fully offline-first with zero network dependencies
 - **P1.2 Filesystem Hygiene**: Implemented change detection in `Store::save_note()` and `Index::save()` - both functions now compare existing content before writing, avoiding unnecessary file rewrites and git churn
@@ -15,6 +16,8 @@ Last updated: 2026-01-13
 - **P1.4 Storage Format**: Confirmed required frontmatter field validation (`id`, `title`) already implemented in parser and doctor command
 - **P4.2 Graph Traversal**: Confirmed `--max-nodes`, `--max-edges`, `--max-fanout` limits are fully implemented with proper truncation reporting
 - **P5.2 Budgeting**: Confirmed truncation implementation - deterministic, complete notes first, truncated flag in headers
+- **P1.4 Storage Format**: Verified wiki-link and markdown link resolution work without rewriting; sources field fully implemented
+- **P1.4 Cache Independence**: Verified all core workflows work without caches (build indexes in-memory on-demand)
 
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
@@ -90,15 +93,15 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Required frontmatter fields: `id`, `title` (parser returns `InvalidFrontmatter` error if missing; also validated by doctor command)
 - [x] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
 - [x] Optional frontmatter fields: `updated` (auto-maintained on save), `links` array (inline links valid without it)
-- [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
+ - [x] `sources` field: array of objects with `url`, `title`, `accessed` fields
 - [x] ID generation: `qp-<hash>` with adaptive length (grows as store grows)
 - [x] ID scheme alternatives: support `ulid` and `timestamp` modes via config
 - [ ] Multi-agent/multi-branch ID collision prevention
 - [x] Filename format: `<id>-<slug(title)>.md`
 - [x] Wiki-link parsing: `[[<id>]]`, `[[<id>|label]]`
-- [ ] Wiki-link resolution works without rewriting (rewrite is opt-in only)
-- [ ] Markdown link resolution to qipu notes
-- [ ] Absence of caches must not break core workflows
+ - [x] Wiki-link resolution works without rewriting (rewrite is opt-in only)
+- [x] Markdown link resolution to qipu notes
+- [x] Absence of caches must not break core workflows
 - [ ] Attachments guidance: prefer relative markdown links, avoid embedding huge binaries
 
 ## Phase 2: Core Note Operations
@@ -133,7 +136,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] JSON output for list commands (schema: id, title, type, tags, path, created, updated)
 - [ ] JSON Lines output option (one object per note) for streaming
 - [x] Deterministic ordering (by created, then id)
-- [ ] Per-command help text: all commands support `<cmd> --help` (e.g., `qipu list --help`, `qipu create --help`)
+- [x] Per-command help text: all commands support `<cmd> --help` (e.g., `qipu list --help`, `qipu create --help`)
 
 ## Phase 3: Indexing and Search
 

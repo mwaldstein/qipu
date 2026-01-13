@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P4.3 Traversal Summary Lines**: Implemented summary lines (S records) in `qipu link tree` and `qipu link path` records output with `--max-chars` budget enforcement (10% safety buffer). Uses existing Note::summary() method with deterministic first-fit allocation. All 95 integration tests + 50 unit tests pass.
 - **P9.2 Sync Command Complete**: Implemented `qipu sync` command with `--validate` and `--fix` flags. Supports all three output formats. Git commit/push automation not implemented (future work). Phase 9.2 is now complete.
 - **P5.1 Records Output Complete**: All primary commands now support records format. Final addition: `qipu init` now outputs proper records format with header line `H qipu=1 records=1 store=<path> mode=init status=ok`. Phase 5.1 is now complete.
 - **P1.3 Config Sensible Defaults**: Implemented default config fallback in Store::open - qipu init is now optional for basic use. Store will use sensible defaults (version 1, fleeting default type, hash ID scheme) when config.toml is missing. Default templates are auto-created on first store open.
@@ -233,7 +234,10 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Edge objects: `{from, to, type, source}`
 - [x] `spanning_tree[]` with `{from, to, hop}` entries
 - [x] `qipu link path` JSON: list of nodes and edges in chosen path
-- [ ] Records output (see Phase 5)
+- [x] Records output: H (header), N (node), S (summary), E (edge) lines
+- [x] Summary lines (S records) for `qipu link tree` and `qipu link path`
+- [x] `--max-chars` budget enforcement with 10% safety buffer for tree/path commands
+- [ ] Summary lines for `qipu link list` (lower priority - list typically small)
 - [ ] Integration: traversal results compose cleanly with `qipu context`
 - [ ] Future: multiple start nodes for traversal
 - [ ] Future: `qipu context --walk <id> --max-hops <n>` for traverse-and-bundle in one command

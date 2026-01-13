@@ -1,6 +1,6 @@
 # Qipu Implementation Plan
 
-Last updated: 2026-01-12 (revised)
+Last updated: 2026-01-12 (revised - JSON output shapes clarified)
 
 This document tracks implementation progress against the specs in `specs/`.
 
@@ -85,6 +85,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 
 ### 2.1 `qipu init`
 - [ ] Create `.qipu/` directory structure (notes/, mocs/, attachments/, templates/)
+- [ ] Note: `.cache/` directory is created on-demand by `qipu index`, not by init
 - [ ] Create default `config.toml`
 - [ ] Idempotent behavior (safe to run multiple times)
 - [ ] `--stealth` flag (add to .gitignore)
@@ -186,7 +187,10 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Cycle detection (mark as "(seen)")
 - [ ] Truncation reporting
 - [ ] Human-readable tree output
-- [ ] `--json` output (nodes, edges with `source` field, spanning_tree)
+- [ ] `--json` output shape: `{ root, direction, max_depth, truncated, nodes[], edges[], spanning_tree[] }`
+  - [ ] `nodes[]`: `{ id, title, type, tags, path }`
+  - [ ] `edges[]`: `{ from, to, type, source }` (source = "typed" | "inline")
+  - [ ] `spanning_tree[]`: `{ parent, child, depth }`
 - [ ] `--token` output (per token-optimized-output spec, depends on 5.1)
 
 ### 4.3 `qipu link path <from> <to>`
@@ -227,7 +231,9 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `--walk <id>` shortcut for graph-based context (optional/future per spec)
 - [ ] Budgeting: `--max-chars`, `--max-tokens`
 - [ ] Markdown output format with `---` separator between notes (per llm-context spec)
-- [ ] `--json` output with `generated_at`, `store`, `sources[]` fields
+- [ ] `--json` output shape: `{ generated_at, store, notes[] }`
+  - [ ] Each note: `{ id, title, type, tags, path, content, sources[] }`
+  - [ ] Each source: `{ url, title }`
 - [ ] `--token` output (summaries-first, optional `--with-body`)
 - [ ] Truncation handling (complete notes, explicit `...[truncated]` markers)
 - [ ] `--safety-banner` flag (prepend warning about untrusted content)
@@ -288,7 +294,8 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `qipu compact suggest` (candidate detection)
   - [ ] Community/clump detection algorithm
   - [ ] Ranking by size, cohesion, boundary edges
-  - [ ] `--json` output with candidate list and suggested commands
+  - [ ] `--json` output shape: `{ candidates[] }`
+    - [ ] Each candidate: `{ ids[], node_count, edge_count, estimated_size, boundary_edge_ratio, suggested_command }`
 - [ ] `qipu compact guide` (LLM guidance prompt)
   - [ ] Steps: suggest → review → author → apply → validate
   - [ ] Prompt template for digest authoring

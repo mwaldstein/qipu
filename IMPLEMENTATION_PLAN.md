@@ -28,6 +28,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Set up integration test harness (temp directory stores)
 - [ ] Set up golden test infrastructure
 - [ ] Configure CI (build + test across Linux/macOS/Windows)
+- [ ] Create `.gitignore` template (ignore `.cache/`, `qipu.db`)
 
 ---
 
@@ -43,7 +44,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Timing output deterministic in shape (keys/labels stable)
 
 ### 1.2 Store Discovery
-- [ ] Walk up from cwd to find `.qipu/` directory
+- [ ] Walk up from cwd to find `.qipu/` directory (`.qipu/` **is** the store root)
 - [ ] Support `--store <path>` explicit override
 - [ ] Support `--root <path>` base directory
 - [ ] Missing-store detection (exit code 3)
@@ -51,10 +52,13 @@ Work items are listed in dependency order. Complete each phase before starting t
 ### 1.3 Config System
 - [ ] Parse `.qipu/config.toml`
 - [ ] Define sensible defaults (format version, note type, id scheme)
+- [ ] ID scheme options: `hash` (default) | `ulid` | `timestamp`
+- [ ] Editor preference override config
 - [ ] Config validation
 
 ### 1.4 Note Model (`src/lib/note.rs`)
-- [ ] YAML frontmatter parsing (id, title, type, created, updated, tags, sources, links)
+- [ ] YAML frontmatter parsing (id, title, type, created, updated, tags, sources, links, summary)
+- [ ] Links array with `type`, `id`, and `source` (typed vs inline) fields
 - [ ] Markdown body extraction
 - [ ] Deterministic serialization (stable key order, stable formatting)
 - [ ] Required field validation (id, title)
@@ -70,6 +74,11 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Human-friendly error messages (default)
 - [ ] JSON error output when `--json` is set
 
+### 1.7 Template System (`src/lib/template.rs`)
+- [ ] Load templates from `.qipu/templates/`
+- [ ] Default templates for each note type (fleeting, literature, permanent, moc)
+- [ ] Template variable substitution (id, title, created, type, tags)
+
 ---
 
 ## Phase 2: Core Commands
@@ -82,12 +91,13 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `--visible` flag (use `qipu/` instead of `.qipu/`)
 - [ ] `--branch` flag (protected-branch workflow config)
 
-### 2.2 `qipu create` / `qipu new`
+### 2.2 `qipu create <title>` (alias: `qipu new`)
+- [ ] Positional `<title>` argument (required)
 - [ ] Create note with generated ID and slug
 - [ ] `--type <fleeting|literature|permanent|moc>` flag
 - [ ] `--tag <tag>` flag (repeatable)
 - [ ] `--open` flag (open in $EDITOR)
-- [ ] Template support
+- [ ] Template support (from 1.7)
 - [ ] Print ID/path on success
 - [ ] `--json` output
 
@@ -110,7 +120,7 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Resolve ID or path to note
 - [ ] Print note content
 - [ ] `--json` output (full note metadata + content)
-- [ ] `--links` flag (show links from/to note)
+- [ ] `--links` flag (show both outgoing and incoming links)
 
 ---
 
@@ -139,7 +149,10 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `--tag`, `--type` filters
 - [ ] `--include-mocs`, `--exclude-mocs` filters
 - [ ] Result ranking (title > body, exact > partial)
+- [ ] Exact tag matches rank above plain text
 - [ ] Recency boost for recently updated notes
+- [ ] Optional ripgrep integration fallback
+- [ ] Optional SQLite FTS when `qipu.db` present
 - [ ] `--json` output
 
 ### 3.5 `qipu inbox`
@@ -156,19 +169,25 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `qipu link remove <from> <to> --type <type>`
 - [ ] `qipu link list <id> [--direction out|in|both] [--typed-only|--inline-only] [--type <t>]`
 - [ ] Update frontmatter links array on add/remove
+- [ ] Typed link types: `related`, `derived-from`, `supports`, `contradicts`, `part-of`
+- [ ] Inline links treated as `type=related, source=inline`
 - [ ] `--json` output
 
 ### 4.2 `qipu link tree <id>`
-- [ ] BFS traversal with deterministic ordering
+- [ ] BFS traversal with deterministic ordering (neighbors sorted by edge type, target id)
 - [ ] `--direction <out|in|both>` (default: both)
 - [ ] `--max-depth <n>` (default: 3)
 - [ ] `--typed-only`, `--inline-only`, `--type`, `--exclude-type` filters
-- [ ] `--max-nodes` limit
+- [ ] `--types <csv>` shorthand for multiple type includes
+- [ ] `--exclude-types <csv>` shorthand for multiple type excludes
+- [ ] `--max-nodes <n>` limit
+- [ ] `--max-edges <n>` limit
+- [ ] `--max-children <n>` per-node cap
 - [ ] Cycle detection (mark as "(seen)")
 - [ ] Truncation reporting
 - [ ] Human-readable tree output
-- [ ] `--json` output (nodes, edges, spanning_tree)
-- [ ] `--token` output (per token-optimized-output spec)
+- [ ] `--json` output (nodes, edges with `source` field, spanning_tree)
+- [ ] `--token` output (per token-optimized-output spec, depends on 5.1)
 
 ### 4.3 `qipu link path <from> <to>`
 - [ ] Find shortest path between notes
@@ -181,12 +200,16 @@ Work items are listed in dependency order. Complete each phase before starting t
 ## Phase 5: LLM Integration
 
 ### 5.1 Token-Optimized Output (`src/lib/token.rs`)
-- [ ] Header line format (H record) with format version (`token=1`)
-- [ ] Note metadata line format (N record)
+- [ ] Header line format (H record) with format version (`qipu=1 token=1`)
+- [ ] H record includes `mode=<command>` field (e.g., `mode=link.tree`, `mode=context`)
+- [ ] H record includes `store=`, `truncated=` fields
+- [ ] Note metadata line format (N record) with id, type, title, tags
+- [ ] N record includes `path=` field for context mode
 - [ ] Summary line format (S record)
-- [ ] Edge line format (E record)
+- [ ] Edge line format (E record) with `source=typed|inline` field
 - [ ] Body lines format (B record)
-- [ ] Summary extraction (frontmatter > ## Summary section > first paragraph)
+- [ ] Summary extraction order: frontmatter `summary` > `## Summary` section > first paragraph
+- [ ] Default token estimator: `ceil(chars / 4)`
 - [ ] `--with-body` flag (include body lines, default summaries-only)
 - [ ] `--with-edges` flag (include edge records)
 
@@ -201,12 +224,12 @@ Work items are listed in dependency order. Complete each phase before starting t
 ### 5.3 `qipu context`
 - [ ] Bundle selection: `--note`, `--tag`, `--moc`, `--query`
 - [ ] MOC modes: `--moc-mode direct` (default) vs `--moc-mode transitive`
-- [ ] `--walk <id>` shortcut for graph-based context (traversal from ID)
+- [ ] `--walk <id>` shortcut for graph-based context (optional/future per spec)
 - [ ] Budgeting: `--max-chars`, `--max-tokens`
-- [ ] Markdown output format (per llm-context spec)
-- [ ] `--json` output
+- [ ] Markdown output format with `---` separator between notes (per llm-context spec)
+- [ ] `--json` output with `generated_at`, `store`, `sources[]` fields
 - [ ] `--token` output (summaries-first, optional `--with-body`)
-- [ ] Truncation handling (complete notes, explicit markers)
+- [ ] Truncation handling (complete notes, explicit `...[truncated]` markers)
 - [ ] `--safety-banner` flag (prepend warning about untrusted content)
 
 ---
@@ -218,9 +241,12 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Outline export mode (MOC-first ordering)
 - [ ] Bibliography export mode (extract sources)
 - [ ] Selection: `--note`, `--tag`, `--moc`, `--query`
-- [ ] Deterministic ordering (MOC order or created_at,id)
-- [ ] Link handling options (preserve, rewrite to markdown, rewrite to anchors)
-- [ ] Attachment handling (`--no-attachments` default)
+- [ ] Deterministic ordering: MOC order when MOC-driven, `(created_at, id)` tuple otherwise
+- [ ] Link handling flags:
+  - [ ] `--preserve-links` (default, conservative - preserve wiki links)
+  - [ ] `--rewrite-links-markdown` (rewrite wiki links to markdown links)
+  - [ ] `--rewrite-links-anchors` (rewrite note links to section anchors)
+- [ ] Attachment handling: `--no-attachments` (default), `--include-attachments` (copy to export folder)
 
 ---
 
@@ -232,9 +258,11 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] Invariants: one compactor per note, acyclic, no self-compaction
 
 ### 7.2 Canonicalization (`src/lib/compaction.rs`)
-- [ ] `canon(id)` function (follow compaction chain)
-- [ ] Contracted graph computation
+- [ ] `canon(id)` function (follow compaction chain with visited set for cycle safety)
+- [ ] Contracted graph computation (graph with canonicalized node IDs)
 - [ ] Cycle detection and error handling
+- [ ] Compaction percent formula: `100 * (1 - digest_size / expanded_size)`
+- [ ] Size estimation using summary extraction rules from 5.1
 
 ### 7.3 Visibility & Metrics
 - [ ] Hidden-by-default for compacted notes
@@ -269,9 +297,9 @@ Work items are listed in dependency order. Complete each phase before starting t
 - [ ] `--no-resolve-compaction` flag (show raw view, disable canonicalization)
 - [ ] `--with-compaction-ids`, `--compaction-depth` flags
 - [ ] `--compaction-max-nodes <n>` bound for expansion
-- [ ] `--expand-compaction` for context/traversal
-- [ ] Search canonicalization (return digest, annotate `via=<id>`)
-- [ ] Traversal on contracted graph
+- [ ] `--expand-compaction` flag for context/traversal (include compacted source note bodies)
+- [ ] Search canonicalization (return canonical digest, annotate `via=<matching-source-id>`)
+- [ ] Traversal operates on contracted graph by default
 - [ ] Output annotations: `compacts=<N>`, `compaction=<P%>`
 
 ---
@@ -374,6 +402,8 @@ Phase 3 (Indexing) ────────────────────�
                                      v               │
                                Phase 9 (Setup) ──────┘
 ```
+
+**Note:** Phase 4's `--token` output for traversal commands depends on Phase 5.1 (Token-Optimized Output infrastructure). Implement 5.1 first if traversal `--token` is needed early.
 
 ### Testing Strategy
 

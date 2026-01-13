@@ -8,197 +8,71 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ## Current Status
 
-**Phase 0 (Project Bootstrap)**: COMPLETED
+This implementation plan is intentionally technology-agnostic and does not track completion.
 
-**Phase 1 (Foundation)**: COMPLETED
-
-**Phase 2 (Core Commands)**: COMPLETED
-
-- All core commands implemented: `init`, `create`, `new`, `capture`, `list`, `show`
-
-**Phase 3 (Indexing & Navigation)**: COMPLETED
-
-**Phase 4 (Link Management & Graph Traversal)**: COMPLETED
-
-**Phase 5 (LLM Integration)**: COMPLETED
-
-**Phase 6 (Export)**: COMPLETED
-
-**Testing**: 114 unit tests passing
-
-**Next Steps**: Phase 7 (Compaction)
+Use it as a proposed work breakdown against `specs/`.
 
 ---
 
-## Phase 0: Project Bootstrap - COMPLETED
+## Phase 0: Project Bootstrap
 
-- [x] TypeScript with Node.js
-- [x] npm package manager
-- [x] Project structure: `src/`, `src/lib/`, `src/commands/`
-- [x] Test framework: Vitest
-- [x] CI/linting: ESLint + Prettier configured
-
----
-
-## Phase 1: Foundation - COMPLETED
-
-### Storage Layer (`src/lib/storage.ts`)
-
-- [x] Store discovery (walk up from cwd to find `.qipu/`, `--store` flag support)
-- [x] Store initialization with all subdirectories
-- [x] Config parsing (TOML)
-- [x] Note file parsing (YAML frontmatter + markdown)
-- [x] Note file writing with deterministic serialization
-- [x] ID generation (`qp-<hash>` format)
-- [x] Slug generation
-
-### Knowledge Model (`src/lib/models.ts`)
-
-- [x] Note struct with all fields
-- [x] Note types (fleeting, literature, permanent, moc)
-- [x] Typed links model
-- [x] Source model
-- [x] Exit codes
-
-### CLI Runtime (`src/cli.ts`)
-
-- [x] `--help` and `--version` flags
-- [x] Global flags (`--store`, `--root`, `--json`, `--token`, `--quiet`, `--verbose`)
-- [x] Mutual exclusivity validation for `--json` and `--token`
-- [x] Exit codes (0 success, 1 failure, 2 usage error, 3 data error)
-
-### Pending Foundation Items
-
-- [ ] Template loading from `templates/`
-- [ ] Git integration defaults (`.gitignore` setup)
-- [ ] Error formatting for `--json` mode
-- [ ] Unknown flags/args exit code 2 handling
+- [ ] Choose implementation language/toolchain aligned with `specs/cli-tool.md`.
+- [ ] Establish project structure for a single native `qipu` executable.
+- [ ] Set up testing harness for deterministic integration + golden tests.
+- [ ] Set up CI for build + tests across platforms.
 
 ---
 
-## Phase 2: Core Commands - COMPLETED
+## Phase 1: Foundation
 
-### `qipu init` - COMPLETED
-
-- [x] Create store at default or specified location
-- [x] `--stealth` mode (gitignore the store)
-- [x] `--visible` mode (use `qipu/` instead of `.qipu/`)
-- [ ] `--branch <name>` (optional protected-branch workflow configuration)
-- [x] Idempotent (safe to run multiple times)
-
-### `qipu create` - COMPLETED
-
-- [x] Generate new note with ID, slug, frontmatter
-- [x] `--type` flag (fleeting, literature, permanent, moc)
-- [x] `--tag` flag (repeatable)
-- [x] `--open` flag (open in `$EDITOR`)
-- [ ] `--template` flag (use template from `templates/`)
-- [x] Print note ID/path on success
-
-### `qipu new` alias - COMPLETED
-
-- [x] Register `qipu new` as alias for `qipu create`
-
-### `qipu list` - COMPLETED
-
-- [x] List all notes
-- [x] `--tag` filter
-- [x] `--type` filter
-- [x] `--since` filter
-- [x] `--json` output format
-- [x] Deterministic ordering
-
-### `qipu show <id-or-path>` - COMPLETED
-
-- [x] Resolve ID or path to note file
-- [x] Print note content to stdout
-- [x] `--json` output format
-- [x] `--links` flag
-
-### `qipu capture` - COMPLETED
-
-- [x] Create note from stdin
-- [x] `--title` flag
-- [x] `--type` flag
-- [x] `--tag` flag
+- [ ] Store discovery (walk up from cwd; support `--store` and `--root`).
+- [ ] Store initialization and directory layout.
+- [ ] Config parsing (TOML) and defaults.
+- [ ] Note parsing (frontmatter + markdown body) and deterministic serialization.
+- [ ] ID and slug generation per spec.
+- [ ] CLI runtime skeleton: `--help`, `--version`, global flags, exit codes.
+- [ ] Deterministic error formatting for `--json`.
 
 ---
 
-## Phase 3: Indexing & Navigation - COMPLETED
+## Phase 2: Core Commands
 
-### Indexing (`specs/indexing-search.md`)
-
-- [x] Metadata index (id -> {title, type, tags, path, created, updated})
-- [x] Tag index (tag -> [ids...])
-- [x] Link extraction (wiki links, markdown links, typed links)
-- [x] Backlink index
-- [x] Graph adjacency list
-- [x] Incremental indexing (track mtimes)
-- [x] Cache storage (`.qipu/.cache/*.json`)
-- [x] `qipu index` command
-- [x] `qipu index --rebuild` command
-
-### Search (`specs/indexing-search.md`)
-
-- [x] `qipu search <query>` - full-text search
-- [x] `--tag`, `--type`, `--moc`/`--no-moc` filters
-- [x] `--json` output
-- [x] Result ranking
-
-### `qipu inbox` (`specs/cli-interface.md`)
-
-- [x] List unprocessed notes (type in {fleeting, literature})
-- [x] `--no-moc` flag
-- [x] `--json` output
+- [ ] `qipu init` (idempotent; `--stealth`, `--visible`, optional `--branch`).
+- [ ] `qipu create` / `qipu new` (new note; tags/types; optional `--open` and templates).
+- [ ] `qipu capture` (stdin to note; supports non-interactive workflows).
+- [ ] `qipu list` (filters; deterministic ordering; `--json`).
+- [ ] `qipu show <id-or-path>` (resolve; print; `--json`).
 
 ---
 
-## Phase 4: Link Management & Graph Traversal - COMPLETED
+## Phase 3: Indexing & Navigation
 
-### Link Commands
-
-- [x] `qipu link add <from> <to> --type <t>`
-- [x] `qipu link remove <from> <to> --type <t>`
-- [x] `qipu link list <id>` with direction/type filters
-
-### Graph Traversal
-
-- [x] `qipu link tree <id>` with depth, type, direction options
-- [x] `qipu link path <from> <to>`
-- [x] Cycle detection (BFS traversal handles cycles)
-- [x] `--json` and `--token` output formats
+- [ ] Build/update indexes per `specs/indexing-search.md`.
+- [ ] Implement `qipu index` (incremental; `--rebuild`).
+- [ ] Implement `qipu search <query>` (filters; ranking; `--json`).
+- [ ] Implement `qipu inbox` (unprocessed note queue; `--json`).
 
 ---
 
-## Phase 5: LLM Integration (P5) - COMPLETED
+## Phase 4: Link Management & Graph Traversal
 
-### Token-Optimized Output (`specs/token-optimized-output.md`)
-
-- [x] `--token` output format (line-oriented, H/N/S/E/B records)
-- [x] Record types: H (header), N (note), S (summary), E (edge), B (body)
-- [x] Budget enforcement (`--max-chars`, `--max-tokens`)
-- [x] `--with-body` flag
-
-### `qipu prime` (`specs/llm-context.md`)
-
-- [x] Emit bounded session primer (~1-2k tokens)
-- [x] `--json` and `--token` output
-
-### `qipu context` (`specs/llm-context.md`)
-
-- [x] Bundle selection (`--note`, `--tag`, `--moc`, `--query`)
-- [x] Budgeting (`--max-chars`, `--max-tokens`)
-- [x] Output formats (markdown, `--json`, `--token`)
+- [ ] Implement `qipu link add/remove/list` per `specs/cli-interface.md`.
+- [ ] Implement `qipu link tree/path` per `specs/graph-traversal.md`.
+- [ ] Ensure `--json` and `--token` output shapes are stable.
 
 ---
 
-## Phase 6: Export (P6) - COMPLETED
+## Phase 5: LLM Integration (P5)
 
-- [x] `qipu export` command
-- [x] Bundle, outline, and bibliography export modes
-- [x] Selection inputs (`--note`, `--tag`, `--moc`, `--query`)
-- [x] Link handling options (preserve, markdown, anchors)
-- [x] Attachment handling (default: no attachments for lightweight exports)
+- [ ] Implement token-optimized output per `specs/token-optimized-output.md`.
+- [ ] Implement `qipu prime` per `specs/llm-context.md`.
+- [ ] Implement `qipu context` per `specs/llm-context.md`.
+
+---
+
+## Phase 6: Export (P6)
+
+- [ ] Implement `qipu export` per `specs/export.md`.
 
 ---
 
@@ -247,23 +121,23 @@ See `specs/` for detailed open questions on:
 ### Dependency Graph (Phases)
 
 ```
-Phase 0 (Bootstrap) - DONE
+Phase 0 (Bootstrap)
     |
     v
-Phase 1 (Foundation) - DONE
+Phase 1 (Foundation)
     |
     v
-Phase 2 (Core Commands) - DONE
+Phase 2 (Core Commands)
     |
     v
-Phase 3 (Indexing) - DONE
+Phase 3 (Indexing)
     |
-    +-----> Phase 4 (Graph Traversal) - DONE
+    +-----> Phase 4 (Graph Traversal)
     |              |
-    +--------------+-----> Phase 5 (LLM Integration) - DONE
+    +--------------+-----> Phase 5 (LLM Integration)
     |
     v
-Phase 6 (Export) - DONE
+Phase 6 (Export)
     |
     v
 Phase 7 (Compaction)
@@ -277,7 +151,6 @@ Phase 9 (Setup)
 
 ### Testing Strategy
 
-- Unit tests for all `src/lib/` utilities
 - Integration tests for CLI commands (temporary directory stores)
 - Golden tests for deterministic outputs
-- Property-based tests for ID generation collision resistance
+- Property-based tests where useful (e.g. ID collision resistance)

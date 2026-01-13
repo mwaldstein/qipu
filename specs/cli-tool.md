@@ -4,11 +4,13 @@ Status: Draft
 Last updated: 2026-01-12
 
 ## Job to be done
+
 Provide a single `qipu` executable that can be run locally (offline) to create, read, and navigate a qipu knowledge store.
 
 This spec focuses on the CLI as a product surface (parsing, dispatch, output profiles, determinism, and error conventions). Individual command semantics and data formats are specified elsewhere.
 
 ## In scope
+
 - A single `qipu` executable with stable command/flag parsing.
 - Global flags, output profiles (`human`, `--json`, `--token`), and verbosity controls.
 - Store discovery and path resolution rules.
@@ -17,6 +19,7 @@ This spec focuses on the CLI as a product surface (parsing, dispatch, output pro
 - Testing expectations for the CLI runtime (goldens + integration).
 
 ## Out of scope
+
 - Command-specific behavior (see `specs/cli-interface.md`).
 - On-disk store formats (see `specs/storage-format.md`).
 - Graph/query algorithms (see their respective specs).
@@ -24,13 +27,38 @@ This spec focuses on the CLI as a product surface (parsing, dispatch, output pro
 ## Requirements
 
 ### Executable
+
 - The tool is invoked as `qipu`.
+- The primary distribution artifact is a single, self-contained native executable (a “real binary”), not a script.
 - `qipu --help` prints stable help output and exits `0`.
 - `qipu --version` prints a single line with version information and exits `0`.
 - The CLI must not require network access for normal operation.
 
+### Distribution + dependencies
+
+- Installation must be possible by downloading a release artifact and placing it on `$PATH` (no `node`, `python`, `java`, or other runtime required).
+- Optional installer wrappers (Homebrew, system package managers, etc.) may exist, but they must install/launch the same native binary.
+- The executable should be portable across common developer platforms (macOS, Linux, Windows) with minimal external dynamic dependencies.
+
+### Performance budgets
+
+The CLI is intended to feel “instant” in interactive use.
+
+Targets (approximate, p95 on a typical developer laptop):
+
+- `qipu --help` and `qipu --version`: < 100ms wall time.
+- `qipu list` with ~1k notes: < 200ms.
+- `qipu search` over ~10k notes: < 1s (with indexes built where applicable).
+
+Implementation implications:
+
+- Prefer a compiled systems language suitable for single-binary distribution (e.g. Go or Rust).
+- Avoid designs that require a heavyweight runtime, JIT warmup, or spawning background daemons for baseline commands.
+
 ### Global flags
+
 Global flags are defined in `specs/cli-interface.md` and must apply consistently across commands:
+
 - `--root <path>`: base directory for resolving the store (default: current working directory).
 - `--store <path>`: explicit store root path.
 - `--json`: machine-readable output.
@@ -38,13 +66,16 @@ Global flags are defined in `specs/cli-interface.md` and must apply consistently
 - `--quiet` / `--verbose`.
 
 Constraints:
+
 - `--json` and `--token` are mutually exclusive.
 - Unknown flags/args must produce a usage error (exit code `2`).
 
 ### Store discovery and resolution
+
 Qipu commands operate against a “store root” directory.
 
 Resolution order:
+
 1. If `--store` is provided:
    - If it is relative, resolve it relative to `--root` (or cwd if `--root` is omitted).
    - Use the resulting path as the store root.
@@ -53,11 +84,14 @@ Resolution order:
    - If the filesystem root is reached with no store found, the store is “missing”.
 
 Missing-store behavior:
+
 - Commands that require an existing store must fail with exit code `3`.
 - Commands that create a store (notably `qipu init`) may create it at the default location.
 
 ### Output determinism
+
 For the same inputs and store state:
+
 - Output ordering must be stable.
 - Output formatting must be stable.
 - When truncation/budgeting occurs, it must be explicit and deterministic.
@@ -65,28 +99,41 @@ For the same inputs and store state:
 Determinism applies to all output profiles (human / `--json` / `--token`).
 
 ### Exit codes
+
 Exit codes must follow `specs/cli-interface.md`:
+
 - `0`: success
 - `1`: generic failure
 - `2`: usage error
 - `3`: data/store error
 
 ### Error messages
+
 - Human output may include friendly context.
 - `--json` output must include structured error details (shape defined per command) while still using the correct exit code.
 
 ### Filesystem hygiene
+
 When writing files:
+
 - Avoid rewriting files unnecessarily (do not touch notes unless the operation requires it).
 - Preserve newline style where practical.
 - Avoid writing derived caches unless a command explicitly calls for it (e.g. `qipu index`).
 
+### Observability
+
+- Provide a `--verbose` mode that can report timing for major phases (parse args, discover store, load indexes, execute command).
+- Timing output must be deterministic in shape (keys/labels stable), even if values vary.
+
 ## Validation
+
 This spec is considered implemented when:
+
 - `qipu` runs and dispatches commands per `specs/cli-interface.md`.
 - Store discovery behaves as described above.
 - Exit codes and determinism rules are consistently applied.
 
 ## Testing expectations
+
 - Integration tests: run CLI commands against a temporary directory/store.
 - Golden tests: lock down deterministic outputs for commands like `qipu prime`, `qipu context`, and traversal outputs.

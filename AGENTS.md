@@ -2,27 +2,24 @@
 
 ## Build & Run
 
-```bash
-npm install          # Install dependencies
-npm run build        # Compile TypeScript to dist/
-npm test             # Run all tests
-npm run test:watch   # Run tests in watch mode
-```
+Build/run instructions are intentionally not specified yet.
 
-## CLI Usage (after build)
+Qipu’s specs require a single, self-contained native `qipu` executable (see `specs/cli-tool.md`).
+
+## CLI Usage
+
+Once built/installed, these should work:
 
 ```bash
-node dist/cli.js --help
-node dist/cli.js --version
+qipu --help
+qipu --version
 ```
 
 ## Project Structure
 
-- `src/` - TypeScript source code
-- `src/lib/` - Shared utilities (storage, models, parsing)
-- `src/commands/` - CLI command implementations
-- `dist/` - Compiled JavaScript output
-- `specs/` - Application specifications (read-only reference)
+- `specs/` - Application specifications (implementable, technology-agnostic)
+- `docs/` - Usage patterns and guidance
+- `prompts/` - Prompt templates used by agents/tools
 
 ## Key Commands
 
@@ -33,4 +30,4 @@ node dist/cli.js --version
 
 ## Testing
 
-Tests use Vitest. Run `npm test` to execute all tests.
+Test harness is not specified yet. Specs emphasize determinism and integration tests (see `specs/cli-tool.md`).

@@ -9,7 +9,8 @@
 import { Command } from "commander";
 import { ExitCodes } from "./lib/models.js";
 import { initCommand } from "./commands/init.js";
-import { createCommand } from "./commands/create.js";
+import { createCommand, newCommand } from "./commands/create.js";
+import { captureCommand } from "./commands/capture.js";
 import { listCommand } from "./commands/list.js";
 import { showCommand } from "./commands/show.js";
 
@@ -39,6 +40,8 @@ program
 // Register commands
 program.addCommand(initCommand);
 program.addCommand(createCommand);
+program.addCommand(newCommand);
+program.addCommand(captureCommand);
 program.addCommand(listCommand);
 program.addCommand(showCommand);
 

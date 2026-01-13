@@ -10,20 +10,15 @@ This document tracks implementation progress against the specs in `specs/`.
 
 **Phase 0 (Project Bootstrap)**: COMPLETED
 
-- TypeScript + Node.js, npm, Vitest, ESLint + Prettier
-
 **Phase 1 (Foundation)**: COMPLETED
 
-- Storage layer, knowledge model, CLI runtime all implemented
+**Phase 2 (Core Commands)**: COMPLETED
 
-**Phase 2 (Core Commands)**: IN PROGRESS
+- All core commands implemented: `init`, `create`, `new`, `capture`, `list`, `show`
 
-- Completed: `init`, `create`, `list`, `show`
-- Remaining: `capture`, `new` alias registration
+**Testing**: 57 unit tests passing
 
-**Testing**: 50 unit tests passing (models, storage, parsing)
-
-**Next Steps**: Complete `qipu capture` and `qipu new` alias, then move to Phase 3 (Indexing & Navigation)
+**Next Steps**: Phase 3 (Indexing & Navigation)
 
 ---
 
@@ -73,7 +68,7 @@ This document tracks implementation progress against the specs in `specs/`.
 
 ---
 
-## Phase 2: Core Commands - IN PROGRESS
+## Phase 2: Core Commands - COMPLETED
 
 ### `qipu init` - COMPLETED
 
@@ -92,9 +87,9 @@ This document tracks implementation progress against the specs in `specs/`.
 - [ ] `--template` flag (use template from `templates/`)
 - [x] Print note ID/path on success
 
-### `qipu new` alias - NOT IMPLEMENTED
+### `qipu new` alias - COMPLETED
 
-- [ ] Register `qipu new` as alias for `qipu create`
+- [x] Register `qipu new` as alias for `qipu create`
 
 ### `qipu list` - COMPLETED
 
@@ -112,12 +107,12 @@ This document tracks implementation progress against the specs in `specs/`.
 - [x] `--json` output format
 - [x] `--links` flag
 
-### `qipu capture` - NOT IMPLEMENTED
+### `qipu capture` - COMPLETED
 
-- [ ] Create note from stdin
-- [ ] `--title` flag
-- [ ] `--type` flag
-- [ ] `--tag` flag
+- [x] Create note from stdin
+- [x] `--title` flag
+- [x] `--type` flag
+- [x] `--tag` flag
 
 ---
 
@@ -250,7 +245,7 @@ Phase 0 (Bootstrap) - DONE
 Phase 1 (Foundation) - DONE
     |
     v
-Phase 2 (Core Commands) - IN PROGRESS
+Phase 2 (Core Commands) - DONE
     |
     v
 Phase 3 (Indexing) -- required by P4, P5

@@ -2341,10 +2341,11 @@ fn test_context_max_chars() {
     // Get context with small budget - should truncate
     qipu()
         .current_dir(dir.path())
-        .args(["context", "--tag", "budget", "--max-chars", "500"])
+        .args(["context", "--tag", "budget", "--max-chars", "1200"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Budget Note")); // At least one note
+        .stdout(predicate::str::contains("Budget Note")) // At least one note
+        .stdout(predicate::str::contains("truncated")); // Should indicate truncation
 }
 
 #[test]
@@ -2456,6 +2457,117 @@ fn test_context_nonexistent_note() {
         .assert()
         .code(3)
         .stderr(predicate::str::contains("not found"));
+}
+
+#[test]
+fn test_context_budget_exact() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create multiple notes with known content
+    for i in 0..10 {
+        qipu()
+            .current_dir(dir.path())
+            .args(["create", "--tag", "budget-test", &format!("Note {}", i)])
+            .assert()
+            .success();
+    }
+
+    // Test budget enforcement in human format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "budget-test",
+            "--max-chars",
+            "800",
+            "--format",
+            "human",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Verify output doesn't exceed budget
+    assert!(
+        stdout.len() <= 800,
+        "Output size {} exceeds budget 800",
+        stdout.len()
+    );
+
+    // Should indicate truncation since we have many notes
+    assert!(
+        stdout.contains("truncated"),
+        "Output should indicate truncation"
+    );
+
+    // Test budget enforcement in JSON format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "budget-test",
+            "--max-chars",
+            "1000",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Verify output doesn't exceed budget
+    assert!(
+        stdout.len() <= 1000,
+        "JSON output size {} exceeds budget 1000",
+        stdout.len()
+    );
+
+    // Parse JSON and check truncated flag
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["truncated"], true, "Truncated flag should be true");
+
+    // Test budget enforcement in records format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "budget-test",
+            "--max-chars",
+            "600",
+            "--format",
+            "records",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Verify output doesn't exceed budget
+    assert!(
+        stdout.len() <= 600,
+        "Records output size {} exceeds budget 600",
+        stdout.len()
+    );
+
+    // Should indicate truncation in header
+    assert!(
+        stdout.contains("truncated=true"),
+        "Records output should indicate truncation in header"
+    );
 }
 
 // ============================================================================

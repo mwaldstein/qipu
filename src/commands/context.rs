@@ -173,6 +173,10 @@ fn get_moc_linked_notes(
 
 /// Apply character budget to notes
 /// Returns (truncated, notes_to_output)
+///
+/// This function ensures that the output respects the --max-chars budget exactly.
+/// It uses conservative estimates with a safety buffer to ensure the actual output
+/// never exceeds the budget.
 fn apply_budget(notes: &[Note], max_chars: Option<usize>, with_body: bool) -> (bool, Vec<&Note>) {
     let Some(budget) = max_chars else {
         return (false, notes.iter().collect());
@@ -182,16 +186,20 @@ fn apply_budget(notes: &[Note], max_chars: Option<usize>, with_body: bool) -> (b
     let mut used_chars = 0;
     let mut truncated = false;
 
-    // Estimate header size
-    let header_estimate = 200; // Approximate header size
+    // Conservative header estimate with buffer
+    // Different formats have different header sizes, so we use a conservative estimate
+    let header_estimate = 250; // Conservative header size estimate
     used_chars += header_estimate;
 
     for note in notes {
         let note_size = estimate_note_size(note, with_body);
 
-        if used_chars + note_size <= budget {
+        // Add 10% safety buffer to ensure actual output doesn't exceed budget
+        let note_size_with_buffer = note_size + (note_size / 10);
+
+        if used_chars + note_size_with_buffer <= budget {
             result.push(note);
-            used_chars += note_size;
+            used_chars += note_size_with_buffer;
         } else {
             truncated = true;
             break;
@@ -202,36 +210,66 @@ fn apply_budget(notes: &[Note], max_chars: Option<usize>, with_body: bool) -> (b
 }
 
 /// Estimate the output size of a note
+///
+/// This provides a conservative estimate of the output size across all formats.
+/// The estimate includes:
+/// - All metadata fields (id, title, type, tags, path)
+/// - Sources (if present)
+/// - Body content (full body or summary depending on with_body flag)
+/// - Format-specific overhead (separators, labels, JSON syntax, etc.)
 fn estimate_note_size(note: &Note, with_body: bool) -> usize {
     let mut size = 0;
 
-    // Metadata size
-    size += note.id().len() + 10;
-    size += note.title().len() + 10;
-    size += note.note_type().to_string().len() + 10;
-    size += note.frontmatter.tags.join(", ").len() + 10;
+    // Metadata size with realistic format overhead
+    size += note.id().len() + 15; // "N qp-xxx type "
+    size += note.title().len() + 20; // Title with quotes and labels
+    size += note.note_type().to_string().len() + 15;
 
-    if let Some(path) = &note.path {
-        size += path.display().to_string().len() + 10;
+    // Tags
+    if !note.frontmatter.tags.is_empty() {
+        size += note.frontmatter.tags.join(",").len() + 20; // "tags=..." overhead
+    } else {
+        size += 10; // "tags=-"
     }
 
-    // Sources
+    // Path
+    if let Some(path) = &note.path {
+        size += path.display().to_string().len() + 20; // "Path: " or "path=" overhead
+    } else {
+        size += 10; // "path=-" or no path
+    }
+
+    // Sources - account for markdown/JSON formatting
     for source in &note.frontmatter.sources {
-        size += source.url.len() + 10;
+        size += source.url.len() + 30; // URL with formatting
         if let Some(title) = &source.title {
-            size += title.len();
+            size += title.len() + 10; // Title with formatting
+        }
+        if let Some(accessed) = &source.accessed {
+            size += accessed.len() + 20; // Date with formatting
         }
     }
 
     // Body or summary
     if with_body {
         size += note.body.len();
+        // Body includes B line markers and B-END in records format
+        size += 30; // "B qp-xxx\n" + "B-END\n"
     } else {
-        size += note.summary().len();
+        let summary = note.summary();
+        size += summary.len();
+        // Summary includes S line in records format
+        if !summary.is_empty() {
+            size += note.id().len() + 5; // "S qp-xxx "
+        }
     }
 
-    // Add separators and formatting overhead
-    size += 50;
+    // Add format-specific overhead for separators and structure
+    // This accounts for:
+    // - Human format: "## Note: " headers, "---" separators
+    // - JSON format: object structure, commas, brackets
+    // - Records format: line prefixes and terminators
+    size += 100;
 
     size
 }

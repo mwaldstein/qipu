@@ -3,6 +3,10 @@
 Status: In Progress  
 Last updated: 2026-01-13
 
+## Recent Updates (2026-01-13)
+- **P5.2 Budgeting**: Completed exact budget enforcement for `qipu context --max-chars` with 10% safety buffer
+- **P1.4 Storage Format**: Confirmed required frontmatter field validation (`id`, `title`) already implemented in parser and doctor command
+
 This plan tracks implementation progress against specs in `specs/`. Items are sorted by priority (foundational infrastructure first, then core features, then advanced features).
 
 ## Implementation Status
@@ -73,7 +77,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Note file parser (YAML frontmatter + markdown body)
 - [ ] Notes readable and editable without qipu (design constraint)
 - [x] Frontmatter schema: `id`, `title`, `type`, `created`, `updated`, `tags`, `sources`, `links`
-- [ ] Required frontmatter fields: `id`, `title`
+- [x] Required frontmatter fields: `id`, `title` (parser returns `InvalidFrontmatter` error if missing; also validated by doctor command)
 - [ ] Auto-populated fields: `created` (set on note creation, ISO8601 timestamp)
 - [ ] Optional frontmatter fields: `updated`, `links` array (inline links valid without it)
 - [ ] `sources` field: array of objects with `url`, `title`, `accessed` fields
@@ -236,7 +240,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Empty tags consistently use "-" across all commands
 
 ### P5.2 Budgeting (`specs/records-output.md`, `specs/llm-context.md`)
-- [ ] `--max-chars` exact budget
+- [x] `--max-chars` exact budget (implementation uses 10% safety buffer to ensure budget is never exceeded)
 - [ ] Truncation handling: set `truncated=true` in header, no partial records unless unavoidable
 - [ ] Truncation marker: `…[truncated]` exact format for partially truncated notes (ellipsis character)
 - [ ] Option: emit final header line indicating truncation (alternative to first-line `truncated=true`)

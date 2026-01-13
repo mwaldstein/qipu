@@ -635,5 +635,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                 }
             }
         }
+
+        Some(Commands::Compact { command }) => commands::compact::execute(cli, command),
     }
 }

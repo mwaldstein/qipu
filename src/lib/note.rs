@@ -172,6 +172,9 @@ pub struct NoteFrontmatter {
     /// Optional summary field for records output (per specs/records-output.md)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    /// Compaction: list of note IDs this digest compacts (per specs/compaction.md)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub compacts: Vec<String>,
 }
 
 impl NoteFrontmatter {
@@ -187,6 +190,7 @@ impl NoteFrontmatter {
             sources: Vec::new(),
             links: Vec::new(),
             summary: None,
+            compacts: Vec::new(),
         }
     }
 

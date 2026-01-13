@@ -1,6 +1,7 @@
 //! CLI commands for qipu
 
 pub mod capture;
+pub mod compact;
 pub mod context;
 pub mod create;
 pub mod doctor;

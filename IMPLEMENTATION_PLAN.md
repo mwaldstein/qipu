@@ -4,6 +4,7 @@ Status: In Progress
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-13)
+- **P8.1 & P8.2 Compaction PARTIALLY COMPLETE**: Implemented core compaction model and commands. COMPLETE: `compacts` frontmatter field, CompactionContext with canon() for following chains to topmost digest, cycle detection in canonicalization, multiple compactor detection, validation of all compaction invariants. Commands: `compact apply`, `compact show`, `compact status`, `compact guide` all functional with all three output formats. Idempotent apply, deterministic ordering. NOT YET IMPLEMENTED: `compact report` (quality metrics), `compact suggest` (clustering), integration with existing commands (visibility flags, search annotations, contracted graph), doctor validation.
 - **P6.2 Context Command - Records Output COMPLETE**: Records format for context was already fully implemented. All features complete: `--format records` support, H (header) lines with mode/store/notes count/truncated flag, N (note metadata) lines with id/type/title/tags/path, S (summary) lines, B (body) lines with B-END terminator, `--with-body` flag for including full body content. Additionally implemented source support using D (diagnostic/data) lines with format: `D source url={url} title="{title}" accessed={date} from={note_id}`. Added comprehensive integration test `test_context_records_with_body_and_sources`. Phase 6.2 is now complete.
 - **Fixed unused assignment warning in link.rs**: The `budget_truncated` variable is now properly used in the header output for `qipu link path` records format (line 1245 in src/commands/link.rs). Added `truncated=` field to the header line.
 - **P4.3 Traversal Summary Lines**: Implemented summary lines (S records) in `qipu link tree` and `qipu link path` records output with `--max-chars` budget enforcement (10% safety buffer). Uses existing Note::summary() method with deterministic first-fit allocation. All 95 integration tests + 50 unit tests pass.
@@ -361,44 +362,50 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 
 ## Phase 8: Compaction
 
-### P8.1 Compaction Model (`specs/compaction.md`)
-- [ ] Digest: a note that summarizes/stands in for other notes (may use existing types or be a distinct concept)
-- [ ] Compaction edge storage in frontmatter (implementation detail, semantics are what matter)
-- [ ] `canon(id)` function: recursive chain following to topmost digest
-  - [ ] Base case: if no compactor, return id
-  - [ ] Recursive: if compacted by d, return canon(d)
-- [ ] Cycle-safe canonicalization via visited set
-- [ ] Invariant enforcement: one compactor per note, acyclic, no self-compaction, all IDs resolve
-- [ ] Deterministic error behavior for invariant violations (never "pick arbitrarily", clear data errors for tool/LLM repair)
+**Status**: Phase 8.1 (Model) and Phase 8.2 (Commands) partially complete. Core compaction functionality is working. Integration with existing commands and advanced features (suggest, report) remain as future work.
 
-### P8.2 Compaction Commands (`specs/compaction.md`)
-- [ ] `qipu compact apply <digest-id> --note <id>...` - register compaction
-- [ ] `compact apply` validates invariants (cycles, multi-compactor conflicts)
-- [ ] `compact apply` idempotent (re-applying same set creates no duplicates)
-- [ ] `compact apply --from-stdin` - read note IDs from stdin
-- [ ] `compact apply --notes-file <path>` - read note IDs from file
-- [ ] `qipu compact show <digest-id>` - show direct compaction set
-  - [ ] Output: list direct compacted note IDs
-  - [ ] Output: `compacts=N` metric (count of direct sources)
-  - [ ] Output: `compaction=P%` metric (estimated savings)
-- [ ] `compact show --compaction-depth <n>` - depth-limited compaction tree
-- [ ] `qipu compact status <id>` - show compaction relationships
-- [ ] `qipu compact report <digest-id>` - compaction quality metrics
+### P8.1 Compaction Model (`specs/compaction.md`) — ✓ Complete
+- [x] Digest: a note that summarizes/stands in for other notes (may use existing types or be a distinct concept)
+- [x] Compaction edge storage in frontmatter (`compacts` field in NoteFrontmatter)
+- [x] `canon(id)` function: recursive chain following to topmost digest
+  - [x] Base case: if no compactor, return id
+  - [x] Recursive: if compacted by d, return canon(d)
+- [x] Cycle-safe canonicalization via visited set
+- [x] Invariant enforcement: one compactor per note, acyclic, no self-compaction, all IDs resolve
+- [x] Deterministic error behavior for invariant violations (never "pick arbitrarily", clear data errors for tool/LLM repair)
+
+### P8.2 Compaction Commands (`specs/compaction.md`) — Partially Complete
+- [x] `qipu compact apply <digest-id> --note <id>...` - register compaction
+- [x] `compact apply` validates invariants (cycles, multi-compactor conflicts)
+- [x] `compact apply` idempotent (re-applying same set creates no duplicates)
+- [x] `compact apply --from-stdin` - read note IDs from stdin
+- [x] `compact apply --notes-file <path>` - read note IDs from file
+- [x] `qipu compact show <digest-id>` - show direct compaction set
+  - [x] Output: list direct compacted note IDs
+  - [x] Output: `compacts=N` metric (count of direct sources)
+  - [x] Output: `compaction=P%` metric (estimated savings)
+- [x] `compact show --depth <n>` - depth-limited compaction tree (optional depth parameter)
+- [x] `qipu compact status <id>` - show compaction relationships (compactor, canonical, compacted notes)
+- [x] All commands support all three output formats (human, json, records)
+- [x] Deterministic ordering in outputs (sorted by ID)
+- [ ] `qipu compact report <digest-id>` - compaction quality metrics (NOT YET IMPLEMENTED)
   - [ ] `compacts_direct_count`
   - [ ] `compaction_pct`
   - [ ] Boundary edge ratio (links from sources pointing outside compaction set)
   - [ ] Staleness indicator (sources updated after digest)
   - [ ] Conflicts/cycles if present
-- [ ] `qipu compact suggest` - suggest compaction candidates
+- [ ] `qipu compact suggest` - suggest compaction candidates (NOT YET IMPLEMENTED)
   - [ ] Deterministic for same graph
   - [ ] Approach: community/clump detection
   - [ ] Ranking: size, node count, cohesion (internal edges), boundary edges
   - [ ] Output (JSON): `ids[]`, node/edge counts, estimated size, boundary edge ratio, suggested command skeleton
-- [ ] `qipu compact guide` - print compaction guidance
-  - [ ] 5-step guidance: find candidates, review summaries, author digest, register, validate
-  - [ ] Prompt template for digest authoring
+- [x] `qipu compact guide` - print compaction guidance
+  - [x] 5-step guidance: find candidates, review summaries, author digest, register, validate
+  - [x] Prompt template for digest authoring
 
-### P8.3 Compaction Integration (`specs/compaction.md`)
+### P8.3 Compaction Integration (`specs/compaction.md`) — NOT YET IMPLEMENTED
+**Note**: This is future work. The core compaction model and commands are functional, but integration with existing commands (list, search, context, etc.) has not been implemented yet.
+
 - [ ] `--no-resolve-compaction` flag for raw view
 - [ ] `--with-compaction-ids` flag (equivalent to compaction depth 1)
 - [ ] `--compaction-depth <n>` flag (no effect when `--with-compaction-ids` absent)
@@ -426,7 +433,9 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
   - [ ] Affects: `qipu list`, `qipu search`, `qipu inbox`, `qipu link tree/list/path`
   - [ ] Use `--no-resolve-compaction` to show compacted notes
 
-### P8.4 Search/Traversal with Compaction (`specs/compaction.md`)
+### P8.4 Search/Traversal with Compaction (`specs/compaction.md`) — NOT YET IMPLEMENTED
+**Note**: This is future work. Search and traversal do not yet integrate with compaction.
+
 - [ ] Search matches compacted notes but surfaces canonical digest
 - [ ] `via=<id>` annotation for indirect matches in all output formats:
   - [ ] Human output: `(via qp-xxxx)` suffix
@@ -443,7 +452,7 @@ This plan tracks implementation progress against specs in `specs/`. Items are so
 - [x] Check for duplicate IDs
 - [x] Check for broken links
 - [x] Check for invalid frontmatter
-- [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts)
+- [ ] Check for compaction invariant violations (cycles, multi-compactor conflicts) — NOT YET IMPLEMENTED
 - [x] `qipu doctor --fix` - auto-repair where possible
 - [x] Handle corrupted stores: `Store::open_unchecked()` bypasses validation to allow diagnosis
 - [x] Fix missing config files: doctor can now repair stores with missing `config.toml`

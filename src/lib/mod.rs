@@ -3,6 +3,7 @@
 //! This module provides shared utilities and data structures used across
 //! the qipu CLI application.
 
+pub mod compaction;
 pub mod config;
 pub mod error;
 pub mod format;

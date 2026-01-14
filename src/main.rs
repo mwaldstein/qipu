@@ -658,5 +658,77 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
         }
 
         Some(Commands::Compact { command }) => commands::compact::execute(cli, command),
+
+        Some(Commands::Dump {
+            note,
+            tag,
+            moc,
+            query,
+            direction,
+            max_hops,
+            r#type,
+            typed_only,
+            inline_only,
+            no_attachments,
+            output,
+        }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            let dir = direction
+                .parse::<commands::link::Direction>()
+                .map_err(lib::error::QipuError::Other)?;
+
+            commands::dump::execute(
+                cli,
+                &store,
+                commands::dump::DumpOptions {
+                    note_ids: note,
+                    tag: tag.as_deref(),
+                    moc_id: moc.as_deref(),
+                    query: query.as_deref(),
+                    direction: dir,
+                    max_hops: *max_hops,
+                    type_include: r#type.clone(),
+                    typed_only: *typed_only,
+                    inline_only: *inline_only,
+                    include_attachments: !*no_attachments,
+                    output: output.as_deref(),
+                },
+            )
+        }
+
+        Some(Commands::Load { pack_file }) => {
+            let store_path = cli.store.clone();
+            let store = if let Some(path) = store_path {
+                let resolved = if path.is_absolute() {
+                    path
+                } else {
+                    root.join(path)
+                };
+                Store::open(&resolved)?
+            } else {
+                Store::discover(&root)?
+            };
+
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+
+            commands::load::execute(cli, &store, pack_file)
+        }
     }
 }

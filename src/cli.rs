@@ -271,6 +271,59 @@ pub enum Commands {
         #[command(subcommand)]
         command: CompactCommands,
     },
+
+    /// Dump notes to a pack file
+    Dump {
+        /// Select notes by ID (can be repeated)
+        #[arg(long, short = 'n', action = clap::ArgAction::Append)]
+        note: Vec<String>,
+
+        /// Select notes by tag
+        #[arg(long)]
+        tag: Option<String>,
+
+        /// Select notes linked from a MOC
+        #[arg(long, short = 'm')]
+        moc: Option<String>,
+
+        /// Select notes by search query
+        #[arg(long)]
+        query: Option<String>,
+
+        /// Traversal direction
+        #[arg(long, default_value = "both")]
+        direction: String,
+
+        /// Maximum traversal depth
+        #[arg(long, default_value = "3")]
+        max_hops: u32,
+
+        /// Include only these link types (can be repeated)
+        #[arg(long, short = 'T', action = clap::ArgAction::Append)]
+        r#type: Vec<String>,
+
+        /// Show only typed links (from frontmatter)
+        #[arg(long)]
+        typed_only: bool,
+
+        /// Show only inline links (from markdown body)
+        #[arg(long)]
+        inline_only: bool,
+
+        /// Exclude attachments from pack
+        #[arg(long)]
+        no_attachments: bool,
+
+        /// Output file path (default: stdout)
+        #[arg(long, short = 'o')]
+        output: Option<PathBuf>,
+    },
+
+    /// Load notes from a pack file
+    Load {
+        /// Pack file path
+        pack_file: PathBuf,
+    },
 }
 
 /// Link subcommands

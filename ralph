@@ -282,7 +282,13 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     log "--- Iteration $ITERATION of $MAX_ITERATIONS ---"
 
     TEMP_OUTPUT="$(mktemp)"
+    
+    # Temporarily ignore SIGINT during opencode execution
+    # This prevents the subprocess from receiving the signal on first ctrl-c
+    trap '' INT
     if "${OPENCODE_CMD[@]}" "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"; then
+        # Restore signal handler on success
+        trap handle_ctrl_c INT
         cp "$TEMP_OUTPUT" "$LOG_FILE"
 
         HAS_CHANGES="$(working_tree_changed)"
@@ -306,8 +312,17 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
         fi
     else
         STATUS=$?
-        log_warn "opencode failed (exit $STATUS); continuing"
-        cp "$TEMP_OUTPUT" "$LOG_FILE" || true
+        # Restore signal handler before handling the result
+        trap handle_ctrl_c INT
+        
+        if [[ $STATUS -eq 130 && "$STOP_AFTER_ITERATION" == "true" ]]; then
+            log_warn "opencode interrupted; stopping as requested"
+            cp "$TEMP_OUTPUT" "$LOG_FILE" || true
+            exit 0
+        else
+            log_warn "opencode failed (exit $STATUS); continuing"
+            cp "$TEMP_OUTPUT" "$LOG_FILE" || true
+        fi
     fi
 
     rm -f "$TEMP_OUTPUT"

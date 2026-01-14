@@ -240,7 +240,11 @@ impl Store {
 
             let repo_root = project_root
                 .or_else(|| store_root.parent())
-                .expect("repo_root should be available");
+                .ok_or_else(|| {
+                    QipuError::Other(
+                        "Cannot determine repository root for branch checkout".to_string(),
+                    )
+                })?;
 
             git::checkout_branch(repo_root, &orig_branch)?;
         }

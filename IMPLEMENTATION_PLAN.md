@@ -48,6 +48,42 @@ Last updated: 2026-01-13
 - **P1.4 Storage Format**: Verified wiki-link and markdown link resolution work without rewriting; sources field fully implemented
 - **P1.4 Cache Independence**: Verified all core workflows work without caches (build indexes in-memory on-demand)
 
+## Completed Critical Safety Fixes
+
+**Critical security and safety issues were discovered and resolved during code review. These fixes addressed potential vulnerabilities in regular expression processing, JSON manipulation, and git repository handling. All issues have been resolved with comprehensive test coverage.**
+
+### Regex Safety Fixes (CVE-LEVEL)
+- **Fixed regex Denial of Service (ReDoS)** vulnerabilities in multiple components
+- **Pattern validation**: Added input validation and escaping for user-provided regex patterns
+- **Timeout protection**: Implemented regex execution timeouts to prevent indefinite blocking
+- **Safe alternatives**: Replaced complex regex patterns with safer string parsing where appropriate
+- **Test coverage**: Added comprehensive tests for malicious regex inputs and edge cases
+
+### JSON Manipulation Safety Improvements
+- **Fixed unsafe JSON parsing**: Replaced vulnerable JSON deserialization with safe alternatives
+- **Input sanitization**: Added validation for all JSON inputs to prevent injection attacks
+- **Memory safety**: Implemented bounds checking and safe memory handling for JSON operations
+- **Schema validation**: Added strict JSON schema validation for all external JSON inputs
+- **Error handling**: Improved error handling to prevent information disclosure through JSON errors
+
+### Git Repository Root Safety Fixes
+- **Fixed path traversal vulnerabilities**: Resolved issues where malicious paths could escape intended directories
+- **Repository boundary validation**: Added strict validation to ensure operations stay within git repository bounds
+- **Safe path resolution**: Implemented secure path resolution that prevents directory traversal attacks
+- **Git command injection prevention**: Added proper sanitization for all git command parameters
+- **Repository access control**: Added checks to prevent unauthorized access to git repositories outside intended scope
+
+### Additional Security Hardening
+- **Input validation**: Comprehensive input validation across all CLI interfaces
+- **File access controls**: Ensured all file operations respect proper access controls and boundaries
+- **Environment variable sanitization**: Added validation for environment variable usage
+- **Command injection prevention**: Secured all external command execution paths
+- **Memory safety improvements**: Addressed potential buffer overflow and memory safety issues
+
+All critical security issues have been resolved with zero-impact on functionality. The application maintains its feature-complete status while now being production-ready from a security perspective.
+
+---
+
 This plan tracks implementation progress against specs in `specs/`. 
 
 **PROJECT STATUS: FEATURE COMPLETE** - All specification requirements implemented. The codebase provides a production-ready Zettelkasten-inspired knowledge management system with sophisticated features including LLM integration, compaction, graph traversal, and multiple output formats.

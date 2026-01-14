@@ -137,9 +137,9 @@ pub fn execute(
                     });
                     // Add via field if present (per spec: specs/compaction.md line 122)
                     if let Some(via) = &r.via {
-                        obj.as_object_mut()
-                            .unwrap()
-                            .insert("via".to_string(), serde_json::json!(via));
+                        if let Some(obj_mut) = obj.as_object_mut() {
+                            obj_mut.insert("via".to_string(), serde_json::json!(via));
+                        }
                     }
 
                     // Add compaction annotations for digest notes

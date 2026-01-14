@@ -182,9 +182,9 @@ pub fn execute_list(
                         "source": entry.source,
                     });
                     if let Some(title) = &entry.title {
-                        json.as_object_mut()
-                            .unwrap()
-                            .insert("title".to_string(), serde_json::json!(title));
+                        if let Some(obj_mut) = json.as_object_mut() {
+                            obj_mut.insert("title".to_string(), serde_json::json!(title));
+                        }
                     }
 
                     // Add compacted IDs if --with-compaction-ids is set
@@ -198,10 +198,12 @@ pub fn execute_list(
                                     depth,
                                     cli.compaction_max_nodes,
                                 ) {
-                                    json.as_object_mut().unwrap().insert(
-                                        "compacted_ids".to_string(),
-                                        serde_json::json!(ids),
-                                    );
+                                    if let Some(obj_mut) = json.as_object_mut() {
+                                        obj_mut.insert(
+                                            "compacted_ids".to_string(),
+                                            serde_json::json!(ids),
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -784,10 +786,12 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
                                     if let Some((ids, _truncated)) =
                                         ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
                                     {
-                                        node.as_object_mut().unwrap().insert(
-                                            "compacted_ids".to_string(),
-                                            serde_json::json!(ids),
-                                        );
+                                        if let Some(obj_mut) = node.as_object_mut() {
+                                            obj_mut.insert(
+                                                "compacted_ids".to_string(),
+                                                serde_json::json!(ids),
+                                            );
+                                        }
                                     }
                                 }
                             }
@@ -1423,10 +1427,12 @@ pub fn execute_path(
                                     if let Some((ids, _truncated)) =
                                         ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
                                     {
-                                        node.as_object_mut().unwrap().insert(
-                                            "compacted_ids".to_string(),
-                                            serde_json::json!(ids),
-                                        );
+                                        if let Some(obj_mut) = node.as_object_mut() {
+                                            obj_mut.insert(
+                                                "compacted_ids".to_string(),
+                                                serde_json::json!(ids),
+                                            );
+                                        }
                                     }
                                 }
                             }

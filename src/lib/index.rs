@@ -420,7 +420,13 @@ fn extract_links(
     }
 
     // Extract wiki links from body: [[id]] or [[id|label]]
-    let wiki_link_re = Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").unwrap();
+    let wiki_link_re = match Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]") {
+        Ok(re) => re,
+        Err(e) => {
+            eprintln!("Warning: Failed to compile wiki link regex: {}", e);
+            return edges; // Return empty edges if regex fails
+        }
+    };
     for cap in wiki_link_re.captures_iter(&note.body) {
         let to_id = cap[1].trim().to_string();
         if to_id.is_empty() {
@@ -439,7 +445,13 @@ fn extract_links(
     }
 
     // Extract markdown links to qipu notes: [text](qp-xxxx) or [text](./qp-xxxx-slug.md)
-    let md_link_re = Regex::new(r"\[([^\]]*)\]\(([^)]+)\)").unwrap();
+    let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
+        Ok(re) => re,
+        Err(e) => {
+            eprintln!("Warning: Failed to compile markdown link regex: {}", e);
+            return edges; // Return empty edges if regex fails
+        }
+    };
     for cap in md_link_re.captures_iter(&note.body) {
         let target = cap[2].trim();
 

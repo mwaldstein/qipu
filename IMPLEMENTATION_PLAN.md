@@ -13,7 +13,7 @@ All specification requirements have been fully implemented and tested. Qipu is p
 - **198 tests passing** (61 unit + 125 integration + 6 golden + 6 performance)
 - **All 10 specifications implemented**
 - **Zero remaining implementation tasks**
-- **Current version**: v0.0.67
+- **Current version**: v0.0.72
 
 ---
 

@@ -1,0 +1,1 @@
+error: store not found (searched from "/nonexistent/store")

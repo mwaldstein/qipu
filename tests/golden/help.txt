@@ -1,0 +1,49 @@
+A Zettelkasten-inspired knowledge management CLI for capturing and navigating research
+
+Usage: qipu [OPTIONS] [COMMAND]
+
+Commands:
+  init     Initialize a new qipu store
+  create   Create a new note
+  new      Alias for create
+  list     List notes
+  show     Show a note
+  inbox    List unprocessed notes (fleeting/literature)
+  capture  Create a new note from stdin
+  index    Build or refresh derived indexes
+  search   Search notes by title and body
+  link     Manage and traverse note links
+  prime    Output session-start primer for LLM agents
+  setup    Install qipu integration instructions for agent tools
+  doctor   Validate store invariants and optionally repair issues
+  sync     Sync store: update indexes and optionally validate
+  context  Build context bundle for LLM integration
+  export   Export notes to a single document
+  compact  Manage note compaction (digest-first navigation)
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+      --root <ROOT>
+          Base directory for resolving the store
+      --store <STORE>
+          Explicit store root path
+      --format <FORMAT>
+          Output format [default: human] [possible values: human, json, records]
+  -q, --quiet
+          Suppress non-essential output
+  -v, --verbose
+          Report timing for major phases
+      --no-resolve-compaction
+          Disable compaction resolution (show raw compacted notes)
+      --with-compaction-ids
+          Include compacted note IDs in output
+      --compaction-depth <COMPACTION_DEPTH>
+          Compaction traversal depth (requires --with-compaction-ids)
+      --compaction-max-nodes <COMPACTION_MAX_NODES>
+          Maximum compacted notes to include in output
+      --expand-compaction
+          Expand compacted notes to include full content (context command only)
+  -h, --help
+          Print help
+  -V, --version
+          Print version

@@ -1,0 +1,4 @@
+qp-a1b2c3 [P] Research Note
+qp-d4e5f6 [F] Quick Idea
+qp-g7h8i9 [L] Paper Review
+qp-moc123 [M] Research MOC

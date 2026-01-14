@@ -4,6 +4,7 @@ Status: FEATURE COMPLETE
 Last updated: 2026-01-13
 
 ## Recent Updates (2026-01-14)
+- **TAG v0.0.53 CREATED**: Created tag v0.0.53 with all tests passing (198 tests: 61 unit + 125 integration + 6 golden + 6 performance). Implementation remains feature complete with no additional development work needed - only packaging/distribution improvements remain as optional work.
 - **MAJOR SEARCH PERFORMANCE OPTIMIZATION COMPLETE**: Search performance improved from 1447ms to 33ms for 2k notes (98% improvement) through lazy compaction and index path mapping optimization. Performance now well under the 200ms spec target.
 - **FEATURE COMPLETE STATUS**: Codebase analysis reveals qipu is feature-complete per specs with 186 tests passing (61 unit + 125 integration). ALL major functionality implemented including records format, graph traversal, LLM integration, compaction system, and export capabilities.
 - **Cache File Naming**: Verified that cache files align with specs (using `.qipu/.cache/*.json` pattern including index.json)
@@ -56,7 +57,7 @@ This plan tracks implementation progress against specs in `specs/`.
 ## Implementation Status
 
 **Status**: FEATURE COMPLETE - All phases implemented per specs  
-**Test Coverage**: 186 tests passing (61 unit + 125 integration)  
+**Test Coverage**: 198 tests passing (61 unit + 125 integration + 6 golden + 6 performance)  
 **Performance**: All core commands meet targets including search optimization (33ms for 2k notes)  
 **Source Location**: `src/`  
 **Shared Utilities**: `src/lib/`
@@ -434,7 +435,7 @@ This plan tracks implementation progress against specs in `specs/`.
 ### P8.3 Compaction Integration (`specs/compaction.md`) — ✓ COMPLETE
 **Note**: All compaction integration features are now fully implemented. Compaction visibility is implemented for list, search, inbox, and all link commands. ALL THREE link commands (`link list`, `link tree`, `link path`) fully support canonicalization and edge gathering from compacted notes. Compaction annotations (`compacts=<N>` and `compaction=<P%>`) are working in list, show, search, and context commands. Depth control and expansion features are complete.
 
-**Current status (2026-01-13)**: Complete compaction integration implemented. Total test count: 192 (61 unit + 131 integration), ALL PASSING.
+**Current status (2026-01-14)**: Complete compaction integration implemented. Total test count: 198 (61 unit + 125 integration + 6 golden + 6 performance), ALL PASSING.
 
  - [x] `--no-resolve-compaction` flag for raw view
    - [x] Working in `link list`, `link tree`, `link path`

@@ -18,6 +18,7 @@ Last updated: 2026-01-14
 **Production Readiness**: ✅ Ready for real-world use
 
 ## Recent Updates (2026-01-14)
+- **NEW TAG v0.0.64 CREATED**: Created tag v0.0.64 with all 198 tests passing (61 unit + 125 integration + 6 golden + 6 performance). Project remains production-ready with complete feature implementation including core CRUD, search, linking, compaction, LLM integration, export, and advanced features. Added ralph automation script to project for enhanced developer workflow automation.
 - **VERIFICATION COMPLETE - CONFIRMED PRODUCTION-READY**: Manual verification confirms all 198 tests passing (61 unit + 125 integration + 6 golden + 6 performance), git tag v0.0.62 exists, and the project is feature-complete with all specification requirements implemented. No implementation work required - qipu is production-ready.
 - **COMPREHENSIVE VERIFICATION COMPLETE**: Full verification using multiple subagents confirms "FEATURE COMPLETE" status is 100% accurate. Comprehensive analysis of README.md, specs/*.md, src/lib/* utilities, and entire src/ codebase confirms all 10 specifications fully implemented, 198 tests passing (61 unit + 125 integration + 6 golden + 6 performance), 58,261 lines of production-ready code with zero TODO/FIXME markers. All 16 CLI commands functional with advanced features including compaction system, LLM integration, and performance optimization (151ms vs 200ms target). No implementation work required - project is definitively production-ready.
 - **VERIFICATION AND TAGGING CYCLE COMPLETE**: Confirmed production-ready status with all 198 tests passing. Tagged as v0.0.62. No implementation work required.
@@ -105,7 +106,7 @@ This plan tracks implementation progress against specs in `specs/`.
 - **Feature Completeness**: 100% - all specification requirements implemented
 - **Performance**: All targets met including search optimization (96ms for 2k notes)
 - **Code Quality**: Clippy-compliant, comprehensive validation, robust error handling
-- **Current Version**: v0.0.62 - verification and tagging cycle complete
+- **Current Version**: v0.0.64 - production-ready with ralph automation script added
 
 **Major Implemented Features**:
 - Complete CRUD operations for notes with templating

@@ -73,6 +73,7 @@ pub fn execute_list(
     type_filter: Option<&str>,
     typed_only: bool,
     inline_only: bool,
+    max_chars: Option<usize>,
 ) -> Result<()> {
     // Resolve the note ID
     let note_id = resolve_note_id(store, id_or_path)?;
@@ -279,93 +280,166 @@ pub fn execute_list(
             }
         }
         OutputFormat::Records => {
-            // Header line per spec (specs/records-output.md)
-            println!(
-                "H qipu=1 records=1 store={} mode=link.list id={} direction={}",
-                store.root().display(),
-                display_id,
-                match direction {
-                    Direction::Out => "out",
-                    Direction::In => "in",
-                    Direction::Both => "both",
-                }
+            output_list_records(
+                &entries,
+                store,
+                &index,
+                &display_id,
+                direction,
+                cli,
+                compaction_ctx.as_ref(),
+                max_chars,
             );
-
-            // Collect unique note IDs from entries (excluding the queried note itself)
-            let mut unique_ids: Vec<String> = entries
-                .iter()
-                .map(|e| e.id.clone())
-                .collect::<std::collections::HashSet<_>>()
-                .into_iter()
-                .collect();
-            unique_ids.sort(); // Deterministic ordering
-
-            // Output N (node) and S (summary) lines for linked notes
-            for link_id in &unique_ids {
-                if let Some(meta) = index.get_metadata(link_id) {
-                    let tags_csv = if meta.tags.is_empty() {
-                        "-".to_string()
-                    } else {
-                        meta.tags.join(",")
-                    };
-                    println!(
-                        "N {} {} \"{}\" tags={}",
-                        link_id, meta.note_type, meta.title, tags_csv
-                    );
-
-                    // Show compacted IDs if --with-compaction-ids is set
-                    if cli.with_compaction_ids {
-                        if let Some(ref ctx) = compaction_ctx {
-                            let compacts_count = ctx.get_compacts_count(link_id);
-                            if compacts_count > 0 {
-                                let depth = cli.compaction_depth.unwrap_or(1);
-                                if let Some((ids, truncated)) =
-                                    ctx.get_compacted_ids(link_id, depth, cli.compaction_max_nodes)
-                                {
-                                    for id in &ids {
-                                        println!("D compacted {} from={}", id, link_id);
-                                    }
-                                    if truncated {
-                                        println!(
-                                            "D compacted_truncated max={} total={}",
-                                            cli.compaction_max_nodes.unwrap_or(ids.len()),
-                                            compacts_count
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Load note to get summary
-                    if let Ok(note) = store.get_note(link_id) {
-                        let summary = note.summary();
-                        if !summary.is_empty() {
-                            // Truncate summary to single line
-                            let summary_text = summary.lines().next().unwrap_or("").trim();
-                            if !summary_text.is_empty() {
-                                println!("S {} {}", link_id, summary_text);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Edge lines
-            for entry in &entries {
-                // E <from> <type> <to> <source>
-                // For consistency, always show from -> to even for inbound
-                let (from, to) = match entry.direction.as_str() {
-                    "out" => (display_id.clone(), entry.id.clone()),
-                    "in" => (entry.id.clone(), display_id.clone()),
-                    _ => (display_id.clone(), entry.id.clone()),
-                };
-                println!("E {} {} {} {}", from, entry.link_type, to, entry.source);
-            }
         }
     }
 
     Ok(())
+}
+
+fn output_list_records(
+    entries: &[LinkEntry],
+    store: &Store,
+    index: &Index,
+    display_id: &str,
+    direction: Direction,
+    cli: &Cli,
+    compaction_ctx: Option<&CompactionContext>,
+    max_chars: Option<usize>,
+) {
+    let mut budget_truncated = false;
+    let mut used_chars = 0;
+    let header_estimate = 200;
+    used_chars += header_estimate;
+
+    let mut node_lines = Vec::new();
+    let mut edge_lines = Vec::new();
+
+    let mut unique_ids: Vec<String> = entries
+        .iter()
+        .map(|entry| entry.id.clone())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    unique_ids.sort();
+
+    for link_id in &unique_ids {
+        if let Some(meta) = index.get_metadata(link_id) {
+            let tags_csv = if meta.tags.is_empty() {
+                "-".to_string()
+            } else {
+                meta.tags.join(",")
+            };
+            let node_line = format!(
+                "N {} {} \"{}\" tags={}",
+                link_id, meta.note_type, meta.title, tags_csv
+            );
+
+            let mut summary_line = None;
+            if let Ok(note) = store.get_note(link_id) {
+                let summary = note.summary();
+                if !summary.is_empty() {
+                    let summary_text = summary.lines().next().unwrap_or("").trim();
+                    if !summary_text.is_empty() {
+                        summary_line = Some(format!("S {} {}", link_id, summary_text));
+                    }
+                }
+            }
+
+            let mut compacted_lines = Vec::new();
+            if cli.with_compaction_ids {
+                if let Some(ctx) = compaction_ctx {
+                    let compacts_count = ctx.get_compacts_count(link_id);
+                    if compacts_count > 0 {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, truncated)) =
+                            ctx.get_compacted_ids(link_id, depth, cli.compaction_max_nodes)
+                        {
+                            for id in &ids {
+                                compacted_lines
+                                    .push(format!("D compacted {} from={}", id, link_id));
+                            }
+                            if truncated {
+                                compacted_lines.push(format!(
+                                    "D compacted_truncated max={} total={}",
+                                    cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                    compacts_count
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+
+            let node_size = node_line.len()
+                + 1
+                + summary_line.as_ref().map_or(0, |s| s.len() + 1)
+                + compacted_lines
+                    .iter()
+                    .map(|line| line.len() + 1)
+                    .sum::<usize>();
+            let node_size_with_buffer = node_size + (node_size / 10);
+
+            if let Some(max) = max_chars {
+                if used_chars + node_size_with_buffer > max {
+                    budget_truncated = true;
+                    break;
+                }
+            }
+
+            node_lines.push((node_line, summary_line, compacted_lines));
+            used_chars += node_size;
+        }
+    }
+
+    if !budget_truncated {
+        for entry in entries {
+            let (from, to) = match entry.direction.as_str() {
+                "out" => (display_id.to_string(), entry.id.clone()),
+                "in" => (entry.id.clone(), display_id.to_string()),
+                _ => (display_id.to_string(), entry.id.clone()),
+            };
+            let edge_line = format!("E {} {} {} {}", from, entry.link_type, to, entry.source);
+            let edge_size = edge_line.len() + 1;
+            let edge_size_with_buffer = edge_size + (edge_size / 10);
+
+            if let Some(max) = max_chars {
+                if used_chars + edge_size_with_buffer > max {
+                    budget_truncated = true;
+                    break;
+                }
+            }
+
+            edge_lines.push(edge_line);
+            used_chars += edge_size;
+        }
+    }
+
+    let truncated_str = if budget_truncated { "true" } else { "false" };
+    println!(
+        "H qipu=1 records=1 store={} mode=link.list id={} direction={} truncated={}",
+        store.root().display(),
+        display_id,
+        match direction {
+            Direction::Out => "out",
+            Direction::In => "in",
+            Direction::Both => "both",
+        },
+        truncated_str
+    );
+
+    for (node_line, summary_line, compacted_lines) in node_lines {
+        println!("{}", node_line);
+        for line in compacted_lines {
+            println!("{}", line);
+        }
+        if let Some(summary) = summary_line {
+            println!("{}", summary);
+        }
+    }
+
+    for line in edge_lines {
+        println!("{}", line);
+    }
 }
 
 /// Execute the link add command

@@ -3224,6 +3224,67 @@ fn test_link_list_with_compaction() {
 }
 
 #[test]
+fn test_link_list_records_max_chars() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Link List Budget A"])
+        .output()
+        .unwrap();
+    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Link List Budget B"])
+        .output()
+        .unwrap();
+    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+
+    let output3 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Link List Budget C"])
+        .output()
+        .unwrap();
+    let id3 = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id2])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id3])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "records",
+            "link",
+            "list",
+            &id1,
+            "--max-chars",
+            "120",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("mode=link.list"))
+        .stdout(predicate::str::contains("truncated=true"))
+        .stdout(predicate::str::contains("N ").not());
+}
+
+#[test]
 fn test_link_tree_with_compaction() {
     use std::fs;
 

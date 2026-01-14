@@ -349,6 +349,10 @@ pub enum LinkCommands {
         /// Show only inline links (from markdown body)
         #[arg(long)]
         inline_only: bool,
+
+        /// Maximum output characters (exact budget, records format only)
+        #[arg(long)]
+        max_chars: Option<usize>,
     },
 
     /// Add a typed link between notes

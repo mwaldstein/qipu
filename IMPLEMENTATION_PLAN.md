@@ -44,9 +44,7 @@
 - [P1] Make search output fully deterministic:
   - Add stable tiebreakers in result sorting (e.g., when relevance ties, sort by `(relevance desc, id asc)`), and ensure canonicalization/dedup does not introduce unstable ordering.
 
-- [P1] Meet `specs/records-output.md` budgeting requirements:
-  - Ensure `--max-chars` is exact where supported (not “best effort”), and ensure truncation is indicated consistently (`truncated=true` and/or an explicit truncation record).
-  - Add budget support (`--max-chars`) to unbounded records outputs that can be large but currently can’t be bounded (notably `qipu link list --format records`), or explicitly document/justify why a given records output is intentionally unbudgeted.
+- [P1] ~~Meet `specs/records-output.md` budgeting requirements (including `qipu link list --format records` budget support).~~ **COMPLETED**
 
 - [P2] Fix incremental indexing correctness and cache portability:
   - Ensure incremental indexing updates remove stale tag memberships when a note’s tags change (avoid accumulating outdated `tag -> ids[]`).

@@ -576,6 +576,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                     r#type,
                     typed_only,
                     inline_only,
+                    max_chars,
                 } => {
                     let dir = direction
                         .parse::<commands::link::Direction>()
@@ -588,6 +589,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                         r#type.as_deref(),
                         *typed_only,
                         *inline_only,
+                        *max_chars,
                     )
                 }
                 LinkCommands::Add { from, to, r#type } => {

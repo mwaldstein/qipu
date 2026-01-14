@@ -1,6 +1,6 @@
 [package]
 name = "qipu"
-version = "0.1.0"
+version = "0.0.51"
 edition = "2021"
 description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
 authors = ["Qipu Contributors"]

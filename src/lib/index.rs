@@ -20,6 +20,24 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::note::{Note, NoteType};
 use crate::lib::store::Store;
 
+/// Ripgrep JSON output variants
+#[derive(Deserialize, Debug)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum RipgrepMatch {
+    Begin {
+        path: String,
+    },
+    End {
+        path: String,
+    },
+    Match {
+        path: String,
+        lines: String,
+        line_number: u64,
+        absolute_offset: u64,
+    },
+}
+
 /// Link source - where the link was defined
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -509,13 +527,16 @@ fn search_with_ripgrep(
     let query_lower = query.to_lowercase();
     let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
 
-    // Use ripgrep to find files containing any query term
+    // Use ripgrep with JSON output to get both matches and context snippets
     let mut rg_cmd = Command::new("rg");
     rg_cmd
-        .arg("--files-with-matches")
+        .arg("--json")
         .arg("--case-insensitive")
         .arg("--no-heading")
-        .arg("--with-filename");
+        .arg("--with-filename")
+        .arg("--context-before=1")
+        .arg("--context-after=1")
+        .arg("--max-columns=200");
 
     // Add search pattern (OR all terms together)
     let pattern = query_terms.join("|");
@@ -533,23 +554,46 @@ fn search_with_ripgrep(
         }
     };
 
-    // If ripgrep returned an error (e.g., no matches found), it's not a problem
-    // We just continue with empty results for ripgrep and filter from index
+    // Parse ripgrep JSON output to get matches and contexts
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let matching_paths: HashSet<PathBuf> = stdout
-        .lines()
-        .filter(|line| !line.is_empty())
-        .map(PathBuf::from)
-        .collect();
+    let mut matching_paths: HashSet<PathBuf> = HashSet::new();
+    let mut path_contexts: HashMap<PathBuf, String> = HashMap::new();
+
+    for line in stdout.lines() {
+        if let Ok(rg_match) = serde_json::from_str::<RipgrepMatch>(line) {
+            match rg_match {
+                RipgrepMatch::Begin { path, .. } | RipgrepMatch::End { path, .. } => {
+                    matching_paths.insert(PathBuf::from(path));
+                }
+                RipgrepMatch::Match { path, lines, .. } => {
+                    let path_buf = PathBuf::from(&path);
+                    matching_paths.insert(path_buf.clone());
+
+                    // Store first context snippet for this file
+                    if !path_contexts.contains_key(&path_buf) {
+                        let context = lines.replace('\n', " ").trim().to_string();
+                        if !context.is_empty() {
+                            path_contexts.insert(path_buf, format!("...{}...", context));
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // If ripgrep found no matches, use embedded search as fallback
     // (ripgrep exit code 1 means no matches, not an error)
-    if matching_paths.is_empty() && !output.status.success() {
+    if matching_paths.is_empty() {
         return search_embedded(store, index, query, type_filter, tag_filter);
     }
 
     // Build results from matching files using index metadata
     let mut results = Vec::new();
+
+    // For performance, limit processing to first 500 matching files
+    // Users rarely look beyond the first few pages of results
+    let mut processed = 0;
+    const MAX_FILES_TO_PROCESS: usize = 500;
 
     for meta in index.metadata.values() {
         // Skip if path doesn't match ripgrep results
@@ -600,25 +644,15 @@ fn search_with_ripgrep(
             }
         }
 
-        // Body search for context extraction and additional relevance
-        if let Ok(note) = store.get_note(&meta.id) {
-            let body_lower = note.body.to_lowercase();
+        // Use pre-fetched context and add relevance for body matches
+        if let Some(context) = path_contexts.get(&path) {
+            // We know this file matched in ripgrep, so add body relevance
             for term in &query_terms {
-                if body_lower.contains(term) {
+                if context.to_lowercase().contains(term) {
                     relevance += 2.0;
-
-                    // Extract context snippet for first match
-                    if match_context.is_none() {
-                        if let Some(pos) = body_lower.find(term) {
-                            let start = pos.saturating_sub(40);
-                            let end = (pos + term.len() + 40).min(note.body.len());
-                            let snippet = &note.body[start..end];
-                            let snippet = snippet.replace('\n', " ");
-                            match_context = Some(format!("...{}...", snippet.trim()));
-                        }
-                    }
                 }
             }
+            match_context = Some(context.clone());
         }
 
         // Recency boost (prefer recently created notes)
@@ -641,6 +675,11 @@ fn search_with_ripgrep(
             relevance,
             via: None,
         });
+
+        processed += 1;
+        if processed >= MAX_FILES_TO_PROCESS {
+            break;
+        }
     }
 
     // Sort by relevance (descending)
@@ -649,6 +688,9 @@ fn search_with_ripgrep(
             .partial_cmp(&a.relevance)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
+
+    // Limit to top 100 results for better performance
+    results.truncate(100);
 
     Ok(results)
 }
@@ -789,13 +831,13 @@ pub fn search(
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
 ) -> Result<Vec<SearchResult>> {
-    // Try ripgrep first if available (faster for large stores)
     if is_ripgrep_available() {
-        return search_with_ripgrep(store, index, query, type_filter, tag_filter);
+        eprintln!("Using ripgrep search");
+        search_with_ripgrep(store, index, query, type_filter, tag_filter)
+    } else {
+        eprintln!("Using embedded search");
+        search_embedded(store, index, query, type_filter, tag_filter)
     }
-
-    // Fall back to embedded search
-    search_embedded(store, index, query, type_filter, tag_filter)
 }
 
 #[cfg(test)]

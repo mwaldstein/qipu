@@ -445,6 +445,39 @@ impl Store {
 
     /// Get a note by ID
     pub fn get_note(&self, id: &str) -> Result<Note> {
+        self.get_note_internal(id, None)
+    }
+
+    /// Get a note by ID using an index for fast path lookup
+    pub fn get_note_with_index(&self, id: &str, index: &crate::lib::index::Index) -> Result<Note> {
+        // Try fast lookup using index first
+        if let Some(path) = index.get_note_path(id) {
+            if path.exists() {
+                let content = fs::read_to_string(path)?;
+                return Note::parse(&content, Some(path.clone()));
+            }
+        }
+
+        // Fallback to directory traversal
+        self.get_note_internal(id, Some(index))
+    }
+
+    /// Internal note lookup implementation
+    fn get_note_internal(
+        &self,
+        id: &str,
+        index: Option<&crate::lib::index::Index>,
+    ) -> Result<Note> {
+        // If we have an index, try to use its path information
+        if let Some(idx) = index {
+            if let Some(path) = idx.get_note_path(id) {
+                if path.exists() {
+                    let content = fs::read_to_string(path)?;
+                    return Note::parse(&content, Some(path.clone()));
+                }
+            }
+        }
+
         // Search in both notes and mocs directories
         for dir in [self.notes_dir(), self.mocs_dir()] {
             if !dir.exists() {

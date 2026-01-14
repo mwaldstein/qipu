@@ -120,6 +120,9 @@ pub struct Index {
     /// File tracking for incremental updates
     #[serde(default)]
     files: HashMap<PathBuf, FileEntry>,
+    /// Reverse mapping: note_id -> file_path (for fast lookup)
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    id_to_path: HashMap<String, PathBuf>,
 }
 
 /// Current index format version
@@ -135,6 +138,7 @@ impl Index {
             edges: Vec::new(),
             unresolved: HashSet::new(),
             files: HashMap::new(),
+            id_to_path: HashMap::new(),
         }
     }
 
@@ -188,6 +192,11 @@ impl Index {
     #[allow(dead_code)]
     pub fn note_ids(&self) -> impl Iterator<Item = &str> {
         self.metadata.keys().map(|s| s.as_str())
+    }
+
+    /// Get file path for a note ID (for fast lookup)
+    pub fn get_note_path(&self, note_id: &str) -> Option<&PathBuf> {
+        self.id_to_path.get(note_id)
     }
 
     /// Get metadata for a note by ID
@@ -317,6 +326,9 @@ impl<'a> IndexBuilder<'a> {
                             note_id: note.id().to_string(),
                         },
                     );
+
+                    // Add reverse mapping for fast lookup
+                    self.index.id_to_path.insert(note.id().to_string(), path);
                 }
             }
 
@@ -337,6 +349,7 @@ impl<'a> IndexBuilder<'a> {
         for path in deleted {
             if let Some(entry) = self.index.files.remove(&path) {
                 self.index.metadata.remove(&entry.note_id);
+                self.index.id_to_path.remove(&entry.note_id);
             }
         }
 
@@ -806,8 +819,8 @@ fn search_embedded(
 
             // Body search (lower weight, requires reading file) - only if needed and under limit
             if !matched || relevance < 10.0 {
-                // Read note content to search body
-                if let Ok(note) = store.get_note(&meta.id) {
+                // Read note content to search body (use index for fast path lookup)
+                if let Ok(note) = store.get_note_with_index(&meta.id, index) {
                     let body_lower = note.body.to_lowercase();
                     for term in &query_terms {
                         if body_lower.contains(term) {

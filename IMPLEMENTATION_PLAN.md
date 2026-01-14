@@ -33,13 +33,9 @@
 - [P1] ~~Fix CLI parse-time JSON behavior to match `specs/cli-tool.md`~~ **COMPLETED:** JSON output now works correctly for both `--format json` and `--format=json` syntax variants.
 - [P1] ~~Ensure `qipu --help` and `qipu --version` always exit `0` and print normal help/version output even when `--format json` is present~~ **COMPLETED:** Help and version commands now properly exit with code 0 regardless of format flag.
 
-- [P1] Bring compaction resolution in line with `specs/compaction.md` across command surfaces:
-  - `qipu show`: default to resolved view (if an ID is compacted, redirect to `canon(id)`), and only show raw compacted notes when `--no-resolve-compaction` is set.
-  - `qipu show --links`: apply contracted-graph semantics (canonicalize nodes/edges; hide compacted sources by default).
-  - `qipu context`: in resolved view, canonicalize + deduplicate selected IDs (including `--query` hits), hide compacted source notes by default, and preserve a `via`/breadcrumb mechanism for query-driven selection.
-  - `qipu link` list/tree/path: aggregate edges for a canonical digest across the full compaction equivalence class (transitive chains), not just direct `compacts`.
+- [P1] ~~Bring compaction resolution in line with `specs/compaction.md` across command surfaces~~ **COMPLETED:** `show`/`context` now resolve to canonical digests by default with `--no-resolve-compaction` support, `show --links` applies contracted-graph semantics, `context` preserves `via` for query-driven selections, and `link` list/tree/path aggregate across full compaction equivalence classes (transitive chains).
 
-- [P1] Align `qipu context --moc <id>` behavior with `specs/cli-interface.md`: include the MOC itself (not just its linked notes), and ensure ordering/dedup remain deterministic.
+- [P1] ~~Align `qipu context --moc <id>` behavior with `specs/cli-interface.md`~~ **COMPLETED:** MOC selection now includes the MOC itself alongside linked notes with deterministic ordering/dedup.
 
 - [P1] Reconcile store discovery requirements across specs: `specs/cli-tool.md` currently describes discovering `.qipu/` only, while `specs/storage-format.md`, `specs/cli-interface.md`, and the implementation support both `.qipu/` and `qipu/`; decide the intended behavior and update spec(s) accordingly.
 

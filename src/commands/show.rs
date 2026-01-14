@@ -18,7 +18,7 @@ use crate::lib::store::Store;
 /// Execute the show command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> Result<()> {
     // Try to interpret as path first
-    let note = if Path::new(id_or_path).exists() {
+    let mut note = if Path::new(id_or_path).exists() {
         let content = fs::read_to_string(id_or_path)?;
         Note::parse(&content, Some(id_or_path.into()))?
     } else {
@@ -26,15 +26,30 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
         store.get_note(id_or_path)?
     };
 
-    if show_links {
-        // Show links mode - similar to `qipu link list` but integrated into show
-        return execute_show_links(cli, store, &note);
-    }
-
-    // Build compaction context for annotations
+    // Build compaction context for annotations and resolution
     // Per spec (specs/compaction.md lines 116-119)
     let all_notes = store.list_notes()?;
     let compaction_ctx = CompactionContext::build(&all_notes)?;
+
+    // Resolve compaction unless disabled
+    let mut via = None;
+    if !cli.no_resolve_compaction {
+        let canonical_id = compaction_ctx.canon(note.id())?;
+        if canonical_id != note.id() {
+            via = Some(note.id().to_string());
+            note = store.get_note(&canonical_id)?;
+        }
+    }
+
+    if show_links {
+        // Show links mode - similar to `qipu link list` but integrated into show
+        let compaction_ctx = if cli.no_resolve_compaction {
+            None
+        } else {
+            Some(&compaction_ctx)
+        };
+        return execute_show_links(cli, store, &note, compaction_ctx, &all_notes);
+    }
 
     match cli.format {
         OutputFormat::Json => {
@@ -50,6 +65,12 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "links": note.frontmatter.links,
                 "body": note.body,
             });
+
+            if let Some(via_id) = &via {
+                if let Some(obj) = output.as_object_mut() {
+                    obj.insert("via".to_string(), serde_json::json!(via_id));
+                }
+            }
 
             // Add compaction annotations for digest notes
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
@@ -103,6 +124,9 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
 
             // Build compaction annotations for digest notes
             let mut annotations = String::new();
+            if let Some(via_id) = &via {
+                annotations.push_str(&format!(" via={}", via_id));
+            }
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
             if compacts_count > 0 {
                 annotations.push_str(&format!(" compacts={}", compacts_count));
@@ -165,37 +189,76 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
 
 /// Execute show with --links flag
 /// Shows inline + typed links, both directions
-fn execute_show_links(cli: &Cli, store: &Store, note: &Note) -> Result<()> {
+fn execute_show_links(
+    cli: &Cli,
+    store: &Store,
+    note: &Note,
+    compaction_ctx: Option<&CompactionContext>,
+    all_notes: &[Note],
+) -> Result<()> {
     let note_id = note.id().to_string();
 
     // Load or build the index to get backlinks
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
+    let equivalence_map = if let Some(ctx) = compaction_ctx {
+        Some(ctx.build_equivalence_map(all_notes)?)
+    } else {
+        None
+    };
+
+    let source_ids = equivalence_map
+        .as_ref()
+        .and_then(|map| map.get(&note_id).cloned())
+        .unwrap_or_else(|| vec![note_id.clone()]);
+
     // Collect links - both directions (consistent with spec for --links)
     let mut entries: Vec<LinkEntry> = Vec::new();
 
-    // Outbound edges (links FROM this note)
-    for edge in index.get_outbound_edges(&note_id) {
-        let title = index.get_metadata(&edge.to).map(|m| m.title.clone());
-        entries.push(LinkEntry {
-            direction: "out".to_string(),
-            id: edge.to.clone(),
-            title,
-            link_type: edge.link_type.clone(),
-            source: edge.source.to_string(),
-        });
+    // Outbound edges (links FROM this note or any compacted source)
+    for source_id in &source_ids {
+        for edge in index.get_outbound_edges(source_id) {
+            let mut entry = LinkEntry {
+                direction: "out".to_string(),
+                id: edge.to.clone(),
+                title: index.get_metadata(&edge.to).map(|m| m.title.clone()),
+                link_type: edge.link_type.clone(),
+                source: edge.source.to_string(),
+            };
+
+            if let Some(ctx) = compaction_ctx {
+                entry.id = ctx.canon(&entry.id)?;
+                if entry.id == note_id {
+                    continue;
+                }
+                entry.title = index.get_metadata(&entry.id).map(|m| m.title.clone());
+            }
+
+            entries.push(entry);
+        }
     }
 
-    // Inbound edges (backlinks TO this note)
-    for edge in index.get_inbound_edges(&note_id) {
-        let title = index.get_metadata(&edge.from).map(|m| m.title.clone());
-        entries.push(LinkEntry {
-            direction: "in".to_string(),
-            id: edge.from.clone(),
-            title,
-            link_type: edge.link_type.clone(),
-            source: edge.source.to_string(),
-        });
+    // Inbound edges (backlinks TO this note or any compacted source)
+    for source_id in &source_ids {
+        for edge in index.get_inbound_edges(source_id) {
+            let mut entry = LinkEntry {
+                direction: "in".to_string(),
+                id: edge.from.clone(),
+                title: index.get_metadata(&edge.from).map(|m| m.title.clone()),
+                link_type: edge.link_type.clone(),
+                source: edge.source.to_string(),
+            };
+
+            if let Some(ctx) = compaction_ctx {
+                entry.id = ctx.canon(&entry.id)?;
+                if entry.id == note_id {
+                    continue;
+                }
+                entry.title = index.get_metadata(&entry.id).map(|m| m.title.clone());
+            }
+
+            entries.push(entry);
+        }
     }
 
     // Sort for determinism: direction, then type, then id

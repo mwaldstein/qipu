@@ -2593,13 +2593,16 @@ fn test_context_by_moc() {
         .assert()
         .success();
 
-    // Get context by MOC - should include linked note
-    qipu()
+    // Get context by MOC - should include linked note and the MOC itself
+    let output = qipu()
         .current_dir(dir.path())
         .args(["context", "--moc", &moc_id])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Linked Note"));
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Linked Note"));
+    assert!(stdout.contains("Topic Map"));
 }
 
 #[test]
@@ -4185,6 +4188,18 @@ fn test_compaction_annotations() {
         .unwrap()
         .to_string();
 
+    let notes_dir = store_path.join("notes");
+    for entry in std::fs::read_dir(&notes_dir).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with(&note1_id) {
+            let mut content = std::fs::read_to_string(entry.path()).unwrap();
+            content.push_str("\n\nunique-token-123");
+            std::fs::write(entry.path(), content).unwrap();
+            break;
+        }
+    }
+
     let note2_output = qipu()
         .args([
             "--store",
@@ -4231,6 +4246,39 @@ fn test_compaction_annotations() {
         .next()
         .unwrap()
         .to_string();
+
+    let note3_output = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "create",
+            "Linked Note",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let note3_id = String::from_utf8_lossy(&note3_output)
+        .lines()
+        .find(|l| l.starts_with("qp-"))
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string();
+
+    qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "link",
+            "add",
+            &note1_id,
+            &note3_id,
+        ])
+        .assert()
+        .success();
 
     // Apply compaction
     qipu()
@@ -4351,6 +4399,81 @@ fn test_compaction_annotations() {
         "Show JSON output should show compaction_pct field"
     );
 
+    // Show compacted note should resolve to digest (with via)
+    let show_compacted = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "show",
+            &note1_id,
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let show_compacted_str = String::from_utf8_lossy(&show_compacted);
+    assert!(
+        show_compacted_str.contains(&format!("\"id\": \"{}\"", digest_id)),
+        "Show should resolve compacted note to digest"
+    );
+    assert!(
+        show_compacted_str.contains(&format!("\"via\": \"{}\"", note1_id)),
+        "Show should include via for compacted note"
+    );
+
+    let show_raw = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "show",
+            &note1_id,
+            "--format",
+            "json",
+            "--no-resolve-compaction",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let show_raw_str = String::from_utf8_lossy(&show_raw);
+    assert!(
+        show_raw_str.contains(&format!("\"id\": \"{}\"", note1_id)),
+        "Show should return raw compacted note when resolution is disabled"
+    );
+    assert!(
+        !show_raw_str.contains("\"via\""),
+        "Show should omit via when compaction is disabled"
+    );
+
+    let show_links = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "show",
+            &note1_id,
+            "--links",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let show_links_str = String::from_utf8_lossy(&show_links);
+    assert!(
+        show_links_str.contains(&format!("\"id\": \"{}\"", digest_id)),
+        "Show --links should resolve to digest"
+    );
+    assert!(
+        show_links_str.contains(&note3_id),
+        "Show --links should include edges from compacted notes"
+    );
+
     // Test context command - JSON format
     let context_json = qipu()
         .args([
@@ -4375,6 +4498,31 @@ fn test_compaction_annotations() {
     assert!(
         context_json_str.contains("\"compaction_pct\""),
         "Context JSON output should show compaction_pct field"
+    );
+
+    let context_query = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "context",
+            "--query",
+            "unique-token-123",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let context_query_str = String::from_utf8_lossy(&context_query);
+    assert!(
+        context_query_str.contains(&format!("\"id\": \"{}\"", digest_id)),
+        "Context query should resolve to digest"
+    );
+    assert!(
+        context_query_str.contains(&format!("\"via\": \"{}\"", note1_id)),
+        "Context query should include via for compacted match"
     );
 
     // Test export command - human format

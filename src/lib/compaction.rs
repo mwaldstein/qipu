@@ -109,6 +109,25 @@ impl CompactionContext {
         self.compacted_by.get(digest_id)
     }
 
+    /// Build a map from canonical IDs to all equivalent note IDs
+    pub fn build_equivalence_map(&self, notes: &[Note]) -> Result<HashMap<String, Vec<String>>> {
+        let mut map: HashMap<String, Vec<String>> = HashMap::new();
+
+        for note in notes {
+            let canonical = self.canon(&note.frontmatter.id)?;
+            map.entry(canonical)
+                .or_default()
+                .push(note.frontmatter.id.clone());
+        }
+
+        for ids in map.values_mut() {
+            ids.sort();
+            ids.dedup();
+        }
+
+        Ok(map)
+    }
+
     /// Get the count of direct notes compacted by this digest
     /// Returns 0 if not a digest
     pub fn get_compacts_count(&self, digest_id: &str) -> usize {

@@ -80,20 +80,30 @@ pub fn execute_list(
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
+    let all_notes = store.list_notes()?;
+
     // Build compaction context if needed
     let compaction_ctx = if !cli.no_resolve_compaction {
-        let notes = store.list_notes()?;
-        Some(CompactionContext::build(&notes)?)
+        Some(CompactionContext::build(&all_notes)?)
     } else {
         None
     };
 
-    // Load all notes for compaction annotations
-    let _all_notes = store.list_notes()?;
+    let equivalence_map = if let Some(ref ctx) = compaction_ctx {
+        Some(ctx.build_equivalence_map(&all_notes)?)
+    } else {
+        None
+    };
 
     // Canonicalize the note ID to get which note's links we should show
     let canonical_id = if let Some(ref ctx) = compaction_ctx {
         ctx.canon(&note_id)?
+    } else {
+        note_id.clone()
+    };
+
+    let display_id = if compaction_ctx.is_some() {
+        canonical_id.clone()
     } else {
         note_id.clone()
     };
@@ -106,13 +116,10 @@ pub fn execute_list(
     }
 
     // Collect all raw IDs that map to this canonical ID (for gathering edges)
-    let mut source_ids = vec![canonical_id.clone()];
-    if let Some(ref ctx) = compaction_ctx {
-        // Find all notes that are compacted by this canonical ID
-        if let Some(compacted_notes) = ctx.get_compacted_notes(&canonical_id) {
-            source_ids.extend(compacted_notes.iter().cloned());
-        }
-    }
+    let source_ids = equivalence_map
+        .as_ref()
+        .and_then(|map| map.get(&canonical_id).cloned())
+        .unwrap_or_else(|| vec![canonical_id.clone()]);
 
     // Collect links based on direction
     let mut entries = Vec::new();
@@ -127,6 +134,9 @@ pub fn execute_list(
                     // Canonicalize the target ID if compaction is enabled
                     if let Some(ref ctx) = compaction_ctx {
                         entry.id = ctx.canon(&entry.id)?;
+                        if entry.id == canonical_id {
+                            continue;
+                        }
                         // Update title if it changed due to canonicalization
                         if let Some(meta) = index.get_metadata(&entry.id) {
                             entry.title = Some(meta.title.clone());
@@ -148,6 +158,9 @@ pub fn execute_list(
                     // Canonicalize the source ID if compaction is enabled
                     if let Some(ref ctx) = compaction_ctx {
                         entry.id = ctx.canon(&entry.id)?;
+                        if entry.id == canonical_id {
+                            continue;
+                        }
                         // Update title if it changed due to canonicalization
                         if let Some(meta) = index.get_metadata(&entry.id) {
                             entry.title = Some(meta.title.clone());
@@ -217,7 +230,7 @@ pub fn execute_list(
         OutputFormat::Human => {
             if entries.is_empty() {
                 if !cli.quiet {
-                    println!("No links found for {}", note_id);
+                    println!("No links found for {}", display_id);
                 }
             } else {
                 for entry in &entries {
@@ -270,7 +283,7 @@ pub fn execute_list(
             println!(
                 "H qipu=1 records=1 store={} mode=link.list id={} direction={}",
                 store.root().display(),
-                note_id,
+                display_id,
                 match direction {
                     Direction::Out => "out",
                     Direction::In => "in",
@@ -343,9 +356,9 @@ pub fn execute_list(
                 // E <from> <type> <to> <source>
                 // For consistency, always show from -> to even for inbound
                 let (from, to) = match entry.direction.as_str() {
-                    "out" => (note_id.clone(), entry.id.clone()),
-                    "in" => (entry.id.clone(), note_id.clone()),
-                    _ => (note_id.clone(), entry.id.clone()),
+                    "out" => (display_id.clone(), entry.id.clone()),
+                    "in" => (entry.id.clone(), display_id.clone()),
+                    _ => (display_id.clone(), entry.id.clone()),
                 };
                 println!("E {} {} {} {}", from, entry.link_type, to, entry.source);
             }
@@ -741,16 +754,20 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
+    let all_notes = store.list_notes()?;
+
     // Build compaction context if needed
     let compaction_ctx = if !cli.no_resolve_compaction {
-        let notes = store.list_notes()?;
-        Some(CompactionContext::build(&notes)?)
+        Some(CompactionContext::build(&all_notes)?)
     } else {
         None
     };
 
-    // Load all notes for compaction annotations
-    let _all_notes = store.list_notes()?;
+    let equivalence_map = if let Some(ref ctx) = compaction_ctx {
+        Some(ctx.build_equivalence_map(&all_notes)?)
+    } else {
+        None
+    };
 
     // Canonicalize the root note ID
     let canonical_id = if let Some(ref ctx) = compaction_ctx {
@@ -767,7 +784,13 @@ pub fn execute_tree(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOption
     }
 
     // Perform BFS traversal with compaction context
-    let result = bfs_traverse(&index, &canonical_id, &opts, compaction_ctx.as_ref())?;
+    let result = bfs_traverse(
+        &index,
+        &canonical_id,
+        &opts,
+        compaction_ctx.as_ref(),
+        equivalence_map.as_ref(),
+    )?;
 
     // Output
     match cli.format {
@@ -818,6 +841,7 @@ fn bfs_traverse(
     root: &str,
     opts: &TreeOptions,
     compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<TreeResult> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
@@ -868,7 +892,7 @@ fn bfs_traverse(
         }
 
         // Get neighbors based on direction (gather edges from all compacted notes)
-        let neighbors = get_filtered_neighbors(index, &current_id, opts, compaction_ctx);
+        let neighbors = get_filtered_neighbors(index, &current_id, opts, equivalence_map);
 
         // Apply max_fanout
         let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {
@@ -991,19 +1015,15 @@ fn get_filtered_neighbors<'a>(
     index: &'a Index,
     id: &str,
     opts: &TreeOptions,
-    compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Vec<(String, &'a Edge)> {
     let mut neighbors: Vec<(String, &Edge)> = Vec::new();
 
     // Collect all source IDs that map to this ID (for gathering edges)
     // This includes the ID itself plus any notes compacted by this ID
-    let mut source_ids = vec![id.to_string()];
-    if let Some(ctx) = compaction_ctx {
-        // Find all notes that are compacted by this ID
-        if let Some(compacted_notes) = ctx.get_compacted_notes(id) {
-            source_ids.extend(compacted_notes.iter().cloned());
-        }
-    }
+    let source_ids = equivalence_map
+        .and_then(|map| map.get(id).cloned())
+        .unwrap_or_else(|| vec![id.to_string()]);
 
     // Get outbound edges from ALL source IDs
     if opts.direction == Direction::Out || opts.direction == Direction::Both {
@@ -1370,16 +1390,20 @@ pub fn execute_path(
     // Load or build the index
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
+    let all_notes = store.list_notes()?;
+
     // Build compaction context if needed
     let compaction_ctx = if !cli.no_resolve_compaction {
-        let notes = store.list_notes()?;
-        Some(CompactionContext::build(&notes)?)
+        Some(CompactionContext::build(&all_notes)?)
     } else {
         None
     };
 
-    // Load all notes for compaction annotations
-    let _all_notes = store.list_notes()?;
+    let equivalence_map = if let Some(ref ctx) = compaction_ctx {
+        Some(ctx.build_equivalence_map(&all_notes)?)
+    } else {
+        None
+    };
 
     // Canonicalize the note IDs
     let canonical_from = if let Some(ref ctx) = compaction_ctx {
@@ -1412,6 +1436,7 @@ pub fn execute_path(
         &canonical_to,
         &opts,
         compaction_ctx.as_ref(),
+        equivalence_map.as_ref(),
     )?;
 
     // Output
@@ -1464,6 +1489,7 @@ fn bfs_find_path(
     to: &str,
     opts: &TreeOptions,
     compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
@@ -1488,7 +1514,7 @@ fn bfs_find_path(
         }
 
         // Get neighbors (gather edges from all compacted notes)
-        let neighbors = get_filtered_neighbors(index, &current_id, opts, compaction_ctx);
+        let neighbors = get_filtered_neighbors(index, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
             // Canonicalize edge endpoints if using compaction

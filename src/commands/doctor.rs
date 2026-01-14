@@ -139,7 +139,7 @@ pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<()> {
     }
 
     // Output results
-    output_result(cli, &result)?;
+    output_result(cli, store, &result)?;
 
     // Return error if there are unfixed errors
     if result.has_errors() && result.fixed_count < result.error_count {
@@ -446,7 +446,7 @@ fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> {
 }
 
 /// Output the doctor result in the appropriate format
-fn output_result(cli: &Cli, result: &DoctorResult) -> Result<()> {
+fn output_result(cli: &Cli, store: &Store, result: &DoctorResult) -> Result<()> {
     match cli.format {
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(result)?);
@@ -499,7 +499,7 @@ fn output_result(cli: &Cli, result: &DoctorResult) -> Result<()> {
             // Header
             println!(
                 "H qipu=1 records=1 store={} mode=doctor notes={} errors={} warnings={}",
-                store_path_for_records(cli),
+                store_path_for_records(store),
                 result.notes_scanned,
                 result.error_count,
                 result.warning_count
@@ -525,11 +525,8 @@ fn output_result(cli: &Cli, result: &DoctorResult) -> Result<()> {
 }
 
 /// Get store path for records output (helper to work around borrow issues)
-fn store_path_for_records(cli: &Cli) -> String {
-    cli.store
-        .as_ref()
-        .map(|p| p.display().to_string())
-        .unwrap_or_else(|| ".qipu".to_string())
+fn store_path_for_records(store: &Store) -> String {
+    store.root().display().to_string()
 }
 
 #[cfg(test)]

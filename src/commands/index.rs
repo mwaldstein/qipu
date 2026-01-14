@@ -38,11 +38,7 @@ pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
         }
         OutputFormat::Records => {
             // Header line with index statistics
-            let store_path = cli
-                .store
-                .as_ref()
-                .map(|p| p.display().to_string())
-                .unwrap_or_else(|| ".qipu".to_string());
+            let store_path = store.root().display();
 
             println!(
                 "H qipu=1 records=1 store={} mode=index notes={} tags={} edges={} unresolved={}",

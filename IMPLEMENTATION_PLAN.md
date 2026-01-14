@@ -39,7 +39,7 @@
 
 - [P1] Reconcile store discovery requirements across specs: `specs/cli-tool.md` currently describes discovering `.qipu/` only, while `specs/storage-format.md`, `specs/cli-interface.md`, and the implementation support both `.qipu/` and `qipu/`; decide the intended behavior and update spec(s) accordingly.
 
-- [P1] Fix records header provenance (`store=...`) to always report the actual opened store root (not `cli.store` or a hardcoded `.qipu` fallback), including at least `qipu doctor --format records` and `qipu index --format records`.
+- [P1] ~~Fix records header provenance (`store=...`) to always report the actual opened store root (not `cli.store` or a hardcoded `.qipu` fallback), including at least `qipu doctor --format records` and `qipu index --format records`.~~ **COMPLETED:** records header now uses the actual opened store root for `qipu index --format records` and `qipu doctor --format records`.
 
 - [P1] Make search output fully deterministic:
   - Add stable tiebreakers in result sorting (e.g., when relevance ties, sort by `(relevance desc, id asc)`), and ensure canonicalization/dedup does not introduce unstable ordering.

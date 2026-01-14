@@ -40,13 +40,13 @@ pub fn execute(
 
     let mut results = search(store, &index, query, type_filter, tag_filter)?;
 
-    // Apply compaction resolution (unless --no-resolve-compaction)
-    // Per spec (specs/compaction.md lines 254-261): when a compacted note matches,
-    // surface the canonical digest with via=<matching-note-id> annotation
-    if !cli.no_resolve_compaction {
-        let notes = store.list_notes()?;
-        let compaction_ctx = CompactionContext::build(&notes)?;
+    // Load all notes once for both compaction resolution and annotations
+    // Per spec (specs/compaction.md lines 116-119, 254-261)
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
 
+    // Apply compaction resolution (unless --no-resolve-compaction)
+    if !cli.no_resolve_compaction {
         // Group results by canonical ID, preserving the highest relevance and via field
         let mut canonical_results: HashMap<String, SearchResult> = HashMap::new();
 
@@ -95,10 +95,17 @@ pub fn execute(
         results.retain(|r| r.note_type != NoteType::Moc);
     }
 
-    // Load all notes for compaction annotations
-    // Per spec (specs/compaction.md lines 116-119)
-    let all_notes = store.list_notes()?;
-    let compaction_ctx = CompactionContext::build(&all_notes)?;
+    // Pre-load notes for compaction annotations to avoid repeated I/O
+    // Only load notes that are actually in results and have compaction info
+    let mut notes_cache: HashMap<String, crate::lib::note::Note> = HashMap::new();
+    for result in &results {
+        let compacts_count = compaction_ctx.get_compacts_count(&result.id);
+        if compacts_count > 0 && !notes_cache.contains_key(&result.id) {
+            if let Ok(note) = store.get_note(&result.id) {
+                notes_cache.insert(result.id.clone(), note);
+            }
+        }
+    }
 
     match cli.format {
         OutputFormat::Json => {
@@ -129,10 +136,10 @@ pub fn execute(
                             obj_mut
                                 .insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                            // For compaction_pct, we need to load the note
-                            if let Ok(note) = store.get_note(&r.id) {
+                            // For compaction_pct, use cached note to avoid repeated I/O
+                            if let Some(note) = notes_cache.get(&r.id) {
                                 if let Some(pct) =
-                                    compaction_ctx.get_compaction_pct(&note, &all_notes)
+                                    compaction_ctx.get_compaction_pct(note, &all_notes)
                                 {
                                     obj_mut.insert(
                                         "compaction_pct".to_string(),
@@ -192,10 +199,9 @@ pub fn execute(
                     if compacts_count > 0 {
                         annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                        // For compaction_pct, we need to load the note
-                        if let Ok(note) = store.get_note(&result.id) {
-                            if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes)
-                            {
+                        // For compaction_pct, use cached note to avoid repeated I/O
+                        if let Some(note) = notes_cache.get(&result.id) {
+                            if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
                                 annotations.push_str(&format!(" compaction={:.0}%", pct));
                             }
                         }
@@ -262,9 +268,9 @@ pub fn execute(
                 if compacts_count > 0 {
                     annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                    // For compaction_pct, we need to load the note
-                    if let Ok(note) = store.get_note(&result.id) {
-                        if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                    // For compaction_pct, use cached note to avoid repeated I/O
+                    if let Some(note) = notes_cache.get(&result.id) {
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
                             annotations.push_str(&format!(" compaction={:.0}%", pct));
                         }
                     }

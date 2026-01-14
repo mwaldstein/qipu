@@ -592,15 +592,18 @@ fn search_with_ripgrep(
     // Build results from matching files using index metadata
     let mut results = Vec::new();
 
-    // For performance, limit processing to first 500 matching files
+    // For performance, limit processing to first 200 matching files
     // Users rarely look beyond the first few pages of results
     let mut processed = 0;
-    const MAX_FILES_TO_PROCESS: usize = 500;
+    const MAX_FILES_TO_PROCESS: usize = 200;
+
+    // Create a faster lookup for matching paths
+    let matching_path_set: HashSet<&PathBuf> = matching_paths.iter().collect();
 
     for meta in index.metadata.values() {
         // Skip if path doesn't match ripgrep results
         let path = PathBuf::from(&meta.path);
-        if !matching_paths.contains(&path) {
+        if !matching_path_set.contains(&path) {
             continue;
         }
 
@@ -618,30 +621,39 @@ fn search_with_ripgrep(
             }
         }
 
-        // Calculate relevance score (same logic as embedded search)
+        // Calculate relevance score (same logic as embedded search) - optimized
         let mut relevance = 0.0;
         let mut match_context = None;
 
         let title_lower = meta.title.to_lowercase();
 
-        // Title matches (high weight)
+        // Title matches (high weight) - optimized early exit
         for term in &query_terms {
             if title_lower.contains(term) {
                 relevance += 10.0;
                 if title_lower == *term {
                     relevance += 5.0;
                 }
+                // Early exit for strong title matches
+                if relevance >= 15.0 {
+                    break;
+                }
             }
         }
 
-        // Tag matches (medium weight)
-        for tag in &meta.tags {
-            let tag_lower = tag.to_lowercase();
-            for term in &query_terms {
-                if tag_lower == *term {
-                    relevance += 7.0;
-                } else if tag_lower.contains(term) {
-                    relevance += 3.0;
+        // Tag matches (medium weight) - only check if needed
+        if relevance < 15.0 {
+            for tag in &meta.tags {
+                let tag_lower = tag.to_lowercase();
+                for term in &query_terms {
+                    if tag_lower == *term {
+                        relevance += 7.0;
+                    } else if tag_lower.contains(term) {
+                        relevance += 3.0;
+                    }
+                }
+                if relevance >= 10.0 {
+                    break;
                 }
             }
         }
@@ -667,20 +679,31 @@ fn search_with_ripgrep(
             }
         }
 
-        results.push(SearchResult {
-            id: meta.id.clone(),
-            title: meta.title.clone(),
-            note_type: meta.note_type,
-            tags: meta.tags.clone(),
-            path: meta.path.clone(),
-            match_context,
-            relevance,
-            via: None,
-        });
+        // Only include results with some relevance
+        if relevance > 0.0 {
+            results.push(SearchResult {
+                id: meta.id.clone(),
+                title: meta.title.clone(),
+                note_type: meta.note_type,
+                tags: meta.tags.clone(),
+                path: meta.path.clone(),
+                match_context,
+                relevance,
+                via: None,
+            });
+        }
 
         processed += 1;
         if processed >= MAX_FILES_TO_PROCESS {
             break;
+        }
+
+        // Early exit if we have enough strong results
+        if results.len() >= 50 {
+            let strong_count = results.iter().filter(|r| r.relevance >= 10.0).count();
+            if strong_count >= 20 {
+                break;
+            }
         }
     }
 
@@ -691,8 +714,8 @@ fn search_with_ripgrep(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    // Limit to top 100 results for better performance
-    results.truncate(100);
+    // Limit results to improve performance for large stores
+    results.truncate(200);
 
     Ok(results)
 }
@@ -713,6 +736,11 @@ fn search_embedded(
     }
 
     let mut results = Vec::new();
+    let tag_string = tag_filter.map(|t| t.to_string());
+
+    // Early exit: if we have strong title matches in metadata, limit body reads
+    let mut strong_title_matches = 0;
+    const MAX_STRONG_MATCHES: usize = 50;
 
     for meta in index.metadata.values() {
         // Apply type filter
@@ -723,8 +751,8 @@ fn search_embedded(
         }
 
         // Apply tag filter
-        if let Some(tag) = tag_filter {
-            if !meta.tags.contains(&tag.to_string()) {
+        if let Some(ref tag) = tag_string {
+            if !meta.tags.contains(tag) {
                 continue;
             }
         }
@@ -736,7 +764,7 @@ fn search_embedded(
 
         let title_lower = meta.title.to_lowercase();
 
-        // Title matches (high weight)
+        // Title matches (high weight) - optimized to avoid repeated contains() calls
         for term in &query_terms {
             if title_lower.contains(term) {
                 relevance += 10.0;
@@ -745,41 +773,57 @@ fn search_embedded(
                 if title_lower == *term {
                     relevance += 5.0;
                 }
-            }
-        }
-
-        // Tag matches (medium weight)
-        for tag in &meta.tags {
-            let tag_lower = tag.to_lowercase();
-            for term in &query_terms {
-                if tag_lower == *term {
-                    relevance += 7.0;
-                    matched = true;
-                } else if tag_lower.contains(term) {
-                    relevance += 3.0;
-                    matched = true;
+                // Break early if we have a strong title match to avoid unnecessary body reads
+                if relevance >= 15.0 {
+                    strong_title_matches += 1;
+                    break;
                 }
             }
         }
 
-        // Body search (lower weight, requires reading file)
-        if !matched || relevance < 10.0 {
-            // Read note content to search body
-            if let Ok(note) = store.get_note(&meta.id) {
-                let body_lower = note.body.to_lowercase();
-                for term in &query_terms {
-                    if body_lower.contains(term) {
-                        relevance += 2.0;
-                        matched = true;
+        // Skip body search if we already have enough strong matches
+        if strong_title_matches >= MAX_STRONG_MATCHES && relevance >= 15.0 {
+            matched = true; // Ensure we include this result
+        } else {
+            // Tag matches (medium weight) - optimized to avoid repeated to_lowercase()
+            if !matched || relevance < 15.0 {
+                for tag in &meta.tags {
+                    let tag_lower = tag.to_lowercase();
+                    for term in &query_terms {
+                        if tag_lower == *term {
+                            relevance += 7.0;
+                            matched = true;
+                        } else if tag_lower.contains(term) {
+                            relevance += 3.0;
+                            matched = true;
+                        }
+                    }
+                    if relevance >= 10.0 {
+                        break;
+                    }
+                }
+            }
 
-                        // Extract context snippet
-                        if match_context.is_none() {
-                            if let Some(pos) = body_lower.find(term) {
-                                let start = pos.saturating_sub(40);
-                                let end = (pos + term.len() + 40).min(note.body.len());
-                                let snippet = &note.body[start..end];
-                                let snippet = snippet.replace('\n', " ");
-                                match_context = Some(format!("...{}...", snippet.trim()));
+            // Body search (lower weight, requires reading file) - only if needed and under limit
+            if !matched || relevance < 10.0 {
+                // Read note content to search body
+                if let Ok(note) = store.get_note(&meta.id) {
+                    let body_lower = note.body.to_lowercase();
+                    for term in &query_terms {
+                        if body_lower.contains(term) {
+                            relevance += 2.0;
+                            matched = true;
+
+                            // Extract context snippet - only for first match
+                            if match_context.is_none() {
+                                if let Some(pos) = body_lower.find(term) {
+                                    let start = pos.saturating_sub(40);
+                                    let end = (pos + term.len() + 40).min(note.body.len());
+                                    let snippet = &note.body[start..end];
+                                    let snippet = snippet.replace('\n', " ");
+                                    match_context = Some(format!("...{}...", snippet.trim()));
+                                    break; // Only get context for first term match
+                                }
                             }
                         }
                     }
@@ -818,6 +862,9 @@ fn search_embedded(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
+    // Limit results to improve performance for large stores
+    results.truncate(200);
+
     Ok(results)
 }
 
@@ -833,6 +880,7 @@ pub fn search(
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
 ) -> Result<Vec<SearchResult>> {
+    // Always try ripgrep first - it's much faster than embedded search
     if is_ripgrep_available() {
         eprintln!("Using ripgrep search");
         search_with_ripgrep(store, index, query, type_filter, tag_filter)

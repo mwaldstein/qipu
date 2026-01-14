@@ -1,6 +1,6 @@
 # Qipu Knowledge Store Primer
 
-Store: /tmp/.tmpAr3pV4
+Store: /tmp/.tmpXXXXXX
 
 ## About Qipu
 

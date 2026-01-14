@@ -37,7 +37,6 @@
   - `qipu show`: default to resolved view (if an ID is compacted, redirect to `canon(id)`), and only show raw compacted notes when `--no-resolve-compaction` is set.
   - `qipu show --links`: apply contracted-graph semantics (canonicalize nodes/edges; hide compacted sources by default).
   - `qipu context`: in resolved view, canonicalize + deduplicate selected IDs (including `--query` hits), hide compacted source notes by default, and preserve a `via`/breadcrumb mechanism for query-driven selection.
-  - `qipu export`: apply resolved/raw toggle and decide deterministic ordering behavior when MOCs link to compacted notes (export canonical digest vs raw source, and how to annotate).
   - `qipu link` list/tree/path: aggregate edges for a canonical digest across the full compaction equivalence class (transitive chains), not just direct `compacts`.
 
 - [P1] Align `qipu context --moc <id>` behavior with `specs/cli-interface.md`: include the MOC itself (not just its linked notes), and ensure ordering/dedup remain deterministic.

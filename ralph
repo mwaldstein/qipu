@@ -20,6 +20,7 @@ MODE:
   vision-expand | expand    Iteratively expand vision (default)
   vision-reorg  | reorg     Reorganize/prune core docs
   plan                     Create/update implementation plan
+  build                    Implement specs; build/test loop
 
 OPTIONS:
   --max-iterations N        Maximum iterations before stopping
@@ -92,6 +93,12 @@ case "$MODE" in
         MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/plan.txt}"
+        ;;
+    build)
+        MODE="build"
+        MAX_ITERATIONS="${MAX_ITERATIONS:-200}"
+        MODEL="${MODEL:-opencode/claude-opus-4-5}"
+        PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/build.txt}"
         ;;
     *)
         echo "Unknown mode: $MODE" >&2

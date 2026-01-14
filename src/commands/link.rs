@@ -1080,61 +1080,65 @@ fn output_tree_human(
         children.entry(entry.from.clone()).or_default().push(entry);
     }
 
+    struct TreePrintConfig<'a> {
+        prefix: &'a str,
+        is_last: bool,
+        cli: &'a Cli,
+        compaction_ctx: Option<&'a CompactionContext>,
+    }
+
     // Print tree recursively
     fn print_tree(
         id: &str,
         children: &HashMap<String, Vec<&SpanningTreeEntry>>,
         index: &Index,
         visited: &HashSet<String>,
-        prefix: &str,
-        is_last: bool,
-        cli: &Cli,
-        compaction_ctx: Option<&CompactionContext>,
+        config: &TreePrintConfig<'_>,
     ) {
         let title = index
             .get_metadata(id)
             .map(|m| m.title.as_str())
             .unwrap_or("(unknown)");
 
-        let connector = if prefix.is_empty() {
+        let connector = if config.prefix.is_empty() {
             ""
-        } else if is_last {
+        } else if config.is_last {
             "└── "
         } else {
             "├── "
         };
 
-        println!("{}{}{} \"{}\"", prefix, connector, id, title);
+        println!("{}{}{} \"{}\"", config.prefix, connector, id, title);
 
         // Show compacted IDs if --with-compaction-ids is set
-        if cli.with_compaction_ids {
-            if let Some(ctx) = compaction_ctx {
+        if config.cli.with_compaction_ids {
+            if let Some(ctx) = config.compaction_ctx {
                 let compacts_count = ctx.get_compacts_count(id);
                 if compacts_count > 0 {
-                    let depth = cli.compaction_depth.unwrap_or(1);
+                    let depth = config.cli.compaction_depth.unwrap_or(1);
                     if let Some((ids, truncated)) =
-                        ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
+                        ctx.get_compacted_ids(id, depth, config.cli.compaction_max_nodes)
                     {
                         let ids_str = ids.join(", ");
                         let suffix = if truncated {
-                            let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                            let max = config.cli.compaction_max_nodes.unwrap_or(ids.len());
                             format!(" (truncated, showing {} of {})", max, compacts_count)
                         } else {
                             String::new()
                         };
-                        println!("{}  Compacted: {}{}", prefix, ids_str, suffix);
+                        println!("{}  Compacted: {}{}", config.prefix, ids_str, suffix);
                     }
                 }
             }
         }
 
         if let Some(kids) = children.get(id) {
-            let new_prefix = if prefix.is_empty() {
+            let new_prefix = if config.prefix.is_empty() {
                 "".to_string()
-            } else if is_last {
-                format!("{}    ", prefix)
+            } else if config.is_last {
+                format!("{}    ", config.prefix)
             } else {
-                format!("{}│   ", prefix)
+                format!("{}│   ", config.prefix)
             };
 
             for (i, entry) in kids.iter().enumerate() {
@@ -1157,16 +1161,13 @@ fn output_tree_human(
                 } else {
                     let mut new_visited = visited.clone();
                     new_visited.insert(entry.to.clone());
-                    print_tree(
-                        &entry.to,
-                        children,
-                        index,
-                        &new_visited,
-                        &new_prefix,
-                        is_last_child,
-                        cli,
-                        compaction_ctx,
-                    );
+                    let child_config = TreePrintConfig {
+                        prefix: &new_prefix,
+                        is_last: is_last_child,
+                        cli: config.cli,
+                        compaction_ctx: config.compaction_ctx,
+                    };
+                    print_tree(&entry.to, children, index, &new_visited, &child_config);
                 }
             }
         }
@@ -1174,15 +1175,18 @@ fn output_tree_human(
 
     let mut initial_visited = HashSet::new();
     initial_visited.insert(result.root.clone());
+    let initial_config = TreePrintConfig {
+        prefix: "",
+        is_last: true,
+        cli,
+        compaction_ctx,
+    };
     print_tree(
         &result.root,
         &children,
         index,
         &initial_visited,
-        "",
-        true,
-        cli,
-        compaction_ctx,
+        &initial_config,
     );
 
     if result.truncated {

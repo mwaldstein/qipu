@@ -4478,7 +4478,7 @@ fn test_init_branch_workflow() {
             .trim()
             .to_string();
         // Should be on main or master, not qipu-metadata
-        assert!(branch_name == "main" || branch_name == "master" || branch_name == "");
+        assert!(branch_name == "main" || branch_name == "master" || branch_name.is_empty());
     }
 }
 

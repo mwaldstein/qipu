@@ -597,10 +597,12 @@ fn search_with_ripgrep(
                     matching_paths.insert(path_buf.clone());
 
                     // Store first context snippet for this file
-                    if !path_contexts.contains_key(&path_buf) {
+                    if let std::collections::hash_map::Entry::Vacant(e) =
+                        path_contexts.entry(path_buf)
+                    {
                         let context = lines.replace('\n', " ").trim().to_string();
                         if !context.is_empty() {
-                            path_contexts.insert(path_buf, format!("...{}...", context));
+                            e.insert(format!("...{}...", context));
                         }
                     }
                 }

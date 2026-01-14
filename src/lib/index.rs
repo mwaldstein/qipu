@@ -627,7 +627,11 @@ fn search_with_ripgrep(
     // Create a faster lookup for matching paths
     let matching_path_set: HashSet<&PathBuf> = matching_paths.iter().collect();
 
-    for meta in index.metadata.values() {
+    // Iterate over metadata in deterministic order (sorted by note ID)
+    let mut note_ids: Vec<&String> = index.metadata.keys().collect();
+    note_ids.sort();
+    for note_id in note_ids {
+        let meta = &index.metadata[note_id];
         // Skip if path doesn't match ripgrep results
         let path = PathBuf::from(&meta.path);
         if !matching_path_set.contains(&path) {
@@ -734,11 +738,12 @@ fn search_with_ripgrep(
         }
     }
 
-    // Sort by relevance (descending)
+    // Sort by relevance (descending), then by note ID (ascending) for deterministic tie-breaking
     results.sort_by(|a, b| {
         b.relevance
             .partial_cmp(&a.relevance)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.id.cmp(&b.id))
     });
 
     // Limit results to improve performance for large stores
@@ -769,7 +774,11 @@ fn search_embedded(
     let mut strong_title_matches = 0;
     const MAX_STRONG_MATCHES: usize = 50;
 
-    for meta in index.metadata.values() {
+    // Iterate over metadata in deterministic order (sorted by note ID)
+    let mut note_ids: Vec<&String> = index.metadata.keys().collect();
+    note_ids.sort();
+    for note_id in note_ids {
+        let meta = &index.metadata[note_id];
         // Apply type filter
         if let Some(t) = type_filter {
             if meta.note_type != t {
@@ -882,11 +891,12 @@ fn search_embedded(
         }
     }
 
-    // Sort by relevance (descending)
+    // Sort by relevance (descending), then by note ID (ascending) for deterministic tie-breaking
     results.sort_by(|a, b| {
         b.relevance
             .partial_cmp(&a.relevance)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.id.cmp(&b.id))
     });
 
     // Limit results to improve performance for large stores

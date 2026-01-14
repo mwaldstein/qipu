@@ -4377,6 +4377,86 @@ fn test_compaction_annotations() {
         "Context JSON output should show compaction_pct field"
     );
 
+    // Test export command - human format
+    let export_human = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "export",
+            "--tag",
+            "test",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let export_human_str = String::from_utf8_lossy(&export_human);
+    assert!(
+        export_human_str.contains("compacts=2"),
+        "Export human output should show compacts=2"
+    );
+    assert!(
+        export_human_str.contains("compaction="),
+        "Export human output should show compaction percentage"
+    );
+    assert!(
+        !export_human_str.contains("Source Note 1"),
+        "Export should hide compacted notes in resolved view"
+    );
+
+    // Test export command - JSON format
+    let export_json = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "export",
+            "--tag",
+            "test",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let export_json_str = String::from_utf8_lossy(&export_json);
+    assert!(
+        export_json_str.contains("\"compacts\": 2"),
+        "Export JSON output should show compacts field"
+    );
+    assert!(
+        export_json_str.contains("\"compaction_pct\""),
+        "Export JSON output should show compaction_pct field"
+    );
+
+    // Test export command - Records format
+    let export_records = qipu()
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "export",
+            "--tag",
+            "test",
+            "--format",
+            "records",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let export_records_str = String::from_utf8_lossy(&export_records);
+    assert!(
+        export_records_str.contains("compacts=2"),
+        "Export records output should show compacts=2"
+    );
+    assert!(
+        export_records_str.contains("compaction="),
+        "Export records output should show compaction percentage"
+    );
+
     // Test search command - human format
     let search_human = qipu()
         .args(["--store", store_path.to_str().unwrap(), "search", "Digest"])

@@ -11,6 +11,7 @@ use std::fs::File;
 use std::io::Write;
 
 use crate::cli::Cli;
+use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::{search, Index, IndexBuilder};
 use crate::lib::note::Note;
@@ -58,8 +59,21 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     // Build or load index for searching
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
+    // Build compaction context for resolved view + annotations
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
+
     // Collect notes based on selection criteria
-    let selected_notes = collect_notes(store, &index, &options)?;
+    let mut selected_notes = collect_notes(store, &index, &all_notes, &options)?;
+
+    // Apply compaction resolution unless disabled
+    if !cli.no_resolve_compaction {
+        selected_notes = resolve_compaction_notes(store, &compaction_ctx, selected_notes)?;
+    }
+
+    // Sort notes deterministically (by created, then by id)
+    // Per spec: "For tag/query-driven exports: sort by (created_at, id)"
+    sort_notes_by_created_id(&mut selected_notes);
 
     if selected_notes.is_empty() {
         if !cli.quiet {
@@ -73,20 +87,43 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         OutputFormat::Human => {
             // Generate markdown output based on export mode
             match options.mode {
-                ExportMode::Bundle => export_bundle(&selected_notes, store)?,
-                ExportMode::Outline => {
-                    export_outline(&selected_notes, store, &index, options.moc_id)?
+                ExportMode::Bundle => {
+                    export_bundle(&selected_notes, store, cli, &compaction_ctx, &all_notes)?
                 }
+                ExportMode::Outline => export_outline(
+                    &selected_notes,
+                    store,
+                    &index,
+                    options.moc_id,
+                    cli,
+                    &compaction_ctx,
+                    !cli.no_resolve_compaction,
+                    &all_notes,
+                )?,
                 ExportMode::Bibliography => export_bibliography(&selected_notes)?,
             }
         }
         OutputFormat::Json => {
             // JSON output: list of notes with metadata
-            export_json(&selected_notes, store, &options)?
+            export_json(
+                &selected_notes,
+                store,
+                &options,
+                cli,
+                &compaction_ctx,
+                &all_notes,
+            )?
         }
         OutputFormat::Records => {
             // Records output: low-overhead format
-            export_records(&selected_notes, store, &options)?
+            export_records(
+                &selected_notes,
+                store,
+                &options,
+                cli,
+                &compaction_ctx,
+                &all_notes,
+            )?
         }
     };
 
@@ -112,7 +149,12 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
 }
 
 /// Collect notes based on selection criteria
-fn collect_notes(store: &Store, index: &Index, options: &ExportOptions) -> Result<Vec<Note>> {
+fn collect_notes(
+    store: &Store,
+    index: &Index,
+    all_notes: &[Note],
+    options: &ExportOptions,
+) -> Result<Vec<Note>> {
     let mut selected_notes: Vec<Note> = Vec::new();
     let mut seen_ids = HashSet::new();
 
@@ -130,12 +172,11 @@ fn collect_notes(store: &Store, index: &Index, options: &ExportOptions) -> Resul
 
     // Selection by tag
     if let Some(tag_name) = options.tag {
-        let notes = store.list_notes()?;
-        for note in notes {
+        for note in all_notes {
             if note.frontmatter.tags.contains(&tag_name.to_string())
                 && seen_ids.insert(note.id().to_string())
             {
-                selected_notes.push(note);
+                selected_notes.push(note.clone());
             }
         }
     }
@@ -173,20 +214,41 @@ fn collect_notes(store: &Store, index: &Index, options: &ExportOptions) -> Resul
         ));
     }
 
-    // Sort notes deterministically (by created, then by id)
-    // Per spec: "For tag/query-driven exports: sort by (created_at, id)"
-    selected_notes.sort_by(
-        |a, b| match (&a.frontmatter.created, &b.frontmatter.created) {
-            (Some(a_created), Some(b_created)) => {
-                a_created.cmp(b_created).then_with(|| a.id().cmp(b.id()))
+    Ok(selected_notes)
+}
+
+fn resolve_compaction_notes(
+    store: &Store,
+    compaction_ctx: &CompactionContext,
+    notes: Vec<Note>,
+) -> Result<Vec<Note>> {
+    let mut resolved = Vec::new();
+    let mut seen_ids = HashSet::new();
+
+    for note in notes {
+        let canonical_id = compaction_ctx.canon(note.id())?;
+        if seen_ids.insert(canonical_id.clone()) {
+            if canonical_id == note.id() {
+                resolved.push(note);
+            } else {
+                resolved.push(store.get_note(&canonical_id)?);
             }
+        }
+    }
+
+    Ok(resolved)
+}
+
+fn sort_notes_by_created_id(notes: &mut [Note]) {
+    notes.sort_by(|a, b| {
+        match (&a.frontmatter.created, &b.frontmatter.created) {
+            (Some(a_created), Some(b_created)) => a_created.cmp(b_created),
             (Some(_), None) => std::cmp::Ordering::Less,
             (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => a.id().cmp(b.id()),
-        },
-    );
-
-    Ok(selected_notes)
+            (None, None) => std::cmp::Ordering::Equal,
+        }
+        .then_with(|| a.id().cmp(b.id()))
+    });
 }
 
 /// Get notes linked from a MOC (direct links only, not transitive)
@@ -208,7 +270,13 @@ fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Result<Ve
 
 /// Export mode: Bundle
 /// Concatenate notes with metadata headers
-fn export_bundle(notes: &[Note], _store: &Store) -> Result<String> {
+fn export_bundle(
+    notes: &[Note],
+    _store: &Store,
+    cli: &Cli,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+) -> Result<String> {
     let mut output = String::new();
 
     output.push_str("# Exported Notes\n\n");
@@ -237,6 +305,35 @@ fn export_bundle(notes: &[Note], _store: &Store) -> Result<String> {
 
         if let Some(path) = &note.path {
             output.push_str(&format!("**Path:** {}\n\n", path.display()));
+        }
+
+        // Compaction annotations for digest notes
+        let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+        if compacts_count > 0 {
+            output.push_str(&format!("**Compaction:** compacts={}", compacts_count));
+
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                output.push_str(&format!(" compaction={:.0}%", pct));
+            }
+            output.push_str("\n\n");
+
+            if cli.with_compaction_ids {
+                let depth = cli.compaction_depth.unwrap_or(1);
+                if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                    &note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                ) {
+                    let ids_str = ids.join(", ");
+                    let suffix = if truncated {
+                        let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                        format!(" (truncated, showing {} of {})", max, compacts_count)
+                    } else {
+                        String::new()
+                    };
+                    output.push_str(&format!("**Compacted IDs:** {}{}\n\n", ids_str, suffix));
+                }
+            }
         }
 
         // Sources
@@ -271,11 +368,15 @@ fn export_outline(
     store: &Store,
     index: &Index,
     moc_id: Option<&str>,
+    cli: &Cli,
+    compaction_ctx: &CompactionContext,
+    resolve_compaction: bool,
+    all_notes: &[Note],
 ) -> Result<String> {
     // If no MOC provided, fall back to bundle mode with warning
     let Some(moc_id) = moc_id else {
         eprintln!("warning: outline mode requires --moc flag, falling back to bundle mode");
-        return export_bundle(notes, store);
+        return export_bundle(notes, store, cli, compaction_ctx, all_notes);
     };
 
     let moc = store.get_note(moc_id)?;
@@ -298,8 +399,21 @@ fn export_outline(
     let mut sorted_edges = edges;
     sorted_edges.sort_by_key(|edge| &edge.to);
 
+    let mut ordered_ids = Vec::new();
+    let mut seen_ids = HashSet::new();
+
     for edge in sorted_edges {
-        if let Some(note) = note_map.get(edge.to.as_str()) {
+        let mut target_id = edge.to.clone();
+        if resolve_compaction {
+            target_id = compaction_ctx.canon(&target_id)?;
+        }
+        if seen_ids.insert(target_id.clone()) {
+            ordered_ids.push(target_id);
+        }
+    }
+
+    for target_id in ordered_ids {
+        if let Some(note) = note_map.get(target_id.as_str()) {
             output.push_str("\n---\n\n");
             output.push_str(&format!("## {} ({})\n\n", note.title(), note.id()));
 
@@ -309,6 +423,34 @@ fn export_outline(
                     "**Tags:** {}\n\n",
                     note.frontmatter.tags.join(", ")
                 ));
+            }
+
+            // Compaction annotations for digest notes
+            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+            if compacts_count > 0 {
+                output.push_str(&format!("**Compaction:** compacts={}", compacts_count));
+                if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                    output.push_str(&format!(" compaction={:.0}%", pct));
+                }
+                output.push_str("\n\n");
+
+                if cli.with_compaction_ids {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                        &note.frontmatter.id,
+                        depth,
+                        cli.compaction_max_nodes,
+                    ) {
+                        let ids_str = ids.join(", ");
+                        let suffix = if truncated {
+                            let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                            format!(" (truncated, showing {} of {})", max, compacts_count)
+                        } else {
+                            String::new()
+                        };
+                        output.push_str(&format!("**Compacted IDs:** {}{}\n\n", ids_str, suffix));
+                    }
+                }
             }
 
             output.push_str(&note.body);
@@ -363,7 +505,14 @@ fn export_bibliography(notes: &[Note]) -> Result<String> {
 }
 
 /// Export in JSON format
-fn export_json(notes: &[Note], store: &Store, options: &ExportOptions) -> Result<String> {
+fn export_json(
+    notes: &[Note],
+    store: &Store,
+    options: &ExportOptions,
+    cli: &Cli,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+) -> Result<String> {
     let mode_str = match options.mode {
         ExportMode::Bundle => "bundle",
         ExportMode::Outline => "outline",
@@ -373,37 +522,77 @@ fn export_json(notes: &[Note], store: &Store, options: &ExportOptions) -> Result
     let output = serde_json::json!({
         "store": store.root().display().to_string(),
         "mode": mode_str,
-        "notes": notes.iter().map(|note| {
-            serde_json::json!({
-                "id": note.id(),
-                "title": note.title(),
-                "type": note.note_type().to_string(),
-                "tags": note.frontmatter.tags,
-                "path": note.path.as_ref().map(|p| p.display().to_string()),
-                "created": note.frontmatter.created,
-                "updated": note.frontmatter.updated,
-                "content": note.body,
-                "sources": note.frontmatter.sources.iter().map(|s| {
-                    let mut obj = serde_json::json!({
-                        "url": s.url,
-                    });
-                    if let Some(title) = &s.title {
-                        obj["title"] = serde_json::json!(title);
+        "notes": notes
+            .iter()
+            .map(|note| {
+                let mut obj = serde_json::json!({
+                    "id": note.id(),
+                    "title": note.title(),
+                    "type": note.note_type().to_string(),
+                    "tags": note.frontmatter.tags,
+                    "path": note.path.as_ref().map(|p| p.display().to_string()),
+                    "created": note.frontmatter.created,
+                    "updated": note.frontmatter.updated,
+                    "content": note.body,
+                    "sources": note.frontmatter.sources.iter().map(|s| {
+                        let mut obj = serde_json::json!({
+                            "url": s.url,
+                        });
+                        if let Some(title) = &s.title {
+                            obj["title"] = serde_json::json!(title);
+                        }
+                        if let Some(accessed) = &s.accessed {
+                            obj["accessed"] = serde_json::json!(accessed);
+                        }
+                        obj
+                    }).collect::<Vec<_>>(),
+                });
+
+                // Add compaction annotations for digest notes
+                let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+                if compacts_count > 0 {
+                    if let Some(obj_mut) = obj.as_object_mut() {
+                        obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                            obj_mut.insert(
+                                "compaction_pct".to_string(),
+                                serde_json::json!(format!("{:.1}", pct)),
+                            );
+                        }
+
+                        if cli.with_compaction_ids {
+                            let depth = cli.compaction_depth.unwrap_or(1);
+                            if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                                &note.frontmatter.id,
+                                depth,
+                                cli.compaction_max_nodes,
+                            ) {
+                                obj_mut.insert(
+                                    "compacted_ids".to_string(),
+                                    serde_json::json!(ids),
+                                );
+                            }
+                        }
                     }
-                    if let Some(accessed) = &s.accessed {
-                        obj["accessed"] = serde_json::json!(accessed);
-                    }
-                    obj
-                }).collect::<Vec<_>>(),
+                }
+
+                obj
             })
-        }).collect::<Vec<_>>(),
+            .collect::<Vec<_>>(),
     });
 
     Ok(serde_json::to_string_pretty(&output)?)
 }
 
 /// Export in Records format (low-overhead for context injection)
-fn export_records(notes: &[Note], store: &Store, options: &ExportOptions) -> Result<String> {
+fn export_records(
+    notes: &[Note],
+    store: &Store,
+    options: &ExportOptions,
+    cli: &Cli,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+) -> Result<String> {
     let mut output = String::new();
 
     // Header line per spec (specs/records-output.md)
@@ -457,14 +646,45 @@ fn export_records(notes: &[Note], store: &Store, options: &ExportOptions) -> Res
             note.frontmatter.tags.join(",")
         };
 
-        // Note metadata line
+        // Note metadata line with compaction annotations
+        let mut annotations = String::new();
+        let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+        if compacts_count > 0 {
+            annotations.push_str(&format!(" compacts={}", compacts_count));
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                annotations.push_str(&format!(" compaction={:.0}%", pct));
+            }
+        }
+
         output.push_str(&format!(
-            "N {} {} \"{}\" tags={}\n",
+            "N {} {} \"{}\" tags={}{}\n",
             note.id(),
             note.note_type(),
             note.title(),
-            tags_csv
+            tags_csv,
+            annotations
         ));
+
+        // Show compacted IDs if --with-compaction-ids is set
+        if cli.with_compaction_ids && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
+                &note.frontmatter.id,
+                depth,
+                cli.compaction_max_nodes,
+            ) {
+                for id in &ids {
+                    output.push_str(&format!("D compacted {} from={}\n", id, note.id()));
+                }
+                if truncated {
+                    let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                    output.push_str(&format!(
+                        "D compacted_truncated max={} total={}\n",
+                        max, compacts_count
+                    ));
+                }
+            }
+        }
 
         // Summary line (if available)
         let summary = note.summary();

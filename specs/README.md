@@ -17,5 +17,6 @@ Project-level vision/goals live in the repo root `README.md`.
 | [`llm-user-validation.md`](llm-user-validation.md) | LLM user test | Validate LLM can use qipu as primary user |
 | [`export.md`](export.md) | Export | Bundling/outlines/bibliographies, deterministic ordering |
 | [`compaction.md`](compaction.md) | Compaction | Digest-first navigation and lossless decay |
+| [`pack.md`](pack.md) | Pack | Single-file dump/load for sharing raw knowledge |
 
 Non-spec guidance/examples live under `docs/`.

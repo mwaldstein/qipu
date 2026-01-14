@@ -20,6 +20,8 @@ Commands:
   context  Build context bundle for LLM integration
   export   Export notes to a single document
   compact  Manage note compaction (digest-first navigation)
+  dump     Dump notes to a pack file
+  load     Load notes from a pack file
   help     Print this message or the help of the given subcommand(s)
 
 Options:

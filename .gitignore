@@ -10,3 +10,6 @@ dist/
 
 /target
 .qipu/
+
+# LLM validation transcripts (volatile test artifacts)
+tests/transcripts/

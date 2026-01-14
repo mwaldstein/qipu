@@ -91,13 +91,20 @@ pub fn execute(
                     .or_insert(result);
             }
 
-            results = canonical_results.into_values().collect();
+            // Convert HashMap to Vec in deterministic order (sorted by note ID)
+            let mut sorted_entries: Vec<_> = canonical_results.into_iter().collect();
+            sorted_entries.sort_by(|a, b| a.0.cmp(&b.0));
+            results = sorted_entries
+                .into_iter()
+                .map(|(_, result)| result)
+                .collect();
 
-            // Re-sort by relevance after canonicalization
+            // Re-sort by relevance after canonicalization, then by note ID for deterministic tie-breaking
             results.sort_by(|a, b| {
                 b.relevance
                     .partial_cmp(&a.relevance)
                     .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| a.id.cmp(&b.id))
             });
         }
     }

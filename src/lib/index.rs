@@ -33,7 +33,9 @@ enum RipgrepMatch {
     Match {
         path: String,
         lines: String,
+        #[allow(dead_code)]
         line_number: u64,
+        #[allow(dead_code)]
         absolute_offset: u64,
     },
 }

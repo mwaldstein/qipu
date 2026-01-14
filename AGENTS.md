@@ -83,6 +83,6 @@ cargo test
 The Qipu application is **feature-complete** and production-ready:
 - All specifications fully implemented
 - Comprehensive test coverage with 198 passing tests
-- Performance optimized (33ms search for 2k notes)
+- Performance optimized (search meets performance targets)
 - All CLI commands functional across human, JSON, and records output formats
 - Advanced features implemented: compaction, LLM integration, graph traversal

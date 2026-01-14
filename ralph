@@ -11,8 +11,6 @@ MAX_ITERATIONS=""
 MODEL=""
 PROMPT_FILE=""
 DRY_RUN=false
-CTRL_C_COUNT=0
-STOP_AFTER_ITERATION=false
 
 usage() {
     cat <<'EOF'
@@ -22,7 +20,6 @@ MODE:
   vision-expand | expand    Iteratively expand vision (default)
   vision-reorg  | reorg     Reorganize/prune core docs
   plan                     Create/update implementation plan
-  build                    Implement specs; build/test loop
 
 OPTIONS:
   --max-iterations N        Maximum iterations before stopping
@@ -95,12 +92,6 @@ case "$MODE" in
         MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/plan.txt}"
-        ;;
-    build)
-        MODE="build"
-        MAX_ITERATIONS="${MAX_ITERATIONS:-200}"
-        MODEL="${MODEL:-opencode/claude-opus-4-5}"
-        PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/build.txt}"
         ;;
     *)
         echo "Unknown mode: $MODE" >&2
@@ -253,23 +244,6 @@ working_tree_changed() {
     echo "false"
 }
 
-# Signal handler for Ctrl-C
-handle_ctrl_c() {
-    log "DEBUG: handle_ctrl_c called, CTRL_C_COUNT=$CTRL_C_COUNT"
-    CTRL_C_COUNT=$((CTRL_C_COUNT + 1))
-    if [[ $CTRL_C_COUNT -eq 1 ]]; then
-        log_warn "Ctrl-C pressed - will stop after this iteration (press again to stop immediately)"
-        STOP_AFTER_ITERATION=true
-        log "DEBUG: Set STOP_AFTER_ITERATION=true"
-    elif [[ $CTRL_C_COUNT -eq 2 ]]; then
-        log_warn "Ctrl-C pressed again - stopping immediately"
-        exit 130
-    fi
-}
-
-# Set up signal handler
-trap handle_ctrl_c INT
-
 log "Starting loop"
 log "Max iterations: $MAX_ITERATIONS"
 log "Prompt: $PROMPT_LABEL"
@@ -278,53 +252,21 @@ log "Logs will be saved to: $LOG_DIR"
 [[ "$AUTO_COMMIT" == "true" ]] && log "Auto-commit: enabled" || log "Auto-commit: disabled"
 
 while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
-    log "DEBUG: Starting iteration $ITERATION loop, STOP_AFTER_ITERATION=$STOP_AFTER_ITERATION"
     ITERATION=$((ITERATION + 1))
     TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
     LOG_FILE="$LOG_DIR/${MODE}_iteration_${ITERATION}_${TIMESTAMP}.log"
 
     log "--- Iteration $ITERATION of $MAX_ITERATIONS ---"
-    log "DEBUG: About to start opencode execution"
 
     TEMP_OUTPUT="$(mktemp)"
-    
-    log "DEBUG: About to run opencode, STOP_AFTER_ITERATION=$STOP_AFTER_ITERATION"
-    
-    # Create a wrapper script that blocks signals and runs opencode
-    # This provides complete isolation from Ctrl-C
-    WRAPPER_SCRIPT=$(mktemp)
-    cat > "$WRAPPER_SCRIPT" << 'WRAPPER_EOF'
-#!/bin/bash
-# Block all termination signals
-trap '' INT TERM QUIT
-# Execute opencode
-exec "$@"
-WRAPPER_EOF
-    chmod +x "$WRAPPER_SCRIPT"
-    
-    log "DEBUG: Starting opencode with wrapper"
-    
-    # Run opencode with the signal-blocking wrapper
-    # Use set +e temporarily to prevent set -e from exiting on SIGINT
-    set +e
-    "$WRAPPER_SCRIPT" "${OPENCODE_CMD[@]}" "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"
-    EXIT_CODE=${PIPESTATUS[0]}
-    set -e
-    
-    log "DEBUG: opencode exited with code $EXIT_CODE"
-    
-    rm -f "$WRAPPER_SCRIPT"
-    
-    if [[ $EXIT_CODE -eq 0 ]]; then
+    if "${OPENCODE_CMD[@]}" "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"; then
+        cp "$TEMP_OUTPUT" "$LOG_FILE"
 
         HAS_CHANGES="$(working_tree_changed)"
-        log "DEBUG: HAS_CHANGES=$HAS_CHANGES"
 
         auto_commit_iteration "$ITERATION"
 
-        log "DEBUG: Checking for COMPLETE marker"
         if grep -q "^COMPLETE$" "$TEMP_OUTPUT"; then
-            log "DEBUG: COMPLETE marker found"
             if [[ "$HAS_CHANGES" == "false" ]]; then
                 log_success "COMPLETE detected"
                 rm -f "$TEMP_OUTPUT"
@@ -338,34 +280,15 @@ WRAPPER_EOF
             fi
 
             log_warn "COMPLETE detected but changes were made - continuing"
-        else
-            log "DEBUG: No COMPLETE marker found"
         fi
     else
-        # If opencode exited with non-zero code
-        if [[ $EXIT_CODE -eq 130 && "$STOP_AFTER_ITERATION" == "true" ]]; then
-            # This is expected behavior when Ctrl-C was pressed during execution
-            log "opencode completed after Ctrl-C request"
-        else
-            log_warn "opencode failed (exit $EXIT_CODE); continuing"
-        fi
+        STATUS=$?
+        log_warn "opencode failed (exit $STATUS); continuing"
         cp "$TEMP_OUTPUT" "$LOG_FILE" || true
     fi
 
     rm -f "$TEMP_OUTPUT"
-    
-    log "DEBUG: End of iteration $ITERATION, checking STOP_AFTER_ITERATION=$STOP_AFTER_ITERATION"
-    
-    # Check if we should stop after this iteration
-    if [[ "$STOP_AFTER_ITERATION" == "true" ]]; then
-        log_warn "Stopping after iteration $ITERATION as requested"
-        # Reset any interrupted state before exiting
-        trap - INT
-        exit 0
-    fi
-    
     sleep 2
-    log "DEBUG: Completed iteration $ITERATION, continuing to next"
 done
 
 log_warn "Maximum iterations ($MAX_ITERATIONS) reached"

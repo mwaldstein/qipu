@@ -12,7 +12,7 @@
 7. Context budget enforcement - make exact across all formats
 8. Implement dump/load commands - complete CLI definitions, serialization, and all functionality
 9. ✅ Fix search/index determinism - Ripgrep JSON parsing and stable ordering
-10. ✅ Implement LLM user validation harness per specs/llm-user-validation.md
+10. ✅ Implement LLM user validation harness per specs/llm-user-validation.md (tests/llm_validation.rs; transcripts ignored in .gitignore)
 
 **SUMMARY:**
 - **10/10 P0 items completed (100%)**
@@ -22,24 +22,14 @@
 - All P0 items are now complete!
 - Move on to P1 items as needed
 
-**NEXT PRIORITIES:**
-1. **Fix search/index determinism** - Complete remaining sorting and ordering fixes for deterministic output
-2. **Implement LLM user validation harness** - Add E2E test runner with pluggable tool adapters
-
-**IMMEDIATE ACTIONS NEEDED:**
-1. Fix search/index determinism by adding stable tie-breakers to all relevance-based sorts
-2. Implement LLM user validation harness with transcript capture and programmatic validation
-
 **NOTE:** Error code consistency fixes are complete and working - all usage validation now returns exit code 2 as specified. All major P0 CLI functionality is now complete with the dump/load implementation fully functional.
 
 ---
 
 - [P0] ~~Implement `qipu dump` and `qipu load` per `specs/pack.md`~~ **COMPLETED**: Full implementation with CLI definitions, note selection with graph traversal, pack format serialization (JSON/records), deserialization, attachment handling, link management, and comprehensive error handling. All 198 tests passing.
 
-- [P0] Implement the `specs/llm-user-validation.md` “LLM primary user” validation harness (currently only a spec): add an E2E test runner with pluggable tool adapters (OpenCode first), transcript capture to `tests/transcripts/<tool>/<timestamp>/`, and programmatic validation of resulting store state.
-- [P0] Add `.gitignore` coverage for volatile transcript artifacts described in `specs/llm-user-validation.md`.
-- [P0] **PENDING:** Fix search/index determinism - Ripgrep JSON parsing and stable ordering: Add stable tie-breakers to all relevance-based sorts to ensure deterministic output across all formats.
-
+- [P0] ~~Implement the `specs/llm-user-validation.md` “LLM primary user” validation harness (currently only a spec)~~ **COMPLETED:** Harness exists in `tests/llm_validation.rs` with transcript capture to `tests/transcripts/<tool>/<timestamp>/` and store validation.
+- [P0] ~~Add `.gitignore` coverage for volatile transcript artifacts described in `specs/llm-user-validation.md`~~ **COMPLETED:** transcripts ignored in `.gitignore`.
 - [P1] ~~Fix CLI parse-time JSON behavior to match `specs/cli-tool.md`~~ **COMPLETED:** JSON output now works correctly for both `--format json` and `--format=json` syntax variants.
 - [P1] ~~Ensure `qipu --help` and `qipu --version` always exit `0` and print normal help/version output even when `--format json` is present~~ **COMPLETED:** Help and version commands now properly exit with code 0 regardless of format flag.
 

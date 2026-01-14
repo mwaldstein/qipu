@@ -55,8 +55,10 @@ pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
 
             // Output unresolved links as diagnostic lines if any exist
             if !index.unresolved.is_empty() {
-                for unresolved in &index.unresolved {
-                    println!("D warning unresolved-link \"{}\"", unresolved);
+                let mut unresolved = index.unresolved.iter().cloned().collect::<Vec<_>>();
+                unresolved.sort();
+                for unresolved_id in unresolved {
+                    println!("D warning unresolved-link \"{}\"", unresolved_id);
                 }
             }
         }
@@ -67,11 +69,9 @@ pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
                     println!("  {} tags", index.tags.len());
                     println!("  {} edges", index.edges.len());
                     if !index.unresolved.is_empty() {
-                        println!(
-                            "  {} unresolved links: {:?}",
-                            index.unresolved.len(),
-                            index.unresolved
-                        );
+                        let mut unresolved = index.unresolved.iter().cloned().collect::<Vec<_>>();
+                        unresolved.sort();
+                        println!("  {} unresolved links: {:?}", unresolved.len(), unresolved);
                     }
                 }
             }

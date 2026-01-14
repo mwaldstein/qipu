@@ -14,6 +14,7 @@ Project-level vision/goals live in the repo root `README.md`.
 | [`graph-traversal.md`](graph-traversal.md) | Retrieval | Graph traversal (tree/path), ordering, JSON shape |
 | [`records-output.md`](records-output.md) | Output | Line-oriented records for context injection |
 | [`llm-context.md`](llm-context.md) | LLM integration | `prime` + context bundles, budgeting, safety |
+| [`llm-user-validation.md`](llm-user-validation.md) | LLM user test | Validate LLM can use qipu as primary user |
 | [`export.md`](export.md) | Export | Bundling/outlines/bibliographies, deterministic ordering |
 | [`compaction.md`](compaction.md) | Compaction | Digest-first navigation and lossless decay |
 

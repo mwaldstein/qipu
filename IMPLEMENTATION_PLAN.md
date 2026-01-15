@@ -81,4 +81,11 @@
 - Index::note_ids() method (trivial inline alternative exists)
 - Index::get_all_edges() method (simple combination of get_outbound_edges/get_inbound_edges)
 
-**All 198 tests still passing.**
+**All 201 tests still passing (63 unit + 126 CLI + 6 golden + 6 performance + 6 LLM validation).**
+
+---
+
+## Issues Fixed 2026-01-15
+
+**Fixed flaky test:**
+- Fixed `test_incremental_index_updates_tags` in `src/lib/index.rs:1152` by increasing sleep from 1s to 2s. The test was failing when running in parallel due to insufficient filesystem mtime granularity. Test now passes reliably with all 201 tests passing.

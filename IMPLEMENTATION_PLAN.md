@@ -81,7 +81,7 @@
 - Index::note_ids() method (trivial inline alternative exists)
 - Index::get_all_edges() method (simple combination of get_outbound_edges/get_inbound_edges)
 
-**All 201 tests still passing (63 unit + 126 CLI + 6 golden + 6 performance + 6 LLM validation).**
+**All 207 tests passing (63 unit + 126 CLI + 6 golden + 6 performance + 6 LLM validation).**
 
 ---
 

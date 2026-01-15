@@ -56,30 +56,48 @@ Filters:
 ### `qipu inbox`
 List “unprocessed” notes (the knowledge processing queue).
 
-Default behavior (proposed):
+Default behavior:
 - `type in {fleeting, literature}`
-- optionally exclude notes already linked into a MOC
-
-This is the knowledge analog of `bd ready`.
+- `--exclude-linked`: exclude notes already linked into a MOC
 
 ### `qipu show <id-or-path>`
 Print a note to stdout.
 
+Common flags:
+- `--links`: show inbound and outbound links for the note
+
 ### `qipu search <query>`
 Search within qipu notes (titles + bodies).
 
-Notes:
-- This is not intended to replace repo-wide code search.
+Common flags:
+- `--type <type>`: filter by note type
+- `--tag <tag>`: filter by tag
+- `--exclude-mocs`: exclude MOC notes from results
 
 ### `qipu link`
 Manage and traverse note links (typed + inline).
 
-Subcommands (proposed):
+Subcommands:
 - `qipu link add <from> <to> --type <related|derived-from|supports|contradicts|part-of>`
 - `qipu link remove <from> <to> --type <...>`
-- `qipu link list <id-or-path> [--direction <out|in|both>] [--typed-only|--inline-only] [--type <t>]`
-- `qipu link tree <id-or-path> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>]`
-- `qipu link path <from> <to> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>]`
+- `qipu link list <id-or-path> [--direction <out|in|both>] [--typed-only|--inline-only] [--type <t>] [--max-chars <n>]`
+- `qipu link tree <id-or-path> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>] [--max-chars <n>]`
+- `qipu link path <from> <to> [--direction <out|in|both>] [--max-hops <n>] [--typed-only|--inline-only] [--type <t>] [--max-chars <n>]`
+
+### `qipu compact`
+Manage note compaction (digest-first navigation). See `specs/compaction.md` for details.
+
+Subcommands:
+- `qipu compact apply <id> <target>`: mark note as compacted into target
+- `qipu compact suggest`: find potential compaction candidates
+- `qipu compact report`: show compaction statistics
+- `qipu compact status <id>`: show compaction status of a note
+
+### `qipu dump` / `qipu load`
+Export and import raw knowledge packs. See `specs/pack.md` for details.
+
+- `qipu dump <file>`: pack notes into a single file
+- `qipu load <file>`: unpack notes from a pack file
 
 Notes:
 - Default traversal direction should be `both`.

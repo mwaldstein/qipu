@@ -18,7 +18,7 @@
 - **10/10 P0 items completed (100%)**
 - **0/10 P0 items pending (0%)**
 - **211 tests passing (62 unit + 131 CLI + 6 golden + 6 performance + 6 LLM validation)**
-- **Git tag v0.0.89 created**
+- **Git tag v0.0.90 created**
 
 **NEXT PRIORITIES:**
 - All P0 items are now complete!
@@ -61,6 +61,21 @@
 - [P3] ~~Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.~~ **COMPLETED**: Added `--commit`/`--push` flags, extended `src/lib/git.rs`, and implemented logic in `src/commands/sync.rs`.
 - [P3] ~~Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.~~ **COMPLETED**: Added `--with-attachments` flag to `export` command and implemented attachment discovery and copying.
 - [P3] ~~Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).~~ **COMPLETED**: Refactored `doctor::execute` to return `DoctorResult` and updated `sync` to report actual validation counts.
+
+
+---
+
+## Inconsistencies and Missing Spec Updates
+
+- [P1] ~~Fix search recency boost to use `updated` timestamp instead of `created` per `specs/indexing-search.md`.~~ **COMPLETED**: Updated `src/lib/index/search.rs` to use `updated` (falling back to `created`) for recency boost calculation.
+- [P2] ~~Update `specs/cli-interface.md` to include implemented but missing flags and commands:~~ **COMPLETED**:
+  - Add `--links` to `qipu show`.
+  - Add search filters (`--type`, `--tag`, `--exclude-mocs`) to `qipu search`.
+  - Add `qipu compact`, `qipu dump`, and `qipu load` command summaries.
+  - Document `--max-chars` for `qipu link` commands.
+- [P2] ~~Clarify `qipu inbox --exclude-linked` flag in `specs/cli-interface.md`.~~ **COMPLETED**
+- [P3] ~~Ensure search `exclude_mocs` is documented consistently.~~ **COMPLETED**
+- [P1] ~~Fix golden test failure for version output (already done, but document it).~~ **COMPLETED**: Updated `tests/golden/version.txt` to match `Cargo.toml` version `0.0.89`.
 
 ## Planned Refactors (Oversized Files)
 

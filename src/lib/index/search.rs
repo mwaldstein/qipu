@@ -219,9 +219,10 @@ fn search_with_ripgrep(
             match_context = Some(context.clone());
         }
 
-        // Recency boost (prefer recently created notes)
-        if let Some(created) = meta.created {
-            let age_days = (Utc::now() - created).num_days();
+        // Recency boost (prefer recently updated notes)
+        let timestamp = meta.updated.or(meta.created);
+        if let Some(ts) = timestamp {
+            let age_days = (Utc::now() - ts).num_days();
             if age_days < 7 {
                 relevance += 1.0;
             } else if age_days < 30 {
@@ -388,8 +389,9 @@ fn search_embedded(
 
         // Recency boost (prefer recently updated notes)
         if matched {
-            if let Some(created) = meta.created {
-                let age_days = (Utc::now() - created).num_days();
+            let timestamp = meta.updated.or(meta.created);
+            if let Some(ts) = timestamp {
+                let age_days = (Utc::now() - ts).num_days();
                 if age_days < 7 {
                     relevance += 1.0;
                 } else if age_days < 30 {

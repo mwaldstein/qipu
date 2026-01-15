@@ -326,6 +326,12 @@ pub struct OpenCodeAdapter {
     name: String,
 }
 
+impl Default for OpenCodeAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OpenCodeAdapter {
     /// Create a new OpenCode adapter
     pub fn new() -> Self {
@@ -361,7 +367,7 @@ impl ToolAdapter for OpenCodeAdapter {
 
         writeln!(commands, "# Simulated OpenCode Session")?;
         writeln!(commands, "# Task: {}", task_prompt)?;
-        writeln!(commands, "")?;
+        writeln!(commands)?;
 
         // Get the qipu binary path
         let qipu_binary = format!("{}/target/debug/qipu", env!("CARGO_MANIFEST_DIR"));

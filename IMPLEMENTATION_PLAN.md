@@ -46,7 +46,7 @@
 - [P1] ~~Meet `specs/records-output.md` budgeting requirements (including `qipu link list --format records` budget support).~~ **COMPLETED**
 
 - [P2] Fix incremental indexing correctness and cache portability:
-  - Ensure incremental indexing updates remove stale tag memberships when a note’s tags change (avoid accumulating outdated `tag -> ids[]`).
+  - ~~Ensure incremental indexing updates remove stale tag memberships when a note’s tags change (avoid accumulating outdated `tag -> ids[]`).~~ **COMPLETED:** prune tag memberships on reindex/delete and guard moved notes.
   - Decide whether `Index.metadata.path` should be store-relative (per `specs/indexing-search.md`) and ensure consumers remain correct (including ripgrep-assisted search matching).
   - Decide whether to keep a single `.cache/index.json` or split into multiple cache files as described in `specs/indexing-search.md`, and update spec or implementation accordingly.
 

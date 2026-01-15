@@ -295,6 +295,8 @@ impl<'a> IndexBuilder<'a> {
             let needs_reindex = self.rebuild || self.file_changed(&path);
 
             if needs_reindex {
+                self.prune_note_indexes(&path, note.id());
+
                 // Update metadata
                 let meta = NoteMetadata {
                     id: note.id().to_string(),
@@ -348,8 +350,18 @@ impl<'a> IndexBuilder<'a> {
 
         for path in deleted {
             if let Some(entry) = self.index.files.remove(&path) {
-                self.index.metadata.remove(&entry.note_id);
-                self.index.id_to_path.remove(&entry.note_id);
+                let should_remove = self
+                    .index
+                    .id_to_path
+                    .get(&entry.note_id)
+                    .map(|current| current == &path)
+                    .unwrap_or(true);
+
+                if should_remove {
+                    self.remove_note_from_tags(&entry.note_id);
+                    self.index.metadata.remove(&entry.note_id);
+                    self.index.id_to_path.remove(&entry.note_id);
+                }
             }
         }
 
@@ -368,6 +380,34 @@ impl<'a> IndexBuilder<'a> {
         });
 
         Ok(self.index)
+    }
+
+    fn prune_note_indexes(&mut self, path: &Path, note_id: &str) {
+        if let Some(entry) = self.index.files.get(path) {
+            let existing_id = entry.note_id.clone();
+            self.remove_note_from_tags(&existing_id);
+
+            if existing_id != note_id {
+                self.index.metadata.remove(&existing_id);
+                self.index.id_to_path.remove(&existing_id);
+            }
+        } else if self.index.metadata.contains_key(note_id) {
+            self.remove_note_from_tags(note_id);
+        }
+    }
+
+    fn remove_note_from_tags(&mut self, note_id: &str) {
+        let mut empty_tags = Vec::new();
+        for (tag, ids) in self.index.tags.iter_mut() {
+            ids.retain(|id| id != note_id);
+            if ids.is_empty() {
+                empty_tags.push(tag.clone());
+            }
+        }
+
+        for tag in empty_tags {
+            self.index.tags.remove(&tag);
+        }
     }
 
     /// Check if a file has changed since last index
@@ -931,6 +971,10 @@ pub fn search(
 mod tests {
     use super::*;
     use crate::lib::note::{Note, NoteFrontmatter};
+    use crate::lib::store::{InitOptions, Store};
+    use std::thread::sleep;
+    use std::time::Duration;
+    use tempfile::tempdir;
 
     fn make_note(id: &str, title: &str, body: &str) -> Note {
         let fm = NoteFrontmatter::new(id.to_string(), title.to_string());
@@ -1002,6 +1046,33 @@ mod tests {
 
         assert_eq!(edges.len(), 1);
         assert!(unresolved.contains("qp-missing"));
+    }
+
+    #[test]
+    fn test_incremental_index_updates_tags() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+        let initial_tags = vec!["alpha".to_string()];
+
+        let mut note = store
+            .create_note("Tagged Note", None, &initial_tags)
+            .unwrap();
+
+        let index = IndexBuilder::new(&store).build().unwrap();
+        index.save(&store.root().join(".cache")).unwrap();
+
+        sleep(Duration::from_secs(1));
+        note.frontmatter.tags = vec!["beta".to_string()];
+        store.save_note(&mut note).unwrap();
+
+        let index = IndexBuilder::new(&store)
+            .load_existing()
+            .unwrap()
+            .build()
+            .unwrap();
+
+        assert!(index.get_notes_by_tag("alpha").is_empty());
+        assert!(index.get_notes_by_tag("beta").contains(&note.id()));
     }
 
     #[test]

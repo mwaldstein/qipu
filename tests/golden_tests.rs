@@ -185,10 +185,10 @@ fn test_golden_prime_empty_store() {
     )
     .unwrap();
 
-    // Normalize the store path in output for golden test comparison
+    let store_placeholder = "<STORE_PATH>";
     let normalized_output = output.replace(
         &format!("Store: {}", store_dir.path().display()),
-        "Store: /tmp/.tmpXXXXXX",
+        &format!("Store: {}", store_placeholder),
     );
 
     let golden_path = Path::new("tests/golden/prime_empty.txt");

@@ -1,6 +1,6 @@
 # Qipu Knowledge Store Primer
 
-Store: /tmp/.tmpXXXXXX
+Store: <STORE_PATH>
 
 ## About Qipu
 

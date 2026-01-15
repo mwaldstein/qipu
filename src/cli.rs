@@ -364,7 +364,7 @@ pub enum LinkCommands {
         to: String,
 
         /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, default_value = "related")]
+        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
         r#type: LinkType,
     },
 
@@ -377,7 +377,7 @@ pub enum LinkCommands {
         to: String,
 
         /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, default_value = "related")]
+        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
         r#type: LinkType,
     },
 

@@ -41,8 +41,8 @@ qipu --version
 - `qipu inbox` - Show inbox items
 
 ### Link Management
-- `qipu link add <from> <to>` - Create a link between notes
-- `qipu link remove <from> <to>` - Remove a link
+- `qipu link add <from> <to> --type <t>` - Create a link between notes
+- `qipu link remove <from> <to> --type <t>` - Remove a link
 - `qipu link list <id>` - List links for a note
 - `qipu link tree <id>` - Show link tree
 - `qipu link path <from> <to>` - Find path between notes

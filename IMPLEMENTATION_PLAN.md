@@ -57,7 +57,7 @@
 - [P2] ~~Make golden output path normalization portable (avoid hardcoding platform-specific temp path shapes in goldens).~~ **COMPLETED:** golden fixtures now normalize temp paths portably.
 - [P2] ~~Ensure JSON outputs meet the minimum note schema described in `specs/cli-interface.md` (notably include both `created` and `updated` where applicable, e.g., `create`, `capture`, `inbox`).~~ **COMPLETED:** JSON outputs now include `created` and `updated` where applicable.
 
-- [P3] Optional: decide whether `qipu link add/remove` should require `--type` (as proposed in `specs/cli-interface.md`) or allow a default of `related`, and update spec/implementation accordingly.
+- [P3] ~~Optional: decide whether `qipu link add/remove` should require `--type` (as proposed in `specs/cli-interface.md`) or allow a default of `related`, and update spec/implementation accordingly.~~ **COMPLETED:** require explicit `--type` for link add/remove; removed defaults and updated tests/docs.
 - [P3] Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.
 - [P3] Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.
 - [P3] Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).

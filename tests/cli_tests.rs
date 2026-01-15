@@ -717,7 +717,7 @@ fn test_show_links_records_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1377,7 +1377,7 @@ fn test_link_add_idempotent() {
     // Add a link
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Added link"));
@@ -1385,7 +1385,7 @@ fn test_link_add_idempotent() {
     // Adding the same link again should report unchanged
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success()
         .stdout(predicate::str::contains("already exists"));
@@ -1474,7 +1474,7 @@ fn test_link_list_json_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1521,7 +1521,7 @@ fn test_link_list_direction_filter() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1583,7 +1583,7 @@ fn test_link_list_records_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1677,13 +1677,13 @@ fn test_link_tree_with_links() {
     // Link root -> child1 -> child2
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id2, &id3])
+        .args(["link", "add", &id2, &id3, "--type", "related"])
         .assert()
         .success();
 
@@ -1730,7 +1730,7 @@ fn test_link_tree_json_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1809,7 +1809,7 @@ fn test_link_tree_max_hops() {
     for i in 0..4 {
         qipu()
             .current_dir(dir.path())
-            .args(["link", "add", &ids[i], &ids[i + 1]])
+            .args(["link", "add", &ids[i], &ids[i + 1], "--type", "related"])
             .assert()
             .success();
     }
@@ -1866,13 +1866,13 @@ fn test_link_tree_direction_out() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id_a, &id_b])
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id_c, &id_a])
+        .args(["link", "add", &id_c, &id_a, "--type", "related"])
         .assert()
         .success();
 
@@ -1923,7 +1923,7 @@ fn test_link_path_direct() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -1978,13 +1978,13 @@ fn test_link_path_multi_hop() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id_a, &id_b])
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id_b, &id_c])
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
         .assert()
         .success();
 
@@ -2072,7 +2072,7 @@ fn test_link_path_json_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -2120,7 +2120,7 @@ fn test_link_path_records_format() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -2583,7 +2583,7 @@ fn test_context_by_moc() {
     // Link MOC to note
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &moc_id, &note_id])
+        .args(["link", "add", &moc_id, &note_id, "--type", "related"])
         .assert()
         .success();
 
@@ -2871,7 +2871,7 @@ fn test_doctor_broken_link_detection() {
     // Link note1 -> note2
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -3171,7 +3171,7 @@ fn test_link_list_with_compaction() {
     // Add link from note1 to note2
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
@@ -3256,13 +3256,13 @@ fn test_link_list_records_max_chars() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id3])
+        .args(["link", "add", &id1, &id3, "--type", "related"])
         .assert()
         .success();
 
@@ -3331,13 +3331,13 @@ fn test_link_tree_with_compaction() {
     // Add links: note1 -> note2 -> note3
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id2, &id3])
+        .args(["link", "add", &id2, &id3, "--type", "related"])
         .assert()
         .success();
 
@@ -3446,13 +3446,13 @@ fn test_link_path_with_compaction() {
     // Add links: start -> middle -> end
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &start_id, &middle_id])
+        .args(["link", "add", &start_id, &middle_id, "--type", "related"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &middle_id, &end_id])
+        .args(["link", "add", &middle_id, &end_id, "--type", "related"])
         .assert()
         .success();
 
@@ -3533,7 +3533,7 @@ fn test_link_no_resolve_compaction_flag() {
     // Add link
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2])
+        .args(["link", "add", &id1, &id2, "--type", "related"])
         .assert()
         .success();
 

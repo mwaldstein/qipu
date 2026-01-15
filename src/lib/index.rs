@@ -17,6 +17,7 @@ use regex::Regex;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::lib::error::{QipuError, Result};
+use crate::lib::logging;
 use crate::lib::note::{Note, NoteType};
 use crate::lib::store::Store;
 
@@ -546,7 +547,9 @@ fn extract_links(
     let wiki_link_re = match Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]") {
         Ok(re) => re,
         Err(e) => {
-            eprintln!("Warning: Failed to compile wiki link regex: {}", e);
+            if logging::verbose_enabled() {
+                eprintln!("Warning: Failed to compile wiki link regex: {}", e);
+            }
             return edges; // Return empty edges if regex fails
         }
     };
@@ -571,7 +574,9 @@ fn extract_links(
     let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
         Ok(re) => re,
         Err(e) => {
-            eprintln!("Warning: Failed to compile markdown link regex: {}", e);
+            if logging::verbose_enabled() {
+                eprintln!("Warning: Failed to compile markdown link regex: {}", e);
+            }
             return edges; // Return empty edges if regex fails
         }
     };
@@ -1063,10 +1068,14 @@ pub fn search(
 ) -> Result<Vec<SearchResult>> {
     // Always try ripgrep first - it's much faster than embedded search
     if is_ripgrep_available() {
-        eprintln!("Using ripgrep search");
+        if logging::verbose_enabled() {
+            eprintln!("Using ripgrep search");
+        }
         search_with_ripgrep(store, index, query, type_filter, tag_filter)
     } else {
-        eprintln!("Using embedded search");
+        if logging::verbose_enabled() {
+            eprintln!("Using embedded search");
+        }
         search_embedded(store, index, query, type_filter, tag_filter)
     }
 }

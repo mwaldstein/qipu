@@ -18,6 +18,7 @@ use clap::Parser;
 
 use cli::{Cli, Commands, LinkCommands, OutputFormat};
 use lib::error::{ExitCode as QipuExitCode, QipuError};
+use lib::logging;
 use lib::store::Store;
 
 fn main() -> ExitCode {
@@ -54,6 +55,8 @@ fn main() -> ExitCode {
             err.exit();
         }
     };
+
+    logging::set_verbose(cli.verbose);
 
     if cli.verbose {
         eprintln!("parse_args: {:?}", start.elapsed());

@@ -24,6 +24,7 @@ use walkdir::WalkDir;
 use crate::lib::config::StoreConfig;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::id::{filename, NoteId};
+use crate::lib::logging;
 use crate::lib::note::{Note, NoteFrontmatter, NoteType};
 
 /// Default store directory name (hidden)
@@ -426,7 +427,9 @@ impl Store {
                         Ok(note) => notes.push(note),
                         Err(e) => {
                             // Log but continue - don't fail on individual bad notes
-                            eprintln!("Warning: failed to parse {}: {}", path.display(), e);
+                            if logging::verbose_enabled() {
+                                eprintln!("Warning: failed to parse {}: {}", path.display(), e);
+                            }
                         }
                     }
                 }

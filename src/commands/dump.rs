@@ -98,7 +98,7 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
     let selected_notes = collect_notes_with_traversal(store, &index, &options)?;
 
     if selected_notes.is_empty() {
-        if !cli.quiet {
+        if cli.verbose && !cli.quiet {
             eprintln!("warning: no notes selected for dump");
         }
         return Ok(());
@@ -133,7 +133,7 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
         file.write_all(pack_content.as_bytes())
             .map_err(|e| QipuError::Other(format!("failed to write to pack file: {}", e)))?;
 
-        if !cli.quiet {
+        if cli.verbose && !cli.quiet {
             eprintln!(
                 "dumped {} notes, {} links, {} attachments to {}",
                 selected_notes.len(),

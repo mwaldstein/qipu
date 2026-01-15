@@ -113,7 +113,7 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path) -> Result<()> {
     };
 
     // Report results
-    if !cli.quiet {
+    if cli.verbose && !cli.quiet {
         eprintln!(
             "loaded {} notes, {} links, {} attachments from {}",
             loaded_notes_count,

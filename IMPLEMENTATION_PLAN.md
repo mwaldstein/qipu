@@ -50,7 +50,7 @@
   - ~~Decide whether `Index.metadata.path` should be store-relative (per `specs/indexing-search.md`) and ensure consumers remain correct (including ripgrep-assisted search matching).~~ **COMPLETED:** `Index.metadata.path` is now stored store-relative; search normalizes store-relative paths and handles absolute cache paths.
   - ~~Decide whether to keep a single `.cache/index.json` or split into multiple cache files as described in `specs/indexing-search.md`, and update spec or implementation accordingly.~~ **COMPLETED:** cache now split into per-domain files per `specs/indexing-search.md`, with readers updated to load the split layout.
 
-- [P2] Remove non-verbose debug/progress noise on stderr so commands remain scriptable and quiet by default (e.g., unconditional parse warnings in note listing and progress/warnings during export), or gate them behind `--verbose`.
+- [P2] ~~Remove non-verbose debug/progress noise on stderr so commands remain scriptable and quiet by default (e.g., unconditional parse warnings in note listing and progress/warnings during export), or gate them behind `--verbose`.~~ **COMPLETED:** gated stderr warnings/progress output behind `--verbose`.
 - [P2] Make `--verbose` timing output consistent across commands (avoid resetting the timing epoch inside individual command handlers such as `sync`; keep stable phase keys/labels).
 - [P2] Make golden output path normalization portable (avoid hardcoding platform-specific temp path shapes in goldens).
 - [P2] ~~Ensure JSON outputs meet the minimum note schema described in `specs/cli-interface.md` (notably include both `created` and `updated` where applicable, e.g., `create`, `capture`, `inbox`).~~ **COMPLETED:** JSON outputs now include `created` and `updated` where applicable.

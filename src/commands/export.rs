@@ -76,7 +76,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     sort_notes_by_created_id(&mut selected_notes);
 
     if selected_notes.is_empty() {
-        if !cli.quiet {
+        if cli.verbose && !cli.quiet {
             eprintln!("warning: no notes selected for export");
         }
         return Ok(());
@@ -134,7 +134,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         file.write_all(output_content.as_bytes())
             .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
 
-        if !cli.quiet {
+        if cli.verbose && !cli.quiet {
             eprintln!(
                 "exported {} notes to {}",
                 selected_notes.len(),
@@ -375,7 +375,9 @@ fn export_outline(
 ) -> Result<String> {
     // If no MOC provided, fall back to bundle mode with warning
     let Some(moc_id) = moc_id else {
-        eprintln!("warning: outline mode requires --moc flag, falling back to bundle mode");
+        if cli.verbose && !cli.quiet {
+            eprintln!("warning: outline mode requires --moc flag, falling back to bundle mode");
+        }
         return export_bundle(notes, store, cli, compaction_ctx, all_notes);
     };
 

@@ -85,6 +85,7 @@ Resolution order:
    - Use the resulting path as the store root.
 2. Otherwise, discover a store by walking up from `--root` (or cwd):
    - At each directory, if `.qipu/` exists, treat it as the store root and stop.
+   - If `.qipu/` is absent but `qipu/` exists, treat `qipu/` as the store root and stop.
    - If the filesystem root is reached with no store found, the store is “missing”.
 
 Missing-store behavior:

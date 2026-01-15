@@ -37,12 +37,11 @@
 
 - [P1] ~~Align `qipu context --moc <id>` behavior with `specs/cli-interface.md`~~ **COMPLETED:** MOC selection now includes the MOC itself alongside linked notes with deterministic ordering/dedup.
 
-- [P1] Reconcile store discovery requirements across specs: `specs/cli-tool.md` currently describes discovering `.qipu/` only, while `specs/storage-format.md`, `specs/cli-interface.md`, and the implementation support both `.qipu/` and `qipu/`; decide the intended behavior and update spec(s) accordingly.
+- [P1] ~~Reconcile store discovery requirements across specs: `specs/cli-tool.md` currently describes discovering `.qipu/` only, while `specs/storage-format.md`, `specs/cli-interface.md`, and the implementation support both `.qipu/` and `qipu/`; decide the intended behavior and update spec(s) accordingly.~~ **COMPLETED:** `specs/cli-tool.md` now matches `.qipu/` then `qipu/` discovery behavior.
 
 - [P1] ~~Fix records header provenance (`store=...`) to always report the actual opened store root (not `cli.store` or a hardcoded `.qipu` fallback), including at least `qipu doctor --format records` and `qipu index --format records`.~~ **COMPLETED:** records header now uses the actual opened store root for `qipu index --format records` and `qipu doctor --format records`.
 
-- [P1] Make search output fully deterministic:
-  - Add stable tiebreakers in result sorting (e.g., when relevance ties, sort by `(relevance desc, id asc)`), and ensure canonicalization/dedup does not introduce unstable ordering.
+- [P1] ~~Make search output fully deterministic:~~ **COMPLETED:** result sorting already uses `(relevance desc, id asc)` tiebreakers, and canonicalization preserves that deterministic order.
 
 - [P1] ~~Meet `specs/records-output.md` budgeting requirements (including `qipu link list --format records` budget support).~~ **COMPLETED**
 

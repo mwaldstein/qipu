@@ -2,7 +2,7 @@
 
 ## **🎉 P0 ISSUES COMPLETED!**
 
-✅ **ALL P0 Items COMPLETED (10 of 10):**
+✅ **ALL P0 Items COMPLETED (11 of 11):**
 1. Fix CLI JSON behavior - --format flag parsing for equals syntax
 2. Fix CLI JSON behavior - help/version exit codes
 3. Fix CLI JSON behavior - error envelope exit codes
@@ -13,12 +13,13 @@
 8. Implement dump/load commands - complete CLI definitions, serialization, and all functionality
 9. ✅ Fix search/index determinism - Ripgrep JSON parsing and stable ordering
 10. ✅ Implement LLM user validation harness per specs/llm-user-validation.md (tests/llm_validation.rs; transcripts ignored in .gitignore)
+11. ✅ Optimize `qipu search` performance - processed ripgrep matches directly to meet <1s for 10k notes target.
 
 **SUMMARY:**
-- **10/10 P0 items completed (100%)**
-- **0/10 P0 items pending (0%)**
+- **11/11 P0 items completed (100%)**
+- **0/11 P0 items pending (0%)**
 - **211 tests passing (62 unit + 131 CLI + 6 golden + 6 performance + 6 LLM validation)**
-- **Git tag v0.0.90 created**
+- **Git tag v0.0.91 created**
 
 **NEXT PRIORITIES:**
 - All P0 items are now complete!

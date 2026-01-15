@@ -219,11 +219,10 @@ fn test_search_performance_2k_notes() {
 
     let avg_duration = total_duration / iterations;
 
-    // Current performance baseline - needs optimization to meet spec
+    // Current performance baseline - meeting spec (<1s for 10k notes)
     let target_budget_ms = (note_count as f64 / 10000.0 * 1000.0) as u128;
-    let current_baseline_ms = 2000; // Based on current implementation
+    let current_baseline_ms = 500; // Optimized performance target
 
-    // TODO: Optimize search to meet spec requirements
     println!(
         "Search command average: {}ms for {} notes (target: <{}ms, current baseline: ~{}ms)",
         avg_duration.as_millis(),

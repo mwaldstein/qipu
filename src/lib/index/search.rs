@@ -38,15 +38,6 @@ fn is_ripgrep_available() -> bool {
         .unwrap_or(false)
 }
 
-fn absolute_meta_path(store: &Store, meta_path: &str) -> PathBuf {
-    let path = Path::new(meta_path);
-    if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        store.root().join(path)
-    }
-}
-
 fn normalize_meta_path(store: &Store, meta_path: &str) -> String {
     let path = Path::new(meta_path);
     if path.is_absolute() {
@@ -138,24 +129,23 @@ fn search_with_ripgrep(
     // Build results from matching files using index metadata
     let mut results = Vec::new();
 
-    // For performance, limit processing to first 200 matching files
-    // Users rarely look beyond the first few pages of results
-    let mut processed = 0;
-    const MAX_FILES_TO_PROCESS: usize = 200;
+    // Iterate over matching paths and look up metadata
+    // Sort paths for determinism before processing if we want stable tie-breaking
+    // for relevance 0.0, but we only include relevance > 0.0 anyway.
+    let mut matching_paths_sorted: Vec<_> = matching_paths.into_iter().collect();
+    matching_paths_sorted.sort();
 
-    // Create a faster lookup for matching paths
-    let matching_path_set: HashSet<&PathBuf> = matching_paths.iter().collect();
+    for path in matching_paths_sorted {
+        // Get note_id for this path from index
+        let note_id = match index.files.get(&path) {
+            Some(entry) => &entry.note_id,
+            None => continue,
+        };
 
-    // Iterate over metadata in deterministic order (sorted by note ID)
-    let mut note_ids: Vec<&String> = index.metadata.keys().collect();
-    note_ids.sort();
-    for note_id in note_ids {
-        let meta = &index.metadata[note_id];
-        // Skip if path doesn't match ripgrep results
-        let path = absolute_meta_path(store, &meta.path);
-        if !matching_path_set.contains(&path) {
-            continue;
-        }
+        let meta = match index.metadata.get(note_id) {
+            Some(m) => m,
+            None => continue,
+        };
 
         // Apply type filter
         if let Some(t) = type_filter {
@@ -177,33 +167,24 @@ fn search_with_ripgrep(
 
         let title_lower = meta.title.to_lowercase();
 
-        // Title matches (high weight) - optimized early exit
+        // Title matches (high weight)
         for term in &query_terms {
             if title_lower.contains(term) {
                 relevance += 10.0;
                 if title_lower == *term {
                     relevance += 5.0;
                 }
-                // Early exit for strong title matches
-                if relevance >= 15.0 {
-                    break;
-                }
             }
         }
 
-        // Tag matches (medium weight) - only check if needed
-        if relevance < 15.0 {
-            for tag in &meta.tags {
-                let tag_lower = tag.to_lowercase();
-                for term in &query_terms {
-                    if tag_lower == *term {
-                        relevance += 7.0;
-                    } else if tag_lower.contains(term) {
-                        relevance += 3.0;
-                    }
-                }
-                if relevance >= 10.0 {
-                    break;
+        // Tag matches (medium weight)
+        for tag in &meta.tags {
+            let tag_lower = tag.to_lowercase();
+            for term in &query_terms {
+                if tag_lower == *term {
+                    relevance += 7.0;
+                } else if tag_lower.contains(term) {
+                    relevance += 3.0;
                 }
             }
         }
@@ -244,17 +225,9 @@ fn search_with_ripgrep(
             });
         }
 
-        processed += 1;
-        if processed >= MAX_FILES_TO_PROCESS {
+        // Limit processing to improve performance for extremely large match sets
+        if results.len() >= 500 {
             break;
-        }
-
-        // Early exit if we have enough strong results
-        if results.len() >= 50 {
-            let strong_count = results.iter().filter(|r| r.relevance >= 10.0).count();
-            if strong_count >= 20 {
-                break;
-            }
         }
     }
 

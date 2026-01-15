@@ -28,44 +28,7 @@
 
 ---
 
-- [P0] ~~Implement `qipu dump` and `qipu load` per `specs/pack.md`~~ **COMPLETED**: Full implementation with CLI definitions, note selection with graph traversal, pack format serialization (JSON/records), deserialization, attachment handling, link management, and comprehensive error handling. All 198 tests passing.
-
-- [P0] ~~Implement the `specs/llm-user-validation.md` “LLM primary user” validation harness (currently only a spec)~~ **COMPLETED:** Harness exists in `tests/llm_validation.rs` with transcript capture to `tests/transcripts/<tool>/<timestamp>/` and store validation.
-- [P0] ~~Add `.gitignore` coverage for volatile transcript artifacts described in `specs/llm-user-validation.md`~~ **COMPLETED:** transcripts ignored in `.gitignore`.
-- [P1] ~~Fix CLI parse-time JSON behavior to match `specs/cli-tool.md`~~ **COMPLETED:** JSON output now works correctly for both `--format json` and `--format=json` syntax variants.
-- [P1] ~~Ensure `qipu --help` and `qipu --version` always exit `0` and print normal help/version output even when `--format json` is present~~ **COMPLETED:** Help and version commands now properly exit with code 0 regardless of format flag.
-
-- [P1] ~~Bring compaction resolution in line with `specs/compaction.md` across command surfaces~~ **COMPLETED:** `show`/`context` now resolve to canonical digests by default with `--no-resolve-compaction` support, `show --links` applies contracted-graph semantics, `context` preserves `via` for query-driven selections, and `link` list/tree/path aggregate across full compaction equivalence classes (transitive chains).
-
-- [P1] ~~Align `qipu context --moc <id>` behavior with `specs/cli-interface.md`~~ **COMPLETED:** MOC selection now includes the MOC itself alongside linked notes with deterministic ordering/dedup.
-
-- [P1] ~~Reconcile store discovery requirements across specs: `specs/cli-tool.md` currently describes discovering `.qipu/` only, while `specs/storage-format.md`, `specs/cli-interface.md`, and the implementation support both `.qipu/` and `qipu/`; decide the intended behavior and update spec(s) accordingly.~~ **COMPLETED:** `specs/cli-tool.md` now matches `.qipu/` then `qipu/` discovery behavior.
-
-- [P1] ~~Fix records header provenance (`store=...`) to always report the actual opened store root (not `cli.store` or a hardcoded `.qipu` fallback), including at least `qipu doctor --format records` and `qipu index --format records`.~~ **COMPLETED:** records header now uses the actual opened store root for `qipu index --format records` and `qipu doctor --format records`.
-
-- [P1] ~~Make search output fully deterministic:~~ **COMPLETED:** result sorting already uses `(relevance desc, id asc)` tiebreakers, and canonicalization preserves that deterministic order.
-
-- [P1] ~~Meet `specs/records-output.md` budgeting requirements (including `qipu link list --format records` budget support).~~ **COMPLETED**
-
-- [P2] Fix incremental indexing correctness and cache portability:
-  - ~~Ensure incremental indexing updates remove stale tag memberships when a note’s tags change (avoid accumulating outdated `tag -> ids[]`).~~ **COMPLETED:** prune tag memberships on reindex/delete and guard moved notes.
-  - ~~Decide whether `Index.metadata.path` should be store-relative (per `specs/indexing-search.md`) and ensure consumers remain correct (including ripgrep-assisted search matching).~~ **COMPLETED:** `Index.metadata.path` is now stored store-relative; search normalizes store-relative paths and handles absolute cache paths.
-  - ~~Decide whether to keep a single `.cache/index.json` or split into multiple cache files as described in `specs/indexing-search.md`, and update spec or implementation accordingly.~~ **COMPLETED:** cache now split into per-domain files per `specs/indexing-search.md`, with readers updated to load the split layout.
-
-- [P2] ~~Remove non-verbose debug/progress noise on stderr so commands remain scriptable and quiet by default (e.g., unconditional parse warnings in note listing and progress/warnings during export), or gate them behind `--verbose`.~~ **COMPLETED:** gated stderr warnings/progress output behind `--verbose`.
-- [P2] ~~Make `--verbose` timing output consistent across commands (avoid resetting the timing epoch inside individual command handlers such as `sync`; keep stable phase keys/labels).~~ **COMPLETED:** fixed sync timing epoch reset so verbose output uses the shared start time.
-- [P2] ~~Make golden output path normalization portable (avoid hardcoding platform-specific temp path shapes in goldens).~~ **COMPLETED:** golden fixtures now normalize temp paths portably.
-- [P2] ~~Ensure JSON outputs meet the minimum note schema described in `specs/cli-interface.md` (notably include both `created` and `updated` where applicable, e.g., `create`, `capture`, `inbox`).~~ **COMPLETED:** JSON outputs now include `created` and `updated` where applicable.
-
-- [P3] ~~Optional: decide whether `qipu link add/remove` should require `--type` (as proposed in `specs/cli-interface.md`) or allow a default of `related`, and update spec/implementation accordingly.~~ **COMPLETED:** require explicit `--type` for link add/remove; removed defaults and updated tests/docs.
-- [P3] ~~Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.~~ **COMPLETED**: Added `--commit`/`--push` flags, extended `src/lib/git.rs`, and implemented logic in `src/commands/sync.rs`.
-- [P3] ~~Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.~~ **COMPLETED**: Added `--with-attachments` flag to `export` command and implemented attachment discovery and copying.
-- [P3] ~~Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).~~ **COMPLETED**: Refactored `doctor::execute` to return `DoctorResult` and updated `sync` to report actual validation counts.
-
-
----
-
-## Inconsistencies and Missing Spec Updates
+## Inconsistencies and Missing Spec Updates (COMPLETED)
 
 - [P1] ~~Fix search recency boost to use `updated` timestamp instead of `created` per `specs/indexing-search.md`.~~ **COMPLETED**: Updated `src/lib/index/search.rs` to use `updated` (falling back to `created`) for recency boost calculation.
 - [P2] ~~Update `specs/cli-interface.md` to include implemented but missing flags and commands:~~ **COMPLETED**:
@@ -76,22 +39,6 @@
 - [P2] ~~Clarify `qipu inbox --exclude-linked` flag in `specs/cli-interface.md`.~~ **COMPLETED**
 - [P3] ~~Ensure search `exclude_mocs` is documented consistently.~~ **COMPLETED**
 - [P1] ~~Fix golden test failure for version output (already done, but document it).~~ **COMPLETED**: Updated `tests/golden/version.txt` to match `Cargo.toml` version `0.0.89`.
-
-## Planned Refactors (Oversized Files)
-
-- [P2] ~~`tests/cli_tests.rs`: split into per-command files under `tests/cli/` (e.g., `cli_init.rs`, `cli_link.rs`, `cli_compact.rs`), move shared helpers into `tests/cli/support.rs`.~~ **COMPLETED:** Tests split into `tests/cli/{misc,init,create,list,show,inbox,index,search,link,prime,context,doctor,compact,setup}.rs` with shared helpers in `tests/cli/support.rs`.
-- [P2] ~~`src/commands/link.rs`: split into `commands/link/{add,remove,list,tree,path}.rs` with shared `link/mod.rs` for `LinkEntry` and output helpers.~~ **COMPLETED:** Commands split into `src/commands/link/{add,list,path,remove,tree}.rs` with shared types in `src/commands/link/mod.rs`.
-- [P2] ~~`src/lib/index.rs`: split into `lib/index/{builder,cache,search,links,types}.rs`, keep `Index` + `IndexBuilder` re-exported in `lib/index/mod.rs`.~~ **COMPLETED:** Index logic split into `src/lib/index/` directory.
-- [P2] ~~`src/commands/compact.rs`: split into `commands/compact/{apply,suggest,report,utils}.rs`, keep CLI wiring in `compact/mod.rs`.~~ **COMPLETED:** Compaction logic split into `src/commands/compact/` directory.
-- [P2] ~~`src/lib/store.rs`: split into `lib/store/{io,notes,config,paths}.rs`, centralize store path resolution in one module.~~ **COMPLETED:** Store logic split into `src/lib/store/` directory.
-- [P2] ~~`src/commands/context.rs`: split into `commands/context/{select,budget,format,output}.rs` with `context/mod.rs` dispatch.~~ **COMPLETED:** Context logic split into `src/commands/context/` directory.
-- [P3] ~~`src/main.rs`: move command dispatch into `commands/dispatch.rs`, keep `main.rs` focused on CLI bootstrap + error handling.~~ **COMPLETED:** Command dispatch logic moved to `src/commands/dispatch.rs`.
-- [P3] ~~`src/commands/doctor.rs`: split into `commands/doctor/{checks,report,fix}.rs`, keep formatting helpers shared.~~ **COMPLETED:** Doctor logic split into `src/commands/doctor/` directory.
-- [P3] ~~`src/commands/export.rs`: split into `commands/export/{plan,emit,format,attachments}.rs`.~~ **COMPLETED:** Export logic split into `src/commands/export/` directory.
-- [P3] ~~`src/cli.rs`: split CLI structs into `cli/{args,link,output,parse}.rs`, keep `cli/mod.rs` for `Cli` + `Commands`.~~ **COMPLETED:** CLI logic split into `src/cli/` directory.
-- [P3] ~~`tests/llm_validation.rs`: split into `tests/llm/{adapter,fixtures,runner}.rs`, keep `tests/llm_validation.rs` as minimal harness.~~ **COMPLETED:** LLM validation harness split into `tests/llm/` directory.
-- [P3] ~~`src/commands/dump.rs` + `src/commands/load.rs`: split each into `{model,serialize,deserialize,io}.rs` to isolate pack format types.~~ **COMPLETED:** Dump and Load logic split into their respective directories.
-- [P3] ~~`src/lib/note.rs`: split into `lib/note/{frontmatter,links,render,parse,types}.rs` and re-export types in `note/mod.rs`.~~ **COMPLETED:** Note logic split into `src/lib/note/` directory.
 
 ---
 

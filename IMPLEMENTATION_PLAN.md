@@ -88,4 +88,9 @@
 ## Issues Fixed 2026-01-15
 
 **Fixed flaky test:**
-- Fixed `test_incremental_index_updates_tags` in `src/lib/index.rs:1152` by increasing sleep from 1s to 2s. The test was failing when running in parallel due to insufficient filesystem mtime granularity. Test now passes reliably with all 201 tests passing.
+- Fixed `test_incremental_index_updates_tags` in `src/lib/index.rs:1152` by increasing sleep from 1s to 2s. The test was failing when running in parallel due to insufficient filesystem mtime granularity. Test now passes reliably.
+
+**Code quality improvements:**
+- Added Default implementation for OpenCodeAdapter in tests/llm_validation.rs
+- Removed empty string literal from writeln! in tests/llm_validation.rs
+- Git tag v0.0.87 created

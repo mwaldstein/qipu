@@ -1,351 +1,12 @@
-//! `qipu context` command - build context bundles for LLM integration
-//!
-//! Per spec (specs/llm-context.md):
-//! - `qipu context` outputs a bundle of notes designed for LLM context injection
-//! - Selection: `--note`, `--tag`, `--moc`, `--query`
-//! - Budgeting: `--max-chars` exact budget
-//! - Formats: human (markdown), json, records
-//! - Safety: notes are untrusted inputs, optional safety banner
-
-use std::collections::{HashMap, HashSet};
-
+use super::types::{RecordsOutputConfig, SelectedNote};
+use crate::cli::Cli;
+use crate::lib::compaction::CompactionContext;
+use crate::lib::error::Result;
+use crate::lib::note::Note;
 use chrono::Utc;
 
-use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::index::{search, Index, IndexBuilder};
-use crate::lib::note::{Note, NoteType};
-use crate::lib::store::Store;
-
-/// Options for the context command
-pub struct ContextOptions<'a> {
-    pub note_ids: &'a [String],
-    pub tag: Option<&'a str>,
-    pub moc_id: Option<&'a str>,
-    pub query: Option<&'a str>,
-    pub max_chars: Option<usize>,
-    pub transitive: bool,
-    pub with_body: bool,
-    pub safety_banner: bool,
-}
-
-struct SelectedNote<'a> {
-    note: &'a Note,
-    via: Option<String>,
-}
-
-/// Execute the context command
-pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
-    // Build or load index for searching
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
-
-    // Build compaction context for annotations
-    // Per spec (specs/compaction.md lines 116-119)
-    let all_notes = store.list_notes()?;
-    let compaction_ctx = CompactionContext::build(&all_notes)?;
-
-    let note_map: HashMap<String, &Note> = all_notes
-        .iter()
-        .map(|note| (note.id().to_string(), note))
-        .collect();
-
-    // Collect notes based on selection criteria
-    let mut selected_notes: Vec<SelectedNote> = Vec::new();
-    let mut seen_ids: HashSet<String> = HashSet::new();
-    let mut via_map: HashMap<String, String> = HashMap::new();
-
-    let resolve_id = |id: &str| -> Result<String> {
-        if cli.no_resolve_compaction {
-            Ok(id.to_string())
-        } else {
-            compaction_ctx.canon(id)
-        }
-    };
-
-    let mut insert_selected = |resolved_id: String, via_source: Option<String>| -> Result<()> {
-        if let Some(via_id) = via_source {
-            via_map.entry(resolved_id.clone()).or_insert(via_id);
-        }
-
-        if seen_ids.insert(resolved_id.clone()) {
-            let note = note_map
-                .get(&resolved_id)
-                .ok_or_else(|| QipuError::NoteNotFound {
-                    id: resolved_id.clone(),
-                })?;
-            selected_notes.push(SelectedNote {
-                note: *note,
-                via: None,
-            });
-        }
-
-        Ok(())
-    };
-
-    // Selection by explicit note IDs
-    for id in options.note_ids {
-        let resolved_id = resolve_id(id)?;
-        insert_selected(resolved_id, None)?;
-    }
-
-    // Selection by tag
-    if let Some(tag_name) = options.tag {
-        for note in &all_notes {
-            if note.frontmatter.tags.contains(&tag_name.to_string()) {
-                let resolved_id = resolve_id(note.id())?;
-                insert_selected(resolved_id, None)?;
-            }
-        }
-    }
-
-    // Selection by MOC
-    if let Some(moc) = options.moc_id {
-        let linked_ids = get_moc_linked_ids(&index, moc, options.transitive);
-        for id in linked_ids {
-            let resolved_id = resolve_id(&id)?;
-            insert_selected(resolved_id, None)?;
-        }
-    }
-
-    // Selection by query
-    if let Some(q) = options.query {
-        let results = search(store, &index, q, None, None)?;
-        for result in results {
-            let resolved_id = resolve_id(&result.id)?;
-            let via_source = if !cli.no_resolve_compaction && resolved_id != result.id {
-                Some(result.id.clone())
-            } else {
-                None
-            };
-            insert_selected(resolved_id, via_source)?;
-        }
-    }
-
-    for selected in &mut selected_notes {
-        if let Some(via) = via_map.get(selected.note.id()) {
-            selected.via = Some(via.clone());
-        }
-    }
-
-    // If no selection criteria provided, return error
-    if options.note_ids.is_empty()
-        && options.tag.is_none()
-        && options.moc_id.is_none()
-        && options.query.is_none()
-    {
-        return Err(QipuError::Other(
-            "no selection criteria provided. Use --note, --tag, --moc, or --query".to_string(),
-        ));
-    }
-
-    // Sort notes deterministically (by created, then by id)
-    selected_notes.sort_by(|a, b| {
-        match (&a.note.frontmatter.created, &b.note.frontmatter.created) {
-            (Some(a_created), Some(b_created)) => a_created.cmp(b_created),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => std::cmp::Ordering::Equal,
-        }
-        .then_with(|| a.note.id().cmp(b.note.id()))
-    });
-
-    // Apply budgeting
-    let (truncated, notes_to_output) =
-        apply_budget(&selected_notes, options.max_chars, options.with_body);
-
-    // Output in requested format
-    let store_path = store.root().display().to_string();
-
-    match cli.format {
-        OutputFormat::Json => {
-            output_json(
-                cli,
-                &store_path,
-                &notes_to_output,
-                truncated,
-                &compaction_ctx,
-                &all_notes,
-            )?;
-        }
-        OutputFormat::Human => {
-            output_human(
-                cli,
-                &store_path,
-                &notes_to_output,
-                truncated,
-                options.safety_banner,
-                &compaction_ctx,
-                &all_notes,
-            );
-        }
-        OutputFormat::Records => {
-            let config = RecordsOutputConfig {
-                truncated,
-                with_body: options.with_body,
-                safety_banner: options.safety_banner,
-            };
-            output_records(
-                cli,
-                &store_path,
-                &notes_to_output,
-                &config,
-                &compaction_ctx,
-                &all_notes,
-            );
-        }
-    }
-
-    Ok(())
-}
-
-/// Get note IDs linked from a MOC (including the MOC itself)
-fn get_moc_linked_ids(index: &Index, moc_id: &str, transitive: bool) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut queue = vec![moc_id.to_string()];
-
-    visited.insert(moc_id.to_string());
-    result.push(moc_id.to_string());
-
-    while let Some(current_id) = queue.pop() {
-        // Get outbound edges from current note
-        let edges = index.get_outbound_edges(&current_id);
-
-        for edge in edges {
-            if visited.insert(edge.to.clone()) {
-                result.push(edge.to.clone());
-
-                // If transitive and target is a MOC, add to queue for further traversal
-                if transitive {
-                    if let Some(meta) = index.get_metadata(&edge.to) {
-                        if meta.note_type == NoteType::Moc {
-                            queue.push(edge.to.clone());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    result
-}
-
-/// Apply character budget to notes
-/// Returns (truncated, notes_to_output)
-///
-/// This function ensures that the output respects the --max-chars budget exactly.
-/// It uses conservative estimates with a safety buffer to ensure the actual output
-/// never exceeds the budget.
-fn apply_budget<'a>(
-    notes: &'a [SelectedNote<'a>],
-    max_chars: Option<usize>,
-    with_body: bool,
-) -> (bool, Vec<&'a SelectedNote<'a>>) {
-    let Some(budget) = max_chars else {
-        return (false, notes.iter().collect());
-    };
-
-    let mut result = Vec::new();
-    let mut used_chars = 0;
-    let mut truncated = false;
-
-    // Conservative header estimate with buffer
-    // Different formats have different header sizes, so we use a conservative estimate
-    let header_estimate = 250; // Conservative header size estimate
-    used_chars += header_estimate;
-
-    for note in notes {
-        let note_size = estimate_note_size(note.note, with_body);
-
-        // Add 10% safety buffer to ensure actual output doesn't exceed budget
-        let note_size_with_buffer = note_size + (note_size / 10);
-
-        if used_chars + note_size_with_buffer <= budget {
-            result.push(note);
-            used_chars += note_size_with_buffer;
-        } else {
-            truncated = true;
-            break;
-        }
-    }
-
-    (truncated, result)
-}
-
-/// Estimate the output size of a note
-///
-/// This provides a conservative estimate of the output size across all formats.
-/// The estimate includes:
-/// - All metadata fields (id, title, type, tags, path)
-/// - Sources (if present)
-/// - Body content (full body or summary depending on with_body flag)
-/// - Format-specific overhead (separators, labels, JSON syntax, etc.)
-fn estimate_note_size(note: &Note, with_body: bool) -> usize {
-    let mut size = 0;
-
-    // Metadata size with realistic format overhead
-    size += note.id().len() + 15; // "N qp-xxx type "
-    size += note.title().len() + 20; // Title with quotes and labels
-    size += note.note_type().to_string().len() + 15;
-
-    // Tags
-    if !note.frontmatter.tags.is_empty() {
-        size += note.frontmatter.tags.join(",").len() + 20; // "tags=..." overhead
-    } else {
-        size += 10; // "tags=-"
-    }
-
-    // Path
-    if let Some(path) = &note.path {
-        size += path.display().to_string().len() + 20; // "Path: " or "path=" overhead
-    } else {
-        size += 10; // "path=-" or no path
-    }
-
-    // Sources - account for markdown/JSON/records formatting
-    // In records format, each source is a D line: "D source url=... title="..." accessed=... from=..."
-    for source in &note.frontmatter.sources {
-        size += source.url.len() + 50; // URL with "D source url=" prefix and formatting
-        if let Some(title) = &source.title {
-            size += title.len() + 15; // Title with 'title=""' formatting
-        } else {
-            size += source.url.len() + 15; // If no title, URL is used as title
-        }
-        if let Some(accessed) = &source.accessed {
-            size += accessed.len() + 20; // Date with "accessed=" formatting
-        } else {
-            size += 10; // "accessed=-"
-        }
-        size += note.id().len() + 10; // "from=qp-xxx"
-    }
-
-    // Body or summary
-    if with_body {
-        size += note.body.len();
-        // Body includes B line markers and B-END in records format
-        size += 30; // "B qp-xxx\n" + "B-END\n"
-    } else {
-        let summary = note.summary();
-        size += summary.len();
-        // Summary includes S line in records format
-        if !summary.is_empty() {
-            size += note.id().len() + 5; // "S qp-xxx "
-        }
-    }
-
-    // Add format-specific overhead for separators and structure
-    // This accounts for:
-    // - Human format: "## Note: " headers, "---" separators
-    // - JSON format: object structure, commas, brackets
-    // - Records format: line prefixes and terminators
-    size += 100;
-
-    size
-}
-
 /// Output in JSON format
-fn output_json(
+pub fn output_json(
     cli: &Cli,
     store_path: &str,
     notes: &[&SelectedNote],
@@ -387,7 +48,6 @@ fn output_json(
             }
 
             // Add compaction annotations for digest notes
-            // Per spec (specs/compaction.md lines 116-119)
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
             if compacts_count > 0 {
                 if let Some(obj) = json.as_object_mut() {
@@ -398,7 +58,6 @@ fn output_json(
                     }
 
                     // Add compacted IDs if --with-compaction-ids is set
-                    // Per spec (specs/compaction.md line 131)
                     if cli.with_compaction_ids {
                         let depth = cli.compaction_depth.unwrap_or(1);
                         if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
@@ -411,7 +70,6 @@ fn output_json(
                     }
 
                     // Add expanded compacted notes if --expand-compaction is set
-                    // Per spec (specs/compaction.md lines 147-153)
                     if cli.expand_compaction {
                         let depth = cli.compaction_depth.unwrap_or(1);
                         if let Some((compacted_notes, _truncated)) = compaction_ctx.get_compacted_notes_expanded(
@@ -462,7 +120,7 @@ fn output_json(
 }
 
 /// Output in human-readable markdown format
-fn output_human(
+pub fn output_human(
     cli: &Cli,
     store_path: &str,
     notes: &[&SelectedNote],
@@ -501,7 +159,6 @@ fn output_human(
         }
 
         // Add compaction annotations for digest notes
-        // Per spec (specs/compaction.md lines 116-119)
         let mut compaction_parts = Vec::new();
         if let Some(via) = &selected.via {
             compaction_parts.push(format!("via={}", via));
@@ -519,7 +176,6 @@ fn output_human(
         }
 
         // Show compacted IDs if --with-compaction-ids is set
-        // Per spec (specs/compaction.md line 131)
         if cli.with_compaction_ids && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
             if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
@@ -556,7 +212,6 @@ fn output_human(
         println!("---");
 
         // Expand compacted notes if --expand-compaction is set
-        // Per spec (specs/compaction.md lines 147-153)
         if cli.expand_compaction && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
             if let Some((compacted_notes, _truncated)) = compaction_ctx
@@ -607,14 +262,8 @@ fn output_human(
     }
 }
 
-struct RecordsOutputConfig {
-    truncated: bool,
-    with_body: bool,
-    safety_banner: bool,
-}
-
 /// Output in records format
-fn output_records(
+pub fn output_records(
     cli: &Cli,
     store_path: &str,
     notes: &[&SelectedNote],
@@ -651,7 +300,6 @@ fn output_records(
             .unwrap_or_else(|| "-".to_string());
 
         // Build compaction annotations for digest notes
-        // Per spec (specs/compaction.md lines 116-119, 125)
         let mut annotations = String::new();
         if let Some(via) = &selected.via {
             annotations.push_str(&format!(" via={}", via));
@@ -676,7 +324,6 @@ fn output_records(
         );
 
         // Show compacted IDs if --with-compaction-ids is set
-        // Per spec (specs/compaction.md line 131)
         if cli.with_compaction_ids && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
             if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
@@ -730,7 +377,6 @@ fn output_records(
         }
 
         // Expand compacted notes if --expand-compaction is set
-        // Per spec (specs/compaction.md lines 147-153)
         if cli.expand_compaction && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
             if let Some((compacted_notes, _truncated)) = compaction_ctx
@@ -798,25 +444,5 @@ fn output_records(
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_estimate_note_size() {
-        use crate::lib::note::NoteFrontmatter;
-
-        let fm = NoteFrontmatter::new("qp-test".to_string(), "Test Note".to_string());
-        let note = Note::new(fm, "This is the body content.");
-
-        let size_with_body = estimate_note_size(&note, true);
-        let size_without_body = estimate_note_size(&note, false);
-
-        assert!(size_with_body > 0);
-        assert!(size_without_body > 0);
-        assert!(size_with_body >= size_without_body);
     }
 }

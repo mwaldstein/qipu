@@ -1,0 +1,136 @@
+use crate::lib::error::{QipuError, Result};
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
+
+/// Note type (per specs/knowledge-model.md)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NoteType {
+    /// Quick capture, low ceremony, meant to be refined later
+    #[default]
+    Fleeting,
+    /// Notes derived from external sources (URLs, books, papers)
+    Literature,
+    /// Distilled insights in author's own words, meant to stand alone
+    Permanent,
+    /// Map of Content - curated index organizing a topic
+    Moc,
+}
+
+impl NoteType {
+    /// All valid note types
+    pub const VALID_TYPES: &'static [&'static str] =
+        &["fleeting", "literature", "permanent", "moc"];
+}
+
+impl FromStr for NoteType {
+    type Err = QipuError;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "fleeting" => Ok(NoteType::Fleeting),
+            "literature" => Ok(NoteType::Literature),
+            "permanent" => Ok(NoteType::Permanent),
+            "moc" => Ok(NoteType::Moc),
+            other => Err(QipuError::Other(format!(
+                "unknown note type: {} (expected: {})",
+                other,
+                Self::VALID_TYPES.join(", ")
+            ))),
+        }
+    }
+}
+
+impl fmt::Display for NoteType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NoteType::Fleeting => write!(f, "fleeting"),
+            NoteType::Literature => write!(f, "literature"),
+            NoteType::Permanent => write!(f, "permanent"),
+            NoteType::Moc => write!(f, "moc"),
+        }
+    }
+}
+
+/// Typed link relationship (per specs/knowledge-model.md)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LinkType {
+    /// Soft relationship
+    #[default]
+    Related,
+    /// Note created because of another note/source
+    DerivedFrom,
+    /// Evidence supports a claim
+    Supports,
+    /// Evidence contradicts a claim
+    Contradicts,
+    /// Note is part of a larger outline/MOC
+    PartOf,
+}
+
+impl LinkType {
+    /// All valid link types
+    pub const VALID_TYPES: &'static [&'static str] = &[
+        "related",
+        "derived-from",
+        "supports",
+        "contradicts",
+        "part-of",
+    ];
+}
+
+impl FromStr for LinkType {
+    type Err = QipuError;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "related" => Ok(LinkType::Related),
+            "derived-from" => Ok(LinkType::DerivedFrom),
+            "supports" => Ok(LinkType::Supports),
+            "contradicts" => Ok(LinkType::Contradicts),
+            "part-of" => Ok(LinkType::PartOf),
+            other => Err(QipuError::Other(format!(
+                "unknown link type: {} (expected: {})",
+                other,
+                Self::VALID_TYPES.join(", ")
+            ))),
+        }
+    }
+}
+
+impl fmt::Display for LinkType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LinkType::Related => write!(f, "related"),
+            LinkType::DerivedFrom => write!(f, "derived-from"),
+            LinkType::Supports => write!(f, "supports"),
+            LinkType::Contradicts => write!(f, "contradicts"),
+            LinkType::PartOf => write!(f, "part-of"),
+        }
+    }
+}
+
+/// A typed link in frontmatter
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypedLink {
+    /// Link type
+    #[serde(rename = "type")]
+    pub link_type: LinkType,
+    /// Target note ID
+    pub id: String,
+}
+
+/// An external source reference
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Source {
+    /// Source URL
+    pub url: String,
+    /// Source title (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Date accessed (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accessed: Option<String>,
+}

@@ -3,12 +3,19 @@
 //! Uses clap for argument parsing per spec requirements.
 //! Supports global flags: --root, --store, --format, --quiet, --verbose
 
+pub mod args;
+pub mod link;
+pub mod output;
+pub mod parse;
+
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand, ValueEnum};
-
-pub use crate::lib::format::OutputFormat;
-use crate::lib::note::{LinkType, NoteType};
+use crate::lib::note::NoteType;
+pub use args::CreateArgs;
+pub use link::LinkCommands;
+pub use output::OutputFormat;
+use parse::parse_note_type;
 
 /// Qipu - Zettelkasten-inspired knowledge management CLI
 #[derive(Parser, Debug)]
@@ -326,145 +333,6 @@ pub enum Commands {
     },
 }
 
-/// Link subcommands
-#[derive(Subcommand, Debug)]
-pub enum LinkCommands {
-    /// List links for a note
-    List {
-        /// Note ID or file path
-        id_or_path: String,
-
-        /// Direction: out, in, or both
-        #[arg(long, short, default_value = "both")]
-        direction: String,
-
-        /// Filter by link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T')]
-        r#type: Option<String>,
-
-        /// Show only typed links (from frontmatter)
-        #[arg(long)]
-        typed_only: bool,
-
-        /// Show only inline links (from markdown body)
-        #[arg(long)]
-        inline_only: bool,
-
-        /// Maximum output characters (exact budget, records format only)
-        #[arg(long)]
-        max_chars: Option<usize>,
-    },
-
-    /// Add a typed link between notes
-    Add {
-        /// Source note ID
-        from: String,
-
-        /// Target note ID
-        to: String,
-
-        /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
-        r#type: LinkType,
-    },
-
-    /// Remove a typed link between notes
-    Remove {
-        /// Source note ID
-        from: String,
-
-        /// Target note ID
-        to: String,
-
-        /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
-        r#type: LinkType,
-    },
-
-    /// Show traversal tree from a note
-    Tree {
-        /// Note ID or file path
-        id_or_path: String,
-
-        /// Direction: out, in, or both
-        #[arg(long, short, default_value = "both")]
-        direction: String,
-
-        /// Maximum traversal depth
-        #[arg(long, default_value = "3")]
-        max_hops: u32,
-
-        /// Include only these link types (can be repeated)
-        #[arg(long, short = 'T', action = clap::ArgAction::Append)]
-        r#type: Vec<String>,
-
-        /// Exclude these link types (can be repeated)
-        #[arg(long, action = clap::ArgAction::Append)]
-        exclude_type: Vec<String>,
-
-        /// Show only typed links (from frontmatter)
-        #[arg(long)]
-        typed_only: bool,
-
-        /// Show only inline links (from markdown body)
-        #[arg(long)]
-        inline_only: bool,
-
-        /// Maximum nodes to visit
-        #[arg(long)]
-        max_nodes: Option<usize>,
-
-        /// Maximum edges to emit
-        #[arg(long)]
-        max_edges: Option<usize>,
-
-        /// Maximum neighbors per node
-        #[arg(long)]
-        max_fanout: Option<usize>,
-
-        /// Maximum output characters (exact budget, records format only)
-        #[arg(long)]
-        max_chars: Option<usize>,
-    },
-
-    /// Find path between two notes
-    Path {
-        /// Starting note ID
-        from: String,
-
-        /// Target note ID
-        to: String,
-
-        /// Direction: out, in, or both
-        #[arg(long, short, default_value = "both")]
-        direction: String,
-
-        /// Maximum path length
-        #[arg(long, default_value = "10")]
-        max_hops: u32,
-
-        /// Include only these link types (can be repeated)
-        #[arg(long, short = 'T', action = clap::ArgAction::Append)]
-        r#type: Vec<String>,
-
-        /// Exclude these link types (can be repeated)
-        #[arg(long, action = clap::ArgAction::Append)]
-        exclude_type: Vec<String>,
-
-        /// Show only typed links (from frontmatter)
-        #[arg(long)]
-        typed_only: bool,
-
-        /// Show only inline links (from markdown body)
-        #[arg(long)]
-        inline_only: bool,
-
-        /// Maximum output characters (exact budget, records format only)
-        #[arg(long)]
-        max_chars: Option<usize>,
-    },
-}
-
 /// Compact subcommands
 #[derive(Subcommand, Debug)]
 pub enum CompactCommands {
@@ -513,53 +381,6 @@ pub enum CompactCommands {
 
     /// Print compaction guidance for LLM agents
     Guide,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct CreateArgs {
-    /// Note title
-    pub title: String,
-
-    /// Note type
-    #[arg(long, short = 'T', value_parser = parse_note_type)]
-    pub r#type: Option<NoteType>,
-
-    /// Tags (can be specified multiple times)
-    #[arg(long, short, action = clap::ArgAction::Append)]
-    pub tag: Vec<String>,
-
-    /// Open in editor after creation
-    #[arg(long, short)]
-    pub open: bool,
-}
-
-/// Parse note type from string
-fn parse_note_type(s: &str) -> Result<NoteType, String> {
-    s.parse::<NoteType>().map_err(|e| e.to_string())
-}
-
-/// Parse link type from string
-fn parse_link_type(s: &str) -> Result<LinkType, String> {
-    s.parse::<LinkType>().map_err(|e| e.to_string())
-}
-
-// Implement ValueEnum for OutputFormat to work with clap
-impl ValueEnum for OutputFormat {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[
-            OutputFormat::Human,
-            OutputFormat::Json,
-            OutputFormat::Records,
-        ]
-    }
-
-    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
-        match self {
-            OutputFormat::Human => Some(clap::builder::PossibleValue::new("human")),
-            OutputFormat::Json => Some(clap::builder::PossibleValue::new("json")),
-            OutputFormat::Records => Some(clap::builder::PossibleValue::new("records")),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -612,7 +433,7 @@ mod tests {
         .unwrap();
         if let Some(Commands::Create(args)) = cli.command {
             assert_eq!(args.title, "My Note");
-            assert_eq!(args.r#type, Some(NoteType::Permanent));
+            assert_eq!(args.r#type, Some(crate::lib::note::NoteType::Permanent));
             assert_eq!(args.tag, vec!["test", "demo"]);
         } else {
             panic!("Expected Create command");
@@ -631,7 +452,7 @@ mod tests {
             Cli::try_parse_from(["qipu", "list", "--tag", "test", "--type", "fleeting"]).unwrap();
         if let Some(Commands::List { tag, r#type, .. }) = cli.command {
             assert_eq!(tag, Some("test".to_string()));
-            assert_eq!(r#type, Some(NoteType::Fleeting));
+            assert_eq!(r#type, Some(crate::lib::note::NoteType::Fleeting));
         } else {
             panic!("Expected List command");
         }

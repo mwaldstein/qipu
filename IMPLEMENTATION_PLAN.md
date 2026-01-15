@@ -64,19 +64,19 @@
 
 ## Planned Refactors (Oversized Files)
 
-- [P2] `tests/cli_tests.rs`: split into per-command files under `tests/cli/` (e.g., `cli_init.rs`, `cli_link.rs`, `cli_compact.rs`), move shared helpers into `tests/cli/support.rs`.
-- [P2] `src/commands/link.rs`: split into `commands/link/{add,remove,list,tree,path}.rs` with shared `link/mod.rs` for `LinkEntry` and output helpers.
-- [P2] `src/lib/index.rs`: split into `lib/index/{builder,cache,search,links,types}.rs`, keep `Index` + `IndexBuilder` re-exported in `lib/index/mod.rs`.
-- [P2] `src/commands/compact.rs`: split into `commands/compact/{apply,suggest,report,utils}.rs`, keep CLI wiring in `compact/mod.rs`.
-- [P2] `src/lib/store.rs`: split into `lib/store/{io,notes,config,paths}.rs`, centralize store path resolution in one module.
-- [P2] `src/commands/context.rs`: split into `commands/context/{select,budget,format,output}.rs` with `context/mod.rs` dispatch.
-- [P3] `src/main.rs`: move command dispatch into `commands/dispatch.rs`, keep `main.rs` focused on CLI bootstrap + error handling.
-- [P3] `src/commands/doctor.rs`: split into `commands/doctor/{checks,report,fix}.rs`, keep formatting helpers shared.
-- [P3] `src/commands/export.rs`: split into `commands/export/{plan,emit,format,attachments}.rs`.
-- [P3] `src/cli.rs`: split CLI structs into `cli/{args,link,output,parse}.rs`, keep `cli/mod.rs` for `Cli` + `Commands`.
-- [P3] `tests/llm_validation.rs`: split into `tests/llm/{adapter,fixtures,runner}.rs`, keep `tests/llm_validation.rs` as minimal harness.
-- [P3] `src/commands/dump.rs` + `src/commands/load.rs`: split each into `{model,serialize,deserialize,io}.rs` to isolate pack format types.
-- [P3] `src/lib/note.rs`: split into `lib/note/{frontmatter,links,render,parse,types}.rs` and re-export types in `note/mod.rs`.
+- [P2] ~~`tests/cli_tests.rs`: split into per-command files under `tests/cli/` (e.g., `cli_init.rs`, `cli_link.rs`, `cli_compact.rs`), move shared helpers into `tests/cli/support.rs`.~~ **COMPLETED:** Tests split into `tests/cli/{misc,init,create,list,show,inbox,index,search,link,prime,context,doctor,compact,setup}.rs` with shared helpers in `tests/cli/support.rs`.
+- [P2] ~~`src/commands/link.rs`: split into `commands/link/{add,remove,list,tree,path}.rs` with shared `link/mod.rs` for `LinkEntry` and output helpers.~~ **COMPLETED:** Commands split into `src/commands/link/{add,list,path,remove,tree}.rs` with shared types in `src/commands/link/mod.rs`.
+- [P2] ~~`src/lib/index.rs`: split into `lib/index/{builder,cache,search,links,types}.rs`, keep `Index` + `IndexBuilder` re-exported in `lib/index/mod.rs`.~~ **COMPLETED:** Index logic split into `src/lib/index/` directory.
+- [P2] ~~`src/commands/compact.rs`: split into `commands/compact/{apply,suggest,report,utils}.rs`, keep CLI wiring in `compact/mod.rs`.~~ **COMPLETED:** Compaction logic split into `src/commands/compact/` directory.
+- [P2] ~~`src/lib/store.rs`: split into `lib/store/{io,notes,config,paths}.rs`, centralize store path resolution in one module.~~ **COMPLETED:** Store logic split into `src/lib/store/` directory.
+- [P2] ~~`src/commands/context.rs`: split into `commands/context/{select,budget,format,output}.rs` with `context/mod.rs` dispatch.~~ **COMPLETED:** Context logic split into `src/commands/context/` directory.
+- [P3] ~~`src/main.rs`: move command dispatch into `commands/dispatch.rs`, keep `main.rs` focused on CLI bootstrap + error handling.~~ **COMPLETED:** Command dispatch logic moved to `src/commands/dispatch.rs`.
+- [P3] ~~`src/commands/doctor.rs`: split into `commands/doctor/{checks,report,fix}.rs`, keep formatting helpers shared.~~ **COMPLETED:** Doctor logic split into `src/commands/doctor/` directory.
+- [P3] ~~`src/commands/export.rs`: split into `commands/export/{plan,emit,format,attachments}.rs`.~~ **COMPLETED:** Export logic split into `src/commands/export/` directory.
+- [P3] ~~`src/cli.rs`: split CLI structs into `cli/{args,link,output,parse}.rs`, keep `cli/mod.rs` for `Cli` + `Commands`.~~ **COMPLETED:** CLI logic split into `src/cli/` directory.
+- [P3] ~~`tests/llm_validation.rs`: split into `tests/llm/{adapter,fixtures,runner}.rs`, keep `tests/llm_validation.rs` as minimal harness.~~ **COMPLETED:** LLM validation harness split into `tests/llm/` directory.
+- [P3] ~~`src/commands/dump.rs` + `src/commands/load.rs`: split each into `{model,serialize,deserialize,io}.rs` to isolate pack format types.~~ **COMPLETED:** Dump and Load logic split into their respective directories.
+- [P3] ~~`src/lib/note.rs`: split into `lib/note/{frontmatter,links,render,parse,types}.rs` and re-export types in `note/mod.rs`.~~ **COMPLETED:** Note logic split into `src/lib/note/` directory.
 
 ---
 

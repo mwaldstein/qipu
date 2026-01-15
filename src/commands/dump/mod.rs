@@ -7,13 +7,14 @@
 //! - Include attachments by default, `--no-attachments` flag
 //! - Output: stdout by default, or `--output <path>` for file
 
+pub mod model;
+pub mod serialize;
+
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use base64::{engine::general_purpose, Engine as _};
-
-use crate::cli::Cli;
+use crate::cli::{Cli, OutputFormat};
 use crate::commands::link::{Direction, TreeOptions};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
@@ -21,76 +22,10 @@ use crate::lib::index::{search, Index, IndexBuilder};
 use crate::lib::note::Note;
 use crate::lib::store::Store;
 
-/// Options for the dump command
-pub struct DumpOptions<'a> {
-    pub note_ids: &'a [String],
-    pub tag: Option<&'a str>,
-    pub moc_id: Option<&'a str>,
-    pub query: Option<&'a str>,
-    pub direction: Direction,
-    pub max_hops: u32,
-    pub type_include: Vec<String>,
-    pub typed_only: bool,
-    pub inline_only: bool,
-    pub include_attachments: bool,
-    pub output: Option<&'a Path>,
-}
-
-/// Pack file header
-#[derive(Debug, Clone, serde::Serialize)]
-struct PackHeader {
-    version: String,
-    created: chrono::DateTime<chrono::Utc>,
-    store_path: String,
-    notes_count: usize,
-    attachments_count: usize,
-    links_count: usize,
-}
-
-/// Pack entry for a note
-#[derive(Debug, Clone, serde::Serialize)]
-struct PackNote {
-    id: String,
-    title: String,
-    note_type: String,
-    tags: Vec<String>,
-    created: Option<chrono::DateTime<chrono::Utc>>,
-    updated: Option<chrono::DateTime<chrono::Utc>>,
-    path: Option<String>,
-    content: String,
-    sources: Vec<PackSource>,
-}
-
-/// Pack entry for a source reference
-#[derive(Debug, Clone, serde::Serialize)]
-struct PackSource {
-    url: String,
-    title: Option<String>,
-    accessed: Option<String>,
-}
-
-/// Pack entry for a link
-#[derive(Debug, Clone, serde::Serialize)]
-struct PackLink {
-    from: String,
-    to: String,
-    link_type: Option<String>,
-    inline: bool,
-}
-
-/// Pack entry for an attachment
-#[derive(Debug, Clone, serde::Serialize)]
-struct PackAttachment {
-    path: String,
-    name: String,
-    data: Vec<u8>,
-    content_type: Option<String>,
-}
+pub use model::{DumpOptions, PackAttachment, PackLink};
 
 /// Execute the dump command
 pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
-    use crate::cli::OutputFormat;
-
     // Build or load index for searching and traversal
     let index = IndexBuilder::new(store).load_existing()?.build()?;
 
@@ -118,11 +53,11 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
     let pack_content = match cli.format {
         OutputFormat::Human | OutputFormat::Json => {
             // For human and JSON output, use a more readable format
-            serialize_pack_readable(&selected_notes, &links, &attachments, store)?
+            serialize::serialize_pack_readable(&selected_notes, &links, &attachments, store)?
         }
         OutputFormat::Records => {
             // For records output, use the compact pack format
-            serialize_pack_records(&selected_notes, &links, &attachments, store)?
+            serialize::serialize_pack_records(&selected_notes, &links, &attachments, store)?
         }
     };
 
@@ -375,22 +310,14 @@ fn perform_simple_traversal(
 }
 
 /// Collect attachments for selected notes
-fn collect_attachments(store: &Store, selected_notes: &[Note]) -> Result<Vec<PackAttachment>> {
+fn collect_attachments(_store: &Store, selected_notes: &[Note]) -> Result<Vec<PackAttachment>> {
     let mut attachments = Vec::new();
 
     for note in selected_notes {
         if let Some(note_path) = &note.path {
             let note_dir = note_path.parent().unwrap_or_else(|| Path::new("."));
 
-            // Look for attachments directory relative to note
-            let _attachments_dir = store.root().join("attachments");
-
-            // Check if note has attachments referenced in content
-            // For now, we'll implement a simple approach: look for files referenced in note content
-            // A more sophisticated implementation could parse markdown links
-
             // Extract file references from note content (simple approach)
-            // This is a placeholder implementation - a full implementation would parse markdown
             let content_lines = note.body.lines();
             for line in content_lines {
                 // Look for patterns like ![alt](path) or [text](path)
@@ -431,154 +358,4 @@ fn collect_attachments(store: &Store, selected_notes: &[Note]) -> Result<Vec<Pac
     attachments.sort_by(|a, b| a.path.cmp(&b.path));
 
     Ok(attachments)
-}
-
-/// Serialize pack in readable format (for human/JSON output)
-fn serialize_pack_readable(
-    notes: &[Note],
-    links: &[PackLink],
-    attachments: &[PackAttachment],
-    store: &Store,
-) -> Result<String> {
-    let header = PackHeader {
-        version: "1.0".to_string(),
-        created: chrono::Utc::now(),
-        store_path: store.root().display().to_string(),
-        notes_count: notes.len(),
-        attachments_count: attachments.len(),
-        links_count: links.len(),
-    };
-
-    let pack_notes: Vec<PackNote> = notes
-        .iter()
-        .map(|note| PackNote {
-            id: note.id().to_string(),
-            title: note.title().to_string(),
-            note_type: note.note_type().to_string(),
-            tags: note.frontmatter.tags.clone(),
-            created: note.frontmatter.created,
-            updated: note.frontmatter.updated,
-            path: note.path.as_ref().map(|p| p.display().to_string()),
-            content: note.body.clone(),
-            sources: note
-                .frontmatter
-                .sources
-                .iter()
-                .map(|s| PackSource {
-                    url: s.url.clone(),
-                    title: s.title.clone(),
-                    accessed: s.accessed.clone(),
-                })
-                .collect(),
-        })
-        .collect();
-
-    let pack_data = serde_json::json!({
-        "header": header,
-        "notes": pack_notes,
-        "links": links,
-        "attachments": attachments.iter().map(|att| {
-            let mut obj = serde_json::json!({
-                "path": att.path,
-                "name": att.name,
-                "data": general_purpose::STANDARD.encode(&att.data),
-            });
-            if let Some(content_type) = &att.content_type {
-                obj["content_type"] = serde_json::json!(content_type);
-            }
-            obj
-        }).collect::<Vec<_>>(),
-    });
-
-    Ok(serde_json::to_string_pretty(&pack_data)?)
-}
-
-/// Serialize pack in records format (compact, line-oriented)
-fn serialize_pack_records(
-    notes: &[Note],
-    links: &[PackLink],
-    attachments: &[PackAttachment],
-    store: &Store,
-) -> Result<String> {
-    let mut output = String::new();
-
-    // Header line
-    output.push_str(&format!(
-        "H pack=1 version=1.0 created={} store={} notes={} links={} attachments={}\n",
-        chrono::Utc::now().to_rfc3339(),
-        store.root().display(),
-        notes.len(),
-        links.len(),
-        attachments.len()
-    ));
-
-    // Notes section
-    for note in notes {
-        let tags_csv = if note.frontmatter.tags.is_empty() {
-            "-".to_string()
-        } else {
-            note.frontmatter.tags.join(",")
-        };
-
-        // Note metadata line
-        output.push_str(&format!(
-            "N {} {} \"{}\" tags={} created={}\n",
-            note.id(),
-            note.note_type(),
-            note.title(),
-            tags_csv,
-            note.frontmatter
-                .created
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_else(|| "-".to_string())
-        ));
-
-        // Note content line (base64 encoded for safe transport)
-        if !note.body.is_empty() {
-            let encoded = general_purpose::STANDARD.encode(note.body.as_bytes());
-            output.push_str(&format!("C {}\n", encoded));
-            output.push_str("C-END\n");
-        }
-
-        // Sources
-        for source in &note.frontmatter.sources {
-            let title = source.title.as_deref().unwrap_or("");
-            let accessed = source.accessed.as_deref().unwrap_or("-");
-            output.push_str(&format!(
-                "S {} url={} title=\"{}\" accessed={}\n",
-                note.id(),
-                source.url,
-                title,
-                accessed
-            ));
-        }
-    }
-
-    // Links section
-    for link in links {
-        let link_type = link.link_type.as_deref().unwrap_or("-");
-        output.push_str(&format!(
-            "L {} {} type={} inline={}\n",
-            link.from, link.to, link_type, link.inline
-        ));
-    }
-
-    // Attachments section
-    for attachment in attachments {
-        let content_type = attachment.content_type.as_deref().unwrap_or("-");
-        output.push_str(&format!(
-            "A {} name={} content_type={}\n",
-            attachment.path, attachment.name, content_type
-        ));
-
-        // Attachment data (base64 encoded)
-        let encoded = general_purpose::STANDARD.encode(&attachment.data);
-        output.push_str(&format!("D {}\n", encoded));
-        output.push_str("D-END\n");
-    }
-
-    // End marker
-    output.push_str("END\n");
-
-    Ok(output)
 }

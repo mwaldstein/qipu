@@ -303,7 +303,7 @@ impl<'a> IndexBuilder<'a> {
                     title: note.title().to_string(),
                     note_type: note.note_type(),
                     tags: note.frontmatter.tags.clone(),
-                    path: path.display().to_string(),
+                    path: self.relative_path(&path),
                     created: note.frontmatter.created,
                     updated: note.frontmatter.updated,
                 };
@@ -331,6 +331,13 @@ impl<'a> IndexBuilder<'a> {
 
                     // Add reverse mapping for fast lookup
                     self.index.id_to_path.insert(note.id().to_string(), path);
+                }
+            } else {
+                let relative_path = self.relative_path(&path);
+                if let Some(meta) = self.index.metadata.get_mut(note.id()) {
+                    if meta.path != relative_path {
+                        meta.path = relative_path;
+                    }
                 }
             }
 
@@ -380,6 +387,13 @@ impl<'a> IndexBuilder<'a> {
         });
 
         Ok(self.index)
+    }
+
+    fn relative_path(&self, path: &Path) -> String {
+        path.strip_prefix(self.store.root())
+            .unwrap_or(path)
+            .to_string_lossy()
+            .to_string()
     }
 
     fn prune_note_indexes(&mut self, path: &Path, note_id: &str) {
@@ -580,6 +594,27 @@ fn is_ripgrep_available() -> bool {
         .unwrap_or(false)
 }
 
+fn absolute_meta_path(store: &Store, meta_path: &str) -> PathBuf {
+    let path = Path::new(meta_path);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        store.root().join(path)
+    }
+}
+
+fn normalize_meta_path(store: &Store, meta_path: &str) -> String {
+    let path = Path::new(meta_path);
+    if path.is_absolute() {
+        path.strip_prefix(store.root())
+            .unwrap_or(path)
+            .to_string_lossy()
+            .to_string()
+    } else {
+        meta_path.to_string()
+    }
+}
+
 /// Search using ripgrep for faster file finding
 ///
 /// This is an optimization that leverages ripgrep if available.
@@ -673,7 +708,7 @@ fn search_with_ripgrep(
     for note_id in note_ids {
         let meta = &index.metadata[note_id];
         // Skip if path doesn't match ripgrep results
-        let path = PathBuf::from(&meta.path);
+        let path = absolute_meta_path(store, &meta.path);
         if !matching_path_set.contains(&path) {
             continue;
         }
@@ -757,7 +792,7 @@ fn search_with_ripgrep(
                 title: meta.title.clone(),
                 note_type: meta.note_type,
                 tags: meta.tags.clone(),
-                path: meta.path.clone(),
+                path: normalize_meta_path(store, &meta.path),
                 match_context,
                 relevance,
                 via: None,
@@ -923,7 +958,7 @@ fn search_embedded(
                 title: meta.title.clone(),
                 note_type: meta.note_type,
                 tags: meta.tags.clone(),
-                path: meta.path.clone(),
+                path: normalize_meta_path(store, &meta.path),
                 match_context,
                 relevance,
                 via: None,

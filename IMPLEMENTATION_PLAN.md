@@ -47,7 +47,7 @@
 
 - [P2] Fix incremental indexing correctness and cache portability:
   - ~~Ensure incremental indexing updates remove stale tag memberships when a note’s tags change (avoid accumulating outdated `tag -> ids[]`).~~ **COMPLETED:** prune tag memberships on reindex/delete and guard moved notes.
-  - Decide whether `Index.metadata.path` should be store-relative (per `specs/indexing-search.md`) and ensure consumers remain correct (including ripgrep-assisted search matching).
+  - ~~Decide whether `Index.metadata.path` should be store-relative (per `specs/indexing-search.md`) and ensure consumers remain correct (including ripgrep-assisted search matching).~~ **COMPLETED:** `Index.metadata.path` is now stored store-relative; search normalizes store-relative paths and handles absolute cache paths.
   - Decide whether to keep a single `.cache/index.json` or split into multiple cache files as described in `specs/indexing-search.md`, and update spec or implementation accordingly.
 
 - [P2] Remove non-verbose debug/progress noise on stderr so commands remain scriptable and quiet by default (e.g., unconditional parse warnings in note listing and progress/warnings during export), or gate them behind `--verbose`.

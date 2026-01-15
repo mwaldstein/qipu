@@ -60,7 +60,6 @@ Proposed format:
 
 ```markdown
 # Qipu Context Bundle
-Generated: 2026-01-12T13:07:00Z
 Store: .qipu/
 
 ## Note: <title> (<id>)
@@ -77,6 +76,7 @@ Sources:
 ```
 
 Rules:
+- Omit runtime timestamps from context output (deterministic output).
 - Use `---` as a hard separator between notes.
 - Include metadata headers even if note content is empty.
 - Preserve original note markdown as-is.
@@ -86,7 +86,6 @@ For integration with tools, `qipu context --format json` should emit:
 
 ```json
 {
-  "generated_at": "…",
   "store": "…",
   "notes": [
     {

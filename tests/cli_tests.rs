@@ -4337,6 +4337,8 @@ fn test_compaction_annotations() {
             "add",
             &note1_id,
             &note3_id,
+            "--type",
+            "related",
         ])
         .assert()
         .success();

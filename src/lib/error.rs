@@ -38,21 +38,12 @@ pub enum QipuError {
     #[error("--format may only be specified once")]
     DuplicateFormat,
 
-    #[error("unknown argument: {0}")]
-    UnknownArgument(String),
-
-    #[error("missing required argument: {0}")]
-    MissingArgument(String),
-
     #[error("{0}")]
     UsageError(String),
 
     // Data/store errors (exit code 3)
     #[error("store not found (searched from {search_root:?})")]
     StoreNotFound { search_root: PathBuf },
-
-    #[error("store already exists at {path:?}")]
-    StoreAlreadyExists { path: PathBuf },
 
     #[error("invalid store: {reason}")]
     InvalidStore { reason: String },
@@ -62,12 +53,6 @@ pub enum QipuError {
 
     #[error("invalid frontmatter in {path:?}: {reason}")]
     InvalidFrontmatter { path: PathBuf, reason: String },
-
-    #[error("invalid note ID: {id}")]
-    InvalidNoteId { id: String },
-
-    #[error("duplicate note ID: {id}")]
-    DuplicateNoteId { id: String },
 
     // Generic failures (exit code 1)
     #[error("IO error: {0}")]
@@ -91,20 +76,15 @@ impl QipuError {
     pub fn exit_code(&self) -> ExitCode {
         match self {
             // Usage errors
-            QipuError::UnknownFormat(_)
-            | QipuError::DuplicateFormat
-            | QipuError::UnknownArgument(_)
-            | QipuError::MissingArgument(_)
-            | QipuError::UsageError(_) => ExitCode::Usage,
+            QipuError::UnknownFormat(_) | QipuError::DuplicateFormat | QipuError::UsageError(_) => {
+                ExitCode::Usage
+            }
 
             // Data/store errors
             QipuError::StoreNotFound { .. }
-            | QipuError::StoreAlreadyExists { .. }
             | QipuError::InvalidStore { .. }
             | QipuError::NoteNotFound { .. }
-            | QipuError::InvalidFrontmatter { .. }
-            | QipuError::InvalidNoteId { .. }
-            | QipuError::DuplicateNoteId { .. } => ExitCode::Data,
+            | QipuError::InvalidFrontmatter { .. } => ExitCode::Data,
 
             // Generic failures
             QipuError::Io(_)
@@ -131,16 +111,11 @@ impl QipuError {
         match self {
             QipuError::UnknownFormat(_) => "unknown_format",
             QipuError::DuplicateFormat => "duplicate_format",
-            QipuError::UnknownArgument(_) => "unknown_argument",
-            QipuError::MissingArgument(_) => "missing_argument",
             QipuError::UsageError(_) => "usage_error",
             QipuError::StoreNotFound { .. } => "store_not_found",
-            QipuError::StoreAlreadyExists { .. } => "store_already_exists",
             QipuError::InvalidStore { .. } => "invalid_store",
             QipuError::NoteNotFound { .. } => "note_not_found",
             QipuError::InvalidFrontmatter { .. } => "invalid_frontmatter",
-            QipuError::InvalidNoteId { .. } => "invalid_note_id",
-            QipuError::DuplicateNoteId { .. } => "duplicate_note_id",
             QipuError::Io(_) => "io_error",
             QipuError::Yaml(_) => "yaml_error",
             QipuError::Json(_) => "json_error",

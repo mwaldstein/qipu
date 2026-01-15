@@ -58,46 +58,9 @@ impl NoteId {
     /// Maximum hash length (64 hex chars for SHA256)
     pub const MAX_HASH_LEN: usize = 64;
 
-    /// Create a new NoteId from a raw string (with validation)
-    pub fn new(id: impl Into<String>) -> Result<Self> {
-        let id = id.into();
-        Self::validate(&id)?;
-        Ok(NoteId(id))
-    }
-
     /// Create a NoteId without validation (internal use only)
     fn new_unchecked(id: String) -> Self {
         NoteId(id)
-    }
-
-    /// Validate an ID string
-    fn validate(id: &str) -> Result<()> {
-        if !id.starts_with(Self::PREFIX) {
-            return Err(QipuError::InvalidNoteId { id: id.to_string() });
-        }
-
-        let suffix = &id[Self::PREFIX.len()..];
-        if suffix.is_empty() {
-            return Err(QipuError::InvalidNoteId { id: id.to_string() });
-        }
-
-        // Must be valid hex, ULID, or timestamp format
-        // For now, just check it's non-empty alphanumeric
-        if !suffix.chars().all(|c| c.is_alphanumeric()) {
-            return Err(QipuError::InvalidNoteId { id: id.to_string() });
-        }
-
-        Ok(())
-    }
-
-    /// Get the ID string
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
-    /// Get the suffix (part after `qp-`)
-    pub fn suffix(&self) -> &str {
-        &self.0[Self::PREFIX.len()..]
     }
 
     /// Generate a new hash-based ID
@@ -199,29 +162,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_note_id_validation() {
-        assert!(NoteId::new("qp-a1b2").is_ok());
-        assert!(NoteId::new("qp-f14c3").is_ok());
-        assert!(NoteId::new("qp-01j5kzqm1234").is_ok());
-
-        assert!(NoteId::new("invalid").is_err());
-        assert!(NoteId::new("qp-").is_err());
-        assert!(NoteId::new("").is_err());
-    }
-
-    #[test]
     fn test_generate_hash_id() {
         let existing = HashSet::new();
         let id = NoteId::generate_hash("Test Title", &existing);
-        assert!(id.as_str().starts_with("qp-"));
-        assert!(id.suffix().len() >= NoteId::MIN_HASH_LEN);
+        let id_str = id.as_ref();
+        assert!(id_str.starts_with(NoteId::PREFIX));
+        assert!(id_str[NoteId::PREFIX.len()..].len() >= NoteId::MIN_HASH_LEN);
     }
 
     #[test]
     fn test_generate_ulid() {
         let id = NoteId::generate_ulid();
-        assert!(id.as_str().starts_with("qp-"));
-        assert_eq!(id.suffix().len(), 26); // ULID is 26 chars
+        let id_str = id.as_ref();
+        assert!(id_str.starts_with(NoteId::PREFIX));
+        assert_eq!(id_str[NoteId::PREFIX.len()..].len(), 26); // ULID is 26 chars
     }
 
     #[test]
@@ -236,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_filename() {
-        let id = NoteId::new("qp-a1b2").unwrap();
+        let id = NoteId::new_unchecked("qp-a1b2".to_string());
         assert_eq!(filename(&id, "Hello World"), "qp-a1b2-hello-world.md");
         assert_eq!(filename(&id, ""), "qp-a1b2.md");
     }

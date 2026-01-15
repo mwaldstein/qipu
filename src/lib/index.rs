@@ -14,7 +14,7 @@ use std::time::SystemTime;
 
 use chrono::{DateTime, Utc};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::{Note, NoteType};
@@ -128,6 +128,19 @@ pub struct Index {
 /// Current index format version
 pub const INDEX_VERSION: u32 = 1;
 
+const INDEX_META_FILE: &str = "index_meta.json";
+const INDEX_METADATA_FILE: &str = "metadata.json";
+const INDEX_TAGS_FILE: &str = "tags.json";
+const INDEX_EDGES_FILE: &str = "edges.json";
+const INDEX_UNRESOLVED_FILE: &str = "unresolved.json";
+const INDEX_FILES_FILE: &str = "files.json";
+const INDEX_ID_TO_PATH_FILE: &str = "id_to_path.json";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct IndexMeta {
+    version: u32,
+}
+
 impl Index {
     /// Create a new empty index
     pub fn new() -> Self {
@@ -144,6 +157,32 @@ impl Index {
 
     /// Load index from cache directory
     pub fn load(cache_dir: &Path) -> Result<Self> {
+        let meta_path = cache_dir.join(INDEX_META_FILE);
+        if meta_path.exists() {
+            let content = fs::read_to_string(&meta_path)?;
+            let meta: IndexMeta = serde_json::from_str(&content)?;
+            if meta.version != INDEX_VERSION {
+                return Ok(Self::new());
+            }
+
+            let metadata = load_cache_file(&cache_dir.join(INDEX_METADATA_FILE))?;
+            let tags = load_cache_file(&cache_dir.join(INDEX_TAGS_FILE))?;
+            let edges = load_cache_file(&cache_dir.join(INDEX_EDGES_FILE))?;
+            let unresolved = load_cache_file(&cache_dir.join(INDEX_UNRESOLVED_FILE))?;
+            let files = load_cache_file(&cache_dir.join(INDEX_FILES_FILE))?;
+            let id_to_path = load_cache_file(&cache_dir.join(INDEX_ID_TO_PATH_FILE))?;
+
+            return Ok(Index {
+                version: meta.version,
+                metadata,
+                tags,
+                edges,
+                unresolved,
+                files,
+                id_to_path,
+            });
+        }
+
         let index_path = cache_dir.join("index.json");
         if !index_path.exists() {
             return Ok(Self::new());
@@ -152,9 +191,7 @@ impl Index {
         let content = fs::read_to_string(&index_path)?;
         let index: Index = serde_json::from_str(&content)?;
 
-        // Check version compatibility
         if index.version != INDEX_VERSION {
-            // Version mismatch - return empty index to force rebuild
             return Ok(Self::new());
         }
 
@@ -167,22 +204,22 @@ impl Index {
     /// This function only writes if the index content has actually changed.
     pub fn save(&self, cache_dir: &Path) -> Result<()> {
         fs::create_dir_all(cache_dir)?;
-        let index_path = cache_dir.join("index.json");
-        let new_content = serde_json::to_string_pretty(self)?;
 
-        // Filesystem hygiene: only write if content actually changed
-        // This avoids unnecessary cache file timestamp updates
-        let should_write = if index_path.exists() {
-            match fs::read_to_string(&index_path) {
-                Ok(existing) => existing != new_content,
-                Err(_) => true, // If we can't read, write anyway
-            }
-        } else {
-            true // File doesn't exist, must write
+        let meta = IndexMeta {
+            version: INDEX_VERSION,
         };
 
-        if should_write {
-            fs::write(index_path, new_content)?;
+        write_cache_file(&cache_dir.join(INDEX_META_FILE), &meta)?;
+        write_cache_file(&cache_dir.join(INDEX_METADATA_FILE), &self.metadata)?;
+        write_cache_file(&cache_dir.join(INDEX_TAGS_FILE), &self.tags)?;
+        write_cache_file(&cache_dir.join(INDEX_EDGES_FILE), &self.edges)?;
+        write_cache_file(&cache_dir.join(INDEX_UNRESOLVED_FILE), &self.unresolved)?;
+        write_cache_file(&cache_dir.join(INDEX_FILES_FILE), &self.files)?;
+        write_cache_file(&cache_dir.join(INDEX_ID_TO_PATH_FILE), &self.id_to_path)?;
+
+        let legacy_path = cache_dir.join("index.json");
+        if legacy_path.exists() {
+            fs::remove_file(legacy_path)?;
         }
 
         Ok(())
@@ -236,6 +273,38 @@ impl Index {
     pub fn contains(&self, id: &str) -> bool {
         self.metadata.contains_key(id)
     }
+}
+
+fn load_cache_file<T: DeserializeOwned + Default>(path: &Path) -> Result<T> {
+    if !path.exists() {
+        return Ok(T::default());
+    }
+
+    let content = fs::read_to_string(path)?;
+    let value = serde_json::from_str(&content)?;
+    Ok(value)
+}
+
+fn write_cache_file<T: Serialize>(path: &Path, value: &T) -> Result<()> {
+    let new_content = serde_json::to_string_pretty(value)?;
+    write_if_changed(path, &new_content)
+}
+
+fn write_if_changed(path: &Path, new_content: &str) -> Result<()> {
+    let should_write = if path.exists() {
+        match fs::read_to_string(path) {
+            Ok(existing) => existing != new_content,
+            Err(_) => true,
+        }
+    } else {
+        true
+    };
+
+    if should_write {
+        fs::write(path, new_content)?;
+    }
+
+    Ok(())
 }
 
 /// Index builder - handles construction and updates
@@ -1007,6 +1076,7 @@ mod tests {
     use super::*;
     use crate::lib::note::{Note, NoteFrontmatter};
     use crate::lib::store::{InitOptions, Store};
+    use std::path::PathBuf;
     use std::thread::sleep;
     use std::time::Duration;
     use tempfile::tempdir;
@@ -1108,6 +1178,67 @@ mod tests {
 
         assert!(index.get_notes_by_tag("alpha").is_empty());
         assert!(index.get_notes_by_tag("beta").contains(&note.id()));
+    }
+
+    #[test]
+    fn test_index_cache_roundtrip() {
+        let dir = tempdir().unwrap();
+        let cache_dir = dir.path().join(".cache");
+
+        let mut index = Index::new();
+        index.metadata.insert(
+            "qp-a1".to_string(),
+            NoteMetadata {
+                id: "qp-a1".to_string(),
+                title: "Cached Note".to_string(),
+                note_type: NoteType::Fleeting,
+                tags: vec!["alpha".to_string()],
+                path: "notes/qp-a1.md".to_string(),
+                created: None,
+                updated: None,
+            },
+        );
+        index
+            .tags
+            .insert("alpha".to_string(), vec!["qp-a1".to_string()]);
+        index.edges.push(Edge {
+            from: "qp-a1".to_string(),
+            to: "qp-b2".to_string(),
+            link_type: "related".to_string(),
+            source: LinkSource::Inline,
+        });
+        index.unresolved.insert("qp-missing".to_string());
+        index.files.insert(
+            PathBuf::from("notes/qp-a1.md"),
+            FileEntry {
+                mtime: 123,
+                note_id: "qp-a1".to_string(),
+            },
+        );
+        index
+            .id_to_path
+            .insert("qp-a1".to_string(), PathBuf::from("notes/qp-a1.md"));
+
+        index.save(&cache_dir).unwrap();
+
+        let loaded = Index::load(&cache_dir).unwrap();
+        let loaded_meta = loaded.metadata.get("qp-a1").unwrap();
+
+        assert_eq!(loaded.version, INDEX_VERSION);
+        assert_eq!(loaded.metadata.len(), 1);
+        assert_eq!(loaded_meta.title, "Cached Note");
+        assert_eq!(loaded_meta.tags, vec!["alpha".to_string()]);
+        assert_eq!(
+            loaded.tags.get("alpha").unwrap(),
+            &vec!["qp-a1".to_string()]
+        );
+        assert_eq!(loaded.edges.len(), 1);
+        assert!(loaded.unresolved.contains("qp-missing"));
+        assert_eq!(loaded.files.len(), 1);
+        assert_eq!(
+            loaded.id_to_path.get("qp-a1").unwrap(),
+            &PathBuf::from("notes/qp-a1.md")
+        );
     }
 
     #[test]

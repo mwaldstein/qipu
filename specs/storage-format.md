@@ -32,10 +32,13 @@ Config should allow alternate roots:
   templates/
   qipu.db            # optional, derived local index (gitignored)
   .cache/            # derived; safe to delete
-    index.json
+    index_meta.json
+    metadata.json
     tags.json
-    backlinks.json
-    graph.json
+    edges.json
+    unresolved.json
+    files.json
+    id_to_path.json
 ```
 
 Notes:

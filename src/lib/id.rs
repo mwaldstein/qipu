@@ -48,7 +48,6 @@ impl FromStr for IdScheme {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NoteId(String);
 
-#[allow(dead_code)]
 impl NoteId {
     /// The standard ID prefix
     pub const PREFIX: &'static str = "qp-";

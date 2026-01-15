@@ -25,27 +25,6 @@ pub enum OutputFormat {
     Records,
 }
 
-#[allow(dead_code)]
-impl OutputFormat {
-    /// All valid format names
-    pub const VALID_FORMATS: &'static [&'static str] = &["human", "json", "records"];
-
-    /// Check if this format is human-readable
-    pub fn is_human(&self) -> bool {
-        matches!(self, OutputFormat::Human)
-    }
-
-    /// Check if this format is JSON
-    pub fn is_json(&self) -> bool {
-        matches!(self, OutputFormat::Json)
-    }
-
-    /// Check if this format is records
-    pub fn is_records(&self) -> bool {
-        matches!(self, OutputFormat::Records)
-    }
-}
-
 impl FromStr for OutputFormat {
     type Err = QipuError;
 

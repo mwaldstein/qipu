@@ -44,7 +44,7 @@ fn execute_apply(
     let root = cli
         .root
         .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -160,7 +160,7 @@ fn execute_show(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
     let root = cli
         .root
         .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -298,7 +298,7 @@ fn execute_status(cli: &Cli, note_id: &str) -> Result<()> {
     let root = cli
         .root
         .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -389,7 +389,7 @@ fn execute_report(cli: &Cli, digest_id: &str) -> Result<()> {
     let root = cli
         .root
         .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -586,7 +586,7 @@ fn execute_suggest(cli: &Cli) -> Result<()> {
     let root = cli
         .root
         .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()

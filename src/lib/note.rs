@@ -200,13 +200,6 @@ impl NoteFrontmatter {
         self
     }
 
-    /// Add a tag
-    #[allow(dead_code)]
-    pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
-        self.tags.push(tag.into());
-        self
-    }
-
     /// Add tags
     pub fn with_tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
         self.tags.extend(tags.into_iter().map(Into::into));

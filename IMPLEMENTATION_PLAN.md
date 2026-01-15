@@ -4,7 +4,7 @@
 
 ✅ **ALL P0 Items COMPLETED (10 of 10):**
 1. Fix CLI JSON behavior - --format flag parsing for equals syntax
-2. Fix CLI JSON behavior - help/version exit codes  
+2. Fix CLI JSON behavior - help/version exit codes
 3. Fix CLI JSON behavior - error envelope exit codes
 4. Eliminate nondeterminism - remove runtime timestamps
 5. Eliminate nondeterminism - fix HashMap iteration order
@@ -17,6 +17,8 @@
 **SUMMARY:**
 - **10/10 P0 items completed (100%)**
 - **0/10 P0 items pending (0%)**
+- **198 tests passing (63 unit + 125 CLI + 6 golden + 6 performance)**
+- **Git tag v0.0.85 created**
 
 **NEXT PRIORITIES:**
 - All P0 items are now complete!
@@ -59,3 +61,24 @@
 - [P3] Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.
 - [P3] Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.
 - [P3] Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).
+
+---
+
+## Code Quality Improvements (Completed 2026-01-15)
+
+**Fixed error handling issues:**
+- Fixed regex creation panic risk in doctor.rs (line 270) - added proper error message
+- Fixed 5 instances of current_dir().unwrap() in compact.rs - added fallback to PathBuf::from(".")
+- Pattern now matches the safe fallback used in main.rs:102
+
+**Removed redundant #[allow(dead_code)] attributes:**
+- src/lib/error.rs:33 - QipuError enum IS used throughout codebase
+- src/lib/id.rs:51 - NoteId impl IS used throughout codebase
+
+**Removed truly unused code:**
+- NoteFrontmatter::with_tag() method (duplicate of with_tags())
+- VALID_FORMATS constant and is_human()/is_json()/is_records() methods in format.rs
+- Index::note_ids() method (trivial inline alternative exists)
+- Index::get_all_edges() method (simple combination of get_outbound_edges/get_inbound_edges)
+
+**All 198 tests still passing.**

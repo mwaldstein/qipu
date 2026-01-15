@@ -267,7 +267,8 @@ fn check_duplicate_ids(notes: &[Note], result: &mut DoctorResult) {
 fn check_broken_links(notes: &[Note], valid_ids: &HashSet<String>, result: &mut DoctorResult) {
     use regex::Regex;
 
-    let wiki_link_re = Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").unwrap();
+    let wiki_link_re =
+        Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").expect("Invalid wiki link regex pattern");
 
     for note in notes {
         let from_id = note.id().to_string();

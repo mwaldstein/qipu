@@ -226,12 +226,6 @@ impl Index {
         Ok(())
     }
 
-    /// Get all note IDs
-    #[allow(dead_code)]
-    pub fn note_ids(&self) -> impl Iterator<Item = &str> {
-        self.metadata.keys().map(|s| s.as_str())
-    }
-
     /// Get file path for a note ID (for fast lookup)
     pub fn get_note_path(&self, note_id: &str) -> Option<&PathBuf> {
         self.id_to_path.get(note_id)
@@ -262,14 +256,6 @@ impl Index {
     }
 
     /// Get all edges for a note (both directions)
-    #[allow(dead_code)]
-    pub fn get_all_edges(&self, id: &str) -> Vec<&Edge> {
-        self.edges
-            .iter()
-            .filter(|e| e.from == id || e.to == id)
-            .collect()
-    }
-
     /// Check if a note ID exists in the index
     pub fn contains(&self, id: &str) -> bool {
         self.metadata.contains_key(id)

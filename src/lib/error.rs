@@ -30,7 +30,6 @@ impl From<ExitCode> for i32 {
 
 /// Errors that can occur during qipu operations
 #[derive(Error, Debug)]
-#[allow(dead_code)]
 pub enum QipuError {
     // Usage errors (exit code 2)
     #[error("unknown format: {0} (expected: human, json, or records)")]

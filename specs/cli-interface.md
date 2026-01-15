@@ -1,7 +1,7 @@
 # CLI Interface
 
 Status: Draft  
-Last updated: 2026-01-12
+Last updated: 2026-01-15
 
 ## CLI principles (beads-aligned)
 - **Scriptable by default**: commands should work non-interactively.
@@ -88,7 +88,7 @@ Subcommands:
 Manage note compaction (digest-first navigation). See `specs/compaction.md` for details.
 
 Subcommands:
-- `qipu compact apply <id> <target>`: mark note as compacted into target
+- `qipu compact apply <digest_id> --note <id> [--note <id2> ...]`: mark one or more notes as compacted into a digest
 - `qipu compact suggest`: find potential compaction candidates
 - `qipu compact report`: show compaction statistics
 - `qipu compact status <id>`: show compaction status of a note

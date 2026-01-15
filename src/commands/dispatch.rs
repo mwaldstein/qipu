@@ -256,15 +256,21 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::doctor::execute(cli, &store, *fix)
+            commands::doctor::execute(cli, &store, *fix)?;
+            Ok(())
         }
 
-        Some(Commands::Sync { validate, fix }) => {
+        Some(Commands::Sync {
+            validate,
+            fix,
+            commit,
+            push,
+        }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::sync::execute(cli, &store, *validate, *fix)
+            commands::sync::execute(cli, &store, *validate, *fix, *commit, *push)
         }
 
         Some(Commands::Context {
@@ -304,6 +310,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             query,
             output,
             mode,
+            with_attachments,
         }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
@@ -320,6 +327,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     query: query.as_deref(),
                     output: output.as_deref(),
                     mode: export_mode,
+                    with_attachments: *with_attachments,
                 },
             )
         }

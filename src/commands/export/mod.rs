@@ -51,6 +51,7 @@ pub struct ExportOptions<'a> {
     pub query: Option<&'a str>,
     pub output: Option<&'a std::path::Path>,
     pub mode: ExportMode,
+    pub with_attachments: bool,
 }
 
 /// Execute the export command
@@ -125,6 +126,17 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         }
     };
 
+    // Handle attachment copying if requested
+    if options.with_attachments {
+        if let Some(output_path) = options.output {
+            let output_dir = output_path.parent().unwrap_or(std::path::Path::new("."));
+            let attachments_target_dir = output_dir.join("attachments");
+            copy_attachments(store, &selected_notes, &attachments_target_dir, cli)?;
+        } else if cli.verbose && !cli.quiet {
+            eprintln!("warning: --with-attachments ignored when exporting to stdout");
+        }
+    }
+
     // Write output to file or stdout
     if let Some(output_path) = options.output {
         let mut file = File::create(output_path)
@@ -141,6 +153,57 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         }
     } else {
         print!("{}", output_content);
+    }
+
+    Ok(())
+}
+
+/// Copy referenced attachments to the target directory
+fn copy_attachments(
+    store: &Store,
+    notes: &[crate::lib::note::Note],
+    target_dir: &std::path::Path,
+    cli: &Cli,
+) -> Result<()> {
+    use regex::Regex;
+    use std::fs;
+
+    // Pattern for ../attachments/filename.ext
+    let re = Regex::new(r"(\.\./attachments/([^)\s\n]+))")
+        .map_err(|e| QipuError::Other(format!("failed to compile regex: {}", e)))?;
+
+    let mut copied_count = 0;
+    let mut seen_attachments = std::collections::HashSet::new();
+
+    for note in notes {
+        for cap in re.captures_iter(&note.body) {
+            let filename = &cap[2];
+            if seen_attachments.insert(filename.to_string()) {
+                let source_path = store.root().join("attachments").join(filename);
+                if source_path.exists() {
+                    if !target_dir.exists() {
+                        fs::create_dir_all(target_dir)?;
+                    }
+                    let target_path = target_dir.join(filename);
+                    fs::copy(&source_path, &target_path)?;
+                    copied_count += 1;
+                } else if cli.verbose && !cli.quiet {
+                    eprintln!(
+                        "warning: attachment not found: {} (referenced in {})",
+                        filename,
+                        note.id()
+                    );
+                }
+            }
+        }
+    }
+
+    if cli.verbose && !cli.quiet && copied_count > 0 {
+        eprintln!(
+            "copied {} attachments to {}",
+            copied_count,
+            target_dir.display()
+        );
     }
 
     Ok(())

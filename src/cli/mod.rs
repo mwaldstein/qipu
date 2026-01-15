@@ -209,6 +209,14 @@ pub enum Commands {
         /// Auto-repair issues if validation is enabled
         #[arg(long)]
         fix: bool,
+
+        /// Commit changes to git if branch is configured
+        #[arg(long)]
+        commit: bool,
+
+        /// Push changes to remote if branch is configured
+        #[arg(long)]
+        push: bool,
     },
 
     /// Build context bundle for LLM integration
@@ -271,6 +279,10 @@ pub enum Commands {
         /// Export mode: bundle, outline, bibliography
         #[arg(long, default_value = "bundle")]
         mode: String,
+
+        /// Copy referenced attachments to the output directory
+        #[arg(long)]
+        with_attachments: bool,
     },
 
     /// Manage note compaction (digest-first navigation)

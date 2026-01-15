@@ -12,11 +12,14 @@ use crate::lib::index::IndexBuilder;
 use crate::lib::store::Store;
 
 /// Execute the sync command
-pub fn execute(cli: &Cli, store: &Store, validate: bool, fix: bool) -> Result<()> {
-    // Note: Future enhancement - if store.config().branch is set,
-    // could optionally switch to that branch, commit changes, and push.
-    // Per IMPLEMENTATION_PLAN line 509: git commit/push automation is tracked as future work.
-
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    validate: bool,
+    fix: bool,
+    commit: bool,
+    push: bool,
+) -> Result<()> {
     // Step 1: Update indexes silently
     let builder = IndexBuilder::new(store);
     let builder = builder.load_existing()?;
@@ -30,14 +33,56 @@ pub fn execute(cli: &Cli, store: &Store, validate: bool, fix: bool) -> Result<()
     let tags_indexed = index.tags.len();
     let edges_indexed = index.edges.len();
 
-    // Step 2: Optionally validate
-    let (_errors, _warnings, _fixed) = if validate {
-        // Run doctor quietly - it will output its own results
-        // We would need to refactor doctor to return structured data to capture results
-        doctor::execute(cli, store, fix)?;
+    // Step 2: Handle git automation if branch is configured
+    if let Some(branch_name) = &store.config().branch {
+        if commit || push {
+            use crate::lib::git;
 
-        // Placeholder values since we can't capture doctor's actual results yet
-        (0, 0, 0)
+            // Determine repository root (assume store parent for now)
+            let repo_root = store.root().parent().ok_or_else(|| {
+                crate::lib::error::QipuError::Other("Cannot determine repository root".to_string())
+            })?;
+
+            if !git::is_git_available() {
+                return Err(crate::lib::error::QipuError::Other(
+                    "Git not found in PATH".to_string(),
+                ));
+            }
+
+            // Setup branch workflow (switch to qipu branch)
+            let original_branch = git::setup_branch_workflow(repo_root, branch_name)?;
+
+            let result = (|| -> Result<()> {
+                // Commit if requested and there are changes
+                if commit {
+                    if git::has_changes(repo_root)? {
+                        git::add(repo_root, ".")?;
+                        git::commit(repo_root, "qipu sync: update notes and indexes")?;
+                    }
+                }
+
+                // Push if requested
+                if push {
+                    git::push(repo_root, "origin", branch_name)?;
+                }
+
+                Ok(())
+            })();
+
+            // Always attempt to switch back to the original branch
+            let checkout_result = git::checkout_branch(repo_root, &original_branch);
+
+            // Return the first error encountered
+            result?;
+            checkout_result?;
+        }
+    }
+
+    // Step 3: Optionally validate
+    let (errors, warnings, fixed) = if validate {
+        // Run doctor quietly - it will output its own results
+        let result = doctor::execute(cli, store, fix)?;
+        (result.error_count, result.warning_count, result.fixed_count)
     } else {
         (0, 0, 0)
     };
@@ -50,7 +95,10 @@ pub fn execute(cli: &Cli, store: &Store, validate: bool, fix: bool) -> Result<()
                 if !cli.quiet {
                     println!("Indexed {} notes", notes_indexed);
                     if validate {
-                        println!("Store validated");
+                        println!("Store validated: {} errors, {} warnings", errors, warnings);
+                        if fixed > 0 {
+                            println!("Fixed {} issues", fixed);
+                        }
                     }
                 }
             }
@@ -60,18 +108,34 @@ pub fn execute(cli: &Cli, store: &Store, validate: bool, fix: bool) -> Result<()
                     "notes_indexed": notes_indexed,
                     "tags_indexed": tags_indexed,
                     "edges_indexed": edges_indexed,
+                    "validation": if validate {
+                        serde_json::json!({
+                            "errors": errors,
+                            "warnings": warnings,
+                            "fixed": fixed,
+                        })
+                    } else {
+                        serde_json::Value::Null
+                    },
                 });
                 println!("{}", serde_json::to_string_pretty(&output)?);
             }
             OutputFormat::Records => {
                 // Header line per spec (specs/records-output.md)
-                println!(
+                let mut header = format!(
                     "H qipu=1 records=1 store={} mode=sync notes={} tags={} edges={}",
                     store.root().display(),
                     notes_indexed,
                     tags_indexed,
                     edges_indexed
                 );
+                if validate {
+                    header.push_str(&format!(
+                        " errors={} warnings={} fixed={}",
+                        errors, warnings, fixed
+                    ));
+                }
+                println!("{}", header);
             }
         }
     }

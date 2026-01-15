@@ -133,6 +133,88 @@ pub fn setup_branch_workflow(repo_path: &Path, branch_name: &str) -> Result<Stri
     Ok(original_branch)
 }
 
+/// Add files to the staging area
+pub fn add(repo_path: &Path, path_spec: &str) -> Result<()> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("add")
+        .arg(path_spec)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QipuError::Other(format!(
+            "Failed to add files '{}': {}",
+            path_spec, stderr
+        )));
+    }
+
+    Ok(())
+}
+
+/// Commit staged changes
+pub fn commit(repo_path: &Path, message: &str) -> Result<()> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("commit")
+        .arg("-m")
+        .arg(message)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QipuError::Other(format!(
+            "Failed to commit changes: {}",
+            stderr
+        )));
+    }
+
+    Ok(())
+}
+
+/// Push changes to a remote repository
+pub fn push(repo_path: &Path, remote: &str, branch: &str) -> Result<()> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("push")
+        .arg(remote)
+        .arg(branch)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QipuError::Other(format!(
+            "Failed to push to '{}/{}': {}",
+            remote, branch, stderr
+        )));
+    }
+
+    Ok(())
+}
+
+/// Check if there are any uncommitted changes (including untracked files)
+pub fn has_changes(repo_path: &Path) -> Result<bool> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("status")
+        .arg("--porcelain")
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QipuError::Other(format!(
+            "Failed to check git status: {}",
+            stderr
+        )));
+    }
+
+    Ok(!output.stdout.is_empty())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -50,9 +50,9 @@ qipu --version
 ### Advanced
 - `qipu context` - Show contextual notes
 - `qipu prime` - Prime notes for AI context
-- `qipu export` - Export store data
+- `qipu export` - Export store data; supports --with-attachments to copy media
 - `qipu index` - Manage search index
-- `qipu sync` - Update indexes and optionally validate
+- `qipu sync` - Update indexes and optionally validate; supports --commit/--push for git automation
 - `qipu doctor` - Check store health
 
 ### Output Formats

@@ -17,8 +17,8 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::store::Store;
 pub use types::{DoctorResult, Issue, Severity};
 
-/// Execute the doctor command
-pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<()> {
+/// Execute the doctor command and return the result
+pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<DoctorResult> {
     let mut result = DoctorResult::new();
 
     // 1. Check store structure
@@ -72,7 +72,7 @@ pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<()> {
             ),
         })
     } else {
-        Ok(())
+        Ok(result)
     }
 }
 

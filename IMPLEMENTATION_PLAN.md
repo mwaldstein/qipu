@@ -17,8 +17,8 @@
 **SUMMARY:**
 - **10/10 P0 items completed (100%)**
 - **0/10 P0 items pending (0%)**
-- **198 tests passing (63 unit + 125 CLI + 6 golden + 6 performance)**
-- **Git tag v0.0.85 created**
+- **211 tests passing (62 unit + 131 CLI + 6 golden + 6 performance + 6 LLM validation)**
+- **Git tag v0.0.89 created**
 
 **NEXT PRIORITIES:**
 - All P0 items are now complete!
@@ -58,9 +58,9 @@
 - [P2] ~~Ensure JSON outputs meet the minimum note schema described in `specs/cli-interface.md` (notably include both `created` and `updated` where applicable, e.g., `create`, `capture`, `inbox`).~~ **COMPLETED:** JSON outputs now include `created` and `updated` where applicable.
 
 - [P3] ~~Optional: decide whether `qipu link add/remove` should require `--type` (as proposed in `specs/cli-interface.md`) or allow a default of `related`, and update spec/implementation accordingly.~~ **COMPLETED:** require explicit `--type` for link add/remove; removed defaults and updated tests/docs.
-- [P3] Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.
-- [P3] Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.
-- [P3] Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).
+- [P3] ~~Optional: implement git automation in `qipu sync` when `store.config().branch` is set (switch branch, commit changes, optional push), guarded behind explicit flags.~~ **COMPLETED**: Added `--commit`/`--push` flags, extended `src/lib/git.rs`, and implemented logic in `src/commands/sync.rs`.
+- [P3] ~~Optional: implement export attachment copying (e.g., `qipu export --with-attachments`) as documented as a “future enhancement” in `docs/attachments.md`.~~ **COMPLETED**: Added `--with-attachments` flag to `export` command and implemented attachment discovery and copying.
+- [P3] ~~Optional: remove `qipu sync` placeholder output values by refactoring `doctor` to return structured results in addition to printing them (so sync can report consistent totals in JSON/records modes when `--validate` is used).~~ **COMPLETED**: Refactored `doctor::execute` to return `DoctorResult` and updated `sync` to report actual validation counts.
 
 ## Planned Refactors (Oversized Files)
 

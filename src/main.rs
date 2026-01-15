@@ -454,7 +454,6 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
         }
 
         Some(Commands::Sync { validate, fix }) => {
-            let start = std::time::Instant::now();
             let store_path = cli.store.clone();
             let store = if let Some(path) = store_path {
                 let resolved = if path.is_absolute() {

@@ -53,6 +53,7 @@ pub fn execute(
                 "path": note.path.as_ref().map(|p| p.display().to_string()),
                 "tags": note.frontmatter.tags,
                 "created": note.frontmatter.created,
+                "updated": note.frontmatter.updated,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }

@@ -268,6 +268,7 @@ fn run(cli: &Cli, start: Instant) -> Result<(), QipuError> {
                                 "tags": n.frontmatter.tags,
                                 "path": n.path.as_ref().map(|p| p.display().to_string()),
                                 "created": n.frontmatter.created,
+                                "updated": n.frontmatter.updated,
                             })
                         })
                         .collect();

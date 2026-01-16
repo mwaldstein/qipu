@@ -434,6 +434,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         Some(Commands::Compact { command }) => commands::compact::execute(cli, command),
 
         Some(Commands::Dump {
+            file,
             note,
             tag,
             moc,
@@ -455,6 +456,17 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 .parse::<commands::link::Direction>()
                 .map_err(QipuError::Other)?;
 
+            let resolved_output = match (file.as_deref(), output.as_deref()) {
+                (Some(_file_path), Some(_)) => {
+                    return Err(QipuError::Other(
+                        "both positional file and --output were provided; use one".to_string(),
+                    ))
+                }
+                (Some(file_path), None) => Some(file_path),
+                (None, Some(output_path)) => Some(output_path),
+                (None, None) => None,
+            };
+
             commands::dump::execute(
                 cli,
                 &store,
@@ -469,7 +481,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     typed_only: *typed_only,
                     inline_only: *inline_only,
                     include_attachments: !*no_attachments,
-                    output: output.as_deref(),
+                    output: resolved_output,
                 },
             )
         }

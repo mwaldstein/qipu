@@ -297,6 +297,10 @@ pub enum Commands {
 
     /// Dump notes to a pack file
     Dump {
+        /// Output pack file path
+        #[arg(value_name = "FILE")]
+        file: Option<PathBuf>,
+
         /// Select notes by ID (can be repeated)
         #[arg(long, short = 'n', action = clap::ArgAction::Append)]
         note: Vec<String>,

@@ -138,9 +138,11 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         .then_with(|| a.note.id().cmp(b.note.id()))
     });
 
-    // Apply budgeting
-    let (truncated, notes_to_output) =
-        budget::apply_budget(&selected_notes, options.max_chars, options.with_body);
+    // Apply budgeting (records format handles its own exact budget)
+    let (truncated, notes_to_output) = match cli.format {
+        OutputFormat::Records => (false, selected_notes.iter().collect()),
+        _ => budget::apply_budget(&selected_notes, options.max_chars, options.with_body),
+    };
 
     // Output in requested format
     let store_path = store.root().display().to_string();
@@ -172,6 +174,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 truncated,
                 with_body: options.with_body,
                 safety_banner: options.safety_banner,
+                max_chars: options.max_chars,
             };
             output::output_records(
                 cli,

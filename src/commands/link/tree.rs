@@ -425,45 +425,20 @@ fn output_tree_records(
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
 ) {
-    let mut budget_truncated = false;
     let budget = opts.max_chars;
+    let mut lines = Vec::new();
 
-    // Collect output lines with budget tracking
-    let mut node_lines = Vec::new();
-    let mut edge_lines = Vec::new();
-    let mut used_chars = 0;
-
-    // Estimate header size (we'll generate it later with correct truncated flag)
-    let header_estimate = 200; // Conservative estimate
-    used_chars += header_estimate;
-
-    // Generate node lines (including summaries)
     for node in &result.nodes {
         let tags_csv = if node.tags.is_empty() {
             "-".to_string()
         } else {
             node.tags.join(",")
         };
-        let node_line = format!(
+        lines.push(format!(
             "N {} {} \"{}\" tags={}",
             node.id, node.note_type, node.title, tags_csv
-        );
+        ));
 
-        let mut summary_line = None;
-        // Load note to get summary (per spec: prefer summaries over full bodies)
-        if let Ok(note) = store.get_note(&node.id) {
-            let summary = note.summary();
-            if !summary.is_empty() {
-                // Truncate summary to single line
-                let summary_text = summary.lines().next().unwrap_or("").trim();
-                if !summary_text.is_empty() {
-                    summary_line = Some(format!("S {} {}", node.id, summary_text));
-                }
-            }
-        }
-
-        // Calculate compaction info for this node
-        let mut compacted_lines = Vec::new();
         if cli.with_compaction_ids {
             if let Some(ctx) = compaction_ctx {
                 let compacts_count = ctx.get_compacts_count(&node.id);
@@ -473,10 +448,10 @@ fn output_tree_records(
                         ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
                     {
                         for id in &ids {
-                            compacted_lines.push(format!("D compacted {} from={}", id, node.id));
+                            lines.push(format!("D compacted {} from={}", id, node.id));
                         }
                         if truncated {
-                            compacted_lines.push(format!(
+                            lines.push(format!(
                                 "D compacted_truncated max={} total={}",
                                 cli.compaction_max_nodes.unwrap_or(ids.len()),
                                 compacts_count
@@ -487,74 +462,77 @@ fn output_tree_records(
             }
         }
 
-        // Check budget before adding (10% safety buffer)
-        let node_size = node_line.len()
-            + 1
-            + summary_line.as_ref().map_or(0, |s| s.len() + 1)
-            + compacted_lines.iter().map(|l| l.len() + 1).sum::<usize>();
-        let node_size_with_buffer = node_size + (node_size / 10);
-
-        if let Some(max) = budget {
-            if used_chars + node_size_with_buffer > max {
-                budget_truncated = true;
-                break;
-            }
-        }
-
-        node_lines.push((node_line, summary_line, compacted_lines));
-        used_chars += node_size;
-    }
-
-    // Generate edge lines
-    if !budget_truncated {
-        for edge in &result.edges {
-            let edge_line = format!(
-                "E {} {} {} {}",
-                edge.from, edge.link_type, edge.to, edge.source
-            );
-
-            let edge_size = edge_line.len() + 1;
-            let edge_size_with_buffer = edge_size + (edge_size / 10);
-
-            if let Some(max) = budget {
-                if used_chars + edge_size_with_buffer > max {
-                    budget_truncated = true;
-                    break;
+        if let Ok(note) = store.get_note(&node.id) {
+            let summary = note.summary();
+            if !summary.is_empty() {
+                let summary_text = summary.lines().next().unwrap_or("").trim();
+                if !summary_text.is_empty() {
+                    lines.push(format!("S {} {}", node.id, summary_text));
                 }
             }
-
-            edge_lines.push(edge_line);
-            used_chars += edge_size;
         }
     }
 
-    // Now generate header with correct truncated flag
-    let truncated_str = if result.truncated || budget_truncated {
+    for edge in &result.edges {
+        lines.push(format!(
+            "E {} {} {} {}",
+            edge.from, edge.link_type, edge.to, edge.source
+        ));
+    }
+
+    let header_base = format!(
+        "H qipu=1 records=1 store={} mode=link.tree root={} direction={} max_hops={} truncated=",
+        store.root().display(),
+        result.root,
+        result.direction,
+        result.max_hops
+    );
+    let header_len_false = header_base.len() + "false".len() + 1;
+    let header_len_true = header_base.len() + "true".len() + 1;
+
+    fn select_lines(header_len: usize, budget: Option<usize>, lines: &[String]) -> (bool, usize) {
+        if let Some(max) = budget {
+            if header_len > max {
+                return (true, 0);
+            }
+        }
+
+        let mut used = header_len;
+        let mut count = 0;
+        for line in lines {
+            let line_len = line.len() + 1;
+            if budget.map_or(true, |max| used + line_len <= max) {
+                used += line_len;
+                count += 1;
+            } else {
+                return (true, count);
+            }
+        }
+
+        (false, count)
+    }
+
+    let (budget_truncated, line_count, truncated) = if result.truncated {
+        let (budget_flag, count) = select_lines(header_len_true, budget, &lines);
+        (budget_flag, count, true)
+    } else {
+        let (budget_flag, count) = select_lines(header_len_false, budget, &lines);
+        if !budget_flag && count == lines.len() {
+            (false, count, false)
+        } else {
+            let (budget_flag, count) = select_lines(header_len_true, budget, &lines);
+            (budget_flag, count, true)
+        }
+    };
+
+    let truncated_value = if truncated || budget_truncated {
         "true"
     } else {
         "false"
     };
-    println!(
-        "H qipu=1 records=1 store={} mode=link.tree root={} direction={} max_hops={} truncated={}",
-        store.root().display(),
-        result.root,
-        result.direction,
-        result.max_hops,
-        truncated_str
-    );
+    println!("{}{}", header_base, truncated_value);
 
-    // Output collected lines
-    for (node_line, summary_line, compacted_lines) in node_lines {
-        println!("{}", node_line);
-        for line in compacted_lines {
-            println!("{}", line);
-        }
-        if let Some(s) = summary_line {
-            println!("{}", s);
-        }
-    }
-
-    for edge_line in edge_lines {
-        println!("{}", edge_line);
+    for line in lines.iter().take(line_count) {
+        println!("{}", line);
     }
 }

@@ -21,4 +21,5 @@ pub struct RecordsOutputConfig {
     pub truncated: bool,
     pub with_body: bool,
     pub safety_banner: bool,
+    pub max_chars: Option<usize>,
 }

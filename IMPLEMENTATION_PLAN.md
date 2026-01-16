@@ -26,6 +26,7 @@
 - Move on to P1 items as needed
 
 **P1:**
+- ~~Records output budgets for context/link are not exact; fix~~ **COMPLETED**
 - ~~Compact apply: validate results after applying compacts~~ **COMPLETED**
 - ~~Compact show: depth tree missing in JSON/records output~~ **COMPLETED**
 - ~~Compact guide: add resolved traversal/search sanity check~~ **COMPLETED**

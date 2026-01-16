@@ -6,8 +6,6 @@
 //! - Requirements: deterministic ordering, stable formatting, bounded size (~1-2k tokens)
 //! - Contents: qipu explanation, command reference, store location, key MOCs, recent notes
 
-use chrono::Utc;
-
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
@@ -76,7 +74,6 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
     match cli.format {
         OutputFormat::Json => {
             let output = serde_json::json!({
-                "generated_at": Utc::now().to_rfc3339(),
                 "store": store_path,
                 "primer": {
                     "description": "Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs).",

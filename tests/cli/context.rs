@@ -148,7 +148,6 @@ fn test_context_json_format() {
         .args(["--format", "json", "context", "--note", &id])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"generated_at\""))
         .stdout(predicate::str::contains("\"store\""))
         .stdout(predicate::str::contains("\"notes\""))
         .stdout(predicate::str::contains("\"title\": \"JSON Context Note\""));

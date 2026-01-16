@@ -3,7 +3,6 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
-use chrono::Utc;
 
 /// Output in JSON format
 pub fn output_json(
@@ -15,7 +14,6 @@ pub fn output_json(
     all_notes: &[Note],
 ) -> Result<()> {
     let output = serde_json::json!({
-        "generated_at": Utc::now().to_rfc3339(),
         "store": store_path,
         "truncated": truncated,
         "notes": notes.iter().map(|selected| {
@@ -130,7 +128,6 @@ pub fn output_human(
     all_notes: &[Note],
 ) {
     println!("# Qipu Context Bundle");
-    println!("Generated: {}", Utc::now().to_rfc3339());
     println!("Store: {}", store_path);
 
     if truncated {

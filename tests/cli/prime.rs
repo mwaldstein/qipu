@@ -121,7 +121,6 @@ fn test_prime_json_format() {
         .args(["--format", "json", "prime"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"generated_at\""))
         .stdout(predicate::str::contains("\"store\""))
         .stdout(predicate::str::contains("\"primer\""))
         .stdout(predicate::str::contains("\"mocs\""))

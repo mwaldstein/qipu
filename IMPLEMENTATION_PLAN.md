@@ -36,6 +36,7 @@
 
 ## Inconsistencies and Missing Spec Updates (COMPLETED)
 
+- [P2] ~~Align store discovery rules in `specs/cli-interface.md` with `specs/cli-tool.md` and implementation (walk-up discovery, `.qipu/` then `qipu/`).~~ **COMPLETED**
 - [P1] ~~Fix search recency boost to use `updated` timestamp instead of `created` per `specs/indexing-search.md`.~~ **COMPLETED**: Updated `src/lib/index/search.rs` to use `updated` (falling back to `created`) for recency boost calculation.
 - [P2] ~~Update `specs/cli-interface.md` to include implemented but missing flags and commands:~~ **COMPLETED**:
   - Add `--links` to `qipu show`.

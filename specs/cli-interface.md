@@ -11,12 +11,20 @@ Last updated: 2026-01-15
 - **Minimize cognitive overload**: prefer flags on existing commands; group related operations.
 
 ## Global flags (proposed)
-- `--store <path>`: path to store root (default: `.qipu/`)
-- `--root <path>`: resolve store relative to this directory (default: cwd)
+- `--store <path>`: explicit store root path (relative paths resolve against `--root` or cwd)
+- `--root <path>`: base directory for resolving the store (default: cwd)
 - `--format <human|json|records>`: output format (default: `human`)
   - `json` is stable, machine-readable output (supported on all commands)
   - `records` is line-oriented, low-overhead output (see `specs/records-output.md`)
 - `--quiet` / `--verbose`
+
+## Store discovery and resolution
+- Resolution order:
+  1. If `--store` is provided, resolve relative to `--root` (or cwd).
+  2. Otherwise walk up from `--root` (or cwd), checking `.qipu/` first, then `qipu/`.
+- Missing store behavior:
+  - Commands requiring an existing store exit with code `3`.
+  - `qipu init` may create the store at the default location.
 
 ## Commands
 ### `qipu init`

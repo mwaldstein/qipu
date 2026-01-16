@@ -157,6 +157,7 @@ fn test_prime_records_format() {
         .assert()
         .success()
         .stdout(predicate::str::contains("H qipu=1 records=1 mode=prime"))
+        .stdout(predicate::str::contains("truncated=false"))
         .stdout(predicate::str::contains("D Qipu is"))
         .stdout(predicate::str::contains("C list"))
         .stdout(predicate::str::contains("M ")) // MOC record

@@ -190,7 +190,7 @@ fn output_records_primer(
     let mocs_count = mocs.len();
     let notes_count = recent_notes.len();
     println!(
-        "H qipu=1 records=1 mode=prime store={} mocs={} recent={}",
+        "H qipu=1 records=1 mode=prime store={} mocs={} recent={} truncated=false",
         store_path, mocs_count, notes_count
     );
 

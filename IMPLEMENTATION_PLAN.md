@@ -26,6 +26,7 @@
 - Move on to P1 items as needed
 
 **P1:**
+- ~~Records output for `qipu prime` missing `truncated=` header field in records mode (specs/records-output.md)~~ **COMPLETED**
 - ~~Records output budgets for context/link are not exact; fix~~ **COMPLETED**
 - ~~Compact apply: validate results after applying compacts~~ **COMPLETED**
 - ~~Compact show: depth tree missing in JSON/records output~~ **COMPLETED**

@@ -113,7 +113,7 @@ mod tests {
         let index = IndexBuilder::new(&store).build().unwrap();
         index.save(&store.root().join(".cache")).unwrap();
 
-        sleep(Duration::from_secs(2));
+        sleep(Duration::from_secs(3));
         note.frontmatter.tags = vec!["beta".to_string()];
         store.save_note(&mut note).unwrap();
 

@@ -1,8 +1,14 @@
-# Qipu Implementation Plan (Remaining Work)
+# Qipu Implementation Plan (Complete)
 
-## **🎉 P0 ISSUES COMPLETED!**
+## **🎉 PROJECT COMPLETE**
 
-✅ **ALL P0 Items COMPLETED (11 of 11):**
+All P0 and P1 specifications have been implemented. The system is fully functional according to the design docs.
+
+---
+
+## **Completed Work**
+
+### **✅ Core P0 Items (All 11/11 Complete)**
 1. Fix CLI JSON behavior - --format flag parsing for equals syntax
 2. Fix CLI JSON behavior - help/version exit codes
 3. Fix CLI JSON behavior - error envelope exit codes
@@ -10,76 +16,48 @@
 5. Eliminate nondeterminism - fix HashMap iteration order
 6. Eliminate nondeterminism - add stable tie-breakers for sorting
 7. Context budget enforcement - make exact across all formats
-8. Implement dump/load commands - complete CLI definitions, serialization, and all functionality
-9. ✅ Fix search/index determinism - Ripgrep JSON parsing and stable ordering
-10. ✅ Implement LLM user validation harness per specs/llm-user-validation.md (tests/llm_validation.rs; transcripts ignored in .gitignore)
-11. ✅ Optimize `qipu search` performance - processed ripgrep matches directly to meet <1s for 10k notes target.
+8. Implement dump/load commands - `qipu dump` / `qipu load` (specs/pack.md)
+9. Fix search/index determinism - Ripgrep JSON parsing and stable ordering
+10. Implement LLM user validation harness - `tests/llm_validation.rs` (specs/llm-user-validation.md)
+11. Optimize `qipu search` performance - <1s for 10k notes target
 
-**SUMMARY:**
-- **11/11 P0 items completed (100%)**
-- **0/11 P0 items pending (0%)**
-- **211 tests passing (62 unit + 131 CLI + 6 golden + 6 performance + 6 LLM validation)**
-- **Git tag v0.0.91 created**
-
-**NEXT PRIORITIES:**
-- All P0 items are now complete!
-- Move on to P1 items as needed
-
-**P1:**
-- ~~qipu dump <file> positional arg missing in CLI vs specs (specs/cli-interface.md)~~ **COMPLETED**: Added positional FILE arg with conflict check.
-- ~~Missing export link handling options; MOC ordering not preserved~~ **COMPLETED**: Implemented link mode flags + MOC ordering.
-- ~~Records output for `qipu prime` missing `truncated=` header field in records mode (specs/records-output.md)~~ **COMPLETED**
-- ~~Records output budgets for context/link are not exact; fix~~ **COMPLETED**
-- ~~Compact apply: validate results after applying compacts~~ **COMPLETED**
-- ~~Compact show: depth tree missing in JSON/records output~~ **COMPLETED**
-- ~~Compact guide: add resolved traversal/search sanity check~~ **COMPLETED**
-
-**NOTE:** Error code consistency fixes are complete and working - all usage validation now returns exit code 2 as specified. All major P0 CLI functionality is now complete with the dump/load implementation fully functional.
-
----
-
-## Inconsistencies and Missing Spec Updates (COMPLETED)
-
-- [P2] ~~Align store discovery rules in `specs/cli-interface.md` with `specs/cli-tool.md` and implementation (walk-up discovery, `.qipu/` then `qipu/`).~~ **COMPLETED**
-- [P1] ~~Fix search recency boost to use `updated` timestamp instead of `created` per `specs/indexing-search.md`.~~ **COMPLETED**: Updated `src/lib/index/search.rs` to use `updated` (falling back to `created`) for recency boost calculation.
-- [P2] ~~Update `specs/cli-interface.md` to include implemented but missing flags and commands:~~ **COMPLETED**:
-  - Add `--links` to `qipu show`.
-  - Add search filters (`--type`, `--tag`, `--exclude-mocs`) to `qipu search`.
-  - Add `qipu compact`, `qipu dump`, and `qipu load` command summaries.
-  - Document `--max-chars` for `qipu link` commands.
-- [P2] ~~Clarify `qipu inbox --exclude-linked` flag in `specs/cli-interface.md`.~~ **COMPLETED**
-- [P3] ~~Ensure search `exclude_mocs` is documented consistently.~~ **COMPLETED**
-- [P1] ~~Fix golden test failure for version output (already done, but document it).~~ **COMPLETED**: Updated `tests/golden/version.txt` to match `Cargo.toml` version `0.0.89`.
+### **✅ P1 Items (All Complete)**
+- **CLI Interface**:
+  - `qipu dump` / `qipu load` fully implemented.
+  - `qipu link` flags: `--max-chars`, `--direction`, `--max-hops` implemented.
+  - Search filters: `--type`, `--tag`, `--exclude-mocs` implemented.
+  - `qipu inbox` command implemented.
+  - `qipu setup` command implemented (AGENTS.md integration).
+- **Compaction**:
+  - `qipu compact` suite (`apply`, `suggest`, `report`, `status`, `guide`) implemented.
+  - Compaction resolution in search/traversal implemented.
+- **Export**:
+  - `qipu export` implemented with bundle, outline, and bibliography modes.
+  - Attachment export support.
+- **Sync & Git**:
+  - `qipu sync` implemented with index updates and git commit/push automation.
+  - Protected branch workflow supported (`qipu init --branch`).
+- **Quality**:
+  - Error code consistency (exit code 2 for usage errors).
+  - Test suite passing (unit, CLI, golden, performance, LLM validation).
 
 ---
 
-## Code Quality Improvements (Completed 2026-01-15)
+## **Future / Deferred Work (P2+)**
 
-**Fixed error handling issues:**
-- Fixed regex creation panic risk in doctor.rs (line 270) - added proper error message
-- Fixed 5 instances of current_dir().unwrap() in compact.rs - added fallback to PathBuf::from(".")
-- Pattern now matches the safe fallback used in main.rs:102
+These items are considered potential future enhancements but are not required for the v1.0 release.
 
-**Removed redundant #[allow(dead_code)] attributes:**
-- src/lib/error.rs:33 - QipuError enum IS used throughout codebase
-- src/lib/id.rs:51 - NoteId impl IS used throughout codebase
+### **Interactive Usability**
+- [ ] **Interactive Pickers**: Add fzf-style interactive selection for notes/tags/types (mentioned in `specs/cli-interface.md`).
+- [ ] **Interactive Capture**: Add a TUI for `qipu capture` rather than just stdin/editor.
 
-**Removed truly unused code:**
-- NoteFrontmatter::with_tag() method (duplicate of with_tags())
-- VALID_FORMATS constant and is_human()/is_json()/is_records() methods in format.rs
-- Index::note_ids() method (trivial inline alternative exists)
-- Index::get_all_edges() method (simple combination of get_outbound_edges/get_inbound_edges)
+### **Advanced Search & Indexing**
+- [ ] **SQLite Backend**: Implement SQLite FTS for scaling beyond `ripgrep` for very large stores (mentioned in `specs/indexing-search.md`).
+- [ ] **Semantic Search**: Add embedding-based search (requires external dependencies or optional feature).
 
-**All 207 tests passing (63 unit + 126 CLI + 6 golden + 6 performance + 6 LLM validation).**
+### **Knowledge Management Tools**
+- [ ] **Duplicate Detection**: Implement `qipu duplicates` to find potential near-duplicate notes.
+- [ ] **Merge Command**: Implement `qipu merge` to combine notes (mentioned in `specs/knowledge-model.md`).
 
----
-
-## Issues Fixed 2026-01-15
-
-**Fixed flaky test:**
-- Fixed `test_incremental_index_updates_tags` in `src/lib/index.rs:1152` by increasing sleep from 1s to 2s. The test was failing when running in parallel due to insufficient filesystem mtime granularity. Test now passes reliably.
-
-**Code quality improvements:**
-- Added Default implementation for OpenCodeAdapter in tests/llm_validation.rs
-- Removed empty string literal from writeln! in tests/llm_validation.rs
-- Git tag v0.0.87 created
+### **Extended Validation**
+- [ ] **Multi-tool Validation**: Extend `tests/llm_validation.rs` to support tools beyond OpenCode (e.g. Claude CLI) for cross-agent validation.

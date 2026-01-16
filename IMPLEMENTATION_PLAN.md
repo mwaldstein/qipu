@@ -25,6 +25,11 @@
 - All P0 items are now complete!
 - Move on to P1 items as needed
 
+**P1:**
+- ~~Compact apply: validate results after applying compacts~~ **COMPLETED**
+- ~~Compact show: depth tree missing in JSON/records output~~ **COMPLETED**
+- ~~Compact guide: add resolved traversal/search sanity check~~ **COMPLETED**
+
 **NOTE:** Error code consistency fixes are complete and working - all usage validation now returns exit code 2 as specified. All major P0 CLI functionality is now complete with the dump/load implementation fully functional.
 
 ---

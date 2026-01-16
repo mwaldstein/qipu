@@ -37,6 +37,10 @@ in day-to-day retrieval, while keeping the original notes intact.
 5. **Validate**: Use `qipu compact report <digest-id>` to check compaction quality.
    Also run `qipu doctor` to validate invariants.
 
+6. **Sanity check traversal**: Run a resolved traversal/search (e.g.,
+   `qipu link tree <digest-id> --max-hops 2` or `qipu search <keyword>`) to
+   confirm the digest surfaces as expected without `--no-resolve-compaction`.
+
 ## Commands
 
 - `qipu compact apply <digest> --note <id>...` - Register compaction

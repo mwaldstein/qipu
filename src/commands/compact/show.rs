@@ -71,6 +71,12 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
         0.0
     };
 
+    let depth_tree = if depth > 1 {
+        build_compaction_tree(&store, &ctx, digest_id, 0, depth)?
+    } else {
+        Vec::new()
+    };
+
     // Output
     match cli.format {
         crate::lib::format::OutputFormat::Human => {
@@ -101,23 +107,73 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
                 "count": direct_compacts.len(),
                 "compaction_pct": format!("{:.1}", compaction_pct),
                 "depth": depth,
+                "tree": depth_tree,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         crate::lib::format::OutputFormat::Records => {
             println!(
-                "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}%",
+                "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}% depth={}",
                 digest_id,
                 direct_compacts.len(),
-                compaction_pct
+                compaction_pct,
+                depth
             );
             for id in &direct_compacts {
                 println!("D compacted {}", id);
+            }
+            if depth > 1 {
+                for entry in depth_tree {
+                    println!(
+                        "D compacted_tree from={} to={} depth={}",
+                        entry.from, entry.to, entry.depth
+                    );
+                }
             }
         }
     }
 
     Ok(())
+}
+
+/// Show nested compaction recursively (helper for show command)
+#[derive(Debug, Clone, serde::Serialize)]
+struct CompactionTreeEntry {
+    from: String,
+    to: String,
+    depth: u32,
+}
+
+fn build_compaction_tree(
+    store: &Store,
+    ctx: &CompactionContext,
+    root_id: &str,
+    current_depth: u32,
+    max_depth: u32,
+) -> Result<Vec<CompactionTreeEntry>> {
+    if current_depth >= max_depth {
+        return Ok(Vec::new());
+    }
+
+    let mut entries = Vec::new();
+    if let Some(compacts) = ctx.get_compacted_notes(root_id) {
+        let mut sorted = compacts.clone();
+        sorted.sort();
+        for source_id in sorted {
+            if store.get_note(&source_id).is_ok() {
+                entries.push(CompactionTreeEntry {
+                    from: root_id.to_string(),
+                    to: source_id.clone(),
+                    depth: current_depth + 1,
+                });
+                let mut nested =
+                    build_compaction_tree(store, ctx, &source_id, current_depth + 1, max_depth)?;
+                entries.append(&mut nested);
+            }
+        }
+    }
+
+    Ok(entries)
 }
 
 /// Show nested compaction recursively (helper for show command)
@@ -133,11 +189,13 @@ fn show_nested_compaction(
     }
 
     if let Some(compacts) = ctx.get_compacted_notes(current_id) {
-        for source_id in compacts {
+        let mut sorted = compacts.clone();
+        sorted.sort();
+        for source_id in sorted {
             let indent = "  ".repeat(current_depth as usize);
-            if let Ok(note) = store.get_note(source_id) {
+            if let Ok(note) = store.get_note(&source_id) {
                 println!("{}  - {} ({})", indent, note.frontmatter.title, source_id);
-                show_nested_compaction(store, ctx, source_id, current_depth + 1, max_depth)?;
+                show_nested_compaction(store, ctx, &source_id, current_depth + 1, max_depth)?;
             }
         }
     }

@@ -80,8 +80,20 @@ pub fn execute(
     new_compacts.sort();
     digest_note.frontmatter.compacts = new_compacts;
 
-    // Validate invariants before saving
-    let all_notes = store.list_notes()?;
+    // Validate invariants before saving (include updated digest compacts)
+    let mut all_notes = store.list_notes()?;
+    let mut replaced = false;
+    for note in &mut all_notes {
+        if note.frontmatter.id == digest_note.frontmatter.id {
+            *note = digest_note.clone();
+            replaced = true;
+            break;
+        }
+    }
+    if !replaced {
+        all_notes.push(digest_note.clone());
+    }
+
     let ctx = CompactionContext::build(&all_notes)?;
     let errors = ctx.validate(&all_notes);
     if !errors.is_empty() {

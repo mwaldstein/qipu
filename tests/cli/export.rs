@@ -72,3 +72,74 @@ fn test_export_with_attachments() {
         "image data"
     );
 }
+
+#[test]
+fn test_export_outline_preserves_moc_order() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(&note_b_path, "---\nid: qp-bbbb\ntitle: Note B\n---\nBody B").unwrap();
+
+    let moc_path = dir.path().join(".qipu/mocs/qp-moc1-outline.md");
+    fs::write(
+        &moc_path,
+        "---\nid: qp-moc1\ntitle: Outline\ntype: moc\n---\n[[qp-bbbb]]\n[[qp-aaaa]]\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["export", "--moc", "qp-moc1", "--mode", "outline"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("## Note B (qp-bbbb)"))
+        .stdout(predicate::str::contains("## Note A (qp-aaaa)"))
+        .stdout(predicate::str::contains(
+            "## Note B (qp-bbbb)\n\nBody B\n\n---\n\n## Note A (qp-aaaa)",
+        ));
+}
+
+#[test]
+fn test_export_bundle_rewrites_links_to_anchors() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(
+        &note_b_path,
+        "---\nid: qp-bbbb\ntitle: Note B\n---\nSee [[qp-aaaa|Note A]] and [ref](qp-aaaa)",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "export",
+            "--note",
+            "qp-bbbb",
+            "--note",
+            "qp-aaaa",
+            "--link-mode",
+            "anchors",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "See [Note A](#note-qp-aaaa) and [ref](#note-qp-aaaa)",
+        ));
+}

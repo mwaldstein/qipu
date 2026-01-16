@@ -283,6 +283,10 @@ pub enum Commands {
         /// Copy referenced attachments to the output directory
         #[arg(long)]
         with_attachments: bool,
+
+        /// Link handling: preserve, markdown, anchors
+        #[arg(long, default_value = "preserve")]
+        link_mode: String,
     },
 
     /// Manage note compaction (digest-first navigation)

@@ -311,12 +311,14 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             output,
             mode,
             with_attachments,
+            link_mode,
         }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
             let export_mode = commands::export::ExportMode::parse(mode)?;
+            let link_mode = commands::export::LinkMode::parse(link_mode)?;
             commands::export::execute(
                 cli,
                 &store,
@@ -328,6 +330,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     output: output.as_deref(),
                     mode: export_mode,
                     with_attachments: *with_attachments,
+                    link_mode,
                 },
             )
         }

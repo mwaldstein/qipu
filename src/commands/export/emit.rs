@@ -1,21 +1,25 @@
-use super::{ExportMode, ExportOptions};
+use super::ExportMode;
 use crate::cli::Cli;
+use crate::commands::export::{ExportOptions, LinkMode};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
 use crate::lib::store::Store;
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 /// Export mode: Bundle
 pub fn export_bundle(
     notes: &[Note],
     _store: &Store,
+    options: &ExportOptions,
     cli: &Cli,
     compaction_ctx: &CompactionContext,
     all_notes: &[Note],
 ) -> Result<String> {
     let mut output = String::new();
+    let (body_map, anchor_map) = build_link_maps(notes);
 
     output.push_str("# Exported Notes\n\n");
 
@@ -92,7 +96,8 @@ pub fn export_bundle(
         }
 
         // Body content
-        output.push_str(&note.body);
+        let body = rewrite_links(&note.body, options.link_mode, &body_map, &anchor_map);
+        output.push_str(&body);
         output.push('\n');
     }
 
@@ -104,18 +109,18 @@ pub fn export_outline(
     notes: &[Note],
     store: &Store,
     index: &Index,
-    moc_id: Option<&str>,
+    options: &ExportOptions,
     cli: &Cli,
     compaction_ctx: &CompactionContext,
     resolve_compaction: bool,
     all_notes: &[Note],
 ) -> Result<String> {
     // If no MOC provided, fall back to bundle mode with warning
-    let Some(moc_id) = moc_id else {
+    let Some(moc_id) = options.moc_id else {
         if cli.verbose && !cli.quiet {
             eprintln!("warning: outline mode requires --moc flag, falling back to bundle mode");
         }
-        return export_bundle(notes, store, cli, compaction_ctx, all_notes);
+        return export_bundle(notes, store, options, cli, compaction_ctx, all_notes);
     };
 
     let moc = store.get_note(moc_id)?;
@@ -128,30 +133,35 @@ pub fn export_outline(
     output.push_str(&moc.body);
     output.push_str("\n\n");
 
+    let (body_map, anchor_map) = build_link_maps(notes);
+
     // Export notes in MOC link order
-    let edges = index.get_outbound_edges(moc.id());
+    let ordered_ids = extract_moc_ordered_ids(&moc.body, resolve_compaction, compaction_ctx);
 
     // Create a lookup for fast note access
-    let note_map: std::collections::HashMap<_, _> = notes.iter().map(|n| (n.id(), n)).collect();
+    let note_map: HashMap<_, _> = notes.iter().map(|n| (n.id(), n)).collect();
 
-    // Sort edges to get deterministic order (by target id)
-    let mut sorted_edges = edges;
-    sorted_edges.sort_by_key(|edge| &edge.to);
-
-    let mut ordered_ids = Vec::new();
     let mut seen_ids = HashSet::new();
 
-    for edge in sorted_edges {
-        let mut target_id = edge.to.clone();
-        if resolve_compaction {
-            target_id = compaction_ctx.canon(&target_id)?;
+    for target_id in
+        ordered_ids
+            .into_iter()
+            .chain(
+                index
+                    .get_outbound_edges(moc.id())
+                    .into_iter()
+                    .filter_map(|edge| {
+                        if resolve_compaction {
+                            compaction_ctx.canon(&edge.to).ok()
+                        } else {
+                            Some(edge.to.clone())
+                        }
+                    }),
+            )
+    {
+        if !seen_ids.insert(target_id.clone()) {
+            continue;
         }
-        if seen_ids.insert(target_id.clone()) {
-            ordered_ids.push(target_id);
-        }
-    }
-
-    for target_id in ordered_ids {
         if let Some(note) = note_map.get(target_id.as_str()) {
             output.push_str("\n---\n\n");
             output.push_str(&format!("## {} ({})\n\n", note.title(), note.id()));
@@ -192,12 +202,160 @@ pub fn export_outline(
                 }
             }
 
-            output.push_str(&note.body);
+            let body = rewrite_links(&note.body, options.link_mode, &body_map, &anchor_map);
+            output.push_str(&body);
             output.push('\n');
         }
     }
 
     Ok(output)
+}
+
+/// Export mode: Bibliography
+fn build_link_maps(notes: &[Note]) -> (HashMap<String, String>, HashMap<String, String>) {
+    let mut body_map = HashMap::new();
+    let mut anchor_map = HashMap::new();
+
+    for note in notes {
+        let id = note.id().to_string();
+        let path = note
+            .path
+            .as_ref()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| format!("{}.md", id));
+        let anchor = format!("#note-{}", id);
+        body_map.insert(id.clone(), path);
+        anchor_map.insert(id, anchor);
+    }
+
+    (body_map, anchor_map)
+}
+
+fn rewrite_links(
+    body: &str,
+    mode: LinkMode,
+    body_map: &HashMap<String, String>,
+    anchor_map: &HashMap<String, String>,
+) -> String {
+    match mode {
+        LinkMode::Preserve => body.to_string(),
+        LinkMode::Markdown => rewrite_wiki_links(body, body_map),
+        LinkMode::Anchors => rewrite_note_links_to_anchors(body, body_map, anchor_map),
+    }
+}
+
+fn rewrite_wiki_links(body: &str, body_map: &HashMap<String, String>) -> String {
+    let wiki_link_re = match regex::Regex::new(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]") {
+        Ok(re) => re,
+        Err(_) => return body.to_string(),
+    };
+
+    wiki_link_re
+        .replace_all(body, |caps: &regex::Captures| {
+            let target = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+            if target.is_empty() {
+                return caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string();
+            }
+            let label = caps.get(2).map(|m| m.as_str()).unwrap_or(target).trim();
+            let path = body_map.get(target).map(|p| p.as_str()).unwrap_or(target);
+            format!("[{}]({})", label, path)
+        })
+        .to_string()
+}
+
+fn rewrite_note_links_to_anchors(
+    body: &str,
+    body_map: &HashMap<String, String>,
+    anchor_map: &HashMap<String, String>,
+) -> String {
+    let wiki_link_re = match regex::Regex::new(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]") {
+        Ok(re) => re,
+        Err(_) => return body.to_string(),
+    };
+    let md_link_re = match regex::Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
+        Ok(re) => re,
+        Err(_) => return body.to_string(),
+    };
+
+    let rewritten = wiki_link_re.replace_all(body, |caps: &regex::Captures| {
+        let target = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+        if target.is_empty() {
+            return caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string();
+        }
+        let label = caps.get(2).map(|m| m.as_str()).unwrap_or(target).trim();
+        let anchor = anchor_map.get(target).map(|a| a.as_str()).unwrap_or(target);
+        format!("[{}]({})", label, anchor)
+    });
+
+    let rewritten = md_link_re.replace_all(&rewritten, |caps: &regex::Captures| {
+        let label = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+        let target = caps.get(2).map(|m| m.as_str()).unwrap_or("").trim();
+        if target.starts_with("#") {
+            return caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string();
+        }
+        let id = find_note_id_in_target(target, body_map);
+        if let Some(id) = id {
+            let anchor = anchor_map.get(&id).map(|a| a.as_str()).unwrap_or(target);
+            format!("[{}]({})", label, anchor)
+        } else {
+            caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string()
+        }
+    });
+
+    rewritten.to_string()
+}
+
+fn find_note_id_in_target(target: &str, body_map: &HashMap<String, String>) -> Option<String> {
+    if target.starts_with("qp-") {
+        return Some(target.split('-').take(2).collect::<Vec<_>>().join("-"));
+    }
+    for (id, path) in body_map {
+        if target.ends_with(path) {
+            return Some(id.clone());
+        }
+    }
+    if let Some(start) = target.find("qp-") {
+        let rest = &target[start..];
+        if let Some(end) = rest.find('-') {
+            let after = &rest[end + 1..];
+            if let Some(next_dash) = after.find('-') {
+                return Some(rest[..end + 1 + next_dash].to_string());
+            }
+        }
+        return Some(rest.trim_end_matches(".md").to_string());
+    }
+    None
+}
+
+fn extract_moc_ordered_ids(
+    body: &str,
+    resolve_compaction: bool,
+    compaction_ctx: &CompactionContext,
+) -> Vec<String> {
+    let mut ordered_ids = Vec::new();
+    let mut seen_ids = HashSet::new();
+    let wiki_link_re = match regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]") {
+        Ok(re) => re,
+        Err(_) => return ordered_ids,
+    };
+
+    for cap in wiki_link_re.captures_iter(body) {
+        let target = cap.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+        if target.is_empty() {
+            continue;
+        }
+        let mut target_id = target.to_string();
+        if resolve_compaction {
+            if let Ok(canon) = compaction_ctx.canon(&target_id) {
+                target_id = canon;
+            }
+        }
+        if seen_ids.insert(target_id.clone()) {
+            ordered_ids.push(target_id);
+        }
+    }
+
+    ordered_ids
 }
 
 /// Export mode: Bibliography

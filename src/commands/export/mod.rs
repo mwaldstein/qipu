@@ -5,6 +5,7 @@
 //! - Selection: `--note`, `--tag`, `--moc`, `--query`
 //! - Deterministic ordering: MOC order or (created_at, id)
 //! - Output: stdout by default, or `--output <path>` for file
+//! - Link handling: preserve, markdown, anchors
 
 pub mod emit;
 pub mod plan;
@@ -43,6 +44,31 @@ impl ExportMode {
     }
 }
 
+/// Export link handling behavior
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LinkMode {
+    /// Preserve original links
+    Preserve,
+    /// Rewrite wiki links to markdown file links
+    Markdown,
+    /// Rewrite note links to section anchors in bundle output
+    Anchors,
+}
+
+impl LinkMode {
+    pub fn parse(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "preserve" => Ok(LinkMode::Preserve),
+            "markdown" => Ok(LinkMode::Markdown),
+            "anchors" | "anchor" => Ok(LinkMode::Anchors),
+            _ => Err(QipuError::Other(format!(
+                "invalid link mode '{}'. Valid modes: preserve, markdown, anchors",
+                s
+            ))),
+        }
+    }
+}
+
 /// Options for the export command
 pub struct ExportOptions<'a> {
     pub note_ids: &'a [String],
@@ -52,6 +78,7 @@ pub struct ExportOptions<'a> {
     pub output: Option<&'a std::path::Path>,
     pub mode: ExportMode,
     pub with_attachments: bool,
+    pub link_mode: LinkMode,
 }
 
 /// Execute the export command
@@ -86,14 +113,19 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         OutputFormat::Human => {
             // Generate markdown output based on export mode
             match options.mode {
-                ExportMode::Bundle => {
-                    emit::export_bundle(&selected_notes, store, cli, &compaction_ctx, &all_notes)?
-                }
+                ExportMode::Bundle => emit::export_bundle(
+                    &selected_notes,
+                    store,
+                    &options,
+                    cli,
+                    &compaction_ctx,
+                    &all_notes,
+                )?,
                 ExportMode::Outline => emit::export_outline(
                     &selected_notes,
                     store,
                     &index,
-                    options.moc_id,
+                    &options,
                     cli,
                     &compaction_ctx,
                     !cli.no_resolve_compaction,

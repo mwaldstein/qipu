@@ -26,6 +26,7 @@
 - Move on to P1 items as needed
 
 **P1:**
+- ~~Missing export link handling options; MOC ordering not preserved~~ **COMPLETED**: Implemented link mode flags + MOC ordering.
 - ~~Records output for `qipu prime` missing `truncated=` header field in records mode (specs/records-output.md)~~ **COMPLETED**
 - ~~Records output budgets for context/link are not exact; fix~~ **COMPLETED**
 - ~~Compact apply: validate results after applying compacts~~ **COMPLETED**

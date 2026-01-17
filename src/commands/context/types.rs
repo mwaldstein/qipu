@@ -7,6 +7,8 @@ pub struct ContextOptions<'a> {
     pub moc_id: Option<&'a str>,
     pub query: Option<&'a str>,
     pub max_chars: Option<usize>,
+    pub max_tokens: Option<usize>,
+    pub model: &'a str,
     pub transitive: bool,
     pub with_body: bool,
     pub safety_banner: bool,

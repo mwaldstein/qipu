@@ -37,6 +37,9 @@ walkdir = "2"
 # Slug generation
 slug = "0.1"
 
+# LLM Tokenization
+tiktoken-rs = "0.5"
+
 # Regular expressions for link extraction
 regex = "1"
 base64 = "0.22.1"

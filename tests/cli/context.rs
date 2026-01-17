@@ -435,6 +435,100 @@ fn test_context_budget_exact() {
 }
 
 #[test]
+fn test_context_max_tokens() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create multiple notes
+    for i in 0..5 {
+        qipu()
+            .current_dir(dir.path())
+            .args([
+                "create",
+                "--tag",
+                "token-budget",
+                &format!("Token Note {}", i),
+            ])
+            .assert()
+            .success();
+    }
+
+    // Get context with small token budget - should truncate
+    // A typical small note is ~50-100 tokens with headers.
+    // 150 tokens should allow about 1-2 notes.
+    qipu()
+        .current_dir(dir.path())
+        .args(["context", "--tag", "token-budget", "--max-tokens", "150"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Token Note")) // At least one note
+        .stdout(predicate::str::contains("truncated")); // Should indicate truncation
+}
+
+#[test]
+fn test_context_max_tokens_and_chars() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a large note
+    let mut large_body = String::new();
+    for _ in 0..100 {
+        large_body.push_str("This is a repeating line to increase size. ");
+    }
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Large Note", "--tag", "both-budget"])
+        .write_stdin(large_body)
+        .assert()
+        .success();
+
+    // If max-chars is very small, it should truncate even if max-tokens is large
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "both-budget",
+            "--max-chars",
+            "100",
+            "--max-tokens",
+            "10000",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("truncated"))
+        .stdout(predicate::str::contains("Large Note").not());
+
+    // If max-tokens is very small, it should truncate even if max-chars is large
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "both-budget",
+            "--max-chars",
+            "10000",
+            "--max-tokens",
+            "10",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("truncated"))
+        .stdout(predicate::str::contains("Large Note").not());
+}
+
+#[test]
 fn test_context_records_with_body_and_sources() {
     use std::fs;
 

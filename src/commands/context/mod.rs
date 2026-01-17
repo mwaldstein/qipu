@@ -149,7 +149,13 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     // Apply budgeting (records format handles its own exact budget)
     let (truncated, notes_to_output) = match cli.format {
         OutputFormat::Records => (false, selected_notes.iter().collect()),
-        _ => budget::apply_budget(&selected_notes, options.max_chars, options.with_body),
+        _ => budget::apply_budget(
+            &selected_notes,
+            options.max_chars,
+            options.max_tokens,
+            options.model,
+            options.with_body,
+        ),
     };
 
     // Output in requested format

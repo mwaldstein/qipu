@@ -265,6 +265,14 @@ pub enum Commands {
         #[arg(long)]
         max_chars: Option<usize>,
 
+        /// Maximum output tokens (approximate budget)
+        #[arg(long)]
+        max_tokens: Option<usize>,
+
+        /// Tokenizer model to use (default: gpt-4o)
+        #[arg(long, default_value = "gpt-4o")]
+        model: String,
+
         /// Follow nested MOC links transitively
         #[arg(long)]
         transitive: bool,

@@ -14,11 +14,18 @@ use std::collections::HashSet;
 
 use crate::cli::Cli;
 use crate::lib::error::{QipuError, Result};
+use crate::lib::index::IndexBuilder;
 use crate::lib::store::Store;
 pub use types::{DoctorResult, Issue, Severity};
 
 /// Execute the doctor command and return the result
-pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<DoctorResult> {
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    fix: bool,
+    duplicates: bool,
+    threshold: f64,
+) -> Result<DoctorResult> {
     let mut result = DoctorResult::new();
 
     // 1. Check store structure
@@ -43,7 +50,8 @@ pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<DoctorResult> {
     // 3. Check for duplicate IDs
     checks::check_duplicate_ids(&notes, &mut result);
 
-    // 4. Build index to check links
+    // 4. Build index to check links and optionally duplicates
+    let index = IndexBuilder::new(store).build()?;
     let all_ids: HashSet<_> = notes.iter().map(|n| n.id().to_string()).collect();
 
     // 5. Check for broken links (unresolved references)
@@ -55,7 +63,12 @@ pub fn execute(cli: &Cli, store: &Store, fix: bool) -> Result<DoctorResult> {
     // 7. Check compaction invariants
     checks::check_compaction_invariants(&notes, &mut result);
 
-    // 8. If fix requested, attempt repairs
+    // 8. Check for near-duplicates if requested
+    if duplicates {
+        checks::check_near_duplicates(&index, threshold, &mut result);
+    }
+
+    // 9. If fix requested, attempt repairs
     if fix {
         result.fixed_count = fix::attempt_fixes(store, &mut result)?;
     }

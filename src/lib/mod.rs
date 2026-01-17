@@ -13,4 +13,6 @@ pub mod id;
 pub mod index;
 pub mod logging;
 pub mod note;
+pub mod similarity;
 pub mod store;
+pub mod text;

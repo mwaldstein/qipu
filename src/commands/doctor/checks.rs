@@ -1,6 +1,8 @@
 use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::compaction::CompactionContext;
+use crate::lib::index::Index;
 use crate::lib::note::Note;
+use crate::lib::similarity::SimilarityEngine;
 use crate::lib::store::Store;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -236,6 +238,28 @@ pub fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
             note_id: None,
             path: None,
             fixable: false, // Requires manual resolution of compaction relationships
+        });
+    }
+}
+
+/// Check for near-duplicate notes using similarity
+pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorResult) {
+    let engine = SimilarityEngine::new(index);
+    let duplicates = engine.find_all_duplicates(threshold);
+
+    for (id1, id2, score) in duplicates {
+        result.add_issue(Issue {
+            severity: Severity::Warning,
+            category: "near-duplicate".to_string(),
+            message: format!(
+                "Notes '{}' and '{}' are similar ({:.2}%)",
+                id1,
+                id2,
+                score * 100.0
+            ),
+            note_id: Some(id1),
+            path: None,
+            fixable: false, // Requires manual merge/compaction
         });
     }
 }

@@ -272,7 +272,11 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             remove,
         }) => commands::setup::execute(cli, *list, tool.as_deref(), *print, *check, *remove),
 
-        Some(Commands::Doctor { fix }) => {
+        Some(Commands::Doctor {
+            fix,
+            duplicates,
+            threshold,
+        }) => {
             let store = match discover_or_open_store(cli, &root) {
                 Ok(store) => store,
                 Err(_) => {
@@ -296,7 +300,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::doctor::execute(cli, &store, *fix)?;
+            commands::doctor::execute(cli, &store, *fix, *duplicates, *threshold)?;
             Ok(())
         }
 

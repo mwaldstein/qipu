@@ -81,7 +81,7 @@ pub fn execute(
     // Step 3: Optionally validate
     let (errors, warnings, fixed) = if validate {
         // Run doctor quietly - it will output its own results
-        let result = doctor::execute(cli, store, fix)?;
+        let result = doctor::execute(cli, store, fix, false, 0.8)?;
         (result.error_count, result.warning_count, result.fixed_count)
     } else {
         (0, 0, 0)

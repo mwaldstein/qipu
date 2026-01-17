@@ -3,6 +3,7 @@ use super::links::extract_links;
 use super::types::{FileEntry, Index, NoteMetadata};
 use crate::lib::error::Result;
 use crate::lib::store::Store;
+use crate::lib::text::tokenize;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -247,13 +248,4 @@ impl<'a> IndexBuilder<'a> {
             None => true,
         }
     }
-}
-
-/// Simple word-based tokenizer splitting on non-alphanumeric characters
-fn tokenize(text: &str) -> Vec<String> {
-    text.to_lowercase()
-        .split(|c: char| !c.is_alphanumeric())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect()
 }

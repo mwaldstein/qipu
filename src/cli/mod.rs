@@ -236,6 +236,14 @@ pub enum Commands {
         /// Auto-repair issues where possible
         #[arg(long)]
         fix: bool,
+
+        /// Check for near-duplicate notes using similarity
+        #[arg(long)]
+        duplicates: bool,
+
+        /// Similarity threshold for duplicate detection (0.0 to 1.0)
+        #[arg(long, default_value = "0.8")]
+        threshold: f64,
     },
 
     /// Sync store: update indexes and optionally validate

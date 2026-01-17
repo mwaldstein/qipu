@@ -1,8 +1,27 @@
-# Qipu Implementation Plan (Complete)
+# Qipu Implementation Plan
 
-## **🎉 PROJECT COMPLETE**
+## **Status: Active Development**
 
-All P0 and P1 specifications have been implemented. The system is fully functional according to the design docs.
+While the core P0/P1 engine for note management, linking, and basic search is complete, several key features required for full agentic integration and advanced knowledge management are still in progress.
+
+---
+
+## **Current Priority Items**
+
+### **P1: Agent Trust & Context (High Priority)**
+- [ ] **Provenance Metadata**: Update `NoteFrontmatter` and CLI `create`/`capture` to support AI-specific fields: `author`, `generated_by`, `prompt_hash`, and `verified` boolean (see `specs/provenance.md`).
+- [ ] **Token-based Budgeting**: Implement tiktoken-based (or approximate) token counting for `qipu context` to complement existing `--max-chars` enforcement (see `specs/llm-context.md`).
+- [ ] **Safety Banner**: Add optional `--safety-banner` to `qipu context` to prepend "untrusted content" warnings for downstream LLMs.
+
+### **P2: Advanced Knowledge Management**
+- [ ] **Workspaces**: Implement `qipu workspace` suite for managing temporary/secondary stores (scratchpads) under `.qipu/workspaces/`. Includes `new`, `list`, `delete`, and `merge` commands (see `specs/workspaces.md`).
+- [ ] **Similarity Ranking (BM25/TF-IDF)**: Upgrade the current heuristic-based search to use proper BM25 for ranking and TF-IDF for finding unlinked "Related Notes" (see `specs/similarity-ranking.md`).
+- [ ] **Duplicate Detection**: Implement `qipu doctor --duplicates` using similarity scores to flag near-identical notes for merging.
+
+### **P3: Usability & Scaling**
+- [ ] **Interactive Pickers**: Add `fzf`-style selection for IDs in CLI commands.
+- [ ] **SQLite Backend**: Optional FTS5-powered index for very large stores (>10k notes) to replace/augment ripgrep.
+- [ ] **Merge Command**: Implement a dedicated `qipu merge <id1> <id2>` to combine notes and update all inbound links.
 
 ---
 
@@ -15,50 +34,15 @@ All P0 and P1 specifications have been implemented. The system is fully function
 4. Eliminate nondeterminism - remove runtime timestamps
 5. Eliminate nondeterminism - fix HashMap iteration order
 6. Eliminate nondeterminism - add stable tie-breakers for sorting
-7. Context budget enforcement - make exact across all formats
+7. Context budget enforcement - make exact across all formats (character-based)
 8. Implement dump/load commands - `qipu dump` / `qipu load` (specs/pack.md)
 9. Fix search/index determinism - Ripgrep JSON parsing and stable ordering
 10. Implement LLM user validation harness - `tests/llm_validation.rs` (specs/llm-user-validation.md)
 11. Optimize `qipu search` performance - <1s for 10k notes target
 
-### **✅ P1 Items (All Complete)**
-- **CLI Interface**:
-  - `qipu dump` / `qipu load` fully implemented.
-  - `qipu link` flags: `--max-chars`, `--direction`, `--max-hops` implemented.
-  - Search filters: `--type`, `--tag`, `--exclude-mocs` implemented.
-  - `qipu inbox` command implemented.
-  - `qipu setup` command implemented (AGENTS.md integration).
-- **Compaction**:
-  - `qipu compact` suite (`apply`, `suggest`, `report`, `status`, `guide`) implemented.
-  - Compaction resolution in search/traversal implemented.
-- **Export**:
-  - `qipu export` implemented with bundle, outline, and bibliography modes.
-  - Attachment export support.
-- **Sync & Git**:
-  - `qipu sync` implemented with index updates and git commit/push automation.
-  - Protected branch workflow supported (`qipu init --branch`).
-- **Quality**:
-  - Error code consistency (exit code 2 for usage errors).
-  - Test suite passing (unit, CLI, golden, performance, LLM validation).
-
----
-
-## **Future / Deferred Work (P2+)**
-
-These items are considered potential future enhancements but are not required for the v1.0 release.
-
-### **Interactive Usability**
-- [ ] **Interactive Pickers**: Add fzf-style interactive selection for notes/tags/types (mentioned in `specs/cli-interface.md`).
-- [ ] **Interactive Capture**: Add a TUI for `qipu capture` rather than just stdin/editor.
-
-### **Advanced Search & Indexing**
-- [ ] **SQLite Backend**: Implement SQLite FTS for scaling beyond `ripgrep` for very large stores (mentioned in `specs/indexing-search.md`).
-- [ ] **Semantic Search**: Add embedding-based search (requires external dependencies or optional feature).
-
-### **Knowledge Management Tools**
-- [ ] **Workspaces**: Implement `qipu workspace` suite for managing temporary/secondary stores (`specs/workspaces.md`).
-- [ ] **Duplicate Detection**: Implement `qipu duplicates` to find potential near-duplicate notes.
-- [ ] **Merge Command**: Implement `qipu merge` to combine notes (mentioned in `specs/knowledge-model.md`).
-
-### **Extended Validation**
-- [ ] **Multi-tool Validation**: Extend `tests/llm_validation.rs` to support tools beyond OpenCode (e.g. Claude CLI) for cross-agent validation.
+### **✅ P1 Items (Core Features)**
+- **CLI Interface**: `dump`/`load`, `link` navigation (`--max-hops`), and `inbox` implemented.
+- **Compaction**: `qipu compact` suite for managing note evolution.
+- **Export**: Full support for bundle, outline, and bibliography modes.
+- **Sync & Git**: Automated `qipu sync` with git commit/push support.
+- **Quality**: Robust test suite with golden tests and performance benchmarks.

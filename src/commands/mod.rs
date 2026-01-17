@@ -13,6 +13,7 @@ pub mod init;
 pub mod link;
 pub mod list;
 pub mod load;
+pub mod merge;
 pub mod prime;
 pub mod search;
 pub mod setup;

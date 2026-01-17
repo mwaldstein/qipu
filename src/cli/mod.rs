@@ -411,6 +411,17 @@ pub enum Commands {
         /// Pack file path
         pack_file: PathBuf,
     },
+
+    /// Merge note id1 into id2
+    Merge {
+        /// Source note ID (will be deleted)
+        id1: String,
+        /// Target note ID (will receive content and links)
+        id2: String,
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 /// Compact subcommands

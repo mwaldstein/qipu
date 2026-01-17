@@ -8,6 +8,7 @@ mod index;
 mod init;
 mod link;
 mod list;
+mod merge;
 mod misc;
 mod prime;
 mod provenance;

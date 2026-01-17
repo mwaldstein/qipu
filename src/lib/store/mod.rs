@@ -7,6 +7,7 @@ pub mod config;
 pub mod io;
 pub mod notes;
 pub mod paths;
+pub mod workspace;
 
 use std::collections::HashSet;
 use std::fs;

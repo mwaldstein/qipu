@@ -479,6 +479,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 
         Some(Commands::Compact { command }) => commands::compact::execute(cli, command),
 
+        Some(Commands::Workspace { command }) => commands::workspace::execute(cli, command),
+
         Some(Commands::Dump {
             file,
             note,
@@ -543,14 +545,22 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 }
 
 fn discover_or_open_store(cli: &Cli, root: &PathBuf) -> Result<Store> {
-    if let Some(path) = &cli.store {
+    let base_store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
         } else {
             root.join(path)
         };
-        Store::open(&resolved)
+        Store::open(&resolved)?
     } else {
-        Store::discover(root)
+        Store::discover(root)?
+    };
+
+    if let Some(workspace_name) = &cli.workspace {
+        use crate::lib::store::paths::WORKSPACES_DIR;
+        let workspace_path = base_store.root().join(WORKSPACES_DIR).join(workspace_name);
+        Store::open(&workspace_path)
+    } else {
+        Ok(base_store)
     }
 }

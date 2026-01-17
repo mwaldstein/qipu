@@ -17,8 +17,14 @@ pub const CACHE_DIR: &str = ".cache";
 /// Configuration filename
 pub const CONFIG_FILE: &str = "config.toml";
 
+/// Workspace metadata filename
+pub const WORKSPACE_FILE: &str = "workspace.toml";
+
 /// Gitignore filename
 pub const GITIGNORE_FILE: &str = ".gitignore";
+
+/// Workspaces subdirectory
+pub const WORKSPACES_DIR: &str = "workspaces";
 
 pub fn discover_store(root: &Path) -> Result<PathBuf> {
     let mut current = root.to_path_buf();

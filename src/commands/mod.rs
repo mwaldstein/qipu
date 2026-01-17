@@ -19,3 +19,4 @@ pub mod setup;
 pub mod show;
 pub mod sync;
 pub mod verify;
+pub mod workspace;

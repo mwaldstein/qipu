@@ -79,4 +79,6 @@ Run the LLM validation harness:
 
 ```bash
 cargo run -p llm-tool-test -- run --scenario crates/llm-tool-test/fixtures/qipu/scenarios/capture_basic.yaml
+# Or with a specific tool:
+cargo run -p llm-tool-test -- run --scenario crates/llm-tool-test/fixtures/qipu/scenarios/capture_basic.yaml --tool opencode
 ```

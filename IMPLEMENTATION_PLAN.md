@@ -199,7 +199,7 @@ crates/llm-tool-test/
 - [ ] LLM-based meta-evaluation for validation tests
 
 ### Infrastructure
-- [ ] **GitHub Actions**: Disabled, DO NOT enable unless confirmed
+- [ ] **GitHub Actions**: Disabled (`on: {}` in ci.yml). DO NOT enable until Actions is activated in GitHub repo settings.
 
 ---
 

@@ -94,6 +94,29 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path) -> Result<()> {
     Ok(())
 }
 
+fn write_note_preserving_updated(note: &Note) -> Result<()> {
+    let path = note
+        .path
+        .as_ref()
+        .ok_or_else(|| QipuError::Other("cannot save note without path".to_string()))?;
+    let new_content = note.to_markdown()?;
+
+    let should_write = if path.exists() {
+        match std::fs::read_to_string(path) {
+            Ok(existing) => existing != new_content,
+            Err(_) => true,
+        }
+    } else {
+        true
+    };
+
+    if should_write {
+        std::fs::write(path, new_content)?;
+    }
+
+    Ok(())
+}
+
 /// Load notes from pack into store
 fn load_notes(store: &Store, pack_notes: &[PackNote]) -> Result<usize> {
     let mut loaded_count = 0;
@@ -128,25 +151,35 @@ fn load_notes(store: &Store, pack_notes: &[PackNote]) -> Result<usize> {
             updated: pack_note.updated,
             sources,
             links: Vec::new(),
-            summary: None,
-            compacts: Vec::new(),
-            source: None,
-            author: None,
-            generated_by: None,
-            prompt_hash: None,
-            verified: None,
+            summary: pack_note.summary.clone(),
+            compacts: pack_note.compacts.clone(),
+            source: pack_note.source.clone(),
+            author: pack_note.author.clone(),
+            generated_by: pack_note.generated_by.clone(),
+            prompt_hash: pack_note.prompt_hash.clone(),
+            verified: pack_note.verified,
         };
 
         // Create note
-        let note = Note {
+        let mut note = Note {
             frontmatter,
             body: pack_note.content.clone(),
-            path: None, // Will be set by store when saving
+            path: None,
         };
 
-        // Save note to store
-        let mut mutable_note = note;
-        store.save_note(&mut mutable_note)?;
+        // Determine target directory and filename
+        let target_dir = match note_type {
+            NoteType::Moc => store.mocs_dir(),
+            _ => store.notes_dir(),
+        };
+
+        // Use a deterministic filename based on ID and title
+        let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
+        let file_path = target_dir.join(&file_name);
+        note.path = Some(file_path);
+
+        // Save note without overwriting pack timestamps
+        write_note_preserving_updated(&note)?;
         loaded_count += 1;
     }
 
@@ -196,8 +229,7 @@ fn load_links(store: &Store, pack_links: &[PackLink], loaded_notes: &[PackNote])
                 }
             }
 
-            // Save the updated note
-            store.save_note(&mut source_note)?;
+            write_note_preserving_updated(&source_note)?;
         }
     }
 

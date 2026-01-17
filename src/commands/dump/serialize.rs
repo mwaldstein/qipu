@@ -41,6 +41,13 @@ pub fn serialize_pack_readable(
                     accessed: s.accessed.clone(),
                 })
                 .collect(),
+            summary: note.frontmatter.summary.clone(),
+            compacts: note.frontmatter.compacts.clone(),
+            source: note.frontmatter.source.clone(),
+            author: note.frontmatter.author.clone(),
+            generated_by: note.frontmatter.generated_by.clone(),
+            prompt_hash: note.frontmatter.prompt_hash.clone(),
+            verified: note.frontmatter.verified,
         })
         .collect();
 
@@ -93,7 +100,7 @@ pub fn serialize_pack_records(
 
         // Note metadata line
         output.push_str(&format!(
-            "N {} {} \"{}\" tags={} created={}\n",
+            "N {} {} \"{}\" tags={} created={} updated={}",
             note.id(),
             note.note_type(),
             note.title(),
@@ -101,8 +108,38 @@ pub fn serialize_pack_records(
             note.frontmatter
                 .created
                 .map(|dt| dt.to_rfc3339())
+                .unwrap_or_else(|| "-".to_string()),
+            note.frontmatter
+                .updated
+                .map(|dt| dt.to_rfc3339())
                 .unwrap_or_else(|| "-".to_string())
         ));
+
+        if let Some(summary) = &note.frontmatter.summary {
+            output.push_str(&format!(" summary=\"{}\"", summary));
+        }
+        if !note.frontmatter.compacts.is_empty() {
+            output.push_str(&format!(
+                " compacts={}",
+                note.frontmatter.compacts.join(",")
+            ));
+        }
+        if let Some(source) = &note.frontmatter.source {
+            output.push_str(&format!(" source=\"{}\"", source));
+        }
+        if let Some(author) = &note.frontmatter.author {
+            output.push_str(&format!(" author=\"{}\"", author));
+        }
+        if let Some(generated_by) = &note.frontmatter.generated_by {
+            output.push_str(&format!(" generated_by=\"{}\"", generated_by));
+        }
+        if let Some(prompt_hash) = &note.frontmatter.prompt_hash {
+            output.push_str(&format!(" prompt_hash=\"{}\"", prompt_hash));
+        }
+        if let Some(verified) = note.frontmatter.verified {
+            output.push_str(&format!(" verified={}", verified));
+        }
+        output.push_str("\n");
 
         // Note content line (base64 encoded for safe transport)
         if !note.body.is_empty() {

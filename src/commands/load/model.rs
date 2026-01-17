@@ -23,6 +23,13 @@ pub struct PackNote {
     pub path: Option<String>,
     pub content: String,
     pub sources: Vec<PackSource>,
+    pub summary: Option<String>,
+    pub compacts: Vec<String>,
+    pub source: Option<String>,
+    pub author: Option<String>,
+    pub generated_by: Option<String>,
+    pub prompt_hash: Option<String>,
+    pub verified: Option<bool>,
 }
 
 /// Pack entry for a source reference

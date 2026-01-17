@@ -121,20 +121,93 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                     (title, rest)
                 };
 
-                // Parse tags from remaining parts
+                // Parse metadata
                 let mut tags = Vec::new();
                 let mut created = None;
                 let mut updated = None;
+                let mut summary = None;
+                let mut compacts = Vec::new();
+                let mut source = None;
+                let mut author = None;
+                let mut generated_by = None;
+                let mut prompt_hash = None;
+                let mut verified = None;
 
-                for part in metadata_str.split_whitespace() {
-                    if let Some(tags_str) = part.strip_prefix("tags=") {
-                        if tags_str != "-" {
-                            tags = tags_str.split(',').map(|s| s.to_string()).collect();
+                // Split metadata_str carefully to handle quoted values
+                let mut current_pos = 0;
+                let metadata_chars: Vec<char> = metadata_str.chars().collect();
+
+                while current_pos < metadata_chars.len() {
+                    // Skip whitespace
+                    while current_pos < metadata_chars.len()
+                        && metadata_chars[current_pos].is_whitespace()
+                    {
+                        current_pos += 1;
+                    }
+                    if current_pos >= metadata_chars.len() {
+                        break;
+                    }
+
+                    // Find key
+                    let key_start = current_pos;
+                    while current_pos < metadata_chars.len()
+                        && metadata_chars[current_pos] != '='
+                        && !metadata_chars[current_pos].is_whitespace()
+                    {
+                        current_pos += 1;
+                    }
+                    let key: String = metadata_chars[key_start..current_pos].iter().collect();
+
+                    if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '=' {
+                        current_pos += 1; // skip '='
+                        let val_start = current_pos;
+                        let val: String;
+
+                        if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '"'
+                        {
+                            current_pos += 1; // skip opening quote
+                            let quote_start = current_pos;
+                            while current_pos < metadata_chars.len()
+                                && metadata_chars[current_pos] != '"'
+                            {
+                                current_pos += 1;
+                            }
+                            val = metadata_chars[quote_start..current_pos].iter().collect();
+                            if current_pos < metadata_chars.len() {
+                                current_pos += 1;
+                            } // skip closing quote
+                        } else {
+                            while current_pos < metadata_chars.len()
+                                && !metadata_chars[current_pos].is_whitespace()
+                            {
+                                current_pos += 1;
+                            }
+                            val = metadata_chars[val_start..current_pos].iter().collect();
                         }
-                    } else if let Some(created_str) = part.strip_prefix("created=") {
-                        created = created_str.parse().ok();
-                    } else if let Some(updated_str) = part.strip_prefix("updated=") {
-                        updated = updated_str.parse().ok();
+
+                        match key.as_str() {
+                            "tags" => {
+                                if val != "-" {
+                                    tags = val.split(',').map(|s| s.to_string()).collect();
+                                }
+                            }
+                            "created" => created = val.parse().ok(),
+                            "updated" => updated = val.parse().ok(),
+                            "summary" => summary = Some(val),
+                            "compacts" => {
+                                if val != "-" {
+                                    compacts = val.split(',').map(|s| s.to_string()).collect();
+                                }
+                            }
+                            "source" => source = Some(val),
+                            "author" => author = Some(val),
+                            "generated_by" => generated_by = Some(val),
+                            "prompt_hash" => prompt_hash = Some(val),
+                            "verified" => verified = val.parse().ok(),
+                            _ => {}
+                        }
+                    } else {
+                        current_pos += 1;
                     }
                 }
 
@@ -148,6 +221,13 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                     path: None,
                     content: String::new(),
                     sources: Vec::new(),
+                    summary,
+                    compacts,
+                    source,
+                    author,
+                    generated_by,
+                    prompt_hash,
+                    verified,
                 });
             }
         } else if line.starts_with("B ") {

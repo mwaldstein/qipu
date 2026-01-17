@@ -12,7 +12,6 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 - [x] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).
 
 ### **P2: Advanced Knowledge Management & Scalability**
-- [ ] **Merge Command**: Implement a dedicated `qipu merge <id1> <id2>` to combine notes and update all inbound links automatically.
 - [ ] **Pack/Unpack**: Implement single-file raw knowledge dump/load as described in `specs/pack.md`.
 
 ### **P3: Usability & Architecture Refinement**

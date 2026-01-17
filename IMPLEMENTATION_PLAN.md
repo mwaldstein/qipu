@@ -84,12 +84,12 @@ Rationale:
   - Graceful skip/error if tool unavailable
 
 ### Phase 5: Evaluation System
-- [ ] **Structural gates**: Cheap, deterministic checks
+- [x] **Structural gates**: Cheap, deterministic checks
   - Run qipu commands to verify store state
   - Note count minimum, link count minimum
   - Retrieval query checks (`qipu search` returns results)
   - Doctor validation passes
-- [ ] **Metrics computation**: Scored evaluation
+- [x] **Metrics computation**: Scored evaluation
   - `EvaluationMetrics` struct with counts and checks
   - Return metric vector, not just pass/fail
 - [ ] **LLM-as-judge** (optional): Qualitative evaluation

@@ -1,5 +1,6 @@
 mod adapter;
 mod cli;
+mod evaluation;
 mod fixture;
 mod scenario;
 mod session;
@@ -64,6 +65,18 @@ fn main() -> anyhow::Result<()> {
                         "tool": tool,
                         "output": output
                     }))?;
+                    println!("Running evaluation...");
+                    let metrics = evaluation::evaluate(&s, &env.root)?;
+                    println!("Evaluation metrics: {:?}", metrics);
+
+                    if metrics.gates_passed < metrics.gates_total {
+                        anyhow::bail!(
+                            "Scenario failed: {}/{} gates passed",
+                            metrics.gates_passed,
+                            metrics.gates_total
+                        );
+                    }
+
                     println!("Transcript written to artifacts/");
                 }
             }

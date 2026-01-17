@@ -30,6 +30,10 @@ pub enum Commands {
         /// Dry run (don't execute LLM calls)
         #[arg(long)]
         dry_run: bool,
+
+        /// Disable caching
+        #[arg(long)]
+        no_cache: bool,
     },
     /// List available scenarios
     List {

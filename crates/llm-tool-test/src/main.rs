@@ -2,49 +2,65 @@ mod adapter;
 mod cli;
 mod evaluation;
 mod fixture;
+mod results;
 mod scenario;
 mod session;
 mod transcript;
 
 use adapter::{amp::AmpAdapter, opencode::OpenCodeAdapter, ToolAdapter};
+use chrono::Utc;
 use clap::Parser;
 use cli::{Cli, Commands};
+use results::{
+    Cache, CacheKey, EvaluationMetricsRecord, GateResultRecord, RegressionReport, ResultRecord,
+    ResultsDB,
+};
+use std::time::Instant;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    let base_dir = std::path::PathBuf::from("target/llm_test_runs");
+    let results_db = ResultsDB::new(&base_dir);
+    let cache = Cache::new(&base_dir);
+
     match &cli.command {
         Commands::Run {
             scenario,
-            tags,
+            tags: _,
             tool,
-            max_usd,
+            max_usd: _,
             dry_run,
+            no_cache,
         } => {
-            println!(
-                "Run command: scenario={:?}, tags={:?}, tool={}, max_usd={:?}, dry_run={}",
-                scenario, tags, tool, max_usd, dry_run
-            );
-
-            let adapter: Box<dyn ToolAdapter> = match tool.as_str() {
-                "amp" => Box::new(AmpAdapter),
-                "opencode" => Box::new(OpenCodeAdapter),
-                _ => anyhow::bail!("Unknown tool: {}", tool),
-            };
-
             if let Some(path) = scenario {
                 let s = scenario::load(path)?;
                 println!("Loaded scenario: {}", s.name);
+
+                let scenario_yaml = std::fs::read_to_string(path)?;
+                let prompt = s.task.prompt.clone();
+
+                let qipu_version = results::get_qipu_version()?;
+                let cache_key = CacheKey::compute(&scenario_yaml, &prompt, tool, &qipu_version);
+
+                if !no_cache {
+                    if let Some(cached) = cache.get(&cache_key) {
+                        println!("Cache HIT! Using cached result: {}", cached.id);
+                        print_result_summary(&cached);
+                        return Ok(());
+                    }
+                }
+
+                let adapter: Box<dyn ToolAdapter> = match tool.as_str() {
+                    "amp" => Box::new(AmpAdapter),
+                    "opencode" => Box::new(OpenCodeAdapter),
+                    _ => anyhow::bail!("Unknown tool: {}", tool),
+                };
 
                 if !*dry_run {
                     println!("Checking availability for tool: {}", tool);
                     if let Err(e) = adapter.check_availability() {
                         eprintln!("Warning: Tool '{}' check failed: {}", tool, e);
-                        // We might want to continue if it's just a warning or fail hard?
-                        // For now, let's fail hard as per plan "Graceful skip if tool unavailable"
-                        // But if user explicitly requested it, maybe fail?
-                        // The plan says "Graceful skip if tool unavailable" under "Availability checks"
-                        // but here we are running a specific tool.
                         anyhow::bail!("Tool unavailable: {}", e);
                     }
 
@@ -53,46 +69,186 @@ fn main() -> anyhow::Result<()> {
                     env.setup_fixture(&s.fixture)?;
                     println!("Environment created at: {:?}", env.root);
 
+                    let start_time = Instant::now();
                     println!("Running tool '{}'...", tool);
                     let output = adapter.run(&s, &env.root)?;
-                    println!("Tool finished.");
+                    let duration = start_time.elapsed();
 
-                    // Transcript test
-                    let writer = transcript::TranscriptWriter::new(env.root.join("artifacts"))?;
+                    let transcript_dir = env.root.join("artifacts");
+                    std::fs::create_dir_all(&transcript_dir)?;
+                    let writer = transcript::TranscriptWriter::new(transcript_dir.clone())?;
                     writer.write_raw(&output)?;
                     writer.append_event(&serde_json::json!({
                         "type": "execution",
                         "tool": tool,
                         "output": output
                     }))?;
+
                     println!("Running evaluation...");
                     let metrics = evaluation::evaluate(&s, &env.root)?;
                     println!("Evaluation metrics: {:?}", metrics);
 
-                    if metrics.gates_passed < metrics.gates_total {
-                        anyhow::bail!(
-                            "Scenario failed: {}/{} gates passed",
-                            metrics.gates_passed,
-                            metrics.gates_total
-                        );
+                    let outcome = if metrics.gates_passed < metrics.gates_total {
+                        format!(
+                            "Fail: {}/{} gates passed",
+                            metrics.gates_passed, metrics.gates_total
+                        )
+                    } else {
+                        "Pass".to_string()
+                    };
+
+                    let transcript_path = transcript_dir.to_string_lossy().to_string();
+
+                    let record = ResultRecord {
+                        id: results::generate_run_id(),
+                        scenario_id: s.name.clone(),
+                        scenario_hash: cache_key.scenario_hash.clone(),
+                        tool: tool.clone(),
+                        model: "default".to_string(),
+                        qipu_commit: qipu_version.clone(),
+                        timestamp: Utc::now(),
+                        duration_secs: duration.as_secs_f64(),
+                        cost_usd: 0.0,
+                        gates_passed: metrics.gates_passed >= metrics.gates_total,
+                        metrics: EvaluationMetricsRecord {
+                            gates_passed: metrics.gates_passed,
+                            gates_total: metrics.gates_total,
+                            note_count: metrics.note_count,
+                            link_count: metrics.link_count,
+                            details: metrics
+                                .details
+                                .into_iter()
+                                .map(|d| GateResultRecord {
+                                    gate_type: d.gate_type,
+                                    passed: d.passed,
+                                    message: d.message,
+                                })
+                                .collect(),
+                        },
+                        judge_score: None,
+                        outcome,
+                        transcript_path: transcript_path.clone(),
+                        cache_key: Some(cache_key.as_string()),
+                    };
+
+                    results_db.append(&record)?;
+                    cache.put(&cache_key, &record)?;
+
+                    if let Some(baseline) = results_db.load_baseline(&s.name, tool)? {
+                        let report = results::compare_runs(&record, &baseline);
+                        print_regression_report(&report);
                     }
 
-                    println!("Transcript written to artifacts/");
+                    println!("\nRun completed: {}", record.id);
+                    println!("Transcript written to: {}", transcript_path);
+                    print_result_summary(&record);
+                } else {
+                    println!("Dry run - skipping execution");
                 }
+            } else {
+                println!("No scenario specified. Use --scenario <path>");
             }
         }
-        Commands::List { tags } => {
-            println!("List command: tags={:?}", tags);
+        Commands::List { tags: _ } => {
+            let records = results_db.load_all()?;
+            println!("Recent runs: {}", records.len());
+            for record in records.iter().rev().take(10) {
+                println!(
+                    "  {} - {} ({}) - {}",
+                    record.id, record.scenario_id, record.tool, record.outcome
+                );
+            }
         }
         Commands::Show { name } => {
-            println!("Show command: name={}", name);
+            let record = results_db.load_by_id(name)?;
+            match record {
+                Some(r) => {
+                    println!("Run ID: {}", r.id);
+                    println!("Scenario: {}", r.scenario_id);
+                    println!("Tool: {}", r.tool);
+                    println!("Timestamp: {}", r.timestamp);
+                    println!("Duration: {:.2}s", r.duration_secs);
+                    println!("Cost: ${:.4}", r.cost_usd);
+                    println!("Outcome: {}", r.outcome);
+                    println!(
+                        "Gates: {}/{}",
+                        r.metrics.gates_passed, r.metrics.gates_total
+                    );
+                    println!("Notes: {}", r.metrics.note_count);
+                    println!("Links: {}", r.metrics.link_count);
+                    if let Some(score) = r.judge_score {
+                        println!("Judge Score: {:.2}", score);
+                    }
+                    println!("Transcript: {}", r.transcript_path);
+                }
+                None => println!("Run not found: {}", name),
+            }
         }
         Commands::Compare { run_ids } => {
-            println!("Compare command: run_ids={:?}", run_ids);
+            if run_ids.len() != 2 {
+                anyhow::bail!("Compare requires exactly 2 run IDs");
+            }
+
+            let r1 = results_db.load_by_id(&run_ids[0])?;
+            let r2 = results_db.load_by_id(&run_ids[1])?;
+
+            match (r1, r2) {
+                (Some(run1), Some(run2)) => {
+                    let report = results::compare_runs(&run1, &run2);
+                    print_regression_report(&report);
+                }
+                _ => anyhow::bail!("One or both runs not found"),
+            }
         }
         Commands::Clean => {
-            println!("Clean command");
+            println!("Cleaning cache...");
+            cache.clear()?;
+            println!("Cache cleared");
         }
     }
     Ok(())
+}
+
+fn print_result_summary(record: &ResultRecord) {
+    println!("\n--- Result Summary ---");
+    println!("ID: {}", record.id);
+    println!("Scenario: {}", record.scenario_id);
+    println!("Tool: {}", record.tool);
+    println!("Outcome: {}", record.outcome);
+    println!(
+        "Gates: {}/{}",
+        record.metrics.gates_passed, record.metrics.gates_total
+    );
+    println!("Notes: {}", record.metrics.note_count);
+    println!("Links: {}", record.metrics.link_count);
+    println!("Duration: {:.2}s", record.duration_secs);
+    if let Some(score) = record.judge_score {
+        println!("Judge Score: {:.2}", score);
+    }
+}
+
+fn print_regression_report(report: &RegressionReport) {
+    println!("\n--- Regression Report ---");
+    println!("Current: {}", report.run_id);
+    println!("Baseline: {}", report.baseline_id);
+
+    if let Some(score_change) = report.score_change_pct {
+        println!("Score change: {:.1}%", score_change);
+    }
+
+    println!("Cost change: {:.1}%", report.cost_change_pct);
+
+    if !report.warnings.is_empty() {
+        println!("\nWarnings:");
+        for warning in &report.warnings {
+            println!("  - {}", warning);
+        }
+    }
+
+    if !report.alerts.is_empty() {
+        println!("\nAlerts:");
+        for alert in &report.alerts {
+            println!("  - {}", alert);
+        }
+    }
 }

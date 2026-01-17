@@ -98,13 +98,13 @@ Rationale:
   - Score parsing from structured JSON response
 
 ### Phase 6: Results & Reporting
-- [ ] **Results database**: Append-only run records
+- [x] **Results database**: Append-only run records
   - `results/results.jsonl`
   - Record: scenario, tool, metrics, scores, outcome, transcript path
-- [ ] **Regression detection**: Compare against baselines
+- [x] **Regression detection**: Compare against baselines
   - Score degradation warnings
   - Gate failure alerts
-- [ ] **Caching**: Skip identical runs
+- [x] **Caching**: Skip identical runs
   - Cache key: scenario hash + fixture hash + tool
   - `--no-cache` to force re-run
 
@@ -299,9 +299,12 @@ crates/llm-tool-test/
 - Duplicate detection ✅
 - **Missing**: stop words, stemming, term frequency storage
 
-### ⚠️ LLM User Validation (llm-user-validation.md) - SCAFFOLD ONLY
+### ⚠️ LLM User Validation (llm-user-validation.md) - PARTIAL
 - Framework structure ✅
 - Tool adapter pattern ✅
 - Transcript recording ✅
 - Store validation ✅
-- **Critical**: No actual LLM invocation - runs hardcoded commands
+- Results database (results.jsonl) ✅
+- Regression detection (compare command) ✅
+- Caching system (cache key, --no-cache) ✅
+- **Remaining**: LLM-as-judge (Phase 5 - optional) - rubrics, judge invocation, score parsing

@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "crates/llm-tool-test"]
+
 [package]
 name = "qipu"
 version = "0.0.90"

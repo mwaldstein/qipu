@@ -23,48 +23,48 @@ Rationale:
 - Keeps qipu's dependencies minimal
 
 ### Phase 1: Separate Crate Setup
-- [ ] **Create `llm-tool-test` crate**: New workspace member
+- [x] **Create `llm-tool-test` crate**: New workspace member
   - `crates/llm-tool-test/Cargo.toml`
   - `crates/llm-tool-test/src/main.rs`
   - Add to workspace in root `Cargo.toml`
-- [ ] **Remove existing scaffold**: Delete `tests/llm/` module
+- [x] **Remove existing scaffold**: Delete `tests/llm/` module
   - Current code runs hardcoded commands, not useful
   - Clean slate for proper implementation
-- [ ] **Define CLI interface**: Using clap
+- [x] **Define CLI interface**: Using clap
   - `run`, `list`, `show`, `compare`, `clean` subcommands
   - `--scenario`, `--tags`, `--tool`, `--max-usd`, `--dry-run` flags
 
 ### Phase 2: Test Fixtures
-- [ ] **Create fixture directory**: `crates/llm-tool-test/fixtures/qipu/`
+- [x] **Create fixture directory**: `crates/llm-tool-test/fixtures/qipu/`
   - `AGENTS.md` - Qipu usage instructions for LLM
   - `README.md` - Project context
   - Sample scenarios in `scenarios/`
-- [ ] **AGENTS.md for qipu tests**: Representative documentation
+- [x] **AGENTS.md for qipu tests**: Representative documentation
   - Core commands with examples
   - Common workflows (create, link, search)
   - Output format guidance
   - Error handling patterns
-- [ ] **Scenario definitions**: YAML files
+- [x] **Scenario definitions**: YAML files
   - `capture_basic.yaml` - Create notes from content
   - `link_navigation.yaml` - Navigate linked notes
   - `context_retrieval.yaml` - Use qipu context
   - `search_workflow.yaml` - Find existing notes
 
 ### Phase 3: Core Harness Infrastructure
-- [ ] **Scenario loader**: Parse YAML scenario files
+- [x] **Scenario loader**: Parse YAML scenario files
   - `Scenario` struct matching spec schema
   - Support `fixture`, `task.prompt`, `tool_matrix`
   - Support `evaluation.gates` and `evaluation.judge`
-- [ ] **Environment setup**: Create isolated test directory
+- [x] **Environment setup**: Create isolated test directory
   - Copy fixture files (AGENTS.md, README.md, seed data)
   - Initialize qipu store if needed
   - Set working directory for LLM tool
-- [ ] **PTY session capture**: Real LLM CLI invocation
+- [x] **PTY session capture**: Real LLM CLI invocation
   - Add `portable-pty` dependency
   - `SessionRunner` for PTY-based command execution
   - Fallback to piped stdout/stderr
   - Capture timing, exit codes, raw output stream
-- [ ] **Transcript bundle writer**: Create reviewable artifacts
+- [x] **Transcript bundle writer**: Create reviewable artifacts
   - `transcript.raw.txt` - Complete session output
   - `events.jsonl` - Structured event log
   - `run.json` - Metadata (scenario, tool, duration, cost)

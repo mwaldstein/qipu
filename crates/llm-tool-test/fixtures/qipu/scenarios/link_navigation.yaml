@@ -1,0 +1,11 @@
+name: link_navigation
+description: "Link navigation scenario"
+fixture: qipu
+task:
+  prompt: "Create two notes: one about 'Cats' and one about 'Dogs'. Then link 'Cats' to 'Dogs' with type 'related'."
+evaluation:
+  gates:
+    - type: min_notes
+      count: 2
+    - type: min_links
+      count: 1

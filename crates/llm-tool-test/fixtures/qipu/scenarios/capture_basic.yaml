@@ -1,0 +1,11 @@
+name: capture_basic
+description: "Basic note capture scenario"
+fixture: qipu
+task:
+  prompt: "Create a note about quantum entanglement with some basic facts."
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+    - type: search_hit
+      query: "entanglement"

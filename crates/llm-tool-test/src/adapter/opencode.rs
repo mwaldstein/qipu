@@ -6,12 +6,20 @@ use std::path::Path;
 pub struct OpenCodeAdapter;
 
 impl ToolAdapter for OpenCodeAdapter {
+    fn check_availability(&self) -> anyhow::Result<()> {
+        let runner = SessionRunner::new();
+        match runner.run_command("opencode", &["--version"], Path::new(".")) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(anyhow::anyhow!("OpenCode tool not found: {}", e)),
+        }
+    }
+
     fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<String> {
         let runner = SessionRunner::new();
-        // We probably want to verify if opencode is installed first.
-        // For now, we try to run it.
 
-        // This is a placeholder for the actual invocation flags
-        runner.run_command("opencode", &[&scenario.task.prompt], cwd)
+        // Use 'opencode run' for non-interactive execution if possible.
+        let args = ["run", &scenario.task.prompt];
+
+        runner.run_command("opencode", &args, cwd)
     }
 }

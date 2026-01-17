@@ -72,15 +72,16 @@ Rationale:
   - `report.md` - Human-readable summary
 
 ### Phase 4: Tool Adapters
-- [ ] **Amp adapter**: Real `amp` CLI invocation
+- [x] **Amp adapter**: Real `amp` CLI invocation
   - Build context from fixture AGENTS.md
   - Prompt file creation and invocation
   - Transcript capture via PTY
-- [ ] **OpenCode adapter**: Real `opencode` CLI invocation
+- [x] **OpenCode adapter**: Real `opencode` CLI invocation
   - Same interface as Amp adapter
-- [ ] **Availability checks**: Verify tool installed + authenticated
-  - `ToolStatus` struct with version, auth status
-  - Graceful skip if tool unavailable
+  - Implemented via `opencode run`
+- [x] **Availability checks**: Verify tool installed + authenticated
+  - `ToolAdapter::check_availability()` method
+  - Graceful skip/error if tool unavailable
 
 ### Phase 5: Evaluation System
 - [ ] **Structural gates**: Cheap, deterministic checks

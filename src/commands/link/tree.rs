@@ -8,7 +8,7 @@ use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::store::Store;
 
 use super::{
-    get_filtered_neighbors, resolve_note_id, SpanningTreeEntry, TreeEdge, TreeNode, TreeOptions,
+    get_filtered_neighbors, resolve_note_id, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions,
     TreeResult,
 };
 
@@ -65,17 +65,17 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
             // Add compacted IDs if --with-compaction-ids is set
             if cli.with_compaction_ids {
                 if let Some(ref ctx) = compaction_ctx {
-                    if let Some(nodes) = json_result.get_mut("nodes").and_then(|n| n.as_array_mut())
+                    if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut())
                     {
-                        for node in nodes {
-                            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                        for note in notes {
+                            if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
                                 let compacts_count = ctx.get_compacts_count(id);
                                 if compacts_count > 0 {
                                     let depth = cli.compaction_depth.unwrap_or(1);
                                     if let Some((ids, _truncated)) =
                                         ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
                                     {
-                                        if let Some(obj_mut) = node.as_object_mut() {
+                                        if let Some(obj_mut) = note.as_object_mut() {
                                             obj_mut.insert(
                                                 "compacted_ids".to_string(),
                                                 serde_json::json!(ids),
@@ -111,8 +111,8 @@ fn bfs_traverse(
 ) -> Result<TreeResult> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
-    let mut nodes: Vec<TreeNode> = Vec::new();
-    let mut edges: Vec<TreeEdge> = Vec::new();
+    let mut notes: Vec<TreeNote> = Vec::new();
+    let mut links: Vec<TreeLink> = Vec::new();
     let mut spanning_tree: Vec<SpanningTreeEntry> = Vec::new();
 
     let mut truncated = false;
@@ -122,9 +122,9 @@ fn bfs_traverse(
     queue.push_back((root.to_string(), 0));
     visited.insert(root.to_string());
 
-    // Add root node
+    // Add root note
     if let Some(meta) = index.get_metadata(root) {
-        nodes.push(TreeNode {
+        notes.push(TreeNote {
             id: meta.id.clone(),
             title: meta.title.clone(),
             note_type: meta.note_type,
@@ -145,7 +145,7 @@ fn bfs_traverse(
 
         // Check max_edges limit
         if let Some(max) = opts.max_edges {
-            if edges.len() >= max {
+            if links.len() >= max {
                 truncated = true;
                 truncation_reason = Some("max_edges".to_string());
                 break;
@@ -198,7 +198,7 @@ fn bfs_traverse(
 
             // Check max_edges again before adding
             if let Some(max) = opts.max_edges {
-                if edges.len() >= max {
+                if links.len() >= max {
                     truncated = true;
                     truncation_reason = Some("max_edges".to_string());
                     break;
@@ -206,7 +206,7 @@ fn bfs_traverse(
             }
 
             // Add edge with canonical IDs
-            edges.push(TreeEdge {
+            links.push(TreeLink {
                 from: canonical_from,
                 to: canonical_to,
                 link_type: edge.link_type.clone(),
@@ -233,9 +233,9 @@ fn bfs_traverse(
                     hop: hop + 1,
                 });
 
-                // Add node metadata (use canonical ID)
+                // Add note metadata (use canonical ID)
                 if let Some(meta) = index.get_metadata(&canonical_neighbor) {
-                    nodes.push(TreeNode {
+                    notes.push(TreeNote {
                         id: meta.id.clone(),
                         title: meta.title.clone(),
                         note_type: meta.note_type,
@@ -251,8 +251,8 @@ fn bfs_traverse(
     }
 
     // Sort for determinism
-    nodes.sort_by(|a, b| a.id.cmp(&b.id));
-    edges.sort_by(|a, b| {
+    notes.sort_by(|a, b| a.id.cmp(&b.id));
+    links.sort_by(|a, b| {
         a.from
             .cmp(&b.from)
             .then_with(|| a.link_type.cmp(&b.link_type))
@@ -270,8 +270,8 @@ fn bfs_traverse(
         max_hops: opts.max_hops,
         truncated,
         truncation_reason,
-        nodes,
-        edges,
+        notes,
+        links,
         spanning_tree,
     })
 }
@@ -283,9 +283,9 @@ fn output_tree_human(
     index: &Index,
     compaction_ctx: Option<&CompactionContext>,
 ) {
-    if result.nodes.is_empty() {
+    if result.notes.is_empty() {
         if !cli.quiet {
-            println!("No nodes found");
+            println!("No notes found");
         }
         return;
     }
@@ -428,27 +428,27 @@ fn output_tree_records(
     let budget = opts.max_chars;
     let mut lines = Vec::new();
 
-    for node in &result.nodes {
-        let tags_csv = if node.tags.is_empty() {
+    for note in &result.notes {
+        let tags_csv = if note.tags.is_empty() {
             "-".to_string()
         } else {
-            node.tags.join(",")
+            note.tags.join(",")
         };
         lines.push(format!(
             "N {} {} \"{}\" tags={}",
-            node.id, node.note_type, node.title, tags_csv
+            note.id, note.note_type, note.title, tags_csv
         ));
 
         if cli.with_compaction_ids {
             if let Some(ctx) = compaction_ctx {
-                let compacts_count = ctx.get_compacts_count(&node.id);
+                let compacts_count = ctx.get_compacts_count(&note.id);
                 if compacts_count > 0 {
                     let depth = cli.compaction_depth.unwrap_or(1);
                     if let Some((ids, truncated)) =
-                        ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                        ctx.get_compacted_ids(&note.id, depth, cli.compaction_max_nodes)
                     {
                         for id in &ids {
-                            lines.push(format!("D compacted {} from={}", id, node.id));
+                            lines.push(format!("D compacted {} from={}", id, note.id));
                         }
                         if truncated {
                             lines.push(format!(
@@ -462,21 +462,21 @@ fn output_tree_records(
             }
         }
 
-        if let Ok(note) = store.get_note(&node.id) {
-            let summary = note.summary();
+        if let Ok(full_note) = store.get_note(&note.id) {
+            let summary = full_note.summary();
             if !summary.is_empty() {
                 let summary_text = summary.lines().next().unwrap_or("").trim();
                 if !summary_text.is_empty() {
-                    lines.push(format!("S {} {}", node.id, summary_text));
+                    lines.push(format!("S {} {}", note.id, summary_text));
                 }
             }
         }
     }
 
-    for edge in &result.edges {
+    for link in &result.links {
         lines.push(format!(
             "E {} {} {} {}",
-            edge.from, edge.link_type, edge.to, edge.source
+            link.from, link.link_type, link.to, link.source
         ));
     }
 

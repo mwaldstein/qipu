@@ -7,7 +7,9 @@ use crate::lib::error::Result;
 use crate::lib::index::{Edge, Index, IndexBuilder};
 use crate::lib::store::Store;
 
-use super::{get_filtered_neighbors, resolve_note_id, PathResult, TreeEdge, TreeNode, TreeOptions};
+use super::{
+    get_filtered_neighbors, resolve_note_id, PathResult, TreeLink, TreeNote, TreeOptions,
+};
 
 /// Execute the link path command
 pub fn execute(
@@ -80,17 +82,17 @@ pub fn execute(
             // Add compacted IDs if --with-compaction-ids is set
             if cli.with_compaction_ids {
                 if let Some(ref ctx) = compaction_ctx {
-                    if let Some(nodes) = json_result.get_mut("nodes").and_then(|n| n.as_array_mut())
+                    if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut())
                     {
-                        for node in nodes {
-                            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                        for note in notes {
+                            if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
                                 let compacts_count = ctx.get_compacts_count(id);
                                 if compacts_count > 0 {
                                     let depth = cli.compaction_depth.unwrap_or(1);
                                     if let Some((ids, _truncated)) =
                                         ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
                                     {
-                                        if let Some(obj_mut) = node.as_object_mut() {
+                                        if let Some(obj_mut) = note.as_object_mut() {
                                             obj_mut.insert(
                                                 "compacted_ids".to_string(),
                                                 serde_json::json!(ids),
@@ -194,9 +196,9 @@ fn bfs_find_path(
     }
 
     // Reconstruct path if found
-    let (nodes, edges) = if found {
+    let (notes, links) = if found {
         let mut path_nodes: Vec<String> = Vec::new();
-        let mut path_edges: Vec<TreeEdge> = Vec::new();
+        let mut path_links: Vec<TreeLink> = Vec::new();
 
         // Backtrack from target to source
         let mut current = to.to_string();
@@ -204,7 +206,7 @@ fn bfs_find_path(
 
         while current != from {
             if let Some((pred, edge)) = predecessors.get(&current) {
-                path_edges.push(TreeEdge {
+                path_links.push(TreeLink {
                     from: edge.from.clone(),
                     to: edge.to.clone(),
                     link_type: edge.link_type.clone(),
@@ -218,13 +220,13 @@ fn bfs_find_path(
         }
 
         path_nodes.reverse();
-        path_edges.reverse();
+        path_links.reverse();
 
-        // Convert to TreeNodes
-        let tree_nodes: Vec<TreeNode> = path_nodes
+        // Convert to TreeNotes
+        let tree_notes: Vec<TreeNote> = path_nodes
             .iter()
             .filter_map(|id| {
-                index.get_metadata(id).map(|meta| TreeNode {
+                index.get_metadata(id).map(|meta| TreeNote {
                     id: meta.id.clone(),
                     title: meta.title.clone(),
                     note_type: meta.note_type,
@@ -234,7 +236,7 @@ fn bfs_find_path(
             })
             .collect();
 
-        (tree_nodes, path_edges)
+        (tree_notes, path_links)
     } else {
         (Vec::new(), Vec::new())
     };
@@ -248,9 +250,9 @@ fn bfs_find_path(
             crate::commands::link::Direction::Both => "both".to_string(),
         },
         found,
-        path_length: edges.len(),
-        nodes,
-        edges,
+        path_length: links.len(),
+        notes,
+        links,
     })
 }
 
@@ -264,25 +266,25 @@ fn output_path_human(cli: &Cli, result: &PathResult, compaction_ctx: Option<&Com
     }
 
     // Print path: node -> node -> node
-    for (i, node) in result.nodes.iter().enumerate() {
+    for (i, note) in result.notes.iter().enumerate() {
         if i > 0 {
             // Print edge info
-            if let Some(edge) = result.edges.get(i - 1) {
+            if let Some(link) = result.links.get(i - 1) {
                 println!("  |");
-                println!("  | [{}] ({})", edge.link_type, edge.source);
+                println!("  | [{}] ({})", link.link_type, link.source);
                 println!("  v");
             }
         }
-        println!("{} \"{}\"", node.id, node.title);
+        println!("{} \"{}\"", note.id, note.title);
 
         // Show compacted IDs if --with-compaction-ids is set
         if cli.with_compaction_ids {
             if let Some(ctx) = compaction_ctx {
-                let compacts_count = ctx.get_compacts_count(&node.id);
+                let compacts_count = ctx.get_compacts_count(&note.id);
                 if compacts_count > 0 {
                     let depth = cli.compaction_depth.unwrap_or(1);
                     if let Some((ids, truncated)) =
-                        ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                        ctx.get_compacted_ids(&note.id, depth, cli.compaction_max_nodes)
                     {
                         let ids_str = ids.join(", ");
                         let suffix = if truncated {
@@ -314,27 +316,27 @@ fn output_path_records(
     let mut lines = Vec::new();
 
     if result.found {
-        for node in &result.nodes {
-            let tags_csv = if node.tags.is_empty() {
+        for note in &result.notes {
+            let tags_csv = if note.tags.is_empty() {
                 "-".to_string()
             } else {
-                node.tags.join(",")
+                note.tags.join(",")
             };
             lines.push(format!(
                 "N {} {} \"{}\" tags={}",
-                node.id, node.note_type, node.title, tags_csv
+                note.id, note.note_type, note.title, tags_csv
             ));
 
             if cli.with_compaction_ids {
                 if let Some(ctx) = compaction_ctx {
-                    let compacts_count = ctx.get_compacts_count(&node.id);
+                    let compacts_count = ctx.get_compacts_count(&note.id);
                     if compacts_count > 0 {
                         let depth = cli.compaction_depth.unwrap_or(1);
                         if let Some((ids, truncated)) =
-                            ctx.get_compacted_ids(&node.id, depth, cli.compaction_max_nodes)
+                            ctx.get_compacted_ids(&note.id, depth, cli.compaction_max_nodes)
                         {
                             for id in &ids {
-                                lines.push(format!("D compacted {} from={}", id, node.id));
+                                lines.push(format!("D compacted {} from={}", id, note.id));
                             }
                             if truncated {
                                 lines.push(format!(
@@ -348,21 +350,21 @@ fn output_path_records(
                 }
             }
 
-            if let Ok(note) = store.get_note(&node.id) {
-                let summary = note.summary();
+            if let Ok(full_note) = store.get_note(&note.id) {
+                let summary = full_note.summary();
                 if !summary.is_empty() {
                     let summary_text = summary.lines().next().unwrap_or("").trim();
                     if !summary_text.is_empty() {
-                        lines.push(format!("S {} {}", node.id, summary_text));
+                        lines.push(format!("S {} {}", note.id, summary_text));
                     }
                 }
             }
         }
 
-        for edge in &result.edges {
+        for link in &result.links {
             lines.push(format!(
                 "E {} {} {} {}",
-                edge.from, edge.link_type, edge.to, edge.source
+                link.from, link.link_type, link.to, link.source
             ));
         }
     }

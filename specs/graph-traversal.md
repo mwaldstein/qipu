@@ -160,10 +160,10 @@ Proposed minimal shape:
   "direction": "both",
   "max_hops": 3,
   "truncated": false,
-  "nodes": [
+  "notes": [
     {"id": "qp-a1b2", "title": "…", "type": "…", "tags": ["…"], "path": "…"}
   ],
-  "edges": [
+  "links": [
     {"from": "qp-a1b2", "to": "qp-f14c3", "type": "related", "source": "inline"},
     {"from": "qp-a1b2", "to": "qp-3e7a", "type": "supports", "source": "typed"}
   ],
@@ -174,12 +174,12 @@ Proposed minimal shape:
 ```
 
 Notes:
-- `edges[]` represents the effective edge set encountered during traversal.
+- `links[]` represents the effective link set encountered during traversal.
 - `spanning_tree[]` encodes the deterministic “tree view” projection (via first-discovery predecessor edges).
 
 ## Integration with `qipu context`
 Traversal results should compose cleanly into context bundles:
-- users/tools can traverse with `qipu link tree --format json`, select a subset of `nodes[]`, and then call `qipu context --note …`
+- users/tools can traverse with `qipu link tree --format json`, select a subset of `notes[]`, and then call `qipu context --note …`
 
 Future-friendly extension (optional):
 - add `qipu context --walk <id> --max-hops <n> ...` to perform traversal-and-bundle in one command.

@@ -497,8 +497,8 @@ fn test_link_tree_json_format() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"root\":"))
-        .stdout(predicate::str::contains("\"nodes\":"))
-        .stdout(predicate::str::contains("\"edges\":"))
+        .stdout(predicate::str::contains("\"notes\":"))
+        .stdout(predicate::str::contains("\"links\":"))
         .stdout(predicate::str::contains("\"spanning_tree\":"));
 }
 
@@ -841,8 +841,8 @@ fn test_link_path_json_format() {
         .stdout(predicate::str::contains("\"from\":"))
         .stdout(predicate::str::contains("\"to\":"))
         .stdout(predicate::str::contains("\"found\": true"))
-        .stdout(predicate::str::contains("\"nodes\":"))
-        .stdout(predicate::str::contains("\"edges\":"));
+        .stdout(predicate::str::contains("\"notes\":"))
+        .stdout(predicate::str::contains("\"links\":"));
 }
 
 #[test]

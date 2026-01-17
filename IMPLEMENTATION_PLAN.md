@@ -56,6 +56,7 @@ These items are considered potential future enhancements but are not required fo
 - [ ] **Semantic Search**: Add embedding-based search (requires external dependencies or optional feature).
 
 ### **Knowledge Management Tools**
+- [ ] **Workspaces**: Implement `qipu workspace` suite for managing temporary/secondary stores (`specs/workspaces.md`).
 - [ ] **Duplicate Detection**: Implement `qipu duplicates` to find potential near-duplicate notes.
 - [ ] **Merge Command**: Implement `qipu merge` to combine notes (mentioned in `specs/knowledge-model.md`).
 

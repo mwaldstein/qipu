@@ -108,9 +108,9 @@ impl Default for TreeOptions {
     }
 }
 
-/// Node in the traversal output
+/// Note in the traversal output
 #[derive(Debug, Clone, Serialize)]
-pub struct TreeNode {
+pub struct TreeNote {
     pub id: String,
     pub title: String,
     #[serde(rename = "type")]
@@ -119,9 +119,9 @@ pub struct TreeNode {
     pub path: String,
 }
 
-/// Edge in the traversal output
+/// Link in the traversal output
 #[derive(Debug, Clone, Serialize)]
-pub struct TreeEdge {
+pub struct TreeLink {
     pub from: String,
     pub to: String,
     #[serde(rename = "type")]
@@ -145,8 +145,8 @@ pub struct TreeResult {
     pub max_hops: u32,
     pub truncated: bool,
     pub truncation_reason: Option<String>,
-    pub nodes: Vec<TreeNode>,
-    pub edges: Vec<TreeEdge>,
+    pub notes: Vec<TreeNote>,
+    pub links: Vec<TreeLink>,
     pub spanning_tree: Vec<SpanningTreeEntry>,
 }
 
@@ -157,8 +157,8 @@ pub struct PathResult {
     pub to: String,
     pub direction: String,
     pub found: bool,
-    pub nodes: Vec<TreeNode>,
-    pub edges: Vec<TreeEdge>,
+    pub notes: Vec<TreeNote>,
+    pub links: Vec<TreeLink>,
     pub path_length: usize,
 }
 

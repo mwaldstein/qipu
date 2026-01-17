@@ -1,8 +1,5 @@
 # Graph Retrieval and Traversal
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Motivation
 Qipu’s knowledge store is a graph. For both humans and LLM tools, it must be easy to “walk the tree” (i.e., traverse the graph from one or more starting notes) to gather the set of related notes needed to achieve a goal.
 

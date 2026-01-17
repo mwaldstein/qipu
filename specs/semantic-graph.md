@@ -1,8 +1,5 @@
 # Semantic Graph & Link Ontology
 
-Status: Draft  
-Last updated: 2026-01-17
-
 ## Motivation
 To enable powerful graph traversal for LLM agents, links must be more than simple "goto" pointers. They must carry semantic weight.
 

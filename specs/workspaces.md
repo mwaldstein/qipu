@@ -1,8 +1,5 @@
 # Workspaces and Temporary Stores
 
-Status: Draft  
-Last updated: 2026-01-17
-
 ## Motivation
 
 Qipu acts as the long-term memory for an agentic system. However, agents often need "scratchpads" or "sandboxes" for:

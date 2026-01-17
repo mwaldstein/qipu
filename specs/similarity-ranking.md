@@ -1,8 +1,5 @@
 # Content Similarity & Ranking (Bag-of-Words)
 
-Status: Draft  
-Last updated: 2026-01-17
-
 ## Motivation
 While Qipu does not use vector embeddings (to avoid complexity/dependencies), it still needs a way to find "similar" notes beyond direct links. This enables:
 - "See Also" suggestions.

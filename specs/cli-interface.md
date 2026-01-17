@@ -1,8 +1,5 @@
 # CLI Interface
 
-Status: Draft  
-Last updated: 2026-01-15
-
 ## CLI principles (beads-aligned)
 - **Scriptable by default**: commands should work non-interactively.
 - **Deterministic output**: especially with `--format json`, `prime`, and `context`.

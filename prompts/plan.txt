@@ -1,30 +1,74 @@
-You are creating/updating the repository's implementation plan.
+Create/update implementation plan.
 
-0d. For reference, the application source code is in `src/*`.
+Source: `src/*`
+Specs: `specs/*.md`
+Goals: `README.md` (scope and non-goals)
+Guidance: `docs/*` (non-spec examples)
+Shared lib: `src/lib/*`
+Plan: `IMPLEMENTATION_PLAN.md`
 
-Primary inputs:
-- Product goals: `README.md`
-- Implementable specs: `specs/*.md` (see `specs/README.md` for index)
-- Non-spec guidance/examples: `docs/*`
-- Existing plan: `IMPLEMENTATION_PLAN.md` (if present)
-- Shared utilities & components: `src/lib/*`
+## TRUST HIERARCHY
 
-Task:
-1) Read `README.md` to understand scope and non-goals.
-2) Study `specs/*.md` to understand required behavior.
-   - Use subagents if available.
-3) Study `src/lib/*` to understand shared utilities & components.
-   - Use subagents if available.
-4) Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use up to 500 subagents to study existing source code in `src/*` and compare it against `specs/*`. Use a subagent to analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented. Consider searching for TODO, minimal implementations, placeholders, skipped/flaky tests, and inconsistent patterns. Study @IMPLEMENTATION_PLAN.md to determine starting point for research and keep it up to date with items considered complete/incomplete using subagents.
+1. Code is truth. Specs/docs may be stale or wrong.
+2. Tests prove behavior. Read test files to verify claims.
+3. Existing plan may be inaccurate. Validate every "complete" item.
 
+## AUDIT PROCESS
 
-Rules:
-- Plan only: do NOT implement code.
-- Do NOT assume functionality is missing; confirm with code search first.
-- Treat `src/lib` as the project's standard library for shared utilities and components. Prefer consolidated, idiomatic implementations there over ad-hoc copies.
+For each spec:
+1. Read spec requirements
+2. Search code for implementation (grep patterns, function names)
+3. Check test coverage exists and passes
+4. Compare actual behavior vs spec claims
+5. Note gaps with file:line references
 
+Use subagents in parallel - one per spec. Each must:
+- Read the spec file
+- Search src/ for implementation
+- Search tests/ for coverage
+- Report: implemented (with refs) | partial (what's missing) | not implemented
 
-ULTIMATE GOAL: We want to achieve project goals. Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed author the specification at specs/FILENAME.md. If you create a new element then document the plan to implement it in @IMPLEMENTATION_PLAN.md using a subagent.
+## WHAT TO LOOK FOR
 
+- TODO/FIXME/unimplemented! in code
+- #[ignore] or skip in tests
+- Hardcoded/simulated behavior (scaffolds that don't do real work)
+- Spec says X, code does Y (mismatches)
+- Flag defined in CLI but handler is no-op
+- Strategy/option not wired through
+- Empty match arms or unreachable branches
+- Panics/unwraps hiding incomplete error handling
 
-If no changes were required, print exactly one final line: COMPLETE
+## PRIORITY DEFINITIONS
+
+- **P1: Correctness bugs** - Code exists but doesn't match spec behavior
+- **P2: Missing test coverage** - Feature works but lacks tests
+- **P3: Unimplemented optional** - Spec marks as optional/future, not yet done
+- **P4: Spec ambiguity** - Spec unclear, needs clarification before impl
+
+## OUTPUT
+
+Update @IMPLEMENTATION_PLAN.md:
+- P1-P4 sections with items grouped by spec
+- Each item: checkbox, description, file:line refs
+- Completed section: verified working with file refs
+- Add audit date to status header
+
+Update @specs/README.md status table:
+- Spec/Impl/Tests columns with ✅/⚠️/❌
+- Notes column for key gaps
+- Update "Last audited" date
+
+## RULES
+
+- Plan only. No code changes.
+- Never trust docs. Always verify in code.
+- Never assume missing; confirm with code search first.
+- Include file:line refs for all claims.
+- Preserve completed items unless proven incorrect.
+- Remove items from gaps when fixed (don't duplicate).
+- Keep items in priority order within sections.
+- If a needed feature has no spec, create specs/FILENAME.md first.
+- Prefer shared utilities in `src/lib/` over ad-hoc implementations.
+
+If no changes required: COMPLETE

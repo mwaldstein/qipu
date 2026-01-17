@@ -1,8 +1,5 @@
 # Export and Publishing
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Goals
 Export should make qipu notes usable outside the qipu store, especially for:
 - writing white papers and design docs

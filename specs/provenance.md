@@ -1,8 +1,5 @@
 # Provenance & Source Metadata
 
-Status: Draft  
-Last updated: 2026-01-17
-
 ## Motivation
 To support "Enterprise-grade" trust and auditability in a local knowledge graph, Qipu needs a standard way to track where information came from. This allows agents to distinguish between "human-verified facts" and "LLM-generated speculation," and enables users to trace a note back to its original source URL or generation prompt.
 

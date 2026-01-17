@@ -1,8 +1,5 @@
 # LLM Integration and Context Bundles
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Purpose
 Qipu’s LLM integration is centered on producing **clean, deterministic context** that can be injected into an LLM prompt.
 

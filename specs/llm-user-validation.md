@@ -1,8 +1,5 @@
 # LLM User Validation Test
 
-Status: Draft
-Created: 2026-01-14
-
 ## Purpose
 
 Validate that qipu achieves its core goal: being usable by an LLM as the primary user.

@@ -1,8 +1,5 @@
 # Pack (Dump/Load)
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Goals
 - Provide a single-file, raw exchange format for sharing knowledge outside a project.
 - Support dumping the full store or a specific slice of the graph.
@@ -66,7 +63,52 @@ The concrete on-disk encoding is intentionally unspecified in this spec.
 `qipu dump` produces a pack file, not a `--format` output stream. `--format` flags
 do not alter the pack contents.
 
-## Open questions
-- Do we require deterministic, byte-stable packs for identical inputs?
-- What are the merge/conflict rules when loading into a non-empty store?
-- Should packs carry explicit schema/version markers and integrity hashes?
+## Conflict Resolution
+
+When loading a pack into a non-empty store, incoming notes may have IDs that already exist in the target store. The conflict resolution strategies are shared with workspace merging (see `specs/workspaces.md`).
+
+### Strategies
+
+`qipu load` accepts `--strategy <strategy>`:
+
+1. **`skip`** (default):
+   - If ID exists in target, keep target. Ignore incoming.
+   - Good for "fill in missing gaps" without touching established notes.
+
+2. **`overwrite`**:
+   - If ID exists, replace target with incoming.
+   - Good for "pack is the authority" workflows.
+
+3. **`merge-links`**:
+   - Keep target *content* (title/body).
+   - Union the `links` arrays (add new typed links from incoming).
+   - Good for "enrichment" packs that add connections.
+
+### Graph Integrity
+
+After loading, the target store should remain valid. Run `qipu doctor` to ensure no broken links were introduced.
+
+## Pack Metadata
+
+Pack files carry metadata in a header section, following the pattern established by workspace metadata and store configuration.
+
+### Header Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `version` | string | Pack format version (e.g., `"1.0"`) |
+| `store_version` | u32 | Store format version from source store (for compatibility checking) |
+| `created` | datetime | When the pack was created |
+| `notes_count` | int | Number of notes in the pack |
+| `links_count` | int | Number of links in the pack |
+| `attachments_count` | int | Number of attachments in the pack |
+
+### Compatibility
+
+On `qipu load`, the pack's `store_version` should be checked against the target store's version:
+- If pack version > target store version: warn or error (pack may use features not supported)
+- If pack version < target store version: load normally (backward compatible)
+
+## Non-goals
+
+**Byte-stable determinism**: Packs are an internal exchange format. The contract is that `dump` followed by `load` produces correct store state per the conflict resolution strategy. The intermediate pack format is not guaranteed to be byte-identical across runs and should not be used for diffing, caching, or external consumption.

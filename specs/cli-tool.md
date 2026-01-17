@@ -1,8 +1,5 @@
 # CLI Tool (Executable + Command Runtime)
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Job to be done
 
 Provide a single `qipu` executable that can be run locally (offline) to create, read, and navigate a qipu knowledge store.

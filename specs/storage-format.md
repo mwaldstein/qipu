@@ -1,8 +1,5 @@
 # Storage Format and Repository Layout
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Design constraints
 - Files must be readable and editable without qipu.
 - Git diffs should stay clean.

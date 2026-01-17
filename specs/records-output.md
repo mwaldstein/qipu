@@ -1,8 +1,5 @@
 # Records Output
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Motivation
 LLM tools have constrained context windows. Even when the right notes are retrieved, the *formatting overhead* of the output can consume a meaningful fraction of the available budget.
 

@@ -1,8 +1,5 @@
 # Compaction (Digests and Lossless Knowledge Decay)
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Motivation
 As a knowledge store grows, the “working set” an LLM needs becomes too large to traverse or load directly.
 

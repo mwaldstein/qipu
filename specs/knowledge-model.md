@@ -1,8 +1,5 @@
 # Knowledge Model (Zettelkasten-inspired)
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Overview
 Qipu uses a Zettelkasten-inspired model: many small, linkable notes that form a graph. It is optimized for:
 

@@ -1,8 +1,5 @@
 # Indexing, Search, and Navigation
 
-Status: Draft  
-Last updated: 2026-01-12
-
 ## Scope
 This spec describes how qipu makes a note store navigable:
 

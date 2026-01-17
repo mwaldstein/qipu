@@ -235,7 +235,21 @@ pub fn filter_and_convert_inbound(
     type_filter: Option<&str>,
     typed_only: bool,
     inline_only: bool,
+    virtual_inversion: bool,
 ) -> Option<LinkEntry> {
+    // If virtual inversion is requested, we treat this inbound edge as a virtual outbound edge
+    if virtual_inversion {
+        let virtual_edge = edge.invert();
+        return filter_and_convert(
+            &virtual_edge,
+            "out",
+            index,
+            type_filter,
+            typed_only,
+            inline_only,
+        );
+    }
+
     // Apply source filters
     if typed_only && edge.source != LinkSource::Typed {
         return None;

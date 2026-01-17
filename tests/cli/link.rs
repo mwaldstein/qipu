@@ -90,14 +90,25 @@ fn test_link_add_and_list() {
         .stdout(predicate::str::contains(&id2))
         .stdout(predicate::str::contains("supports"));
 
-    // List links from target should show inbound link
+    // List links from target should show inbound link as virtual inverted edge by default
     qipu()
         .current_dir(dir.path())
         .args(["link", "list", &id2])
         .assert()
         .success()
         .stdout(predicate::str::contains(&id1))
-        .stdout(predicate::str::contains("supports"));
+        .stdout(predicate::str::contains("supported-by"))
+        .stdout(predicate::str::contains("(virtual)"));
+
+    // List links from target with --no-semantic-inversion should show raw inbound link
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "list", &id2, "--no-semantic-inversion"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&id1))
+        .stdout(predicate::str::contains("supports"))
+        .stdout(predicate::str::contains("<-"));
 }
 
 #[test]

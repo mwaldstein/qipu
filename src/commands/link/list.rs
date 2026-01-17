@@ -101,9 +101,14 @@ pub fn execute(
     if direction == Direction::In || direction == Direction::Both {
         for source_id in &source_ids {
             for edge in index.get_inbound_edges(source_id) {
-                if let Some(mut entry) =
-                    filter_and_convert_inbound(edge, &index, type_filter, typed_only, inline_only)
-                {
+                if let Some(mut entry) = filter_and_convert_inbound(
+                    edge,
+                    &index,
+                    type_filter,
+                    typed_only,
+                    inline_only,
+                    !cli.no_semantic_inversion,
+                ) {
                     // Canonicalize the source ID if compaction is enabled
                     if let Some(ref ctx) = compaction_ctx {
                         entry.id = ctx.canon(&entry.id)?;

@@ -1,8 +1,9 @@
-use crate::lib::note::NoteType;
+use crate::lib::note::{LinkType, NoteType};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 /// Link source - where the link was defined
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -12,6 +13,8 @@ pub enum LinkSource {
     Typed,
     /// Link extracted from markdown body (wiki-style or markdown links)
     Inline,
+    /// Virtual link generated at query time (e.g. semantic inverse)
+    Virtual,
 }
 
 impl std::fmt::Display for LinkSource {
@@ -19,6 +22,7 @@ impl std::fmt::Display for LinkSource {
         match self {
             LinkSource::Typed => write!(f, "typed"),
             LinkSource::Inline => write!(f, "inline"),
+            LinkSource::Virtual => write!(f, "virtual"),
         }
     }
 }
@@ -30,11 +34,33 @@ pub struct Edge {
     pub from: String,
     /// Target note ID
     pub to: String,
-    /// Link type (related, derived-from, supports, contradicts, part-of)
+    /// Link type (related, supports, etc.)
     #[serde(rename = "type")]
     pub link_type: String,
     /// Where the link was defined
     pub source: LinkSource,
+}
+
+impl Edge {
+    /// Invert this edge semantically
+    pub fn invert(&self) -> Self {
+        let inverted_type = LinkType::from_str(&self.link_type)
+            .map(|lt| lt.inverse().to_string())
+            .unwrap_or_else(|_| {
+                if self.link_type.starts_with("inverse-") {
+                    self.link_type["inverse-".len()..].to_string()
+                } else {
+                    format!("inverse-{}", self.link_type)
+                }
+            });
+
+        Edge {
+            from: self.to.clone(),
+            to: self.from.clone(),
+            link_type: inverted_type,
+            source: LinkSource::Virtual,
+        }
+    }
 }
 
 /// Metadata for a single note (stored in index)

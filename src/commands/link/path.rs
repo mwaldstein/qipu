@@ -7,9 +7,7 @@ use crate::lib::error::Result;
 use crate::lib::index::{Edge, Index, IndexBuilder};
 use crate::lib::store::Store;
 
-use super::{
-    get_filtered_neighbors, resolve_note_id, PathResult, TreeLink, TreeNote, TreeOptions,
-};
+use super::{get_filtered_neighbors, resolve_note_id, PathResult, TreeLink, TreeNote, TreeOptions};
 
 /// Execute the link path command
 pub fn execute(

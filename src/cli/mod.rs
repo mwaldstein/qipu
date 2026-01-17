@@ -63,6 +63,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub expand_compaction: bool,
 
+    /// Disable semantic inversion for link listing/traversal
+    #[arg(long, global = true)]
+    pub no_semantic_inversion: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }

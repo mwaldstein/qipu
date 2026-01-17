@@ -8,8 +8,7 @@ use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::store::Store;
 
 use super::{
-    get_filtered_neighbors, resolve_note_id, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions,
-    TreeResult,
+    resolve_note_id, Direction, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult,
 };
 
 /// Execute the link tree command
@@ -51,6 +50,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
 
     // Perform BFS traversal with compaction context
     let result = bfs_traverse(
+        cli,
         &index,
         &canonical_id,
         &opts,
@@ -103,6 +103,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
 
 /// Perform BFS traversal from a root node with optional compaction resolution
 fn bfs_traverse(
+    cli: &Cli,
     index: &Index,
     root: &str,
     opts: &TreeOptions,
@@ -158,7 +159,49 @@ fn bfs_traverse(
         }
 
         // Get neighbors based on direction (gather edges from all compacted notes)
-        let neighbors = get_filtered_neighbors(index, &current_id, opts, equivalence_map);
+        let source_ids = equivalence_map
+            .and_then(|map| map.get(&current_id).cloned())
+            .unwrap_or_else(|| vec![current_id.clone()]);
+
+        let mut neighbors = Vec::new();
+
+        // Outbound edges
+        if opts.direction == Direction::Out || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in index.get_outbound_edges(source_id) {
+                    if super::filter_edge(edge, opts) {
+                        neighbors.push((edge.to.clone(), edge.clone()));
+                    }
+                }
+            }
+        }
+
+        // Inbound edges (Inversion point)
+        if opts.direction == Direction::In || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in index.get_inbound_edges(source_id) {
+                    if !cli.no_semantic_inversion {
+                        // Virtual Inversion
+                        let virtual_edge = edge.invert();
+                        if super::filter_edge(&virtual_edge, opts) {
+                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                        }
+                    } else {
+                        // Raw backlink
+                        if super::filter_edge(edge, opts) {
+                            neighbors.push((edge.from.clone(), edge.clone()));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort for determinism
+        neighbors.sort_by(|a, b| {
+            a.1.link_type
+                .cmp(&b.1.link_type)
+                .then_with(|| a.0.cmp(&b.0))
+        });
 
         // Apply max_fanout
         let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {

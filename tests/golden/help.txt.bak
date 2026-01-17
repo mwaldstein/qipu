@@ -45,8 +45,6 @@ Options:
           Maximum compacted notes to include in output
       --expand-compaction
           Expand compacted notes to include full content (context command only)
-      --no-semantic-inversion
-          Disable semantic inversion for link listing/traversal
   -h, --help
           Print help
   -V, --version

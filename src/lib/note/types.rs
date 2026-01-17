@@ -53,7 +53,7 @@ impl fmt::Display for NoteType {
     }
 }
 
-/// Typed link relationship (per specs/knowledge-model.md)
+/// Typed link relationship (per specs/knowledge-model.md and specs/semantic-graph.md)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum LinkType {
@@ -68,17 +68,74 @@ pub enum LinkType {
     Contradicts,
     /// Note is part of a larger outline/MOC
     PartOf,
+    /// Solution to a question
+    Answers,
+    /// Improved iteration of a note
+    Refines,
+    /// Strong identity/synonym
+    SameAs,
+    /// Alternative name for canonical note
+    AliasOf,
+    /// Sequence: note comes after another
+    Follows,
+
+    // Inverses (Virtual)
+    /// Inverse of derived-from
+    DerivedTo,
+    /// Inverse of supports
+    SupportedBy,
+    /// Inverse of contradicts
+    ContradictedBy,
+    /// Inverse of part-of
+    HasPart,
+    /// Inverse of answers
+    AnsweredBy,
+    /// Inverse of refines
+    RefinedBy,
+    /// Inverse of alias-of
+    HasAlias,
+    /// Inverse of follows
+    Precedes,
 }
 
 impl LinkType {
-    /// All valid link types
+    /// All valid link types (stored on disk)
     pub const VALID_TYPES: &'static [&'static str] = &[
         "related",
         "derived-from",
         "supports",
         "contradicts",
         "part-of",
+        "answers",
+        "refines",
+        "same-as",
+        "alias-of",
+        "follows",
     ];
+
+    /// Returns the inverse of a link type
+    pub fn inverse(&self) -> Self {
+        match self {
+            LinkType::Related => LinkType::Related,
+            LinkType::DerivedFrom => LinkType::DerivedTo,
+            LinkType::DerivedTo => LinkType::DerivedFrom,
+            LinkType::Supports => LinkType::SupportedBy,
+            LinkType::SupportedBy => LinkType::Supports,
+            LinkType::Contradicts => LinkType::ContradictedBy,
+            LinkType::ContradictedBy => LinkType::Contradicts,
+            LinkType::PartOf => LinkType::HasPart,
+            LinkType::HasPart => LinkType::PartOf,
+            LinkType::Answers => LinkType::AnsweredBy,
+            LinkType::AnsweredBy => LinkType::Answers,
+            LinkType::Refines => LinkType::RefinedBy,
+            LinkType::RefinedBy => LinkType::Refines,
+            LinkType::SameAs => LinkType::SameAs,
+            LinkType::AliasOf => LinkType::HasAlias,
+            LinkType::HasAlias => LinkType::AliasOf,
+            LinkType::Follows => LinkType::Precedes,
+            LinkType::Precedes => LinkType::Follows,
+        }
+    }
 }
 
 impl FromStr for LinkType {
@@ -91,10 +148,25 @@ impl FromStr for LinkType {
             "supports" => Ok(LinkType::Supports),
             "contradicts" => Ok(LinkType::Contradicts),
             "part-of" => Ok(LinkType::PartOf),
+            "answers" => Ok(LinkType::Answers),
+            "refines" => Ok(LinkType::Refines),
+            "same-as" => Ok(LinkType::SameAs),
+            "alias-of" => Ok(LinkType::AliasOf),
+            "follows" => Ok(LinkType::Follows),
+
+            // Virtual/Inverse types
+            "derived-to" => Ok(LinkType::DerivedTo),
+            "supported-by" => Ok(LinkType::SupportedBy),
+            "contradicted-by" => Ok(LinkType::ContradictedBy),
+            "has-part" => Ok(LinkType::HasPart),
+            "answered-by" => Ok(LinkType::AnsweredBy),
+            "refined-by" => Ok(LinkType::RefinedBy),
+            "has-alias" => Ok(LinkType::HasAlias),
+            "precedes" => Ok(LinkType::Precedes),
+
             other => Err(QipuError::Other(format!(
-                "unknown link type: {} (expected: {})",
-                other,
-                Self::VALID_TYPES.join(", ")
+                "unknown link type: {} (expected one of the standard ontology types)",
+                other
             ))),
         }
     }
@@ -102,13 +174,28 @@ impl FromStr for LinkType {
 
 impl fmt::Display for LinkType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LinkType::Related => write!(f, "related"),
-            LinkType::DerivedFrom => write!(f, "derived-from"),
-            LinkType::Supports => write!(f, "supports"),
-            LinkType::Contradicts => write!(f, "contradicts"),
-            LinkType::PartOf => write!(f, "part-of"),
-        }
+        let s = match self {
+            LinkType::Related => "related",
+            LinkType::DerivedFrom => "derived-from",
+            LinkType::Supports => "supports",
+            LinkType::Contradicts => "contradicts",
+            LinkType::PartOf => "part-of",
+            LinkType::Answers => "answers",
+            LinkType::Refines => "refines",
+            LinkType::SameAs => "same-as",
+            LinkType::AliasOf => "alias-of",
+            LinkType::Follows => "follows",
+
+            LinkType::DerivedTo => "derived-to",
+            LinkType::SupportedBy => "supported-by",
+            LinkType::ContradictedBy => "contradicted-by",
+            LinkType::HasPart => "has-part",
+            LinkType::AnsweredBy => "answered-by",
+            LinkType::RefinedBy => "refined-by",
+            LinkType::HasAlias => "has-alias",
+            LinkType::Precedes => "precedes",
+        };
+        write!(f, "{}", s)
     }
 }
 

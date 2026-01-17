@@ -207,7 +207,7 @@ fn bfs_find_path(
                 path_links.push(TreeLink {
                     from: edge.from.clone(),
                     to: edge.to.clone(),
-                    link_type: edge.link_type.clone(),
+                    link_type: edge.link_type.to_string(),
                     source: edge.source.to_string(),
                 });
                 current = pred.clone();

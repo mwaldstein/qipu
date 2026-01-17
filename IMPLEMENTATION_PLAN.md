@@ -13,12 +13,12 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
     - [x] **Expand LinkType enum with full Standard Ontology**
     - [x] **Semantic Inversion (Virtual Edges)**: Update `src/lib/index/mod.rs` and `src/commands/link/` to support virtual inverse edges (e.g., `supports` $\implies$ `supported-by`) as first-class traversal entities (see `specs/semantic-graph.md`).
     - [x] **Expand Standard Ontology**: Add missing standard link types to `LinkType` enum: `follows/precedes`, `answers/answered-by`, `refines/refined-by`, `same-as`, `alias-of` (see `specs/semantic-graph.md`).
-- [/] **Provenance Metadata**: Update `NoteFrontmatter` in `src/lib/note/frontmatter.rs` and CLI `create`/`capture` to support AI-specific fields: `author`, `generated_by`, `prompt_hash`, and `verified` boolean (see `specs/provenance.md`). Verified prioritization implemented in `qipu context`.
-- [/] **User-Defined Link Types**: Update `StoreConfig` and `LinkType` parsing to support custom link types and their inverses defined in `.qipu/config.toml` (see `specs/semantic-graph.md`).
-    - *Note*: Transitioning from `enum LinkType` to `struct LinkType(String)` to support extensibility while maintaining the standard ontology as defaults.
+- [x] **Provenance Metadata**: Update `NoteFrontmatter` in `src/lib/note/frontmatter.rs` and CLI `create`/`capture` to support AI-specific fields: `author`, `generated_by`, `prompt_hash`, and `verified` boolean (see `specs/provenance.md`). Verified prioritization implemented in `qipu context`. Added `qipu verify` command.
+- [x] **User-Defined Link Types**: Update `StoreConfig` and `LinkType` parsing to support custom link types and their inverses defined in `.qipu/config.toml` (see `specs/semantic-graph.md`).
+    - *Note*: Transitioning from `enum LinkType` to `struct LinkType(String)` to support extensibility while maintaining the standard ontology as defaults. Updated `LinkConfig` with `descriptions`.
 - [x] **Token-based Budgeting**: Implement `tiktoken`-based token counting for `qipu context` to complement existing `--max-chars` enforcement (see `specs/llm-context.md`).
     - *Learnings*: Used `tiktoken-rs` for counting; added `--max-tokens` and `--model` flags to the `context` command.
-- [ ] **Next Steps**: Complete the transition of `LinkType` to a flexible struct and implement configuration-based custom types. Finish Provenance Metadata implementation in CLI commands.
+- [ ] **Next Steps**: Add more integration tests for user-defined link types and provenance.
 - [ ] **Search Ranking (BM25)**: Replace the heuristic-based scoring in `src/lib/index/search.rs` with proper BM25 ranking for more accurate search results (see `specs/similarity-ranking.md`).
 - [ ] **Semantic Graph Library**: Extract graph traversal logic (tree, path) from commands in `src/commands/link/` into `src/lib/index/` or a new `src/lib/graph/` component (see `specs/graph-traversal.md`).
 - [ ] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).

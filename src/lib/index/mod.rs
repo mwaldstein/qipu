@@ -60,11 +60,11 @@ mod tests {
         let mut note = make_note("qp-a1", "Test", "Body text");
         note.frontmatter.links = vec![
             TypedLink {
-                link_type: LinkType::DerivedFrom,
+                link_type: LinkType::from(LinkType::DERIVED_FROM),
                 id: "qp-b2".to_string(),
             },
             TypedLink {
-                link_type: LinkType::Supports,
+                link_type: LinkType::from(LinkType::SUPPORTS),
                 id: "qp-c3".to_string(),
             },
         ];
@@ -154,7 +154,7 @@ mod tests {
         index.edges.push(Edge {
             from: "qp-a1".to_string(),
             to: "qp-b2".to_string(),
-            link_type: "related".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
             source: LinkSource::Inline,
         });
         index.unresolved.insert("qp-missing".to_string());

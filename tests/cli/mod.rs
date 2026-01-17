@@ -10,6 +10,7 @@ mod link;
 mod list;
 mod misc;
 mod prime;
+mod provenance;
 mod search;
 mod setup;
 mod show;

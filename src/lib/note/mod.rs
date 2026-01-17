@@ -104,12 +104,18 @@ mod tests {
 
     #[test]
     fn test_link_type_parsing() {
-        assert_eq!("related".parse::<LinkType>().unwrap(), LinkType::Related);
+        assert_eq!(
+            "related".parse::<LinkType>().unwrap(),
+            LinkType::from(LinkType::RELATED)
+        );
         assert_eq!(
             "derived-from".parse::<LinkType>().unwrap(),
-            LinkType::DerivedFrom
+            LinkType::from(LinkType::DERIVED_FROM)
         );
-        assert_eq!("supports".parse::<LinkType>().unwrap(), LinkType::Supports);
+        assert_eq!(
+            "supports".parse::<LinkType>().unwrap(),
+            LinkType::from(LinkType::SUPPORTS)
+        );
     }
 
     #[test]

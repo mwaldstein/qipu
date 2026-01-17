@@ -50,6 +50,7 @@ qipu --version
 ### Advanced
 - `qipu context` - Show contextual notes
 - `qipu prime` - Prime notes for AI context
+- `qipu verify <id>` - Toggle verification status of a note
 - `qipu export` - Export store data; supports --with-attachments to copy media
 - `qipu index` - Manage search index
 - `qipu sync` - Update indexes and optionally validate; supports --commit/--push for git automation

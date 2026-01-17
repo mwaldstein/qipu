@@ -104,6 +104,7 @@ pub fn execute(
                 if let Some(mut entry) = filter_and_convert_inbound(
                     edge,
                     &index,
+                    store,
                     type_filter,
                     typed_only,
                     inline_only,

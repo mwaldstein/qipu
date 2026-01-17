@@ -1371,3 +1371,68 @@ fn test_link_no_resolve_compaction_flag() {
     assert!(stdout.contains(&id2));
     assert!(stdout.contains("Path length: 1 hop"));
 }
+
+#[test]
+fn test_custom_link_inversion() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create custom config with inversion
+    let config_path = dir.path().join(".qipu/config.toml");
+    let config_content = r#"
+version = 1
+default_note_type = "fleeting"
+
+[links.inverses]
+recommends = "recommended-by"
+"recommended-by" = "recommends"
+
+[links.descriptions]
+recommends = "This note recommends another note"
+"#;
+    std::fs::write(config_path, config_content).unwrap();
+
+    // Create two notes
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 1"])
+        .output()
+        .unwrap();
+    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 2"])
+        .output()
+        .unwrap();
+    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+
+    // Add custom link
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id2, "--type", "recommends"])
+        .assert()
+        .success();
+
+    // Build index
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // List links from target should show custom inverted edge
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "list", &id2])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&id1))
+        .stdout(predicate::str::contains("recommended-by"))
+        .stdout(predicate::str::contains("(virtual)"));
+}

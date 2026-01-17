@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::str::FromStr;
 
 /// Link source - where the link was defined
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -52,6 +52,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     let result = bfs_traverse(
         cli,
         &index,
+        store,
         &canonical_id,
         &opts,
         compaction_ctx.as_ref(),
@@ -105,6 +106,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
 fn bfs_traverse(
     cli: &Cli,
     index: &Index,
+    store: &Store,
     root: &str,
     opts: &TreeOptions,
     compaction_ctx: Option<&CompactionContext>,
@@ -252,7 +254,7 @@ fn bfs_traverse(
             links.push(TreeLink {
                 from: canonical_from,
                 to: canonical_to,
-                link_type: edge.link_type.clone(),
+                link_type: edge.link_type.to_string(),
                 source: edge.source.to_string(),
             });
 

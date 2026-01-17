@@ -22,7 +22,7 @@ pub(crate) fn extract_links(
         edges.push(Edge {
             from: from_id.clone(),
             to: to_id,
-            link_type: link.link_type.to_string(),
+            link_type: link.link_type.clone(),
             source: LinkSource::Typed,
         });
     }
@@ -49,7 +49,7 @@ pub(crate) fn extract_links(
         edges.push(Edge {
             from: from_id.clone(),
             to: to_id,
-            link_type: "related".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
             source: LinkSource::Inline,
         });
     }
@@ -101,7 +101,7 @@ pub(crate) fn extract_links(
         edges.push(Edge {
             from: from_id.clone(),
             to: to_id,
-            link_type: "related".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
             source: LinkSource::Inline,
         });
     }

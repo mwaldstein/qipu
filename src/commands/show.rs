@@ -63,6 +63,11 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "updated": note.frontmatter.updated,
                 "sources": note.frontmatter.sources,
                 "links": note.frontmatter.links,
+                "source": note.frontmatter.source,
+                "author": note.frontmatter.author,
+                "generated_by": note.frontmatter.generated_by,
+                "prompt_hash": note.frontmatter.prompt_hash,
+                "verified": note.frontmatter.verified,
                 "body": note.body,
             });
 
@@ -222,7 +227,7 @@ fn execute_show_links(
                 direction: "out".to_string(),
                 id: edge.to.clone(),
                 title: index.get_metadata(&edge.to).map(|m| m.title.clone()),
-                link_type: edge.link_type.clone(),
+                link_type: edge.link_type.to_string(),
                 source: edge.source.to_string(),
             };
 
@@ -245,7 +250,7 @@ fn execute_show_links(
                 direction: "in".to_string(),
                 id: edge.from.clone(),
                 title: index.get_metadata(&edge.from).map(|m| m.title.clone()),
-                link_type: edge.link_type.clone(),
+                link_type: edge.link_type.to_string(),
                 source: edge.source.to_string(),
             };
 

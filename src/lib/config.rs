@@ -48,6 +48,10 @@ pub struct LinkConfig {
     /// Custom link inversions (forward -> inverse)
     #[serde(default)]
     pub inverses: std::collections::HashMap<String, String>,
+
+    /// Custom link descriptions
+    #[serde(default)]
+    pub descriptions: std::collections::HashMap<String, String>,
 }
 
 impl StoreConfig {
@@ -77,6 +81,7 @@ impl Default for StoreConfig {
             id_scheme: IdScheme::default(),
             editor: None,
             branch: None,
+            links: LinkConfig::default(),
         }
     }
 }

@@ -186,6 +186,16 @@ pub enum Commands {
         exclude_mocs: bool,
     },
 
+    /// Toggle verification status of a note
+    Verify {
+        /// Note ID or file path
+        id_or_path: String,
+
+        /// Explicitly set verification status (true/false)
+        #[arg(long)]
+        status: Option<bool>,
+    },
+
     /// Manage and traverse note links
     Link {
         #[command(subcommand)]

@@ -130,7 +130,7 @@ mod tests {
             "See [[qp-missing]]".to_string(),
         );
         note.frontmatter.links = vec![TypedLink {
-            link_type: LinkType::Related,
+            link_type: LinkType::from(LinkType::RELATED),
             id: "qp-also-missing".to_string(),
         }];
         note.path = Some("/path/to/note.md".into());

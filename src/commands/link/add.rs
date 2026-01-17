@@ -66,7 +66,7 @@ pub fn execute(
 
     // Add the link
     from_note.frontmatter.links.push(TypedLink {
-        link_type,
+        link_type: link_type.clone(),
         id: to_resolved.clone(),
     });
 

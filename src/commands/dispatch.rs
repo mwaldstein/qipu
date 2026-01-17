@@ -248,6 +248,14 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             commands::search::execute(cli, &store, query, *r#type, tag.as_deref(), *exclude_mocs)
         }
 
+        Some(Commands::Verify { id_or_path, status }) => {
+            let store = discover_or_open_store(cli, &root)?;
+            if cli.verbose {
+                eprintln!("discover_store: {:?}", start.elapsed());
+            }
+            commands::verify::execute(cli, &store, id_or_path, *status)
+        }
+
         Some(Commands::Prime) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
@@ -401,10 +409,10 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     )
                 }
                 LinkCommands::Add { from, to, r#type } => {
-                    commands::link::add::execute(cli, &store, from, to, *r#type)
+                    commands::link::add::execute(cli, &store, from, to, r#type.clone())
                 }
                 LinkCommands::Remove { from, to, r#type } => {
-                    commands::link::remove::execute(cli, &store, from, to, *r#type)
+                    commands::link::remove::execute(cli, &store, from, to, r#type.clone())
                 }
                 LinkCommands::Tree {
                     id_or_path,

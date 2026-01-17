@@ -220,7 +220,12 @@ fn collect_links(
         // Only include links between selected notes
         if selected_ids.contains(edge.from.as_str()) && selected_ids.contains(edge.to.as_str()) {
             // Apply link type filters
-            if !options.type_include.is_empty() && !options.type_include.contains(&edge.link_type) {
+            if !options.type_include.is_empty()
+                && !options
+                    .type_include
+                    .iter()
+                    .any(|t| t == edge.link_type.as_str())
+            {
                 continue;
             }
 
@@ -237,7 +242,7 @@ fn collect_links(
             links.push(PackLink {
                 from: edge.from.clone(),
                 to: edge.to.clone(),
-                link_type: Some(edge.link_type.clone()),
+                link_type: Some(edge.link_type.to_string()),
                 inline: is_inline,
             });
         }

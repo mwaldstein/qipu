@@ -223,7 +223,7 @@ pub fn filter_and_convert(
         direction: direction.to_string(),
         id: edge.to.clone(),
         title,
-        link_type: edge.link_type.clone(),
+        link_type: edge.link_type.to_string(),
         source: edge.source.to_string(),
     })
 }
@@ -273,7 +273,7 @@ pub fn filter_and_convert_inbound(
         direction: "in".to_string(),
         id: edge.from.clone(),
         title,
-        link_type: edge.link_type.clone(),
+        link_type: edge.link_type.to_string(),
         source: edge.source.to_string(),
     })
 }
@@ -336,12 +336,21 @@ pub fn filter_edge(edge: &Edge, opts: &TreeOptions) -> bool {
     }
 
     // Type inclusion filter
-    if !opts.type_include.is_empty() && !opts.type_include.contains(&edge.link_type) {
+    if !opts.type_include.is_empty()
+        && !opts
+            .type_include
+            .iter()
+            .any(|t| t == edge.link_type.as_str())
+    {
         return false;
     }
 
     // Type exclusion filter
-    if opts.type_exclude.contains(&edge.link_type) {
+    if opts
+        .type_exclude
+        .iter()
+        .any(|t| t == edge.link_type.as_str())
+    {
         return false;
     }
 

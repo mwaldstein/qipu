@@ -54,9 +54,33 @@ impl fmt::Display for NoteType {
 }
 
 /// Typed link relationship (per specs/knowledge-model.md and specs/semantic-graph.md)
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct LinkType(String);
+
+impl PartialEq<&str> for LinkType {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<String> for LinkType {
+    fn eq(&self, other: &String) -> bool {
+        &self.0 == other
+    }
+}
+
+impl From<String> for LinkType {
+    fn from(s: String) -> Self {
+        LinkType(s.to_lowercase())
+    }
+}
+
+impl From<&str> for LinkType {
+    fn from(s: &str) -> Self {
+        LinkType(s.to_lowercase())
+    }
+}
 
 impl Default for LinkType {
     fn default() -> Self {

@@ -291,8 +291,7 @@ crates/llm-tool-test/
 - Metadata: workspace.toml ✅
 - Flags: --temp, --copy-primary, --from-tag ✅
 - Global --workspace targeting ✅
-- **Bugs**: overwrite/merge-links strategies broken, --force ignored
-- **Missing**: rename strategy, graph slice seeding, no tests
+- **Missing**: rename strategy, graph slice seeding, more tests needed
 
 ### ⚠️ Similarity Ranking (similarity-ranking.md) - PARTIAL
 - BM25 and cosine similarity ✅

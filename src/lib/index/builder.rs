@@ -65,6 +65,24 @@ impl<'a> IndexBuilder<'a> {
             if needs_reindex {
                 self.prune_note_indexes(&path, note.id());
 
+                // BM25 statistics
+                let terms = tokenize(&note.body);
+                let word_count = terms.len();
+                let unique_terms: HashSet<String> = terms.into_iter().collect();
+
+                self.index.total_docs += 1;
+                self.index.total_len += word_count;
+                self.index
+                    .doc_lengths
+                    .insert(note.id().to_string(), word_count);
+
+                for term in &unique_terms {
+                    *self.index.term_df.entry(term.clone()).or_insert(0) += 1;
+                }
+                self.index
+                    .note_terms
+                    .insert(note.id().to_string(), unique_terms);
+
                 // Update metadata
                 let meta = NoteMetadata {
                     id: note.id().to_string(),
@@ -134,6 +152,7 @@ impl<'a> IndexBuilder<'a> {
 
                 if should_remove {
                     self.remove_note_from_tags(&entry.note_id);
+                    self.remove_note_from_bm25_stats(&entry.note_id);
                     self.index.metadata.remove(&entry.note_id);
                     self.index.id_to_path.remove(&entry.note_id);
                 }
@@ -168,6 +187,7 @@ impl<'a> IndexBuilder<'a> {
         if let Some(entry) = self.index.files.get(path) {
             let existing_id = entry.note_id.clone();
             self.remove_note_from_tags(&existing_id);
+            self.remove_note_from_bm25_stats(&existing_id);
 
             if existing_id != note_id {
                 self.index.metadata.remove(&existing_id);
@@ -175,6 +195,29 @@ impl<'a> IndexBuilder<'a> {
             }
         } else if self.index.metadata.contains_key(note_id) {
             self.remove_note_from_tags(note_id);
+            self.remove_note_from_bm25_stats(note_id);
+        }
+    }
+
+    fn remove_note_from_bm25_stats(&mut self, note_id: &str) {
+        if let Some(length) = self.index.doc_lengths.remove(note_id) {
+            self.index.total_docs = self.index.total_docs.saturating_sub(1);
+            self.index.total_len = self.index.total_len.saturating_sub(length);
+        }
+
+        if let Some(terms) = self.index.note_terms.remove(note_id) {
+            for term in terms {
+                let mut remove_term = false;
+                if let Some(df) = self.index.term_df.get_mut(&term) {
+                    *df = df.saturating_sub(1);
+                    if *df == 0 {
+                        remove_term = true;
+                    }
+                }
+                if remove_term {
+                    self.index.term_df.remove(&term);
+                }
+            }
         }
     }
 
@@ -204,4 +247,13 @@ impl<'a> IndexBuilder<'a> {
             None => true,
         }
     }
+}
+
+/// Simple word-based tokenizer splitting on non-alphanumeric characters
+fn tokenize(text: &str) -> Vec<String> {
+    text.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
 }

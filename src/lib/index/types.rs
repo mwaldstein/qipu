@@ -130,10 +130,26 @@ pub struct Index {
     /// Reverse mapping: note_id -> file_path (for fast lookup)
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub(crate) id_to_path: HashMap<String, PathBuf>,
+
+    /// Total number of documents (for BM25)
+    #[serde(default)]
+    pub total_docs: usize,
+    /// Total number of terms across all documents (for BM25)
+    #[serde(default)]
+    pub total_len: usize,
+    /// Document lengths: note_id -> word count (for BM25)
+    #[serde(default)]
+    pub doc_lengths: HashMap<String, usize>,
+    /// Term document frequency: term -> number of documents containing it (for BM25)
+    #[serde(default)]
+    pub term_df: HashMap<String, usize>,
+    /// Terms in each note (for incremental term_df updates)
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub(crate) note_terms: HashMap<String, HashSet<String>>,
 }
 
 /// Current index format version
-pub const INDEX_VERSION: u32 = 1;
+pub const INDEX_VERSION: u32 = 2;
 
 impl Index {
     /// Create a new empty index
@@ -146,6 +162,11 @@ impl Index {
             unresolved: HashSet::new(),
             files: HashMap::new(),
             id_to_path: HashMap::new(),
+            total_docs: 0,
+            total_len: 0,
+            doc_lengths: HashMap::new(),
+            term_df: HashMap::new(),
+            note_terms: HashMap::new(),
         }
     }
 

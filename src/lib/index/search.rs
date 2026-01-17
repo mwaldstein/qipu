@@ -3,7 +3,6 @@ use crate::lib::error::Result;
 use crate::lib::logging;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
-use chrono::Utc;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -50,6 +49,67 @@ fn normalize_meta_path(store: &Store, meta_path: &str) -> String {
     }
 }
 
+/// Simple word-based tokenizer splitting on non-alphanumeric characters
+fn tokenize(text: &str) -> Vec<String> {
+    text.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
+/// Calculate BM25 score for a piece of text
+fn calculate_bm25(
+    query_terms: &[String],
+    text: &str,
+    index: &Index,
+    field_doc_len: Option<usize>,
+) -> f64 {
+    if text.is_empty() || query_terms.is_empty() {
+        return 0.0;
+    }
+
+    let terms = tokenize(text);
+    let doc_len = field_doc_len.unwrap_or(terms.len());
+    if doc_len == 0 {
+        return 0.0;
+    }
+
+    let mut term_freqs = HashMap::new();
+    for term in terms {
+        *term_freqs.entry(term).or_insert(0) += 1;
+    }
+
+    let total_docs = index.total_docs;
+    if total_docs == 0 {
+        return 0.0;
+    }
+
+    // Average document length from index stats (based on bodies)
+    let avgdl = (index.total_len as f64 / total_docs as f64).max(1.0);
+
+    let k1 = 1.2;
+    let b = 0.75;
+    let mut score = 0.0;
+
+    for query_term in query_terms {
+        if let Some(&f) = term_freqs.get(query_term) {
+            // Document frequency from index (based on bodies)
+            let df = *index.term_df.get(query_term).unwrap_or(&1);
+
+            // Lucene-style BM25 IDF: ln(1 + (N - n + 0.5) / (n + 0.5))
+            let idf = ((total_docs as f64 - df as f64 + 0.5) / (df as f64 + 0.5) + 1.0).ln();
+
+            let numerator = f as f64 * (k1 + 1.0);
+            let denominator = f as f64 + k1 * (1.0 - b + b * (doc_len as f64 / avgdl));
+
+            score += idf * numerator / denominator;
+        }
+    }
+
+    score
+}
+
 /// Search using ripgrep for faster file finding
 ///
 /// This is an optimization that leverages ripgrep if available.
@@ -61,8 +121,10 @@ fn search_with_ripgrep(
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
 ) -> Result<Vec<SearchResult>> {
-    let query_lower = query.to_lowercase();
-    let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
+    let tokenized_query = tokenize(query);
+    if tokenized_query.is_empty() {
+        return Ok(Vec::new());
+    }
 
     // Use ripgrep with JSON output to get both matches and context snippets
     let mut rg_cmd = Command::new("rg");
@@ -76,7 +138,7 @@ fn search_with_ripgrep(
         .arg("--max-columns=200");
 
     // Add search pattern (OR all terms together)
-    let pattern = query_terms.join("|");
+    let pattern = tokenized_query.join("|");
     rg_cmd.arg(&pattern);
 
     // Search in notes and mocs directories
@@ -121,17 +183,12 @@ fn search_with_ripgrep(
     }
 
     // If ripgrep found no matches, use embedded search as fallback
-    // (ripgrep exit code 1 means no matches, not an error)
     if matching_paths.is_empty() {
         return search_embedded(store, index, query, type_filter, tag_filter);
     }
 
     // Build results from matching files using index metadata
     let mut results = Vec::new();
-
-    // Iterate over matching paths and look up metadata
-    // Sort paths for determinism before processing if we want stable tie-breaking
-    // for relevance 0.0, but we only include relevance > 0.0 anyway.
     let mut matching_paths_sorted: Vec<_> = matching_paths.into_iter().collect();
     matching_paths_sorted.sort();
 
@@ -161,55 +218,23 @@ fn search_with_ripgrep(
             }
         }
 
-        // Calculate relevance score (same logic as embedded search) - optimized
-        let mut relevance = 0.0;
-        let mut match_context = None;
+        // Read note to calculate BM25 score
+        let note = match store.get_note_with_index(&meta.id, index) {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
 
-        let title_lower = meta.title.to_lowercase();
+        let title_score = calculate_bm25(&tokenized_query, &meta.title, index, None);
+        let tags_score = calculate_bm25(&tokenized_query, &meta.tags.join(" "), index, None);
+        let body_score = calculate_bm25(
+            &tokenized_query,
+            &note.body,
+            index,
+            index.doc_lengths.get(&meta.id).copied(),
+        );
 
-        // Title matches (high weight)
-        for term in &query_terms {
-            if title_lower.contains(term) {
-                relevance += 10.0;
-                if title_lower == *term {
-                    relevance += 5.0;
-                }
-            }
-        }
-
-        // Tag matches (medium weight)
-        for tag in &meta.tags {
-            let tag_lower = tag.to_lowercase();
-            for term in &query_terms {
-                if tag_lower == *term {
-                    relevance += 7.0;
-                } else if tag_lower.contains(term) {
-                    relevance += 3.0;
-                }
-            }
-        }
-
-        // Use pre-fetched context and add relevance for body matches
-        if let Some(context) = path_contexts.get(&path) {
-            // We know this file matched in ripgrep, so add body relevance
-            for term in &query_terms {
-                if context.to_lowercase().contains(term) {
-                    relevance += 2.0;
-                }
-            }
-            match_context = Some(context.clone());
-        }
-
-        // Recency boost (prefer recently updated notes)
-        let timestamp = meta.updated.or(meta.created);
-        if let Some(ts) = timestamp {
-            let age_days = (Utc::now() - ts).num_days();
-            if age_days < 7 {
-                relevance += 1.0;
-            } else if age_days < 30 {
-                relevance += 0.5;
-            }
-        }
+        // Apply field boosting (Title x2.0, Tags x1.5)
+        let relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
 
         // Only include results with some relevance
         if relevance > 0.0 {
@@ -219,7 +244,7 @@ fn search_with_ripgrep(
                 note_type: meta.note_type,
                 tags: meta.tags.clone(),
                 path: normalize_meta_path(store, &meta.path),
-                match_context,
+                match_context: path_contexts.get(&path).cloned(),
                 relevance,
                 via: None,
             });
@@ -253,25 +278,19 @@ fn search_embedded(
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
 ) -> Result<Vec<SearchResult>> {
-    let query_lower = query.to_lowercase();
-    let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
-
-    if query_terms.is_empty() {
+    let tokenized_query = tokenize(query);
+    if tokenized_query.is_empty() {
         return Ok(Vec::new());
     }
 
     let mut results = Vec::new();
-    let tag_string = tag_filter.map(|t| t.to_string());
-
-    // Early exit: if we have strong title matches in metadata, limit body reads
-    let mut strong_title_matches = 0;
-    const MAX_STRONG_MATCHES: usize = 50;
 
     // Iterate over metadata in deterministic order (sorted by note ID)
     let mut note_ids: Vec<&String> = index.metadata.keys().collect();
     note_ids.sort();
     for note_id in note_ids {
         let meta = &index.metadata[note_id];
+
         // Apply type filter
         if let Some(t) = type_filter {
             if meta.note_type != t {
@@ -280,98 +299,63 @@ fn search_embedded(
         }
 
         // Apply tag filter
-        if let Some(ref tag) = tag_string {
-            if !meta.tags.contains(tag) {
+        if let Some(tag) = tag_filter {
+            if !meta.tags.contains(&tag.to_string()) {
                 continue;
             }
         }
 
-        // Calculate relevance score
-        let mut relevance = 0.0;
-        let mut matched = false;
-        let mut match_context = None;
+        // Quick match check to avoid reading body of obviously irrelevant notes
+        let matches_title_or_tags = tokenized_query.iter().any(|t| {
+            meta.title.to_lowercase().contains(t)
+                || meta.tags.iter().any(|tag| tag.to_lowercase().contains(t))
+        });
 
-        let title_lower = meta.title.to_lowercase();
+        let matches_body = index
+            .note_terms
+            .get(note_id)
+            .map(|terms| tokenized_query.iter().any(|t| terms.contains(t)))
+            .unwrap_or(true);
 
-        // Title matches (high weight) - optimized to avoid repeated contains() calls
-        for term in &query_terms {
-            if title_lower.contains(term) {
-                relevance += 10.0;
-                matched = true;
-                // Exact title match bonus
-                if title_lower == *term {
-                    relevance += 5.0;
-                }
-                // Break early if we have a strong title match to avoid unnecessary body reads
-                if relevance >= 15.0 {
-                    strong_title_matches += 1;
-                    break;
-                }
-            }
+        if !matches_title_or_tags && !matches_body {
+            continue;
         }
 
-        // Skip body search if we already have enough strong matches
-        if strong_title_matches >= MAX_STRONG_MATCHES && relevance >= 15.0 {
-            matched = true; // Ensure we include this result
-        } else {
-            // Tag matches (medium weight) - optimized to avoid repeated to_lowercase()
-            if !matched || relevance < 15.0 {
-                for tag in &meta.tags {
-                    let tag_lower = tag.to_lowercase();
-                    for term in &query_terms {
-                        if tag_lower == *term {
-                            relevance += 7.0;
-                            matched = true;
-                        } else if tag_lower.contains(term) {
-                            relevance += 3.0;
-                            matched = true;
-                        }
-                    }
-                    if relevance >= 10.0 {
+        let title_score = calculate_bm25(&tokenized_query, &meta.title, index, None);
+        let tags_score = calculate_bm25(&tokenized_query, &meta.tags.join(" "), index, None);
+
+        let mut body_score = 0.0;
+        let mut match_context = None;
+
+        // Calculate body score (requires reading file)
+        if let Ok(note) = store.get_note_with_index(&meta.id, index) {
+            body_score = calculate_bm25(
+                &tokenized_query,
+                &note.body,
+                index,
+                index.doc_lengths.get(&meta.id).copied(),
+            );
+
+            // Extract context snippet if matched in body
+            if body_score > 0.0 {
+                let body_lower = note.body.to_lowercase();
+                for term in &tokenized_query {
+                    if let Some(pos) = body_lower.find(term) {
+                        let start = pos.saturating_sub(40);
+                        let end = (pos + term.len() + 40).min(note.body.len());
+                        let snippet = &note.body[start..end];
+                        match_context =
+                            Some(format!("...{}...", snippet.replace('\n', " ").trim()));
                         break;
                     }
                 }
             }
-
-            // Body search (lower weight, requires reading file) - only if needed and under limit
-            if !matched || relevance < 10.0 {
-                // Read note content to search body (use index for fast path lookup)
-                if let Ok(note) = store.get_note_with_index(&meta.id, index) {
-                    let body_lower = note.body.to_lowercase();
-                    for term in &query_terms {
-                        if body_lower.contains(term) {
-                            relevance += 2.0;
-                            matched = true;
-
-                            // Extract context snippet - only for first match
-                            if match_context.is_none() {
-                                if let Some(pos) = body_lower.find(term) {
-                                    let start = pos.saturating_sub(40);
-                                    let end = (pos + term.len() + 40).min(note.body.len());
-                                    let snippet = &note.body[start..end];
-                                    let snippet = snippet.replace('\n', " ");
-                                    match_context = Some(format!("...{}...", snippet.trim()));
-                                    break; // Only get context for first term match
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
-        // Recency boost (prefer recently updated notes)
-        if matched {
-            let timestamp = meta.updated.or(meta.created);
-            if let Some(ts) = timestamp {
-                let age_days = (Utc::now() - ts).num_days();
-                if age_days < 7 {
-                    relevance += 1.0;
-                } else if age_days < 30 {
-                    relevance += 0.5;
-                }
-            }
+        // Apply field boosting (Title x2.0, Tags x1.5)
+        let relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
 
+        if relevance > 0.0 {
             results.push(SearchResult {
                 id: meta.id.clone(),
                 title: meta.title.clone(),
@@ -402,8 +386,7 @@ fn search_embedded(
 /// Simple text search over the index
 ///
 /// Uses ripgrep if available for faster file finding, otherwise falls back
-/// to embedded matcher. Ranking: title matches > exact tag matches > body matches,
-/// with recency boost.
+/// to embedded matcher. Ranking: BM25 with field boosting (title > tags > body).
 pub fn search(
     store: &Store,
     index: &Index,

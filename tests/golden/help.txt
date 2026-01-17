@@ -12,6 +12,7 @@ Commands:
   capture  Create a new note from stdin
   index    Build or refresh derived indexes
   search   Search notes by title and body
+  verify   Toggle verification status of a note
   link     Manage and traverse note links
   prime    Output session-start primer for LLM agents
   setup    Install qipu integration instructions for agent tools

@@ -19,7 +19,6 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 - [x] **Token-based Budgeting**: Implement `tiktoken`-based token counting for `qipu context` to complement existing `--max-chars` enforcement (see `specs/llm-context.md`).
     - *Learnings*: Used `tiktoken-rs` for counting; added `--max-tokens` and `--model` flags to the `context` command.
 - [ ] **Next Steps**: Add more integration tests for user-defined link types and provenance.
-- [ ] **Search Ranking (BM25)**: Replace the heuristic-based scoring in `src/lib/index/search.rs` with proper BM25 ranking for more accurate search results (see `specs/similarity-ranking.md`).
 - [ ] **Semantic Graph Library**: Extract graph traversal logic (tree, path) from commands in `src/commands/link/` into `src/lib/index/` or a new `src/lib/graph/` component (see `specs/graph-traversal.md`).
 - [ ] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).
 
@@ -37,13 +36,14 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 - [ ] **Wiki-link Canonicalization**: Add an opt-in feature to `qipu index` to rewrite wiki-links into standard markdown links (see `specs/storage-format.md`).
 - [ ] **Interactive Pickers**: Add `dialoguer` or `inquire` based selection for IDs in CLI commands.
 - [ ] **SQLite FTS Backend**: Evaluate/Implement optional SQLite FTS5-powered index for very large stores (>10k notes) to augment/replace ripgrep (see `specs/indexing-search.md`).
-- [ ] **Indexer Race Condition**: Investigate and fix the underlying cause of the race condition requiring `sleep` in `tests/cli/compact.rs`.
 
 ---
 
 ## **Completed Work**
 
 ### **✅ Core P0/P1 Items (Complete)**
+- **Indexer "Race Condition"**: Investigated `tests/cli/compact.rs`; confirmed `sleep` is for timestamp resolution (staleness detection) and not an indexer race.
+- **Search Ranking (BM25)**: Implemented BM25 with word-based tokenization and field boosting (Title x2.0, Tags x1.5).
 - **Semantic Graph**: Virtual inverse edges and standard ontology implemented.
 - **Token-based Budgeting**: `tiktoken-rs` integration for context management.
 - **CLI Interface**: `dump`/`load`, `link` navigation (`--max-hops`), and `inbox` implemented.

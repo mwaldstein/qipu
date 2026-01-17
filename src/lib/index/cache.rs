@@ -11,6 +11,11 @@ pub(crate) const INDEX_EDGES_FILE: &str = "edges.json";
 pub(crate) const INDEX_UNRESOLVED_FILE: &str = "unresolved.json";
 pub(crate) const INDEX_FILES_FILE: &str = "files.json";
 pub(crate) const INDEX_ID_TO_PATH_FILE: &str = "id_to_path.json";
+pub(crate) const INDEX_TOTAL_DOCS_FILE: &str = "total_docs.json";
+pub(crate) const INDEX_TOTAL_LEN_FILE: &str = "total_len.json";
+pub(crate) const INDEX_DOC_LENGTHS_FILE: &str = "doc_lengths.json";
+pub(crate) const INDEX_TERM_DF_FILE: &str = "term_df.json";
+pub(crate) const INDEX_NOTE_TERMS_FILE: &str = "note_terms.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct IndexMeta {
@@ -34,6 +39,11 @@ impl Index {
             let unresolved = load_cache_file(&cache_dir.join(INDEX_UNRESOLVED_FILE))?;
             let files = load_cache_file(&cache_dir.join(INDEX_FILES_FILE))?;
             let id_to_path = load_cache_file(&cache_dir.join(INDEX_ID_TO_PATH_FILE))?;
+            let total_docs = load_cache_file(&cache_dir.join(INDEX_TOTAL_DOCS_FILE))?;
+            let total_len = load_cache_file(&cache_dir.join(INDEX_TOTAL_LEN_FILE))?;
+            let doc_lengths = load_cache_file(&cache_dir.join(INDEX_DOC_LENGTHS_FILE))?;
+            let term_df = load_cache_file(&cache_dir.join(INDEX_TERM_DF_FILE))?;
+            let note_terms = load_cache_file(&cache_dir.join(INDEX_NOTE_TERMS_FILE))?;
 
             return Ok(Index {
                 version: meta.version,
@@ -43,6 +53,11 @@ impl Index {
                 unresolved,
                 files,
                 id_to_path,
+                total_docs,
+                total_len,
+                doc_lengths,
+                term_df,
+                note_terms,
             });
         }
 
@@ -79,6 +94,11 @@ impl Index {
         write_cache_file(&cache_dir.join(INDEX_UNRESOLVED_FILE), &self.unresolved)?;
         write_cache_file(&cache_dir.join(INDEX_FILES_FILE), &self.files)?;
         write_cache_file(&cache_dir.join(INDEX_ID_TO_PATH_FILE), &self.id_to_path)?;
+        write_cache_file(&cache_dir.join(INDEX_TOTAL_DOCS_FILE), &self.total_docs)?;
+        write_cache_file(&cache_dir.join(INDEX_TOTAL_LEN_FILE), &self.total_len)?;
+        write_cache_file(&cache_dir.join(INDEX_DOC_LENGTHS_FILE), &self.doc_lengths)?;
+        write_cache_file(&cache_dir.join(INDEX_TERM_DF_FILE), &self.term_df)?;
+        write_cache_file(&cache_dir.join(INDEX_NOTE_TERMS_FILE), &self.note_terms)?;
 
         let legacy_path = cache_dir.join("index.json");
         if legacy_path.exists() {

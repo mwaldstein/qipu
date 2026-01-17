@@ -1,10 +1,14 @@
 name: CI
 
-on:
-  push:
-    branches: [ main, impl-rust ]
-  pull_request:
-    branches: [ main, impl-rust ]
+# CI/CD is currently disabled because it is not enabled on the GitHub account.
+# DO NOT enable this workflow unless it has been confirmed to be enabled on the GitHub side.
+# To enable, uncomment the 'on' section below.
+
+# on:
+#   push:
+#     branches: [ main, impl-rust ]
+#   pull_request:
+#     branches: [ main, impl-rust ]
 
 env:
   CARGO_TERM_COLOR: always

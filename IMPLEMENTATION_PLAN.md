@@ -21,6 +21,9 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 - [ ] **Interactive Pickers**: Add `dialoguer` or `inquire` based selection for IDs in CLI commands.
 - [ ] **SQLite FTS Backend**: Evaluate/Implement optional SQLite FTS5-powered index for very large stores (>10k notes) to augment/replace ripgrep (see `specs/indexing-search.md`).
 
+## **Infrastructure & CI/CD**
+- [ ] **Enable GitHub Actions**: GitHub CI/CD is currently disabled as it is not enabled on the GitHub account. DO NOT enable unless confirmed on the GitHub side.
+
 ---
 
 ## **Completed Work**

@@ -127,15 +127,23 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         ));
     }
 
-    // Sort notes deterministically (by created, then by id)
+    // Sort notes: Prioritize verified notes, then by created date, then by id
     selected_notes.sort_by(|a, b| {
-        match (&a.note.frontmatter.created, &b.note.frontmatter.created) {
-            (Some(a_created), Some(b_created)) => a_created.cmp(b_created),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => std::cmp::Ordering::Equal,
-        }
-        .then_with(|| a.note.id().cmp(b.note.id()))
+        // b.cmp(a) for verified because we want true (1) before false (0)
+        let a_verified = a.note.frontmatter.verified.unwrap_or(false);
+        let b_verified = b.note.frontmatter.verified.unwrap_or(false);
+
+        b_verified
+            .cmp(&a_verified)
+            .then_with(
+                || match (&a.note.frontmatter.created, &b.note.frontmatter.created) {
+                    (Some(a_created), Some(b_created)) => a_created.cmp(b_created),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => std::cmp::Ordering::Equal,
+                },
+            )
+            .then_with(|| a.note.id().cmp(b.note.id()))
     });
 
     // Apply budgeting (records format handles its own exact budget)

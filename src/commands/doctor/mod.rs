@@ -60,10 +60,13 @@ pub fn execute(
     // 6. Check for required frontmatter fields
     checks::check_required_fields(&notes, &mut result);
 
-    // 7. Check compaction invariants
+    // 7. Check for missing or orphaned attachments
+    checks::check_attachments(store, &notes, &mut result);
+
+    // 8. Check compaction invariants
     checks::check_compaction_invariants(&notes, &mut result);
 
-    // 8. Check for near-duplicates if requested
+    // 9. Check for near-duplicates if requested
     if duplicates {
         checks::check_near_duplicates(&index, threshold, &mut result);
     }
@@ -155,6 +158,64 @@ mod tests {
         // Should find both broken links
         assert!(result.error_count >= 1); // Typed link is an error
         assert!(result.warning_count >= 1); // Inline link is a warning
+    }
+
+    #[test]
+    fn test_doctor_attachments() {
+        use crate::lib::note::NoteFrontmatter;
+        use crate::lib::store::InitOptions;
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+        let attachments_dir = store.root().join("attachments");
+
+        // 1. Create a note with a valid attachment
+        let attachment_path = attachments_dir.join("valid.png");
+        fs::write(&attachment_path, "dummy data").unwrap();
+
+        let mut note1 = Note::new(
+            NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+            "![Valid](../attachments/valid.png)".to_string(),
+        );
+        note1.path = Some(store.notes_dir().join("qp-1.md"));
+
+        // 2. Create a note with a broken attachment
+        let mut note2 = Note::new(
+            NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string()),
+            "![Broken](../attachments/missing.jpg)".to_string(),
+        );
+        note2.path = Some(store.notes_dir().join("qp-2.md"));
+
+        // 3. Create an orphaned attachment
+        let orphaned_path = attachments_dir.join("orphaned.txt");
+        fs::write(&orphaned_path, "nobody loves me").unwrap();
+
+        let notes = vec![note1, note2];
+        let mut result = DoctorResult::new();
+        checks::check_attachments(&store, &notes, &mut result);
+
+        // Should find 1 broken attachment (error) and 1 orphaned attachment (warning)
+        assert_eq!(
+            result.error_count, 1,
+            "Expected 1 error for missing.jpg, got: {:?}",
+            result.issues
+        );
+        assert_eq!(
+            result.warning_count, 1,
+            "Expected 1 warning for orphaned.txt, got: {:?}",
+            result.issues
+        );
+
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "broken-attachment" && i.message.contains("missing.jpg")));
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "orphaned-attachment" && i.message.contains("orphaned.txt")));
     }
 
     #[test]

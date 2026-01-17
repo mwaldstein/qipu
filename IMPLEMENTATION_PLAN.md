@@ -13,7 +13,6 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 
 ### **P2: Advanced Knowledge Management & Scalability**
 - [ ] **Merge Command**: Implement a dedicated `qipu merge <id1> <id2>` to combine notes and update all inbound links automatically.
-- [ ] **Attachment Validation**: Update `qipu doctor` to validate missing or orphaned attachments in `.qipu/attachments/`.
 - [ ] **Pack/Unpack**: Implement single-file raw knowledge dump/load as described in `specs/pack.md`.
 
 ### **P3: Usability & Architecture Refinement**
@@ -28,6 +27,7 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 ## **Completed Work**
 
 ### **✅ Core P0/P1 Items (Complete)**
+- **Attachment Validation**: Integrated missing/orphaned attachment detection into `qipu doctor`.
 - **Compaction Enhancements**: Refactored clustering logic into `CompactionContext::suggest` and implemented boundary edge ratio/staleness indicators.
 - **Semantic Inversion & Provenance Metadata**: Enhanced graph semantics and AI trust with virtual edges and author fields.
 - **User-Defined Link Types**: Support for custom link types and inverses in config.

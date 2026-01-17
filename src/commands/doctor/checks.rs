@@ -3,9 +3,12 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
 use crate::lib::similarity::SimilarityEngine;
+use crate::lib::store::paths::ATTACHMENTS_DIR;
 use crate::lib::store::Store;
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::path::Path;
 use walkdir::WalkDir;
 
 /// Check store directory structure
@@ -30,6 +33,19 @@ pub fn check_store_structure(store: &Store, result: &mut DoctorResult) {
             message: "MOCs directory does not exist".to_string(),
             note_id: None,
             path: Some(store.mocs_dir().display().to_string()),
+            fixable: true,
+        });
+    }
+
+    // Check attachments directory
+    let attachments_dir = store.root().join(ATTACHMENTS_DIR);
+    if !attachments_dir.exists() {
+        result.add_issue(Issue {
+            severity: Severity::Warning,
+            category: "missing-directory".to_string(),
+            message: "Attachments directory does not exist".to_string(),
+            note_id: None,
+            path: Some(attachments_dir.display().to_string()),
             fixable: true,
         });
     }
@@ -261,5 +277,98 @@ pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorR
             path: None,
             fixable: false, // Requires manual merge/compaction
         });
+    }
+}
+
+/// Check for missing or orphaned attachments
+pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResult) {
+    let attachments_dir = store.root().join(ATTACHMENTS_DIR);
+    let mut referenced_attachments = HashSet::new();
+
+    // 1. Find all referenced attachments in notes
+    // Pattern for markdown links to attachments: [label](../attachments/filename)
+    // or just checking any relative path that contains "attachments/"
+    let attachment_re = Regex::new(r"\[[^\]]*\]\(([^)]*attachments/[^)]+)\)")
+        .expect("Invalid attachment regex pattern");
+
+    for note in notes {
+        let from_id = note.id().to_string();
+        let note_path = note
+            .path
+            .as_ref()
+            .map(|p| p.parent().unwrap_or(Path::new("")))
+            .unwrap_or(Path::new(""));
+
+        for cap in attachment_re.captures_iter(&note.body) {
+            let rel_path_str = &cap[1];
+            // Resolve relative path against note's location
+            let full_path = note_path.join(rel_path_str);
+
+            // Normalize path to check if it's inside our attachments directory
+            if let Ok(canonical_path) = fs::canonicalize(&full_path) {
+                if let Ok(canonical_attachments_dir) = fs::canonicalize(&attachments_dir) {
+                    if canonical_path.starts_with(&canonical_attachments_dir) {
+                        referenced_attachments.insert(canonical_path.clone());
+
+                        // Check if the file exists
+                        if !canonical_path.exists() {
+                            result.add_issue(Issue {
+                                severity: Severity::Error,
+                                category: "broken-attachment".to_string(),
+                                message: format!(
+                                    "Note '{}' references missing attachment: {}",
+                                    from_id, rel_path_str
+                                ),
+                                note_id: Some(from_id.clone()),
+                                path: note.path.as_ref().map(|p| p.display().to_string()),
+                                fixable: false,
+                            });
+                        }
+                    }
+                }
+            } else {
+                // Path resolution failed, attachment is definitely missing or invalid
+                result.add_issue(Issue {
+                    severity: Severity::Error,
+                    category: "broken-attachment".to_string(),
+                    message: format!(
+                        "Note '{}' references missing or invalid attachment: {}",
+                        from_id, rel_path_str
+                    ),
+                    note_id: Some(from_id.clone()),
+                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    fixable: false,
+                });
+            }
+        }
+    }
+
+    // 2. Check for orphaned attachments (files in attachments/ not referenced by any note)
+    if attachments_dir.exists() {
+        for entry in WalkDir::new(&attachments_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.is_file() {
+                if let Ok(canonical_path) = fs::canonicalize(path) {
+                    if !referenced_attachments.contains(&canonical_path) {
+                        result.add_issue(Issue {
+                            severity: Severity::Warning,
+                            category: "orphaned-attachment".to_string(),
+                            message: format!(
+                                "Orphaned attachment found: {}",
+                                path.strip_prefix(&attachments_dir)
+                                    .unwrap_or(path)
+                                    .display()
+                            ),
+                            note_id: None,
+                            path: Some(path.display().to_string()),
+                            fixable: true, // Can be deleted
+                        });
+                    }
+                }
+            }
+        }
     }
 }

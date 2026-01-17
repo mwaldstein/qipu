@@ -73,6 +73,19 @@ Run the test suite:
 cargo test
 ```
 
+## Cleanup
+
+Keep the workspace clean:
+
+```bash
+cargo clean                 # Remove target/ build artifacts (reclaim disk space)
+```
+
+**Do not create ad-hoc test directories** in the repo root (e.g., `*_test/`, `*_debug/`). These patterns are gitignored but clutter the workspace. Use:
+- `tests/` for actual test code
+- Temporary directories in `/tmp` for manual testing
+- The test harness fixtures in `crates/llm-tool-test/fixtures/`
+
 ## LLM Tool Validation
 
 Run the LLM validation harness:

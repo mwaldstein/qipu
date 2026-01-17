@@ -59,7 +59,7 @@ impl NoteId {
     pub const MAX_HASH_LEN: usize = 64;
 
     /// Create a NoteId without validation (internal use only)
-    fn new_unchecked(id: String) -> Self {
+    pub(crate) fn new_unchecked(id: String) -> Self {
         NoteId(id)
     }
 

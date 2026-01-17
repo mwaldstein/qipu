@@ -90,11 +90,21 @@ fn copy_notes(src: &Store, dst: &Store) -> Result<()> {
 }
 
 fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
-    dst.create_note_with_content(
-        note.title(),
-        Some(note.note_type()),
-        &note.frontmatter.tags,
-        &note.body,
-    )?;
+    let mut new_note = note.clone();
+
+    // Determine target directory
+    let target_dir = match new_note.note_type() {
+        crate::lib::note::NoteType::Moc => dst.mocs_dir(),
+        _ => dst.notes_dir(),
+    };
+
+    // Determine file path
+    let id_obj = crate::lib::id::NoteId::new_unchecked(new_note.id().to_string());
+    let file_name = crate::lib::id::filename(&id_obj, new_note.title());
+    let file_path = target_dir.join(&file_name);
+
+    new_note.path = Some(file_path);
+
+    dst.save_note(&mut new_note)?;
     Ok(())
 }

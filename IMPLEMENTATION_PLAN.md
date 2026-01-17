@@ -144,8 +144,8 @@ crates/llm-tool-test/
 ## **P1: Correctness Issues**
 
 ### Workspace Merge Bugs
-- [ ] **`overwrite` strategy broken**: Calls `create_note_with_content` generating new ID instead of replacing existing note ([merge.rs#L44-L53](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L44-L53))
-- [ ] **`merge-links` merges tags, not links**: Spec requires union of links array, implementation unions tags ([merge.rs#L54-L65](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L54-L65))
+- [x] **`overwrite` strategy broken**: Calls `create_note_with_content` generating new ID instead of replacing existing note ([merge.rs#L44-L53](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L44-L53))
+- [x] **`merge-links` merges tags, not links**: Spec requires union of links array, implementation unions tags ([merge.rs#L54-L65](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L54-L65))
 - [ ] **`--force` flag ignored in delete**: Always deletes without checking unmerged changes ([delete.rs#L9](file:///home/micah/dev/qipu/src/commands/workspace/delete.rs#L9))
 
 ### Pack Load Missing Features
@@ -155,7 +155,7 @@ crates/llm-tool-test/
 
 ### **P2: Missing Test Coverage**
 
-- [ ] **Workspace commands**: No tests for new/list/delete/merge
+- [x] **Workspace commands**: Partial tests for merge/new (Added `tests/workspace_merge_test.rs`)
 - [ ] **Capture command**: No dedicated tests
 - [ ] **Graph traversal limits**: `--max-nodes`, `--max-edges`, `--max-fanout`, `--direction in` not tested
 - [ ] **Type filtering**: `--type`, `--exclude-type`, `--typed-only`, `--inline-only` not tested

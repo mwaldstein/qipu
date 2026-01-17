@@ -1,15 +1,23 @@
-.ralph-logs
-node_modules/
-dist/
-*.log
+# Build artifacts
+/target
+
+# Runtime/cache
 .qipu/qipu.db
 .qipu/.cache/
 
+# Debug/test directories (ad-hoc testing)
+exact_test/
+test_compact_debug/
+*_test/
+*_debug/
 
-# Added by cargo
+# Logs
+.ralph-logs/
+*.log
 
-/target
-.qipu/
+# Node (legacy)
+node_modules/
+dist/
 
 # LLM validation transcripts (volatile test artifacts)
 tests/transcripts/

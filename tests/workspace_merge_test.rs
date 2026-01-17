@@ -179,3 +179,55 @@ fn test_workspace_merge_strategies_links() {
         "Merged note should contain link from main"
     );
 }
+
+#[test]
+fn test_workspace_delete_protection() {
+    // 1. Setup primary store
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // Init store
+    Command::cargo_bin("qipu")
+        .unwrap()
+        .current_dir(root)
+        .arg("init")
+        .assert()
+        .success();
+
+    // 2. Create a workspace
+    Command::cargo_bin("qipu")
+        .unwrap()
+        .current_dir(root)
+        .args(&["workspace", "new", "test_ws"])
+        .assert()
+        .success();
+
+    // 3. Add a note to the workspace (unmerged change)
+    Command::cargo_bin("qipu")
+        .unwrap()
+        .current_dir(root)
+        .args(&["create", "My Note", "--workspace", "test_ws"])
+        .assert()
+        .success();
+
+    // 4. Try to delete without --force (should fail with the fix)
+    Command::cargo_bin("qipu")
+        .unwrap()
+        .current_dir(root)
+        .args(&["workspace", "delete", "test_ws"])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unmerged changes"));
+
+    // 5. Try to delete WITH --force (should succeed)
+    Command::cargo_bin("qipu")
+        .unwrap()
+        .current_dir(root)
+        .args(&["workspace", "delete", "test_ws", "--force"])
+        .assert()
+        .success();
+
+    // Verify workspace dir is gone
+    let ws_path = root.join(".qipu/workspaces/test_ws");
+    assert!(!ws_path.exists());
+}

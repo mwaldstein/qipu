@@ -146,7 +146,7 @@ crates/llm-tool-test/
 ### Workspace Merge Bugs
 - [x] **`overwrite` strategy broken**: Calls `create_note_with_content` generating new ID instead of replacing existing note ([merge.rs#L44-L53](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L44-L53))
 - [x] **`merge-links` merges tags, not links**: Spec requires union of links array, implementation unions tags ([merge.rs#L54-L65](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L54-L65))
-- [ ] **`--force` flag ignored in delete**: Always deletes without checking unmerged changes ([delete.rs#L9](file:///home/micah/dev/qipu/src/commands/workspace/delete.rs#L9))
+- [x] **`--force` flag ignored in delete**: Fixed in `src/commands/workspace/delete.rs` (added check for unmerged changes) and added test case in `tests/workspace_merge_test.rs` ([delete.rs#L9](file:///home/micah/dev/qipu/src/commands/workspace/delete.rs#L9))
 
 ### Pack Load Missing Features
 - [ ] **`--strategy` flag missing**: CLI has no `--strategy` arg for `qipu load`; always overwrites ([cli/mod.rs#L410-L413](file:///home/micah/dev/qipu/src/cli/mod.rs#L410-L413))

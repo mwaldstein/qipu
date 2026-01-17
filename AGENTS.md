@@ -47,6 +47,12 @@ qipu --version
 - `qipu link tree <id>` - Show link tree
 - `qipu link path <from> <to>` - Find path between notes
 
+### Workspace Operations
+- `qipu workspace new <name>` - Create a new workspace
+- `qipu workspace list` - List workspaces
+- `qipu workspace merge <name>` - Merge workspace changes
+- `qipu workspace delete <name>` - Delete a workspace
+
 ### Advanced
 - `qipu context` - Show contextual notes
 - `qipu prime` - Prime notes for AI context

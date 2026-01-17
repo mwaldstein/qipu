@@ -301,8 +301,16 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     fi
 
     rm -f "$TEMP_OUTPUT"
-    if [[ "$DELAY" -gt 0 ]]; then
-        sleep "$DELAY"
+
+    if [[ $ITERATION -lt $MAX_ITERATIONS ]]; then
+        if [[ "$DELAY" -gt 0 ]]; then
+            log "Iteration $ITERATION complete. Waiting ${DELAY}s before next..."
+            sleep "$DELAY"
+        else
+            log "Iteration $ITERATION complete."
+        fi
+    else
+        log "Iteration $ITERATION complete."
     fi
 done
 

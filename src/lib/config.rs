@@ -36,6 +36,33 @@ pub struct StoreConfig {
     /// Git branch for protected branch workflow (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch: Option<String>,
+
+    /// Custom link type definitions
+    #[serde(default)]
+    pub links: LinkConfig,
+}
+
+/// Configuration for link types and behaviors
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LinkConfig {
+    /// Custom link inversions (forward -> inverse)
+    #[serde(default)]
+    pub inverses: std::collections::HashMap<String, String>,
+}
+
+impl StoreConfig {
+    /// Get the inverse of a link type, falling back to standard ontology or default pattern
+    pub fn get_inverse(&self, link_type: &str) -> String {
+        // 1. Check user-defined inverses
+        if let Some(inv) = self.links.inverses.get(link_type) {
+            return inv.clone();
+        }
+
+        // 2. Check standard ontology
+        crate::lib::note::LinkType::new(link_type)
+            .inverse()
+            .to_string()
+    }
 }
 
 fn default_version() -> u32 {

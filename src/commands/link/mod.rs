@@ -232,6 +232,7 @@ pub fn filter_and_convert(
 pub fn filter_and_convert_inbound(
     edge: &Edge,
     index: &Index,
+    store: &Store,
     type_filter: Option<&str>,
     typed_only: bool,
     inline_only: bool,
@@ -239,7 +240,7 @@ pub fn filter_and_convert_inbound(
 ) -> Option<LinkEntry> {
     // If virtual inversion is requested, we treat this inbound edge as a virtual outbound edge
     if virtual_inversion {
-        let virtual_edge = edge.invert();
+        let virtual_edge = edge.invert(store.config());
         return filter_and_convert(
             &virtual_edge,
             "out",

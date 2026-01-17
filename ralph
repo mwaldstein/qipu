@@ -11,6 +11,7 @@ MAX_ITERATIONS=""
 MODEL=""
 PROMPT_FILE=""
 DRY_RUN=false
+DELAY=5
 
 usage() {
     cat <<'EOF'
@@ -27,6 +28,7 @@ OPTIONS:
   --dry-run                 Print prompt + config, then exit
   --no-commit               Disable auto-commit
   --prompt-file FILE        Use a custom prompt file
+  --delay SECONDS           Delay between iterations (default: 5)
   --log-dir DIR             Directory for iteration logs (default: .ralph-logs)
   -m, --model MODEL         Model to use
   -h, --help                Show this help message
@@ -120,6 +122,10 @@ while [[ $# -gt 0 ]]; do
         --no-commit)
             AUTO_COMMIT=false
             shift
+            ;;
+        --delay)
+            DELAY="$2"
+            shift 2
             ;;
         --prompt-file)
             PROMPT_FILE="$2"
@@ -295,7 +301,9 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     fi
 
     rm -f "$TEMP_OUTPUT"
-    sleep 2
+    if [[ "$DELAY" -gt 0 ]]; then
+        sleep "$DELAY"
+    fi
 done
 
 log_warn "Maximum iterations ($MAX_ITERATIONS) reached"

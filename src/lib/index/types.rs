@@ -36,28 +36,20 @@ pub struct Edge {
     pub to: String,
     /// Link type (related, supports, etc.)
     #[serde(rename = "type")]
-    pub link_type: String,
+    pub link_type: LinkType,
     /// Where the link was defined
     pub source: LinkSource,
 }
 
 impl Edge {
     /// Invert this edge semantically
-    pub fn invert(&self) -> Self {
-        let inverted_type = LinkType::from_str(&self.link_type)
-            .map(|lt| lt.inverse().to_string())
-            .unwrap_or_else(|_| {
-                if self.link_type.starts_with("inverse-") {
-                    self.link_type["inverse-".len()..].to_string()
-                } else {
-                    format!("inverse-{}", self.link_type)
-                }
-            });
+    pub fn invert(&self, config: &crate::lib::config::StoreConfig) -> Self {
+        let inverted_type_str = config.get_inverse(self.link_type.as_str());
 
         Edge {
             from: self.to.clone(),
             to: self.from.clone(),
-            link_type: inverted_type,
+            link_type: LinkType::new(&inverted_type_str),
             source: LinkSource::Virtual,
         }
     }

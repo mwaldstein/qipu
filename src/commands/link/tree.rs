@@ -182,7 +182,7 @@ fn bfs_traverse(
                 for edge in index.get_inbound_edges(source_id) {
                     if !cli.no_semantic_inversion {
                         // Virtual Inversion
-                        let virtual_edge = edge.invert();
+                        let virtual_edge = edge.invert(store.config());
                         if super::filter_edge(&virtual_edge, opts) {
                             neighbors.push((virtual_edge.to.clone(), virtual_edge));
                         }

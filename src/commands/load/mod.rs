@@ -130,6 +130,11 @@ fn load_notes(store: &Store, pack_notes: &[PackNote]) -> Result<usize> {
             links: Vec::new(),
             summary: None,
             compacts: Vec::new(),
+            source: None,
+            author: None,
+            generated_by: None,
+            prompt_hash: None,
+            verified: None,
         };
 
         // Create note

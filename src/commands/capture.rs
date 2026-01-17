@@ -24,6 +24,11 @@ pub fn execute(
     title: Option<&str>,
     note_type: Option<NoteType>,
     tags: &[String],
+    source: Option<String>,
+    author: Option<String>,
+    generated_by: Option<String>,
+    prompt_hash: Option<String>,
+    verified: Option<bool>,
 ) -> Result<()> {
     // Read content from stdin
     let mut content = String::new();
@@ -42,7 +47,24 @@ pub fn execute(
     let note_type = note_type.or(Some(NoteType::Fleeting));
 
     // Create note with the captured content
-    let note = store.create_note_with_content(&title, note_type, tags, content)?;
+    let mut note = store.create_note_with_content(&title, note_type, tags, content)?;
+
+    // Add provenance fields if provided
+    if source.is_some()
+        || author.is_some()
+        || generated_by.is_some()
+        || prompt_hash.is_some()
+        || verified.is_some()
+    {
+        note.frontmatter.source = source;
+        note.frontmatter.author = author;
+        note.frontmatter.generated_by = generated_by;
+        note.frontmatter.prompt_hash = prompt_hash;
+        note.frontmatter.verified = verified;
+
+        // Save the updated note
+        store.save_note(&mut note)?;
+    }
 
     match cli.format {
         OutputFormat::Json => {

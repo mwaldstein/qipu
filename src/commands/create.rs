@@ -22,8 +22,30 @@ pub fn execute(
     note_type: Option<NoteType>,
     tags: &[String],
     open: bool,
+    source: Option<String>,
+    author: Option<String>,
+    generated_by: Option<String>,
+    prompt_hash: Option<String>,
+    verified: Option<bool>,
 ) -> Result<()> {
-    let note = store.create_note(title, note_type, tags)?;
+    let mut note = store.create_note(title, note_type, tags)?;
+
+    // Add provenance fields if provided
+    if source.is_some()
+        || author.is_some()
+        || generated_by.is_some()
+        || prompt_hash.is_some()
+        || verified.is_some()
+    {
+        note.frontmatter.source = source;
+        note.frontmatter.author = author;
+        note.frontmatter.generated_by = generated_by;
+        note.frontmatter.prompt_hash = prompt_hash;
+        note.frontmatter.verified = verified;
+
+        // Save the updated note
+        store.save_note(&mut note)?;
+    }
 
     match cli.format {
         OutputFormat::Json => {

@@ -45,7 +45,19 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::create::execute(cli, &store, &args.title, args.r#type, &args.tag, args.open)
+            commands::create::execute(
+                cli,
+                &store,
+                &args.title,
+                args.r#type,
+                &args.tag,
+                args.open,
+                args.source.clone(),
+                args.author.clone(),
+                args.generated_by.clone(),
+                args.prompt_hash.clone(),
+                args.verified,
+            )
         }
 
         Some(Commands::List { tag, r#type, since }) => {
@@ -187,12 +199,32 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             Ok(())
         }
 
-        Some(Commands::Capture { title, r#type, tag }) => {
+        Some(Commands::Capture {
+            title,
+            r#type,
+            tag,
+            source,
+            author,
+            generated_by,
+            prompt_hash,
+            verified,
+        }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::capture::execute(cli, &store, title.as_deref(), *r#type, tag)
+            commands::capture::execute(
+                cli,
+                &store,
+                title.as_deref(),
+                *r#type,
+                tag,
+                source.clone(),
+                author.clone(),
+                generated_by.clone(),
+                prompt_hash.clone(),
+                *verified,
+            )
         }
 
         Some(Commands::Index { rebuild }) => {

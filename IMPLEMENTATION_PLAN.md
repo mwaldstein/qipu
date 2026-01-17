@@ -12,7 +12,7 @@ The core P0/P1 engine for note management, linking, and basic search is complete
 - [/] **Semantic Inversion & Provenance Metadata**: Combined effort to enhance graph semantics and AI trust.
     - [ ] **Expand LinkType enum with full Standard Ontology** (Current Task)
 - [x] **Semantic Inversion (Virtual Edges)**: Update `src/lib/index/mod.rs` and `src/commands/link/` to support virtual inverse edges (e.g., `supports` $\implies$ `supported-by`) as first-class traversal entities (see `specs/semantic-graph.md`).
-- [ ] **Provenance Metadata**: Update `NoteFrontmatter` in `src/lib/note/frontmatter.rs` and CLI `create`/`capture` to support AI-specific fields: `author`, `generated_by`, `prompt_hash`, and `verified` boolean (see `specs/provenance.md`).
+- [x] **Provenance Metadata**: Update `NoteFrontmatter` in `src/lib/note/frontmatter.rs` and CLI `create`/`capture` to support AI-specific fields: `author`, `generated_by`, `prompt_hash`, and `verified` boolean (see `specs/provenance.md`).
 - [x] **Expand Standard Ontology**: Add missing standard link types to `LinkType` enum: `follows/precedes`, `answers/answered-by`, `refines/refined-by`, `same-as`, `alias-of` (see `specs/semantic-graph.md`).
 - [ ] **User-Defined Link Types**: Update `Config` and `LinkType` parsing to support custom link types and their inverses defined in `.qipu/config.toml` (see `specs/semantic-graph.md`).
 - [ ] **Token-based Budgeting**: Implement `tiktoken`-based token counting for `qipu context` to complement existing `--max-chars` enforcement (see `specs/llm-context.md`).

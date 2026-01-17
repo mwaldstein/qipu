@@ -33,6 +33,21 @@ pub struct NoteFrontmatter {
     /// Compaction: list of note IDs this digest compacts (per specs/compaction.md)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub compacts: Vec<String>,
+    /// The original source of the information (per specs/provenance.md)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// Name of the human or agent who created the note
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    /// Name of the LLM model used to generate the content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generated_by: Option<String>,
+    /// Hash or ID of the prompt used to generate the content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_hash: Option<String>,
+    /// Flag indicating if a human has manually reviewed the content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verified: Option<bool>,
 }
 
 impl NoteFrontmatter {
@@ -49,6 +64,11 @@ impl NoteFrontmatter {
             links: Vec::new(),
             summary: None,
             compacts: Vec::new(),
+            source: None,
+            author: None,
+            generated_by: None,
+            prompt_hash: None,
+            verified: None,
         }
     }
 

@@ -139,6 +139,26 @@ pub enum Commands {
         /// Tags (can be specified multiple times)
         #[arg(long, action = clap::ArgAction::Append)]
         tag: Vec<String>,
+
+        /// The original source of the information
+        #[arg(long)]
+        source: Option<String>,
+
+        /// Name of the human or agent who created the note
+        #[arg(long)]
+        author: Option<String>,
+
+        /// Name of the LLM model used to generate the content
+        #[arg(long)]
+        generated_by: Option<String>,
+
+        /// Hash or ID of the prompt used to generate the content
+        #[arg(long)]
+        prompt_hash: Option<String>,
+
+        /// Flag indicating if a human has manually reviewed the content
+        #[arg(long)]
+        verified: Option<bool>,
     },
 
     /// Build or refresh derived indexes

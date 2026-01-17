@@ -72,3 +72,11 @@ Run the test suite:
 ```bash
 cargo test
 ```
+
+## LLM Tool Validation
+
+Run the LLM validation harness:
+
+```bash
+cargo run -p llm-tool-test -- run --scenario crates/llm-tool-test/fixtures/qipu/scenarios/capture_basic.yaml
+```

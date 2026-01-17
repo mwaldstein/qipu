@@ -395,7 +395,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     max_chars,
                 } => {
                     let dir = direction
-                        .parse::<commands::link::Direction>()
+                        .parse::<crate::lib::graph::Direction>()
                         .map_err(QipuError::Other)?;
                     commands::link::list::execute(
                         cli,
@@ -428,9 +428,9 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     max_chars,
                 } => {
                     let dir = direction
-                        .parse::<commands::link::Direction>()
+                        .parse::<crate::lib::graph::Direction>()
                         .map_err(QipuError::Other)?;
-                    let opts = commands::link::TreeOptions {
+                    let opts = crate::lib::graph::TreeOptions {
                         direction: dir,
                         max_hops: *max_hops,
                         type_include: r#type.clone(),
@@ -441,6 +441,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                         max_edges: *max_edges,
                         max_fanout: *max_fanout,
                         max_chars: *max_chars,
+                        semantic_inversion: true,
                     };
                     commands::link::tree::execute(cli, &store, id_or_path, opts)
                 }
@@ -456,9 +457,9 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                     max_chars,
                 } => {
                     let dir = direction
-                        .parse::<commands::link::Direction>()
+                        .parse::<crate::lib::graph::Direction>()
                         .map_err(QipuError::Other)?;
-                    let opts = commands::link::TreeOptions {
+                    let opts = crate::lib::graph::TreeOptions {
                         direction: dir,
                         max_hops: *max_hops,
                         type_include: r#type.clone(),
@@ -469,6 +470,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                         max_edges: None,
                         max_fanout: None,
                         max_chars: *max_chars,
+                        semantic_inversion: true,
                     };
                     commands::link::path::execute(cli, &store, from, to, opts)
                 }

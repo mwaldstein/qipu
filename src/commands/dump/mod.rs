@@ -15,9 +15,9 @@ use std::io::Write;
 use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::commands::link::{Direction, TreeOptions};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
+use crate::lib::graph::{Direction, TreeOptions};
 use crate::lib::index::{search, Index, IndexBuilder};
 use crate::lib::note::Note;
 use crate::lib::store::Store;
@@ -171,6 +171,7 @@ fn collect_notes_with_traversal(
             max_edges: None,
             max_fanout: None,
             max_chars: None,
+            semantic_inversion: true,
         };
 
         // Build compaction context if needed

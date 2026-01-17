@@ -1,4 +1,4 @@
-use crate::commands::link::Direction;
+use crate::lib::graph::Direction;
 use serde::Serialize;
 
 /// Options for the dump command

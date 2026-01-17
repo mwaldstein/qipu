@@ -64,11 +64,15 @@ pub fn execute(
     }
 
     // Find path using BFS with compaction context
-    let result = bfs_find_path(
+    let mut tree_opts = opts.clone();
+    tree_opts.semantic_inversion = !cli.no_semantic_inversion;
+
+    let result = crate::lib::graph::bfs_find_path(
         &index,
+        store,
         &canonical_from,
         &canonical_to,
-        &opts,
+        &tree_opts,
         compaction_ctx.as_ref(),
         equivalence_map.as_ref(),
     )?;
@@ -303,6 +307,7 @@ fn output_path_human(cli: &Cli, result: &PathResult, compaction_ctx: Option<&Com
 }
 
 /// Output path in records format
+
 fn output_path_records(
     result: &PathResult,
     store: &Store,

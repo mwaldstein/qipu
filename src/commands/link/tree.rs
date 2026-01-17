@@ -49,12 +49,14 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     }
 
     // Perform BFS traversal with compaction context
-    let result = bfs_traverse(
-        cli,
+    let mut tree_opts = opts.clone();
+    tree_opts.semantic_inversion = !cli.no_semantic_inversion;
+
+    let result = crate::lib::graph::bfs_traverse(
         &index,
         store,
         &canonical_id,
-        &opts,
+        &tree_opts,
         compaction_ctx.as_ref(),
         equivalence_map.as_ref(),
     )?;
@@ -463,6 +465,7 @@ fn output_tree_human(
 }
 
 /// Output tree in records format
+
 fn output_tree_records(
     result: &TreeResult,
     store: &Store,

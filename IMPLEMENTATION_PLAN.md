@@ -19,7 +19,8 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 - [x] **Token-based Budgeting**: Implement `tiktoken`-based token counting for `qipu context` to complement existing `--max-chars` enforcement (see `specs/llm-context.md`).
     - *Learnings*: Used `tiktoken-rs` for counting; added `--max-tokens` and `--model` flags to the `context` command.
 - [ ] **Next Steps**: Add more integration tests for user-defined link types and provenance.
-- [ ] **Semantic Graph Library**: Extract graph traversal logic (tree, path) from commands in `src/commands/link/` into `src/lib/index/` or a new `src/lib/graph/` component (see `specs/graph-traversal.md`).
+- [x] **Semantic Graph Library**: Extracted graph traversal logic (tree, path) into `src/lib/graph/`. Added `GraphProvider` trait for decouple traversal from index implementation.
+    - *Learnings*: Centralizing traversal logic simplified the CLI commands and made the logic testable in isolation. Introduced `Direction` abstraction to handle forward/backward traversal uniformly.
 - [ ] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).
 
 ### **P2: Advanced Knowledge Management & Scalability**

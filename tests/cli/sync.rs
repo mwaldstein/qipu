@@ -143,3 +143,41 @@ fn test_sync_git_automation() {
     let log_content = String::from_utf8_lossy(&log_output.stdout);
     assert!(log_content.contains("qipu sync: update notes and indexes"));
 }
+
+#[test]
+fn test_sync_push_fails_no_remote() {
+    let dir = tempdir().unwrap();
+
+    // Check if git is available
+    let git_available = Command::new("git")
+        .arg("--version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false);
+
+    if !git_available {
+        return;
+    }
+
+    // Initialize a git repo
+    Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Init qipu with branch
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--branch", "qipu-notes"])
+        .assert()
+        .success();
+
+    // Try to sync with push - should fail because no 'origin' remote exists
+    qipu()
+        .current_dir(dir.path())
+        .args(["sync", "--push"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to push"));
+}

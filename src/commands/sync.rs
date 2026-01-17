@@ -69,8 +69,16 @@ pub fn execute(
                 Ok(())
             })();
 
-            // Always attempt to switch back to the original branch
-            let checkout_result = git::checkout_branch(repo_root, &original_branch);
+            // Always attempt to switch back to the original branch IF it differs
+            let checkout_result = if let Ok(current) = git::current_branch(repo_root) {
+                if current != original_branch {
+                    git::checkout_branch(repo_root, &original_branch)
+                } else {
+                    Ok(())
+                }
+            } else {
+                Ok(())
+            };
 
             // Return the first error encountered
             result?;

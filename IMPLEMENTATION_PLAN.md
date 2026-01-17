@@ -9,7 +9,7 @@ The core P0/P1 engine is complete. Current focus is on **User-Defined Link Types
 ## **Current Priority Items**
 
 ### **P1: Agent Trust & Semantic Enhancements (High Priority)**
-- [ ] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).
+- [x] **Git Automation (`--push`)**: Ensure `qipu sync --push` handles remote synchronization correctly, including branch protection workflows (see `specs/storage-format.md`).
 
 ### **P2: Advanced Knowledge Management & Scalability**
 - [ ] **Compaction Enhancements**: Implement boundary edge ratio and staleness indicators in `qipu compact report`. Improve `suggest` clustering beyond connected components (see `specs/compaction.md`).

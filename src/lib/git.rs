@@ -93,6 +93,13 @@ pub fn create_orphan_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
 
 /// Switch to an existing branch
 pub fn checkout_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
+    // Check if we are already on this branch to avoid unnecessary errors/work
+    if let Ok(current) = current_branch(repo_path) {
+        if current == branch_name {
+            return Ok(());
+        }
+    }
+
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_path)
@@ -102,6 +109,26 @@ pub fn checkout_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
+        // If the branch doesn't exist, we might have been given a default like "master"
+        // for a repo that hasn't been initialized yet.
+        // We only fail if the branch SHOULD exist.
+        if stderr.contains("did not match any file(s) known to git") {
+            // Check if ANY branch exists. If not, this is a fresh repo and we don't need to checkout.
+            let has_any_commits = Command::new("git")
+                .arg("-C")
+                .arg(repo_path)
+                .arg("rev-parse")
+                .arg("--verify")
+                .arg("HEAD")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+
+            if !has_any_commits {
+                return Ok(());
+            }
+        }
+
         return Err(QipuError::Other(format!(
             "Failed to checkout branch '{}': {}",
             branch_name, stderr
@@ -119,7 +146,7 @@ pub fn checkout_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
 /// 3. Returns the original branch name so caller can switch back
 pub fn setup_branch_workflow(repo_path: &Path, branch_name: &str) -> Result<String> {
     // Save current branch
-    let original_branch = current_branch(repo_path)?;
+    let original_branch = current_branch(repo_path).ok();
 
     // Check if branch exists
     if branch_exists(repo_path, branch_name)? {
@@ -130,7 +157,7 @@ pub fn setup_branch_workflow(repo_path: &Path, branch_name: &str) -> Result<Stri
         create_orphan_branch(repo_path, branch_name)?;
     }
 
-    Ok(original_branch)
+    Ok(original_branch.unwrap_or_else(|| "master".to_string()))
 }
 
 /// Add files to the staging area

@@ -1,9 +1,9 @@
 # Build artifacts
 /target
 
-# Runtime/cache
-.qipu/qipu.db
-.qipu/.cache/
+# Qipu store - ignored for now since no project knowledgebase exists yet.
+# If we add a kb in the future, remove this and track .qipu/ contents.
+.qipu/
 
 # Debug/test directories (ad-hoc testing)
 exact_test/

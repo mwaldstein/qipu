@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PackHeader {
     pub version: String,
+    pub store_version: u32,
     pub created: chrono::DateTime<chrono::Utc>,
     pub store_path: String,
     pub notes_count: usize,

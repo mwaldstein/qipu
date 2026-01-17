@@ -1,4 +1,5 @@
 use super::model::{PackAttachment, PackHeader, PackLink, PackNote, PackSource};
+use crate::lib::config::STORE_FORMAT_VERSION;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
 use crate::lib::store::Store;
@@ -13,6 +14,7 @@ pub fn serialize_pack_readable(
 ) -> Result<String> {
     let header = PackHeader {
         version: "1.0".to_string(),
+        store_version: STORE_FORMAT_VERSION,
         created: chrono::Utc::now(),
         store_path: store.root().display().to_string(),
         notes_count: notes.len(),
@@ -82,7 +84,8 @@ pub fn serialize_pack_records(
 
     // Header line
     output.push_str(&format!(
-        "H pack=1 version=1.0 created={} store={} notes={} links={} attachments={}\n",
+        "H pack=1 version=1.0 store_version={} created={} store={} notes={} links={} attachments={}\n",
+        STORE_FORMAT_VERSION,
         chrono::Utc::now().to_rfc3339(),
         store.root().display(),
         notes.len(),

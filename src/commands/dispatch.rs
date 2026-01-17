@@ -538,12 +538,15 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             )
         }
 
-        Some(Commands::Load { pack_file }) => {
+        Some(Commands::Load {
+            pack_file,
+            strategy,
+        }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
                 eprintln!("discover_store: {:?}", start.elapsed());
             }
-            commands::load::execute(cli, &store, pack_file)
+            commands::load::execute(cli, &store, pack_file, strategy)
         }
 
         Some(Commands::Merge { id1, id2, dry_run }) => {

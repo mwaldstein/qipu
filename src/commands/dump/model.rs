@@ -20,6 +20,7 @@ pub struct DumpOptions<'a> {
 #[derive(Debug, Clone, Serialize)]
 pub struct PackHeader {
     pub version: String,
+    pub store_version: u32,
     pub created: chrono::DateTime<chrono::Utc>,
     pub store_path: String,
     pub notes_count: usize,

@@ -410,6 +410,10 @@ pub enum Commands {
     Load {
         /// Pack file path
         pack_file: PathBuf,
+
+        /// Conflict resolution strategy: skip, overwrite, merge-links
+        #[arg(long, default_value = "skip")]
+        strategy: String,
     },
 
     /// Merge note id1 into id2

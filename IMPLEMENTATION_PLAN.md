@@ -149,9 +149,9 @@ crates/llm-tool-test/
 - [x] **`--force` flag ignored in delete**: Fixed in `src/commands/workspace/delete.rs` (added check for unmerged changes) and added test case in `tests/workspace_merge_test.rs` ([delete.rs#L9](file:///home/micah/dev/qipu/src/commands/workspace/delete.rs#L9))
 
 ### Pack Load Missing Features
-- [ ] **`--strategy` flag missing**: CLI has no `--strategy` arg for `qipu load`; always overwrites ([cli/mod.rs#L410-L413](file:///home/micah/dev/qipu/src/cli/mod.rs#L410-L413))
-- [ ] **Conflict resolution not implemented**: `load_notes` doesn't check if note exists before writing ([load/mod.rs#L121-L187](file:///home/micah/dev/qipu/src/commands/load/mod.rs#L121-L187))
-- [ ] **`store_version` header missing**: Not in PackHeader, no compatibility check ([model.rs#L20-L28](file:///home/micah/dev/qipu/src/commands/dump/model.rs#L20-L28))
+- [x] **`--strategy` flag missing**: CLI has no `--strategy` arg for `qipu load`; always overwrites ([cli/mod.rs#L410-L413](file:///home/micah/dev/qipu/src/cli/mod.rs#L410-L413))
+- [x] **Conflict resolution not implemented**: `load_notes` doesn't check if note exists before writing ([load/mod.rs#L121-L187](file:///home/micah/dev/qipu/src/commands/load/mod.rs#L121-L187))
+- [x] **`store_version` header missing**: Not in PackHeader, no compatibility check ([model.rs#L20-L28](file:///home/micah/dev/qipu/src/commands/dump/model.rs#L20-L28))
 
 ### **P2: Missing Test Coverage**
 
@@ -280,11 +280,12 @@ crates/llm-tool-test/
 - Virtual expansion at query time
 - All invariants checked (single compactor, acyclic, no self-compact, IDs resolve)
 
-### ⚠️ Pack (pack.md) - PARTIAL
+### ⚠️ Pack (pack.md) - COMPLETE
 - `qipu dump`: all selectors and traversal options ✅
-- `qipu load`: basic functionality ✅
+- `qipu load`: all features ✅
 - Formats: JSON and records ✅
-- **Missing**: `--strategy` flag, conflict resolution, `store_version` header
+- All conflict resolution strategies implemented: skip, overwrite, merge-links ✅
+- store_version header added with compatibility check ✅
 
 ### ⚠️ Workspaces (workspaces.md) - PARTIAL
 - Subcommands: new, list, delete, merge ✅

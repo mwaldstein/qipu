@@ -11,17 +11,53 @@ pub mod model;
 
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use base64::{engine::general_purpose, Engine as _};
 
 use crate::cli::{Cli, OutputFormat};
+use crate::lib::config::STORE_FORMAT_VERSION;
 use crate::lib::error::{QipuError, Result};
-use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source};
+use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source, TypedLink};
 use crate::lib::store::Store;
 use model::{PackAttachment, PackLink, PackNote};
 
-/// Execute the load command
-pub fn execute(cli: &Cli, store: &Store, pack_file: &Path) -> Result<()> {
+static VERBOSE_ENABLED: AtomicBool = AtomicBool::new(false);
+
+fn verbose_enabled() -> bool {
+    VERBOSE_ENABLED.load(Ordering::Relaxed)
+}
+
+fn set_verbose(enabled: bool) {
+    VERBOSE_ENABLED.store(enabled, Ordering::Relaxed);
+}
+
+enum LoadStrategy {
+    Skip,
+    Overwrite,
+    MergeLinks,
+}
+
+fn parse_strategy(s: &str) -> Result<LoadStrategy> {
+    match s.to_lowercase().as_str() {
+        "skip" => Ok(LoadStrategy::Skip),
+        "overwrite" => Ok(LoadStrategy::Overwrite),
+        "merge-links" => Ok(LoadStrategy::MergeLinks),
+        _ => Err(QipuError::Other(format!(
+            "invalid strategy: {} (valid: skip, overwrite, merge-links)",
+            s
+        ))),
+    }
+}
+
+/// Execute load command
+pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Result<()> {
+    // Set verbose flag for use in conflict resolution
+    set_verbose(cli.verbose);
+
+    // Parse strategy
+    let strategy = parse_strategy(strategy)?;
+
     // Read pack file
     let pack_content = std::fs::read_to_string(pack_file)
         .map_err(|e| QipuError::Other(format!("failed to read pack file: {}", e)))?;
@@ -41,8 +77,16 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path) -> Result<()> {
         )));
     }
 
+    // Validate store version compatibility
+    if pack_data.header.store_version > STORE_FORMAT_VERSION {
+        return Err(QipuError::Other(format!(
+            "pack store version {} is higher than store version {} - please upgrade qipu",
+            pack_data.header.store_version, STORE_FORMAT_VERSION
+        )));
+    }
+
     // Load notes
-    let loaded_notes_count = load_notes(store, &pack_data.notes)?;
+    let loaded_notes_count = load_notes(store, &pack_data.notes, &strategy)?;
 
     // Load links
     let loaded_links_count = load_links(store, &pack_data.links, &pack_data.notes)?;
@@ -118,8 +162,9 @@ fn write_note_preserving_updated(note: &Note) -> Result<()> {
 }
 
 /// Load notes from pack into store
-fn load_notes(store: &Store, pack_notes: &[PackNote]) -> Result<usize> {
+fn load_notes(store: &Store, pack_notes: &[PackNote], strategy: &LoadStrategy) -> Result<usize> {
     let mut loaded_count = 0;
+    let existing_ids = store.existing_ids()?;
 
     for pack_note in pack_notes {
         // Parse note type
@@ -178,9 +223,67 @@ fn load_notes(store: &Store, pack_notes: &[PackNote]) -> Result<usize> {
         let file_path = target_dir.join(&file_name);
         note.path = Some(file_path);
 
-        // Save note without overwriting pack timestamps
-        write_note_preserving_updated(&note)?;
-        loaded_count += 1;
+        // Handle conflicts based on strategy
+        let should_load = if existing_ids.contains(note.id()) {
+            match strategy {
+                LoadStrategy::Skip => {
+                    if verbose_enabled() {
+                        eprintln!(
+                            "Skipping conflicting note: {} (ID: {})",
+                            note.title(),
+                            note.id()
+                        );
+                    }
+                    false
+                }
+                LoadStrategy::Overwrite => {
+                    if verbose_enabled() {
+                        eprintln!(
+                            "Overwriting existing note: {} (ID: {})",
+                            note.title(),
+                            note.id()
+                        );
+                    }
+                    true
+                }
+                LoadStrategy::MergeLinks => {
+                    // Merge links from existing note into pack note
+                    if let Ok(existing_note) = store.get_note(&note.id()) {
+                        // Union of links, deduplicating by (id, link_type)
+                        let existing_links = &existing_note.frontmatter.links;
+                        let pack_links: Vec<TypedLink> = note
+                            .frontmatter
+                            .links
+                            .iter()
+                            .filter(|l| {
+                                !existing_links
+                                    .iter()
+                                    .any(|el| el.id == l.id && el.link_type == l.link_type)
+                            })
+                            .cloned()
+                            .collect();
+                        note.frontmatter.links.extend(pack_links);
+
+                        if verbose_enabled() {
+                            eprintln!(
+                                "Merging links for note: {} (ID: {})",
+                                note.title(),
+                                note.id()
+                            );
+                        }
+                    }
+                    true
+                }
+            }
+        } else {
+            true
+        };
+
+        if should_load {
+            // Save note without overwriting pack timestamps
+            write_note_preserving_updated(&note)?;
+            loaded_count += 1;
+        }
     }
 
     Ok(loaded_count)

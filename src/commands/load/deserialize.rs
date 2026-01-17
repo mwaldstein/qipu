@@ -74,6 +74,10 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
 
             header = Some(PackHeader {
                 version: header_data.get("version").unwrap_or(&"1.0").to_string(),
+                store_version: header_data
+                    .get("store_version")
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0),
                 created: header_data
                     .get("created")
                     .and_then(|s| s.parse().ok())

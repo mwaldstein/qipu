@@ -4,24 +4,153 @@
 
 Core P0/P1 features are substantially complete. Detailed audit (2026-01-17) identified gaps requiring attention.
 
+**Current Priority**: LLM User Validation Testing Harness (see P0 section)
+
 ---
 
-## **Priority Gaps (Audit Findings)**
+## **P0: LLM User Validation Testing Harness**
 
-### **P1: Correctness Issues**
+The core goal of qipu is LLM usability. Current scaffold runs hardcoded commands instead of real LLM invocations. This must be fixed before other work continues.
 
-#### Workspace Merge Bugs
+### Architecture Decision
+
+**The test harness is a separate binary (`llm-tool-test`), NOT part of qipu.**
+
+Rationale:
+- Test infrastructure shouldn't ship in the distributed binary
+- Black-box testing validates the actual user experience
+- Harness could be reused for testing other LLM-facing CLI tools
+- Keeps qipu's dependencies minimal
+
+### Phase 1: Separate Crate Setup
+- [ ] **Create `llm-tool-test` crate**: New workspace member
+  - `crates/llm-tool-test/Cargo.toml`
+  - `crates/llm-tool-test/src/main.rs`
+  - Add to workspace in root `Cargo.toml`
+- [ ] **Remove existing scaffold**: Delete `tests/llm/` module
+  - Current code runs hardcoded commands, not useful
+  - Clean slate for proper implementation
+- [ ] **Define CLI interface**: Using clap
+  - `run`, `list`, `show`, `compare`, `clean` subcommands
+  - `--scenario`, `--tags`, `--tool`, `--max-usd`, `--dry-run` flags
+
+### Phase 2: Test Fixtures
+- [ ] **Create fixture directory**: `crates/llm-tool-test/fixtures/qipu/`
+  - `AGENTS.md` - Qipu usage instructions for LLM
+  - `README.md` - Project context
+  - Sample scenarios in `scenarios/`
+- [ ] **AGENTS.md for qipu tests**: Representative documentation
+  - Core commands with examples
+  - Common workflows (create, link, search)
+  - Output format guidance
+  - Error handling patterns
+- [ ] **Scenario definitions**: YAML files
+  - `capture_basic.yaml` - Create notes from content
+  - `link_navigation.yaml` - Navigate linked notes
+  - `context_retrieval.yaml` - Use qipu context
+  - `search_workflow.yaml` - Find existing notes
+
+### Phase 3: Core Harness Infrastructure
+- [ ] **Scenario loader**: Parse YAML scenario files
+  - `Scenario` struct matching spec schema
+  - Support `fixture`, `task.prompt`, `tool_matrix`
+  - Support `evaluation.gates` and `evaluation.judge`
+- [ ] **Environment setup**: Create isolated test directory
+  - Copy fixture files (AGENTS.md, README.md, seed data)
+  - Initialize qipu store if needed
+  - Set working directory for LLM tool
+- [ ] **PTY session capture**: Real LLM CLI invocation
+  - Add `portable-pty` dependency
+  - `SessionRunner` for PTY-based command execution
+  - Fallback to piped stdout/stderr
+  - Capture timing, exit codes, raw output stream
+- [ ] **Transcript bundle writer**: Create reviewable artifacts
+  - `transcript.raw.txt` - Complete session output
+  - `events.jsonl` - Structured event log
+  - `run.json` - Metadata (scenario, tool, duration, cost)
+  - `store_snapshot/` - Post-run qipu export
+  - `report.md` - Human-readable summary
+
+### Phase 4: Tool Adapters
+- [ ] **Amp adapter**: Real `amp` CLI invocation
+  - Build context from fixture AGENTS.md
+  - Prompt file creation and invocation
+  - Transcript capture via PTY
+- [ ] **OpenCode adapter**: Real `opencode` CLI invocation
+  - Same interface as Amp adapter
+- [ ] **Availability checks**: Verify tool installed + authenticated
+  - `ToolStatus` struct with version, auth status
+  - Graceful skip if tool unavailable
+
+### Phase 5: Evaluation System
+- [ ] **Structural gates**: Cheap, deterministic checks
+  - Run qipu commands to verify store state
+  - Note count minimum, link count minimum
+  - Retrieval query checks (`qipu search` returns results)
+  - Doctor validation passes
+- [ ] **Metrics computation**: Scored evaluation
+  - `EvaluationMetrics` struct with counts and checks
+  - Return metric vector, not just pass/fail
+- [ ] **LLM-as-judge** (optional): Qualitative evaluation
+  - Rubric loading from YAML
+  - Judge prompt construction
+  - Score parsing from structured JSON response
+
+### Phase 6: Results & Reporting
+- [ ] **Results database**: Append-only run records
+  - `results/results.jsonl`
+  - Record: scenario, tool, metrics, scores, outcome, transcript path
+- [ ] **Regression detection**: Compare against baselines
+  - Score degradation warnings
+  - Gate failure alerts
+- [ ] **Caching**: Skip identical runs
+  - Cache key: scenario hash + fixture hash + tool
+  - `--no-cache` to force re-run
+
+### Directory Structure
+
+```
+crates/llm-tool-test/
+├── Cargo.toml
+├── src/
+│   ├── main.rs              # CLI entry point
+│   ├── cli.rs               # Clap definitions
+│   ├── scenario.rs          # Scenario loading
+│   ├── fixture.rs           # Test environment setup
+│   ├── session.rs           # PTY session runner
+│   ├── adapter/
+│   │   ├── mod.rs
+│   │   ├── amp.rs
+│   │   └── opencode.rs
+│   ├── evaluation.rs        # Gates + judge
+│   ├── transcript.rs        # Artifact writing
+│   └── results.rs           # Results database
+├── fixtures/
+│   └── qipu/
+│       ├── AGENTS.md
+│       ├── README.md
+│       └── scenarios/
+│           ├── capture_basic.yaml
+│           ├── link_navigation.yaml
+│           └── ...
+└── results/                  # Gitignored, run artifacts
+    ├── results.jsonl
+    └── transcripts/
+```
+
+---
+
+## **P1: Correctness Issues**
+
+### Workspace Merge Bugs
 - [ ] **`overwrite` strategy broken**: Calls `create_note_with_content` generating new ID instead of replacing existing note ([merge.rs#L44-L53](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L44-L53))
 - [ ] **`merge-links` merges tags, not links**: Spec requires union of links array, implementation unions tags ([merge.rs#L54-L65](file:///home/micah/dev/qipu/src/commands/workspace/merge.rs#L54-L65))
 - [ ] **`--force` flag ignored in delete**: Always deletes without checking unmerged changes ([delete.rs#L9](file:///home/micah/dev/qipu/src/commands/workspace/delete.rs#L9))
 
-#### Pack Load Missing Features
+### Pack Load Missing Features
 - [ ] **`--strategy` flag missing**: CLI has no `--strategy` arg for `qipu load`; always overwrites ([cli/mod.rs#L410-L413](file:///home/micah/dev/qipu/src/cli/mod.rs#L410-L413))
 - [ ] **Conflict resolution not implemented**: `load_notes` doesn't check if note exists before writing ([load/mod.rs#L121-L187](file:///home/micah/dev/qipu/src/commands/load/mod.rs#L121-L187))
 - [ ] **`store_version` header missing**: Not in PackHeader, no compatibility check ([model.rs#L20-L28](file:///home/micah/dev/qipu/src/commands/dump/model.rs#L20-L28))
-
-#### LLM User Validation
-- [ ] **No actual LLM invocation**: `OpenCodeAdapter.execute_task()` runs hardcoded commands, never calls any LLM CLI ([adapter.rs#L32-L149](file:///home/micah/dev/qipu/tests/llm/adapter.rs#L32-L149))
 
 ### **P2: Missing Test Coverage**
 

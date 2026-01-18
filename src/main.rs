@@ -59,11 +59,7 @@ fn main() -> ExitCode {
         eprintln!("Warning: Failed to initialize logging: {}", e);
     }
 
-    logging::set_verbose(cli.verbose);
-
-    if cli.verbose {
-        eprintln!("parse_args: {:?}", start.elapsed());
-    }
+    tracing::debug!(elapsed = ?start.elapsed(), "parse_args");
 
     let result = commands::dispatch::run(&cli, start);
 

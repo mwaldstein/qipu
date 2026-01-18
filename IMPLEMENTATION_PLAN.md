@@ -58,8 +58,11 @@
    - Refs: wrapper struct `src/lib/store/workspace.rs:14-15`, load/save updated `src/lib/store/workspace.rs:18-36`
 
 ### `specs/structured-logging.md`
-- [ ] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)
-  - Refs: tracing init `src/lib/logging.rs:15-52`, legacy verbose gate `src/lib/logging.rs:4-12`, timing `eprintln!` `src/main.rs:64-66`
+- [x] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)
+  - Fixed: Replaced legacy `VERBOSE` atomic and `verbose_enabled()` with proper `tracing::debug!`, `tracing::warn!` instrumentation
+  - Updated all timing statements in dispatch.rs, search method selection in index/search.rs, regex warnings in index/links.rs, load operation info in commands/load/mod.rs, and parse warnings in store/query.rs
+  - Fixed test expectations: changed from stderr to stdout for verbose output checks
+  - Refs: tracing init `src/lib/logging.rs:14-51`, timing `tracing::debug!` `src/commands/dispatch.rs:22`, search method `tracing::debug!` `src/lib/index/search.rs:425,430`, regex warnings `tracing::warn!` `src/lib/index/links.rs:37,64`
 
 ### `specs/llm-user-validation.md`
 - [ ] `llm-tool-test` CLI default tool value is inconsistent with runtime support

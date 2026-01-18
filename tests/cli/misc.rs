@@ -255,7 +255,7 @@ fn test_verbose_flag() {
         .args(["--verbose", "list"])
         .assert()
         .success()
-        .stderr(predicate::str::contains("discover_store"));
+        .stdout(predicate::str::contains("discover_store"));
 }
 
 // ============================================================================

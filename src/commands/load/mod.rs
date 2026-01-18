@@ -22,16 +22,6 @@ use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source, TypedLink};
 use crate::lib::store::Store;
 use model::{PackAttachment, PackLink, PackNote};
 
-static VERBOSE_ENABLED: AtomicBool = AtomicBool::new(false);
-
-fn verbose_enabled() -> bool {
-    VERBOSE_ENABLED.load(Ordering::Relaxed)
-}
-
-fn set_verbose(enabled: bool) {
-    VERBOSE_ENABLED.store(enabled, Ordering::Relaxed);
-}
-
 enum LoadStrategy {
     Skip,
     Overwrite,
@@ -52,9 +42,6 @@ fn parse_strategy(s: &str) -> Result<LoadStrategy> {
 
 /// Execute load command
 pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Result<()> {
-    // Set verbose flag for use in conflict resolution
-    set_verbose(cli.verbose);
-
     // Parse strategy
     let strategy = parse_strategy(strategy)?;
 
@@ -105,15 +92,13 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     };
 
     // Report results
-    if cli.verbose && !cli.quiet {
-        eprintln!(
-            "loaded {} notes, {} links, {} attachments from {}",
-            loaded_notes_count,
-            loaded_links_count,
-            loaded_attachments_count,
-            pack_file.display()
-        );
-    }
+    tracing::debug!(
+        notes_loaded = loaded_notes_count,
+        links_loaded = loaded_links_count,
+        attachments_loaded = loaded_attachments_count,
+        pack_file = %pack_file.display(),
+        "Load completed"
+    );
 
     // Output in requested format if needed
     match cli.format {
@@ -240,23 +225,19 @@ fn load_notes(
         let should_load = if existing_ids.contains(note.id()) {
             match strategy {
                 LoadStrategy::Skip => {
-                    if verbose_enabled() {
-                        eprintln!(
-                            "Skipping conflicting note: {} (ID: {})",
-                            note.title(),
-                            note.id()
-                        );
-                    }
+                    tracing::debug!(
+                        title = %note.title(),
+                        id = %note.id(),
+                        "Skipping conflicting note"
+                    );
                     false
                 }
                 LoadStrategy::Overwrite => {
-                    if verbose_enabled() {
-                        eprintln!(
-                            "Overwriting existing note: {} (ID: {})",
-                            note.title(),
-                            note.id()
-                        );
-                    }
+                    tracing::debug!(
+                        title = %note.title(),
+                        id = %note.id(),
+                        "Overwriting existing note"
+                    );
                     true
                 }
                 LoadStrategy::MergeLinks => {
@@ -277,13 +258,11 @@ fn load_notes(
                             .collect();
                         note.frontmatter.links.extend(pack_links);
 
-                        if verbose_enabled() {
-                            eprintln!(
-                                "Merging links for note: {} (ID: {})",
-                                note.title(),
-                                note.id()
-                            );
-                        }
+                        tracing::debug!(
+                            title = %note.title(),
+                            id = %note.id(),
+                            "Merging links for note"
+                        );
                     }
                     true
                 }

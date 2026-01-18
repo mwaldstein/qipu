@@ -1,15 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-
-static VERBOSE: AtomicBool = AtomicBool::new(false);
-
-pub fn set_verbose(enabled: bool) {
-    VERBOSE.store(enabled, Ordering::Relaxed);
-}
-
-pub fn verbose_enabled() -> bool {
-    VERBOSE.load(Ordering::Relaxed)
-}
 
 /// Initialize structured logging based on CLI arguments
 pub fn init_tracing(

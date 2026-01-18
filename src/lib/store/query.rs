@@ -5,7 +5,6 @@ use std::fs;
 use walkdir::WalkDir;
 
 use crate::lib::error::{QipuError, Result};
-use crate::lib::logging;
 use crate::lib::note::Note;
 
 use super::paths::{MOCS_DIR, NOTES_DIR};
@@ -31,10 +30,7 @@ impl Store {
                     match Note::parse(&fs::read_to_string(path)?, Some(path.to_path_buf())) {
                         Ok(note) => notes.push(note),
                         Err(e) => {
-                            // Log but continue - don't fail on individual bad notes
-                            if logging::verbose_enabled() {
-                                eprintln!("Warning: failed to parse {}: {}", path.display(), e);
-                            }
+                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
                         }
                     }
                 }

@@ -252,7 +252,7 @@ fn test_verbose_timing_output() {
     // Create test store with notes
     create_test_store_with_notes(store_dir.path(), note_count).unwrap();
 
-    // Test that verbose mode produces timing output on stderr
+    // Test that verbose mode produces timing output
     qipu()
         .arg("--store")
         .arg(store_dir.path())
@@ -260,7 +260,7 @@ fn test_verbose_timing_output() {
         .arg("list")
         .assert()
         .success()
-        .stderr(predicate::str::contains("discover_store"));
+        .stdout(predicate::str::contains("discover_store"));
 }
 
 // ============================================================================

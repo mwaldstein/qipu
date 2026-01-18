@@ -1,6 +1,5 @@
 use super::types::{Index, SearchResult};
 use crate::lib::error::Result;
-use crate::lib::logging;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
 use crate::lib::text::{calculate_bm25, tokenize};
@@ -9,6 +8,7 @@ use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use tracing::debug;
 
 /// Ripgrep JSON output variants
 #[derive(Deserialize, Debug)]
@@ -421,14 +421,10 @@ pub fn search(
 ) -> Result<Vec<SearchResult>> {
     // Always try ripgrep first - it's much faster than embedded search
     if is_ripgrep_available() {
-        if logging::verbose_enabled() {
-            eprintln!("Using ripgrep search");
-        }
+        debug!("Using ripgrep search");
         search_with_ripgrep(store, index, query, type_filter, tag_filter)
     } else {
-        if logging::verbose_enabled() {
-            eprintln!("Using embedded search");
-        }
+        debug!("Using embedded search");
         search_embedded(store, index, query, type_filter, tag_filter)
     }
 }

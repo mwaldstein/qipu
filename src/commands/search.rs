@@ -16,6 +16,7 @@ use crate::lib::index::{search, Index, IndexBuilder, SearchResult};
 use crate::lib::note::NoteType;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
+use tracing::debug;
 
 /// Execute the search command
 pub fn execute(
@@ -31,10 +32,7 @@ pub fn execute(
     let index = match Index::load(&cache_dir) {
         Ok(idx) if !idx.metadata.is_empty() => idx,
         _ => {
-            // Index doesn't exist or is empty - build it in-memory
-            if cli.verbose {
-                eprintln!("Building index in-memory (run 'qipu index' to cache)...");
-            }
+            debug!("Building index in-memory (run 'qipu index' to cache)...");
             IndexBuilder::new(store).build()?
         }
     };

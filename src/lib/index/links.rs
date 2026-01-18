@@ -1,9 +1,9 @@
 use super::types::{Edge, LinkSource};
-use crate::lib::logging;
 use crate::lib::note::Note;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use tracing::warn;
 
 /// Extract all links from a note
 pub(crate) fn extract_links(
@@ -34,9 +34,7 @@ pub(crate) fn extract_links(
     let wiki_link_re = match Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]") {
         Ok(re) => re,
         Err(e) => {
-            if logging::verbose_enabled() {
-                eprintln!("Warning: Failed to compile wiki link regex: {}", e);
-            }
+            warn!(error = %e, "Failed to compile wiki link regex");
             return edges; // Return empty edges if regex fails
         }
     };
@@ -61,9 +59,7 @@ pub(crate) fn extract_links(
     let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
         Ok(re) => re,
         Err(e) => {
-            if logging::verbose_enabled() {
-                eprintln!("Warning: Failed to compile markdown link regex: {}", e);
-            }
+            warn!(error = %e, "Failed to compile markdown link regex");
             return edges; // Return empty edges if regex fails
         }
     };

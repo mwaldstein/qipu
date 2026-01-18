@@ -10,6 +10,7 @@ use crate::commands;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
+use tracing::debug;
 
 pub fn run(cli: &Cli, start: Instant) -> Result<()> {
     // Determine the root directory
@@ -18,9 +19,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         .clone()
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
-    if cli.verbose {
-        eprintln!("resolve_root: {:?}", start.elapsed());
-    }
+    debug!(elapsed = ?start.elapsed(), "resolve_root");
 
     // Handle commands
     match &cli.command {
@@ -267,7 +266,7 @@ fn handle_create(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::create::execute(
         cli,
@@ -295,7 +294,7 @@ fn handle_list(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
 
     let since_dt = since
@@ -318,7 +317,7 @@ fn handle_show(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::show::execute(cli, &store, id_or_path, links)
 }
@@ -326,7 +325,7 @@ fn handle_show(
 fn handle_inbox(cli: &Cli, root: &PathBuf, exclude_linked: bool, start: Instant) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
 
     let notes = store.list_notes()?;
@@ -450,7 +449,7 @@ fn handle_capture(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::capture::execute(
         cli,
@@ -470,7 +469,7 @@ fn handle_capture(
 fn handle_index(cli: &Cli, root: &PathBuf, rebuild: bool, start: Instant) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::index::execute(cli, &store, rebuild)
 }
@@ -487,7 +486,7 @@ fn handle_search(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs)
 }
@@ -501,7 +500,7 @@ fn handle_verify(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::verify::execute(cli, &store, id_or_path, status)
 }
@@ -509,7 +508,7 @@ fn handle_verify(
 fn handle_prime(cli: &Cli, root: &PathBuf, start: Instant) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::prime::execute(cli, &store)
 }
@@ -554,7 +553,7 @@ fn handle_doctor(
     };
 
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::doctor::execute(cli, &store, fix, duplicates, threshold)?;
     Ok(())
@@ -571,7 +570,7 @@ fn handle_sync(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::sync::execute(cli, &store, validate, fix, commit, push)
 }
@@ -594,7 +593,7 @@ fn handle_context(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::context::execute(
         cli,
@@ -630,7 +629,7 @@ fn handle_export(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     let export_mode = commands::export::ExportMode::parse(mode)?;
     let link_mode = commands::export::LinkMode::parse(link_mode)?;
@@ -653,7 +652,7 @@ fn handle_export(
 fn handle_link(cli: &Cli, root: &PathBuf, command: &LinkCommands, start: Instant) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
 
     match command {
@@ -780,7 +779,7 @@ fn handle_dump(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
 
     let dir = direction
@@ -826,7 +825,7 @@ fn handle_load(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::load::execute(cli, &store, pack_file, strategy)
 }
@@ -841,7 +840,7 @@ fn handle_merge(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        eprintln!("discover_store: {:?}", start.elapsed());
+        debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::merge::execute(cli, &store, id1, id2, dry_run)
 }

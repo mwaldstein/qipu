@@ -326,62 +326,9 @@ fn test_link_add_remove_updates_database() {
         String::from_utf8_lossy(&show_output_after.stdout)
     );
 
-    // Debug: check all edges in database
-    let mut debug_stmt = conn
-        .prepare("SELECT source_id, target_id, link_type FROM edges ORDER BY source_id")
-        .unwrap();
-    let mut debug_rows = debug_stmt.query([]).unwrap();
-    eprintln!("Edges in database after remove:");
-    while let Some(row) = debug_rows.next().unwrap() {
-        let source: String = row.get(0).unwrap();
-        let target: String = row.get(1).unwrap();
-        let link_type: String = row.get(2).unwrap();
-        eprintln!("  {} -> {} ({})", source, target, link_type);
-    }
-
-    // Verify link is removed from database
-    let mut stmt2 = conn
-        .prepare("SELECT source_id, target_id, link_type FROM edges WHERE source_id = ?1 AND target_id = ?2")
-        .unwrap();
-    let mut rows = stmt2.query((&id1, &id2)).unwrap();
-    assert!(
-        rows.next().unwrap().is_none(),
-        "Link should not exist in edges table after remove"
-    );
-
-    // Check note file content before remove
-    let note_path = std::fs::read_dir(dir.path())
-        .unwrap()
-        .flat_map(|e| {
-            std::fs::read_dir(e.unwrap().path())
-                .ok()
-                .into_iter()
-                .flatten()
-        })
-        .find(|e| {
-            e.as_ref()
-                .unwrap()
-                .file_name()
-                .to_string_lossy()
-                .starts_with(&id1)
-        })
-        .unwrap()
-        .unwrap()
-        .path();
-    let note_content = std::fs::read_to_string(&note_path).unwrap();
-    eprintln!("Note content before remove:\n{}", note_content);
-
-    // Remove the link
-    qipu()
-        .current_dir(dir.path())
-        .args(["link", "remove", &id1, &id2, "--type", "supports"])
-        .assert()
-        .success();
-
-    // Check note file content after remove
-    let note_content_after = std::fs::read_to_string(&note_path).unwrap();
-    eprintln!("Note content after remove:\n{}", note_content_after);
-    eprintln!("Content changed: {}", note_content != note_content_after);
+    // Reopen database connection to see the latest state
+    let db_path = dir.path().join(".qipu/qipu.db");
+    let conn = Connection::open(db_path).unwrap();
 
     // Debug: check all edges in database
     let mut debug_stmt = conn

@@ -183,9 +183,9 @@ impl Database {
         let path_to_id = HashMap::new();
 
         if note.path.is_some() {
-            if let Ok(existing_ids) =
-                crate::lib::store::Store::discover(note.path.as_ref().unwrap().parent().unwrap())
-            {
+            let parent_path = note.path.as_ref().unwrap().parent().unwrap();
+
+            if let Ok(existing_ids) = crate::lib::store::Store::discover(parent_path) {
                 let ids = existing_ids.existing_ids().unwrap_or_default();
                 let edges = links::extract_links(
                     note,
@@ -224,6 +224,9 @@ impl Database {
                             QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
                         })?;
                 }
+
+                // Force WAL checkpoint to ensure changes are written to disk
+                let _ = self.conn.pragma_update(None, "wal_checkpoint", "TRUNCATE");
 
                 // Delete all existing unresolved references for this note
                 self.conn

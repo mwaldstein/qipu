@@ -136,20 +136,24 @@ Implemented method that removes file and updates DB:
 - Calls `db.delete_note()` to remove from database
 - Returns error if note has no path or file deletion fails
 
-#### 2.3: Wire up `link add/remove` to update DB
+#### 2.3: Wire up `link add/remove` to update DB ✅ COMPLETE
 Files: `src/commands/link/add.rs`, `src/commands/link/remove.rs`
 
 Both already call `store.save_note()` which now updates the DB via `insert_note()` and `insert_edges()`. The current implementation already works because:
 - `save_note()` calls `db.insert_note()` and `db.insert_edges()` (src/lib/store/lifecycle.rs:169-170)
-- `insert_edges()` uses `INSERT OR REPLACE` so it handles both add and remove
+- `insert_edges()` deletes all existing edges before inserting new ones
 
-**Blocker**: `INSERT OR REPLACE` doesn't remove edges when links are deleted from frontmatter. It only replaces edges with matching primary keys, but if a link is removed and no new link has the same (source_id, target_id, link_type), the edge stays in the database.
+**Blocker resolved**: `INSERT OR REPLACE` doesn't remove edges when links are deleted from frontmatter. It only replaces edges with matching primary keys, but if a link is removed and no new link has the same (source_id, target_id, link_type), the edge stays in the database.
 
-**Required fix**: `Database::insert_edges()` must DELETE all edges for a note before inserting new ones. This ensures edges are removed when links are deleted from frontmatter.
+**Fix applied**: `Database::insert_edges()` now deletes all existing edges for a note before inserting new ones. This ensures edges are removed when links are deleted from frontmatter.
 
-**Learning**: The DELETE statement has been added to `insert_edges()`, but the test is still failing. The edge remains in the database even after being removed from the frontmatter and the file is updated. Investigation needed to determine why DELETE is not working.
+**Root cause**: WAL mode in SQLite delays writes to the main database file. Tests using separate connections were seeing stale data because the WAL changes weren't checkpointed to disk before the test queries.
 
-**Verify with test**: Create test that adds a link, verifies it appears in edges table, removes it, verifies it's gone.
+**Solution**: Added `pragma wal_checkpoint(TRUNCATE)` after edge insertion/deletion in `Database::insert_edges()` to force WAL changes to be written to disk. This ensures test queries see the latest state.
+
+**Learning**: When using WAL mode with multiple connections, explicitly checkpoint after writes if subsequent reads need to see the changes immediately. Alternatively, tests should use the same connection for all operations.
+
+**Verified with test**: `test_link_add_remove_updates_database` in `tests/cli/link/add_remove.rs` confirms edges are correctly added and removed.
 
 ### Phase 3: Migrate Queries to SQLite
 

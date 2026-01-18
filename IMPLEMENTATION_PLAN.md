@@ -66,9 +66,13 @@
   - Fixed: traversal now checks for unexpanded neighbors when `hop >= max_hops` and sets `truncated=true` with `truncation_reason="max_hops"` if any exist
   - Changed `src/lib/graph/traversal.rs:87-124`: added logic to detect unexpanded neighbors at max hop depth and report truncation
   - Added test: `tests/cli/link/tree.rs:test_link_tree_max_hops_reports_truncation` verifies truncation is reported in JSON output
-- [ ] Default semantic inversion introduces `source=virtual` + inverted types for inbound traversal; spec does not describe this behavior
-  - Refs: inversion `src/lib/index/types.rs:43-54`, traversal uses inversion `src/lib/graph/traversal.rs:110-125`, flag `src/cli/mod.rs:82-85`
-- [ ] Tree ordering can diverge from “sort neighbors by (type,id)” guidance due to spanning-tree re-sort
+- [x] Default semantic inversion introduces `source=virtual` + inverted types for inbound traversal; spec does not describe this behavior
+  - Fixed: updated `specs/graph-traversal.md` to document semantic inversion behavior
+  - Added section "Semantic inversion for inbound edges" documenting that inversion is enabled by default, creates virtual edges with inverted types, and can be disabled with `--no-semantic-inversion`
+  - Documented global flag `--no-semantic-inversion` in CLI surface section
+  - Added documentation for `source` field values (typed, inline, virtual) in JSON output section
+  - Existing tests already verify this behavior: `tests/cli/link/add_remove.rs:test_link_add_and_list` tests both semantic inversion and `--no-semantic-inversion`
+- [ ] Tree ordering can diverge from "sort neighbors by (type,id)" guidance due to spanning-tree re-sort
   - Refs: neighbor sort `src/lib/graph/traversal.rs:130-135`, spanning-tree sort `src/lib/graph/traversal.rs:235`
 
 ### `specs/records-output.md`

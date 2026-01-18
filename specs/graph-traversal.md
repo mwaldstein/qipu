@@ -66,6 +66,20 @@ Supported values:
 
 Default: `both`.
 
+#### Semantic inversion for inbound edges
+By default, when traversing inbound edges (direction `in` or `both`), qipu applies **semantic inversion** to present backlinks as natural forward relationships from the perspective of the current note.
+
+When semantic inversion is enabled:
+- If Note A has a link `A -> B` with type `supports`, when traversing from B, the edge appears as `B -> A` with type `supported-by` (the inverse type)
+- The inverted edge is marked with `source=virtual` to distinguish it from edges explicitly stored in note frontmatter
+- This matches the behavior described in `specs/semantic-graph.md` section 2
+
+This is the **default behavior** for all traversal commands (`link tree`, `link path`, `link list`).
+
+To disable semantic inversion and see raw backlink directions:
+- Use the global flag `--no-semantic-inversion`
+- With this flag, inbound edges are presented as-is (e.g., `A -> B` with type `supports` appears when listing B's inbound links, showing the source note A linked to B)
+
 ### Edge inclusion
 Traversal includes, by default:
 - typed links
@@ -110,12 +124,15 @@ Traversal maintains a visited set by note `id`.
 This produces a stable “tree walk” output even on cyclic graphs.
 
 ## CLI surface
-Traversal lives under `qipu link`, mirroring beads’ `bd dep tree` ergonomics.
+Traversal lives under `qipu link`, mirroring beads' `bd dep tree` ergonomics.
+
+**Global flag** (applies to all `qipu` commands):
+- `--no-semantic-inversion`: Disable semantic inversion for inbound links (show raw backlink directions instead of inverted types)
 
 ### `qipu link tree <id-or-path>`
 Show a traversal tree rooted at the given note.
 
-Flags (proposed):
+Flags:
 - `--direction <out|in|both>` (default: `both`)
 - `--max-hops <n>` (default: `3`)
 - `--type <t>` (repeatable) / `--types <csv>` (include only these typed link types)
@@ -136,7 +153,7 @@ Use cases:
 - Explain why two notes are related
 - Find the shortest chain of evidence/support
 
-Flags (proposed):
+Flags:
 - `--direction <out|in|both>` (default: `both`)
 - `--typed-only` / `--inline-only`
 - `--type/--exclude-type` filters
@@ -173,6 +190,11 @@ Proposed minimal shape:
 Notes:
 - `links[]` represents the effective link set encountered during traversal.
 - `spanning_tree[]` encodes the deterministic “tree view” projection (via first-discovery predecessor edges).
+
+- Link `source` values:
+  - `typed`: explicit link from note frontmatter
+  - `inline`: extracted from markdown body
+  - `virtual`: semantically inverted inbound link (only appears when semantic inversion is enabled)
 
 ## Integration with `qipu context`
 Traversal results should compose cleanly into context bundles:

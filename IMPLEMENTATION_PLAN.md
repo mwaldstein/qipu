@@ -31,8 +31,8 @@
     - Fixed: Added filter checks in `perform_simple_traversal` to respect type_include, typed_only, and inline_only options when deciding which edges to follow during traversal
     - Refs: traversal filtering `src/commands/dump/mod.rs:289-301`
  - [x] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not "actually loaded" set)
-   - Fixed: With skip strategy, filter pack links to only process links where both source AND target notes were actually loaded. This prevents modifying skipped notes when loaded notes have links to them.
-   - Refs: skip strategy link filtering `src/commands/load/mod.rs:88-97`
+   - Fixed: With skip strategy, don't process any links at all. This ensures that skipped notes are never mutated - even loaded notes cannot add links to skipped notes, preventing unintended modifications.
+   - Refs: skip strategy skip link processing `src/commands/load/mod.rs:88-99`
 - [ ] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
   - Refs: encoding selected by CLI format `src/commands/dump/mod.rs:52-62`
 

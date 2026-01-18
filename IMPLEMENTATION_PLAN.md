@@ -186,23 +186,25 @@ Changes made:
 - Must use manual insertion into FTS5 table (INSERT INTO notes_fts(rowid, title, body, tags))
 - Join must be on explicit `rowid` column: `JOIN notes n ON notes_fts.rowid = n.rowid`
 
-#### 3.2: Add `Database::list_notes()` for metadata queries
-File: `src/lib/db/mod.rs`
+#### 3.2: Add `Database::list_notes()` for metadata queries ✅ COMPLETE
+File: `src/lib/db/mod.rs:557-674`
 
-Add method for `list` command filters:
+Implemented method for `list` command filters:
 ```rust
 pub fn list_notes(
     &self,
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
     since: Option<chrono::DateTime<Utc>>,
-) -> Result<Vec<NoteMetadata>> {
-    let mut sql = String::from("SELECT n.id, n.title, n.type, n.path, n.created, n.updated FROM notes n");
-    // Build WHERE clauses based on filters
-    // JOIN tags if tag_filter is set
-    ...
-}
+) -> Result<Vec<NoteMetadata>>
 ```
+
+**Features:**
+- Dynamic SQL query building based on filters
+- Returns note metadata sorted by created date (newest first), then by id
+- Tag filter uses EXISTS subquery for efficient filtering
+- All filters optional and composable
+- Returns `Vec<NoteMetadata>` with full metadata including tags
 
 #### 3.3: Add `Database::get_backlinks()` for backlink lookup
 File: `src/lib/db/mod.rs`

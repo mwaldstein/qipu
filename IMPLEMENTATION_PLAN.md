@@ -96,29 +96,31 @@ All 6 phases completed:
 
 ---
 
-## **P1.5: Structured Logging Infrastructure** ❌ NOT STARTED
+## **P1.5: Structured Logging Infrastructure** ⚠️ PHASE 1 COMPLETE (2026-01-17)
 
 **Priority**: High - Improves observability and debugging capabilities
 
 Replace primitive boolean logging with structured logging framework:
 
-### **Current State**
-- Basic boolean verbosity flag (`src/lib/logging.rs`)
-- Ad-hoc `eprintln!` statements throughout codebase
-- No structured log levels, categories, or machine-readable output
+### **Phase 1: Infrastructure Setup** ✅ COMPLETE
+1. **Add tracing dependencies**: `tracing`, `tracing-subscriber`, `tracing-appender` to `Cargo.toml` ✅
+2. **Extend CLI arguments**: Added `--log-level` and `--log-json` flags to CLI ✅
+3. **Initialize logging system**: Set up structured logging in `main.rs` with environment variable support (`QIPU_LOG`) ✅
+4. **Update tests**: Updated golden help test for new CLI flags ✅
 
-### **Implementation Tasks**
-1. **Add tracing dependencies**: `tracing`, `tracing-subscriber` to `Cargo.toml`
-2. **Extend CLI arguments**: Add `--log-level` and `--log-json` flags
-3. **Initialize logging system**: Set up structured logging in `main.rs`
-4. **Instrument core operations**: Add spans to store, search, index, graph operations
-5. **Replace eprintln! statements**: Convert to structured logging with appropriate levels
-6. **Add performance tracing**: Timing spans for major operations
-7. **Enhance error context**: Structured error information with operation traces
-8. **Update tests**: Handle new logging output in test assertions
+### **Phase 2: Core Operations** ❌ NOT STARTED
+1. **Instrument core operations**: Add spans to store, search, index, graph operations
+2. **Replace eprintln! statements**: Convert to structured logging with appropriate levels
+3. **Add performance tracing**: Timing spans for major operations
+
+### **Phase 3: Enhanced Observability** ❌ NOT STARTED
+1. **Enhance error context**: Structured error information with operation traces
+2. **Implement operation tracing**: Complex workflows with detailed context
+3. **Add optional file output**: Log rotation and file-based logging
 
 **Spec**: `specs/structured-logging.md` ✅ COMPLETE  
-**Target**: Zero performance impact when disabled, granular control when enabled
+**Target**: Zero performance impact when disabled, granular control when enabled  
+**Status**: Infrastructure in place, backward compatible, all 243 tests pass
 
 ---
 

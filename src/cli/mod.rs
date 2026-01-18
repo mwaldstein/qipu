@@ -47,6 +47,14 @@ pub struct Cli {
     #[arg(long, short, global = true)]
     pub verbose: bool,
 
+    /// Set log level (error, warn, info, debug, trace)
+    #[arg(long, global = true, value_name = "LEVEL")]
+    pub log_level: Option<String>,
+
+    /// Output logs in JSON format
+    #[arg(long, global = true)]
+    pub log_json: bool,
+
     /// Disable compaction resolution (show raw compacted notes)
     #[arg(long, global = true)]
     pub no_resolve_compaction: bool,

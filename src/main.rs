@@ -53,6 +53,12 @@ fn main() -> ExitCode {
         }
     };
 
+    // Initialize structured logging
+    if let Err(e) = logging::init_tracing(cli.verbose, cli.log_level.as_deref(), cli.log_json) {
+        // If tracing initialization fails, fall back to stderr
+        eprintln!("Warning: Failed to initialize logging: {}", e);
+    }
+
     logging::set_verbose(cli.verbose);
 
     if cli.verbose {

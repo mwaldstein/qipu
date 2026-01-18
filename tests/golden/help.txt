@@ -38,6 +38,10 @@ Options:
           Suppress non-essential output
   -v, --verbose
           Report timing for major phases
+      --log-level <LEVEL>
+          Set log level (error, warn, info, debug, trace)
+      --log-json
+          Output logs in JSON format
       --no-resolve-compaction
           Disable compaction resolution (show raw compacted notes)
       --with-compaction-ids

@@ -12,11 +12,10 @@ use std::collections::HashMap;
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
-use crate::lib::index::{search, Index, IndexBuilder, SearchResult};
+use crate::lib::index::SearchResult;
 use crate::lib::note::NoteType;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
-use tracing::debug;
 
 /// Execute the search command
 pub fn execute(
@@ -27,17 +26,7 @@ pub fn execute(
     tag_filter: Option<&str>,
     exclude_mocs: bool,
 ) -> Result<()> {
-    // Load or build index (read-only - don't save)
-    let cache_dir = store.root().join(".cache");
-    let index = match Index::load(&cache_dir) {
-        Ok(idx) if !idx.metadata.is_empty() => idx,
-        _ => {
-            debug!("Building index in-memory (run 'qipu index' to cache)...");
-            IndexBuilder::new(store).build()?
-        }
-    };
-
-    let mut results = search(store, &index, query, type_filter, tag_filter)?;
+    let mut results = store.db().search(query, type_filter, tag_filter, 200)?;
 
     // Determine if compaction processing is needed
     let needs_compaction = !cli.no_resolve_compaction
@@ -75,8 +64,8 @@ pub fn execute(
 
                 // If the note was compacted, we need to replace it with its digest
                 if canonical_id != result.id {
-                    // This is a compacted note - fetch the digest's metadata
-                    if let Some(digest_meta) = index.get_metadata(&canonical_id) {
+                    // This is a compacted note - fetch the digest's metadata from DB
+                    if let Some(digest_meta) = store.db().get_note_metadata(&canonical_id)? {
                         result.via = Some(result.id.clone());
                         result.id = canonical_id.clone();
                         result.title = digest_meta.title.clone();

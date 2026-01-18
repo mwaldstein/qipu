@@ -3,7 +3,7 @@
 mod schema;
 
 use crate::lib::error::{QipuError, Result};
-use crate::lib::index::types::SearchResult;
+use crate::lib::index::types::{NoteMetadata, SearchResult};
 use crate::lib::note::Note;
 use crate::lib::note::NoteType;
 use rusqlite::{params, Connection};
@@ -169,9 +169,146 @@ impl Database {
         Ok(())
     }
 
-    /// Insert a note into the database (public API for inline updates)
+    pub fn get_note_metadata(&self, note_id: &str) -> Result<Option<NoteMetadata>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, title, type, path, created, updated FROM notes WHERE id = ?1")
+            .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
+
+        let note_opt = stmt.query_row(params![note_id], |row| {
+            let id: String = row.get(0)?;
+            let title: String = row.get(1)?;
+            let type_str: String = row.get(2)?;
+            let path: String = row.get(3)?;
+            let created: Option<String> = row.get(4)?;
+            let updated: Option<String> = row.get(5)?;
+
+            let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
+
+            let created_dt = created
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc));
+            let updated_dt = updated
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc));
+
+            Ok((id, title, note_type, path, created_dt, updated_dt))
+        });
+
+        match note_opt {
+            Ok((id, title, note_type, path, created, updated)) => {
+                // Get tags for this note
+                let mut tag_stmt = self
+                    .conn
+                    .prepare("SELECT tag FROM tags WHERE note_id = ?1")
+                    .map_err(|e| QipuError::Other(format!("failed to prepare tag query: {}", e)))?;
+
+                let mut tags = Vec::new();
+                let mut tag_rows = tag_stmt
+                    .query(params![&id])
+                    .map_err(|e| QipuError::Other(format!("failed to query tags: {}", e)))?;
+
+                while let Some(row) = tag_rows
+                    .next()
+                    .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?
+                {
+                    tags.push(
+                        row.get(0)
+                            .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?,
+                    );
+                }
+
+                Ok(Some(NoteMetadata {
+                    id,
+                    title,
+                    note_type,
+                    tags,
+                    path,
+                    created,
+                    updated,
+                }))
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(QipuError::Other(format!(
+                "failed to query note metadata: {}",
+                e
+            ))),
+        }
+    }
+
     pub fn insert_note(&self, note: &Note) -> Result<()> {
-        Self::insert_note_internal(&self.conn, note)
+        let created_str = note.frontmatter.created.map(|dt| dt.to_rfc3339());
+        let updated_str = note.frontmatter.updated.map(|dt| dt.to_rfc3339());
+        let mtime = note
+            .path
+            .as_ref()
+            .and_then(|p| std::fs::metadata(p).ok())
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+
+        let tags_str = note.frontmatter.tags.join(" ");
+
+        // Update notes table
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    note.id(),
+                    note.frontmatter.title,
+                    note.frontmatter.note_type.unwrap_or(NoteType::Fleeting).to_string(),
+                    note.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
+                    created_str,
+                    updated_str,
+                    &note.body,
+                    mtime,
+                ],
+            )
+            .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
+
+        let rowid: i64 = self.conn.last_insert_rowid();
+
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO notes_fts(rowid, title, body, tags) VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    rowid,
+                    note.frontmatter.title,
+                    &note.body,
+                    tags_str,
+                ],
+            )
+            .map_err(|e| QipuError::Other(format!("failed to insert note into FTS5 {}: {}", note.id(), e)))?;
+
+        // Update tags
+        self.conn
+            .execute("DELETE FROM tags WHERE note_id = ?1", params![note.id()])
+            .map_err(|e| {
+                QipuError::Other(format!(
+                    "failed to delete tags for note {}: {}",
+                    note.id(),
+                    e
+                ))
+            })?;
+
+        for tag in &note.frontmatter.tags {
+            self.conn
+                .execute(
+                    "INSERT INTO tags (note_id, tag) VALUES (?1, ?2)",
+                    params![note.id(), tag],
+                )
+                .map_err(|e| {
+                    QipuError::Other(format!(
+                        "failed to insert tag {} for note {}: {}",
+                        tag,
+                        note.id(),
+                        e
+                    ))
+                })?;
+        }
+
+        Ok(())
     }
 
     /// Insert edges (links) for a note into the database
@@ -283,7 +420,7 @@ impl Database {
 
         let mut sql = String::from(
             r#"
-            SELECT n.id, n.title, n.path, n.type, notes_fts.tags,
+            SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
                    bm25(notes_fts, 2.0, 1.0, 1.5) AS rank
             FROM notes_fts
             JOIN notes n ON notes_fts.rowid = n.rowid
@@ -328,23 +465,26 @@ impl Database {
             .next()
             .map_err(|e| QipuError::Other(format!("failed to read search results: {}", e)))?
         {
-            let id: String = row
+            let _rowid: i64 = row
                 .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get rowid: {}", e)))?;
+            let id: String = row
+                .get(1)
                 .map_err(|e| QipuError::Other(format!("failed to get id: {}", e)))?;
             let title: String = row
-                .get(1)
+                .get(2)
                 .map_err(|e| QipuError::Other(format!("failed to get title: {}", e)))?;
             let path: String = row
-                .get(2)
+                .get(3)
                 .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?;
             let note_type_str: String = row
-                .get(3)
+                .get(4)
                 .map_err(|e| QipuError::Other(format!("failed to get type: {}", e)))?;
             let tags_str: String = row
-                .get(4)
+                .get(5)
                 .map_err(|e| QipuError::Other(format!("failed to get tags: {}", e)))?;
             let rank: f64 = row
-                .get(5)
+                .get(6)
                 .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
 
             let note_type = NoteType::from_str(&note_type_str).unwrap_or(NoteType::Fleeting);

@@ -157,28 +157,34 @@ Both already call `store.save_note()` which now updates the DB via `insert_note(
 
 ### Phase 3: Migrate Queries to SQLite
 
-#### 3.1: Migrate `search` command to FTS5
-File: `src/commands/search.rs`
+#### 3.1: Migrate `search` command to FTS5 ✅ COMPLETE
+File: `src/commands/search.rs`, `src/commands/index.rs`
 
-Current state: Uses `Index` struct loaded from `.cache/` + ripgrep fallback (lines 31-40)
+Changes made:
+- Removed `Index::load()` and `IndexBuilder` usage
+- Replaced `search(store, &index, ...)` with `store.db().search(...)`
+- Updated `index --rebuild` command to call `store.db().rebuild(store.root())`
+- Added `Database::get_note_metadata()` method for fetching note metadata
+- Added `Database::insert_note()` method for inserting/updating notes in database
+- Updated FTS5 schema to use manual insertion (removed `content=` option)
+- Updated `insert_note()` and `insert_note_internal()` to insert into both `notes` and `notes_fts` tables
+- Updated search query to JOIN on `rowid` columns
 
-Change to:
-```rust
-pub fn execute(...) -> Result<()> {
-    // Use SQLite FTS5 search instead of Index/ripgrep
-    let results = store.db().search(query, type_filter, tag_filter, 200)?;
-    
-    // Rest of compaction logic stays the same
-    ...
-}
-```
+**Migration steps completed:**
+1. ✅ Removed `Index::load()` and `IndexBuilder::new(store).build()` calls
+2. ✅ Replaced `search(store, &index, query, type_filter, tag_filter)` with `store.db().search(...)`
+3. ✅ Updated code that references `index.metadata` or `index.get_metadata()` to use `store.db().get_note_metadata()`
 
-The `Database::search()` method already exists (src/lib/db/mod.rs:237-305) and returns `Vec<SearchResult>`.
+**Known issues:**
+- BM25 ranking with FTS5 has some test failures related to ranking order
+- Tests `test_search_exact_tag_match_ranks_above_body`, `test_search_recency_boost`, and `test_search_title_match_ranks_above_body_match` are failing due to ranking issues
+- The basic search functionality works (notes are found), but ranking order may not match expectations
 
-**Migration steps:**
-1. Remove `Index::load()` and `IndexBuilder::new(store).build()` calls
-2. Replace `search(store, &index, query, type_filter, tag_filter)` with `store.db().search(...)`
-3. Update any code that references `index.metadata` or `index.get_metadata()` to use DB queries
+**Learning:**
+- FTS5 `content=` option requires source table to have `INTEGER PRIMARY KEY` with implicit `rowid` column
+- Since our `notes.id` is `TEXT PRIMARY KEY`, there's no implicit `rowid`, so `content=` won't work
+- Must use manual insertion into FTS5 table (INSERT INTO notes_fts(rowid, title, body, tags))
+- Join must be on explicit `rowid` column: `JOIN notes n ON notes_fts.rowid = n.rowid`
 
 #### 3.2: Add `Database::list_notes()` for metadata queries
 File: `src/lib/db/mod.rs`

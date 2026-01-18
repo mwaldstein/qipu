@@ -301,3 +301,90 @@ This is digest 2."#;
         .stdout(predicate::str::contains("compaction-invariant"))
         .stdout(predicate::str::contains("multiple compactors"));
 }
+
+#[test]
+fn test_doctor_duplicates_threshold() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes with identical content (100% similarity)
+    let note1_content = r#"---
+id: qp-note1
+title: Similar Note
+---
+This is a note about apple banana and cherry fruits and many more fruits that are delicious and healthy to eat every day."#;
+
+    let note2_content = r#"---
+id: qp-note2
+title: Similar Note
+---
+This is a note about apple banana and cherry fruits and many more fruits that are delicious and healthy to eat every day."#;
+
+    let note3_content = r#"---
+id: qp-note3
+title: Different Note
+---
+This is a completely different note about programming and coding."#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note1-similar-note-one.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note2-similar-note-two.md"),
+        note2_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note3-different-note.md"),
+        note3_content,
+    )
+    .unwrap();
+
+    // Run doctor without --duplicates flag - should not report duplicates
+    qipu()
+        .current_dir(dir.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Store is healthy"));
+
+    // Run doctor with --duplicates at low threshold (0.5)
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.5"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-note1"))
+        .stdout(predicate::str::contains("qp-note2"));
+
+    // Run doctor with --duplicates at high threshold (0.99)
+    // Since notes are 100% identical, they should still be detected even at 0.99
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.99"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-note1"))
+        .stdout(predicate::str::contains("qp-note2"));
+
+    // Run doctor with --duplicates at default threshold (0.85)
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-note1"))
+        .stdout(predicate::str::contains("qp-note2"));
+}

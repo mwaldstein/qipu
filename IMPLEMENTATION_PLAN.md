@@ -5,7 +5,55 @@
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
 - All P1 correctness bugs completed (2026-01-18).
 
-## P1: Correctness Bugs
+## P1: SQLite Migration & Ripgrep Removal (PRIORITY)
+
+Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep. Ripgrep must be removed.
+
+### Phase 1: Add SQLite Foundation
+- [ ] Add `rusqlite` dependency with bundled SQLite to `Cargo.toml`
+- [ ] Create database schema in `src/lib/db/schema.rs` (notes, notes_fts, tags, edges, unresolved, index_meta)
+- [ ] Implement `Database` struct with open/create/rebuild in `src/lib/db/mod.rs`
+- [ ] Implement FTS5 with porter tokenizer and BM25 ranking (title 2.0x, tags 1.5x, body 1.0x)
+- [ ] Add database path at `.qipu/qipu.db`
+
+### Phase 2: Inline Updates
+- [ ] Update `Store` to hold `Database` instance
+- [ ] Modify `create_note` to write file + insert into DB atomically
+- [ ] Modify `update_note` (edit) to update file + re-index in DB
+- [ ] Modify `delete_note` to remove file + remove from DB
+- [ ] Modify `link add/remove` to update file + update edges table
+
+### Phase 3: Migrate Queries to SQLite
+- [ ] Migrate `search` command to use FTS5 (replace `search_with_ripgrep` and `search_embedded`)
+- [ ] Migrate `list` command filters to use SQLite metadata queries
+- [ ] Migrate backlinks lookup to use edges table
+- [ ] Migrate graph traversal (`link tree/path`) to use recursive CTE
+- [ ] Migrate `doctor` checks to use SQLite validation queries
+- [ ] Migrate `context` note selection to use SQLite
+
+### Phase 4: Remove Legacy Components
+- [ ] Delete ripgrep integration:
+  - [ ] Remove `RipgrepMatch`, `RipgrepBeginData`, `RipgrepEndData`, `RipgrepMatchData`, `RipgrepText` structs from `src/lib/index/search.rs`
+  - [ ] Remove `is_ripgrep_available()` function
+  - [ ] Remove `search_with_ripgrep()` function
+  - [ ] Remove ripgrep fallback logic from `search()` function
+- [ ] Delete JSON cache code:
+  - [ ] Remove `.cache/` directory creation and all JSON index file code
+  - [ ] Remove `Index` struct JSON serialization
+  - [ ] Delete `src/lib/index/builder.rs` JSON cache building
+- [ ] Update `index --rebuild` to only rebuild SQLite
+- [ ] Add migration: detect `.cache/`, rebuild DB, delete `.cache/`
+- [ ] Update tests that reference ripgrep (e.g., `test_search_title_only_match_included_with_ripgrep_results`)
+
+### Phase 5: Startup Validation
+- [ ] On startup: check if `qipu.db` exists, trigger full rebuild if missing
+- [ ] Quick consistency check: compare note count in DB vs filesystem, sample mtimes
+- [ ] Incremental repair when external changes detected
+- [ ] Handle schema version mismatch with auto-rebuild
+
+Refs: spec `specs/operational-database.md`, current ripgrep code `src/lib/index/search.rs:13-48,80-301`
+
+## P1-LEGACY: Correctness Bugs (COMPLETED)
 
 ### `specs/export.md`
 - [x] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
@@ -18,7 +66,7 @@
   - Fixed: JSON now includes `compacted_ids_truncated: true` when truncation occurs (`src/commands/list.rs:97-103`)
 - [x] `--expand-compaction` drops truncation reporting entirely (expanded set can be silently truncated)
   - Fixed: JSON now includes `compacted_ids_truncated: true` and `compacted_notes_truncated: true` when truncation occurs (`src/commands/context/output.rs:128-186`)
-- [x] `compact guide` claims `report/suggest` are “coming soon” even though both exist
+- [x] `compact guide` claims `report/suggest` are "coming soon" even though both exist
   - Fixed: removed "(coming soon)" from guide output
 
 ### `specs/pack.md`
@@ -102,9 +150,10 @@
   - Refs: ripgrep path `src/lib/index/search.rs:53-110`
 
 ### `specs/similarity-ranking.md`
-- [ ] Add CLI/integration test for `qipu doctor --duplicates` with threshold behavior
-  - Core similarity has unit test, but no CLI test.
-  - Refs: CLI flags `src/cli/commands.rs:173-186`, doctor path `src/commands/doctor/checks.rs:261-280`
+- [x] Add CLI/integration test for `qipu doctor --duplicates` with threshold behavior
+   - Added: `test_doctor_duplicates_threshold` in `tests/cli/doctor.rs:246-306`
+   - Tests verify: `--duplicates` flag works, `--threshold` affects output, different thresholds (0.5, 0.99, default 0.85) detect duplicates appropriately
+   - Refs: CLI flags `src/cli/commands.rs:173-186`, doctor path `src/commands/doctor/checks.rs:261-280`
 
 ### `specs/provenance.md`
 - [ ] Add CLI test for `--prompt-hash` via `create` or `capture` (not just pack roundtrip)
@@ -138,33 +187,14 @@
 - [ ] Add tests for dump traversal filters (`--type`, `--typed-only`, `--inline-only`) and verify they affect reachability, not just included edges
   - Refs: traversal ignores options `src/commands/dump/mod.rs:81-112`
 
-## P1.5: SQLite Operational Database
 
-### `specs/operational-database.md` (NEW)
-- [ ] Implement SQLite operational database layer
-  - [ ] Add rusqlite dependency with bundled SQLite
-  - [ ] Create database schema (notes, tags, edges, unresolved, notes_fts)
-  - [ ] Implement inline updates: all note mutations update DB atomically with file writes
-  - [ ] Implement startup validation and auto-rebuild if missing/corrupt
-  - [ ] Migrate search to use FTS5 with BM25 ranking
-  - [ ] Migrate list/filter to use SQLite queries
-  - [ ] Migrate graph operations (backlinks, traversal) to use SQLite
-  - [ ] Migrate doctor checks to use SQLite
-  - Refs: new spec `specs/operational-database.md`
-- [ ] Remove legacy components
-  - [ ] Delete ripgrep integration (`search_with_ripgrep`, `RipgrepMatch` structs, etc.)
-  - [ ] Delete JSON cache code (`.cache/` directory, all `*.json` index files)
-  - [ ] Delete `Index` struct and JSON serialization
-  - [ ] Update `index --rebuild` to only rebuild SQLite
-  - [ ] Add migration: detect `.cache/`, rebuild DB, delete `.cache/`
-  - Refs: `src/lib/index/search.rs`, `src/lib/index/mod.rs`, `src/lib/index/builder.rs`
 
 ## P3: Unimplemented Optional / Future
 
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) is not implemented
   - Refs: no stemming code in `src/`
-- [ ] “Related notes” similarity expansion (threshold > 0.3) is described but not implemented as a CLI/context feature
+- [ ] "Related notes" similarity expansion (threshold > 0.3) is described but not implemented as a CLI/context feature
   - Similarity API exists but is unused by `context`.
   - Refs: similarity API `src/lib/similarity/mod.rs:49-75`, context selection `src/commands/context/mod.rs:72-109`
 
@@ -179,7 +209,7 @@
 ## P4: Spec Ambiguity / Spec Drift (Needs Clarification Before Implementation)
 
 ### `specs/knowledge-model.md`
-- [ ] Decide whether note “type” should remain a closed enum or allow arbitrary values (spec marks as open question)
+- [ ] Decide whether note "type" should remain a closed enum or allow arbitrary values (spec marks as open question)
   - Refs: strict enum `src/lib/note/types.rs:6-19`, parsing `src/lib/note/types.rs:27-42`
 
 ### `specs/semantic-graph.md`
@@ -197,4 +227,19 @@
 ### `specs/export.md`
 - [ ] Clarify expected behavior for anchor rewriting (explicit anchors vs relying on Markdown renderer heading IDs)
   - Refs: rewrite targets `#note-<id>` `src/commands/export/emit/links.rs:16-18`
+
+## Closed Design Decisions (Specs Updated)
+
+### `specs/storage-format.md`
+- [x] MOCs use separate `mocs/` directory (not inside `notes/` with type flag)
+  - Provides clear filesystem separation, simpler glob patterns
+  - Refs: `src/lib/store/mod.rs:140-141,211-213`
+- [x] Note paths are flat (no date partitioning like `notes/2026/01/...`)
+  - Keeps paths stable, simplifies resolution; SQLite handles large stores
+  - Refs: `src/lib/store/mod.rs:207-208`
+
+### `specs/graph-traversal.md`
+- [x] Default `--max-hops` is 3 (not 2); no default `--max-nodes`
+  - Surfaces 2-hop neighborhoods; users reduce with `--max-chars` for LLM context
+  - Refs: `src/lib/graph/types.rs:64`
 

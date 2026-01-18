@@ -2,6 +2,7 @@ mod adapter;
 mod cli;
 mod evaluation;
 mod fixture;
+mod judge;
 mod results;
 mod scenario;
 mod session;
@@ -32,7 +33,11 @@ fn main() -> anyhow::Result<()> {
             max_usd: _,
             dry_run,
             no_cache,
+            judge_model,
         } => {
+            if let Some(model) = judge_model {
+                std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
+            }
             if let Some(path) = scenario {
                 let s = scenario::load(path)?;
                 println!("Loaded scenario: {}", s.name);
@@ -125,7 +130,7 @@ fn main() -> anyhow::Result<()> {
                                 })
                                 .collect(),
                         },
-                        judge_score: None,
+                        judge_score: metrics.judge_score,
                         outcome,
                         transcript_path: transcript_path.clone(),
                         cache_key: Some(cache_key.as_string()),

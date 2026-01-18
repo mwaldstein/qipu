@@ -1,3 +1,4 @@
+use crate::judge::{load_rubric, run_judge, JudgeResponse};
 use crate::scenario::{Gate, Scenario};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,8 @@ pub struct EvaluationMetrics {
     pub note_count: usize,
     pub link_count: usize,
     pub details: Vec<GateResult>,
+    pub judge_score: Option<f64>,
+    pub judge_response: Option<JudgeResponse>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,7 +29,6 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     let mut details = Vec::new();
     let mut gates_passed = 0;
 
-    // Always gather stats
     let note_count = count_notes(env_root).unwrap_or(0);
     let link_count = count_links(env_root).unwrap_or(0);
 
@@ -67,20 +69,81 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         details.push(result);
     }
 
+    let mut judge_score = None;
+    let mut judge_response = None;
+
+    if let Some(judge_config) = &scenario.evaluation.judge {
+        if judge_config.enabled {
+            println!("Running LLM-as-judge evaluation...");
+            let model =
+                std::env::var("LLM_TOOL_TEST_JUDGE").unwrap_or_else(|_| "gpt-4o-mini".to_string());
+
+            let rubric_path = env_root.join(&judge_config.rubric);
+            let rubric = load_rubric(&rubric_path)
+                .with_context(|| format!("Failed to load rubric from {}", judge_config.rubric))?;
+
+            let transcript_summary = get_transcript_summary(env_root)?;
+            let store_export = get_store_export(env_root)?;
+
+            let runtime = tokio::runtime::Runtime::new()
+                .context("Failed to create tokio runtime for judge")?;
+
+            let response = runtime
+                .block_on(run_judge(
+                    &model,
+                    &transcript_summary,
+                    &store_export,
+                    &scenario.task.prompt,
+                    &rubric,
+                ))
+                .context("LLM judge evaluation failed")?;
+
+            println!(
+                "Judge score: {:.2} (confidence: {:.2})",
+                response.weighted_score, response.confidence
+            );
+            if !response.issues.is_empty() {
+                println!("Issues: {}", response.issues.join(", "));
+            }
+            if !response.highlights.is_empty() {
+                println!("Highlights: {}", response.highlights.join(", "));
+            }
+
+            judge_score = Some(response.weighted_score);
+            judge_response = Some(response);
+        }
+    }
+
     let metrics = EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
         note_count,
         link_count,
         details,
+        judge_score,
+        judge_response,
     };
 
-    // For now we still bail if any gate failed, to maintain previous behavior in main
-    // But maybe main should decide?
-    // The plan says "Return metric vector, not just pass/fail".
-    // So let's return Ok(metrics) and let caller decide.
-
     Ok(metrics)
+}
+
+fn get_transcript_summary(env_root: &Path) -> Result<String> {
+    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    match std::fs::read_to_string(&transcript_path) {
+        Ok(content) => {
+            let lines: Vec<&str> = content.lines().collect();
+            let summary_len = lines.len().min(100);
+            Ok(lines[..summary_len].join("\n"))
+        }
+        Err(_) => Ok("[No transcript available]".to_string()),
+    }
+}
+
+fn get_store_export(env_root: &Path) -> Result<String> {
+    match run_qipu_json(&["export"], env_root) {
+        Ok(json) => Ok(serde_json::to_string_pretty(&json).unwrap_or_else(|_| "{}".to_string())),
+        Err(_) => Ok("[No export available]".to_string()),
+    }
 }
 
 fn get_qipu_path() -> String {
@@ -224,6 +287,7 @@ mod tests {
             },
             evaluation: Evaluation {
                 gates: vec![Gate::MinNotes { count: 1 }],
+                judge: None,
             },
         };
 
@@ -249,6 +313,7 @@ mod tests {
             },
             evaluation: Evaluation {
                 gates: vec![Gate::MinNotes { count: 2 }],
+                judge: None,
             },
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
@@ -266,6 +331,7 @@ mod tests {
                 gates: vec![Gate::SearchHit {
                     query: "test".to_string(),
                 }],
+                judge: None,
             },
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
@@ -282,6 +348,7 @@ mod tests {
                 gates: vec![Gate::SearchHit {
                     query: "missing".to_string(),
                 }],
+                judge: None,
             },
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();

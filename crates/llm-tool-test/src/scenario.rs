@@ -18,6 +18,15 @@ pub struct Task {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Evaluation {
     pub gates: Vec<Gate>,
+    #[serde(default)]
+    pub judge: Option<JudgeConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JudgeConfig {
+    pub enabled: bool,
+    pub rubric: String,
+    pub pass_threshold: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

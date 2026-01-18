@@ -34,6 +34,10 @@ pub enum Commands {
         /// Disable caching
         #[arg(long)]
         no_cache: bool,
+
+        /// Judge model for LLM-as-judge evaluation
+        #[arg(long)]
+        judge_model: Option<String>,
     },
     /// List available scenarios
     List {

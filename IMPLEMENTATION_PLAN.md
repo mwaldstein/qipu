@@ -4,7 +4,7 @@
 
 Core P0/P1 features are substantially complete. Detailed audit (2026-01-17) identified gaps requiring attention.
 
-**Current Priority**: LLM User Validation Testing Harness (see P0 section)
+**Current Priority**: P2 Test Coverage and P3 Spec-Implementation Gaps
 
 ---
 
@@ -92,7 +92,7 @@ Rationale:
 - [x] **Metrics computation**: Scored evaluation
   - `EvaluationMetrics` struct with counts and checks
   - Return metric vector, not just pass/fail
-- [ ] **LLM-as-judge** (optional): Qualitative evaluation
+- [x] **LLM-as-judge** (optional): Qualitative evaluation
   - Rubric loading from YAML
   - Judge prompt construction
   - Score parsing from structured JSON response
@@ -300,7 +300,7 @@ crates/llm-tool-test/
 - Duplicate detection ✅
 - **Missing**: stop words, stemming, term frequency storage
 
-### ⚠️ LLM User Validation (llm-user-validation.md) - PARTIAL
+### ✅ LLM User Validation (llm-user-validation.md) - COMPLETE
 - Framework structure ✅
 - Tool adapter pattern ✅
 - Transcript recording ✅
@@ -308,4 +308,4 @@ crates/llm-tool-test/
 - Results database (results.jsonl) ✅
 - Regression detection (compare command) ✅
 - Caching system (cache key, --no-cache) ✅
-- **Remaining**: LLM-as-judge (Phase 5 - optional) - rubrics, judge invocation, score parsing
+- LLM-as-judge (Phase 5 - optional) - rubrics, judge invocation, score parsing ✅

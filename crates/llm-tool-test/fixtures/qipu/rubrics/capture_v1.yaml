@@ -1,0 +1,25 @@
+criteria:
+  command_correctness:
+    weight: 0.25
+    description: "Uses valid qipu commands with correct syntax"
+
+  structure_quality:
+    weight: 0.30
+    description: "Notes are well-organized with meaningful links"
+
+  coverage:
+    weight: 0.30
+    description: "Captures key concepts without major omissions"
+
+  retrieval_success:
+    weight: 0.15
+    description: "Can retrieve captured knowledge via search/show"
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights

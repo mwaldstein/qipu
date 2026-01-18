@@ -1,0 +1,21 @@
+criteria:
+  command_correctness:
+    weight: 0.30
+    description: "Uses valid qipu link commands with correct syntax"
+
+  link_quality:
+    weight: 0.40
+    description: "Links are semantically appropriate and use correct types"
+
+  graph_coherence:
+    weight: 0.30
+    description: "The resulting graph structure makes logical sense"
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights

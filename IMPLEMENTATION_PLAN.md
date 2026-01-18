@@ -160,8 +160,10 @@ Refs: spec `specs/operational-database.md`, current ripgrep code `src/lib/index/
   - Flags exist: `src/cli/args.rs:22-40`; test coverage currently relies on pack tests.
 
 ### `specs/export.md`
-- [ ] Add test that verifies MOC-driven bundle export respects MOC ordering (currently likely fails)
-  - Refs: global sort `src/commands/export/mod.rs:101-103`
+- [x] Add test that verifies MOC-driven bundle export respects MOC ordering (currently likely fails)
+  - Fixed: Added `test_export_bundle_preserves_moc_order` in `tests/cli/export.rs:204-248`
+  - Verified: MOC ordering is correctly preserved in bundle mode (sorting is skipped when `moc_id` is set)
+  - Refs: global sort `src/commands/export/mod.rs:101-105`, test `tests/cli/export.rs:204-248`
 - [ ] Add test validating anchor rewriting produces a target anchor that exists in output
   - Refs: rewrite `src/commands/export/emit/links.rs:56-96`
 - [ ] Add test validating `--with-attachments` produces rewritten attachment links that resolve in the export folder

@@ -6,7 +6,7 @@ use crate::lib::similarity::SimilarityEngine;
 use crate::lib::store::paths::ATTACHMENTS_DIR;
 use crate::lib::store::Store;
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -100,92 +100,119 @@ pub fn scan_notes(store: &Store) -> (Vec<Note>, Vec<(String, String)>) {
 }
 
 /// Check for duplicate note IDs
-pub fn check_duplicate_ids(notes: &[Note], result: &mut DoctorResult) {
-    let mut id_to_paths: HashMap<String, Vec<String>> = HashMap::new();
+pub fn check_duplicate_ids(store: &Store, result: &mut DoctorResult) {
+    let db = store.db();
 
-    for note in notes {
-        let id = note.id().to_string();
-        let path = note
-            .path
-            .as_ref()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-
-        id_to_paths.entry(id).or_default().push(path);
+    match db.get_duplicate_ids() {
+        Ok(duplicates) => {
+            for (id, paths) in duplicates {
+                result.add_issue(Issue {
+                    severity: Severity::Error,
+                    category: "duplicate-id".to_string(),
+                    message: format!(
+                        "Duplicate ID '{}' found in {} files: {}",
+                        id,
+                        paths.len(),
+                        paths.join(", ")
+                    ),
+                    note_id: Some(id),
+                    path: Some(paths.join(", ")),
+                    fixable: false,
+                });
+            }
+        }
+        Err(e) => {
+            tracing::error!("Failed to check for duplicate IDs: {}", e);
+        }
     }
+}
 
-    for (id, paths) in id_to_paths {
-        if paths.len() > 1 {
-            result.add_issue(Issue {
-                severity: Severity::Error,
-                category: "duplicate-id".to_string(),
-                message: format!(
-                    "Duplicate ID '{}' found in {} files: {}",
-                    id,
-                    paths.len(),
-                    paths.join(", ")
-                ),
-                note_id: Some(id),
-                path: Some(paths.join(", ")),
-                fixable: false, // Requires manual resolution
-            });
+/// Check for notes that exist in DB but not on filesystem
+pub fn check_missing_files(store: &Store, result: &mut DoctorResult) {
+    let db = store.db();
+
+    match db.get_missing_files() {
+        Ok(missing) => {
+            for (id, path) in missing {
+                result.add_issue(Issue {
+                    severity: Severity::Error,
+                    category: "missing-file".to_string(),
+                    message: format!(
+                        "Note '{}' exists in database but file is missing: {}",
+                        id, path
+                    ),
+                    note_id: Some(id),
+                    path: Some(path),
+                    fixable: false,
+                });
+            }
+        }
+        Err(e) => {
+            tracing::error!("Failed to check for missing files: {}", e);
         }
     }
 }
 
 /// Check for broken links (references to non-existent notes)
-pub fn check_broken_links(notes: &[Note], valid_ids: &HashSet<String>, result: &mut DoctorResult) {
-    use regex::Regex;
+pub fn check_broken_links(store: &Store, result: &mut DoctorResult) {
+    let db = store.db();
 
-    let wiki_link_re =
-        Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").expect("Invalid wiki link regex pattern");
+    match db.get_broken_links() {
+        Ok(broken_links) => {
+            for (source_id, target_ref) in broken_links {
+                // Get note path from DB for better error reporting
+                let path = match db.get_note_metadata(&source_id) {
+                    Ok(Some(metadata)) => Some(metadata.path),
+                    _ => None,
+                };
 
-    for note in notes {
-        let from_id = note.id().to_string();
-        let path = note
-            .path
-            .as_ref()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-
-        // Check typed links in frontmatter
-        for link in &note.frontmatter.links {
-            if !valid_ids.contains(&link.id) {
+                // Determine severity: typed links are errors, inline links are warnings
+                // The unresolved table doesn't distinguish, so we'll report all as errors
+                // since typed links (from frontmatter) are auto-tracked
                 result.add_issue(Issue {
                     severity: Severity::Error,
                     category: "broken-link".to_string(),
                     message: format!(
-                        "Note '{}' has typed link to non-existent note '{}'",
-                        from_id, link.id
+                        "Note '{}' has link to non-existent note '{}'",
+                        source_id, target_ref
                     ),
-                    note_id: Some(from_id.clone()),
-                    path: Some(path.clone()),
-                    fixable: true, // Can remove broken link from frontmatter
+                    note_id: Some(source_id),
+                    path,
+                    fixable: true,
                 });
             }
         }
+        Err(e) => {
+            tracing::error!("Failed to check for broken links: {}", e);
+        }
+    }
+}
 
-        // Check wiki links in body
-        for cap in wiki_link_re.captures_iter(&note.body) {
-            let to_id = cap[1].trim().to_string();
-            if to_id.is_empty() {
-                continue;
-            }
+/// Check for orphaned notes (notes with no incoming links)
+pub fn check_orphaned_notes(store: &Store, result: &mut DoctorResult) {
+    let db = store.db();
 
-            // Only check links that look like qipu IDs
-            if to_id.starts_with("qp-") && !valid_ids.contains(&to_id) {
+    match db.get_orphaned_notes() {
+        Ok(orphaned) => {
+            for note_id in orphaned {
+                // Get note path from DB for better error reporting
+                let path = match db.get_note_metadata(&note_id) {
+                    Ok(Some(metadata)) => Some(metadata.path),
+                    _ => None,
+                };
+
                 result.add_issue(Issue {
                     severity: Severity::Warning,
-                    category: "broken-link".to_string(),
-                    message: format!(
-                        "Note '{}' has inline link to non-existent note '{}'",
-                        from_id, to_id
-                    ),
-                    note_id: Some(from_id.clone()),
-                    path: Some(path.clone()),
-                    fixable: false, // Requires manual edit of note body
+                    category: "orphaned-note".to_string(),
+                    message: format!("Note '{}' has no incoming links", note_id),
+                    note_id: Some(note_id),
+                    path,
+                    fixable: false,
                 });
             }
+        }
+        Err(e) => {
+            tracing::error!("Failed to check for orphaned notes: {}", e);
         }
     }
 }

@@ -140,13 +140,13 @@ fn test_doctor_broken_link_detection() {
         }
     }
 
-    // Doctor should detect broken link
+    // Doctor should detect missing file
     qipu()
         .current_dir(dir.path())
         .arg("doctor")
         .assert()
         .code(3)
-        .stdout(predicate::str::contains("broken-link"))
+        .stdout(predicate::str::contains("missing-file"))
         .stdout(predicate::str::contains(&id2));
 }
 

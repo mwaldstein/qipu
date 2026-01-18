@@ -799,6 +799,98 @@ impl Database {
 
         Ok(reachable)
     }
+
+    /// Find notes with duplicate IDs
+    pub fn get_duplicate_ids(&self) -> Result<Vec<(String, Vec<String>)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id, GROUP_CONCAT(path, ', ') as paths
+                 FROM notes
+                 GROUP BY id
+                 HAVING COUNT(*) > 1",
+            )
+            .map_err(|e| QipuError::Other(format!("failed to prepare duplicate query: {}", e)))?;
+
+        let duplicates = stmt
+            .query_map([], |row| {
+                let id: String = row.get(0)?;
+                let paths_str: String = row.get(1)?;
+                let paths: Vec<String> = paths_str.split(", ").map(|s| s.to_string()).collect();
+                Ok((id, paths))
+            })
+            .map_err(|e| QipuError::Other(format!("failed to query duplicates: {}", e)))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| QipuError::Other(format!("failed to read duplicate rows: {}", e)))?;
+
+        Ok(duplicates)
+    }
+
+    /// Get all broken links from the unresolved table
+    pub fn get_broken_links(&self) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT source_id, target_ref FROM unresolved")
+            .map_err(|e| {
+                QipuError::Other(format!("failed to prepare broken links query: {}", e))
+            })?;
+
+        let broken_links = stmt
+            .query_map([], |row| {
+                let source_id: String = row.get(0)?;
+                let target_ref: String = row.get(1)?;
+                Ok((source_id, target_ref))
+            })
+            .map_err(|e| QipuError::Other(format!("failed to query broken links: {}", e)))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| QipuError::Other(format!("failed to read broken link rows: {}", e)))?;
+
+        Ok(broken_links)
+    }
+
+    /// Find notes that are in database but missing from filesystem
+    pub fn get_missing_files(&self) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, path FROM notes")
+            .map_err(|e| {
+                QipuError::Other(format!("failed to prepare missing files query: {}", e))
+            })?;
+
+        let missing = stmt
+            .query_map([], |row| {
+                let id: String = row.get(0)?;
+                let path: String = row.get(1)?;
+                Ok((id, path))
+            })
+            .map_err(|e| QipuError::Other(format!("failed to query notes: {}", e)))?
+            .filter_map(|r| r.ok())
+            .filter(|(_, path)| !Path::new(path).exists())
+            .collect();
+
+        Ok(missing)
+    }
+
+    /// Find orphaned notes (notes with no incoming links)
+    pub fn get_orphaned_notes(&self) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id FROM notes
+                 WHERE id NOT IN (SELECT DISTINCT target_id FROM edges)",
+            )
+            .map_err(|e| {
+                QipuError::Other(format!("failed to prepare orphaned notes query: {}", e))
+            })?;
+
+        let orphaned = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| QipuError::Other(format!("failed to query orphaned notes: {}", e)))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| QipuError::Other(format!("failed to read orphaned note rows: {}", e)))?;
+
+        Ok(orphaned)
+    }
 }
 
 #[cfg(test)]

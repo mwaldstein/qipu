@@ -102,3 +102,62 @@ fn test_context_records_escapes_quotes_in_title() {
         "Quotes must be escaped"
     );
 }
+
+#[test]
+fn test_context_json_with_provenance() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with provenance fields
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--source",
+            "https://example.com/article",
+            "--author",
+            "TestAgent",
+            "--generated-by",
+            "claude-3-5-sonnet",
+            "--prompt-hash",
+            "hash456",
+            "--verified",
+            "false",
+            "Note with Provenance",
+        ])
+        .output()
+        .unwrap();
+    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    // Run context command with JSON format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "context", "--note", &id])
+        .output()
+        .unwrap();
+
+    let json_str = String::from_utf8(output.stdout).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // Verify the note is in the output
+    let notes = json["notes"].as_array().unwrap();
+    assert_eq!(notes.len(), 1);
+
+    let note = &notes[0];
+
+    // Verify provenance fields are present
+    assert_eq!(note["source"], "https://example.com/article");
+    assert_eq!(note["author"], "TestAgent");
+    assert_eq!(note["generated_by"], "claude-3-5-sonnet");
+    assert_eq!(note["prompt_hash"], "hash456");
+    assert_eq!(note["verified"], false);
+
+    // Verify standard fields are also present
+    assert_eq!(note["id"], id);
+    assert_eq!(note["title"], "Note with Provenance");
+}

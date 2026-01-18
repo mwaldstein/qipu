@@ -99,6 +99,11 @@ fn build_json_output(
                     }
                     obj
                 }).collect::<Vec<_>>(),
+                "source": note.frontmatter.source,
+                "author": note.frontmatter.author,
+                "generated_by": note.frontmatter.generated_by,
+                "prompt_hash": note.frontmatter.prompt_hash,
+                "verified": note.frontmatter.verified,
             });
 
             if let Some(via) = &selected.via {

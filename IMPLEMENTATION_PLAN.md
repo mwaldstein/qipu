@@ -120,8 +120,10 @@
   - Fixed: added provenance fields to JSON output matching `create` and `show` command format
   - Changed `src/commands/capture.rs:71-81`: added source, author, generated_by, prompt_hash, verified to JSON output
   - Added test: `tests/cli/capture.rs:466-518` verifies provenance fields are included in JSON output
-- [ ] `qipu context --format json` omits per-note provenance fields (even though `show --format json` includes them)
-  - Refs: context JSON shape `src/commands/context/output.rs:18-42`; show JSON includes provenance `src/commands/show.rs:57-75`
+- [x] `qipu context --format json` omits per-note provenance fields (even though `show --format json` includes them)
+  - Fixed: added provenance fields to JSON output for each note matching `show` command format
+  - Changed `src/commands/context/output.rs:83-107`: added source, author, generated_by, prompt_hash, verified fields to note JSON objects
+  - Added test: `tests/cli/context/formats.rs:106-169` verifies provenance fields are included in context JSON output
 
 ### `specs/export.md`
 - [ ] MOC-driven export ordering does not follow MOC ordering for bundle/json/records

@@ -12,6 +12,17 @@
   - Refs: `src/commands/dispatch.rs:300-306`, `src/lib/error.rs:76-82`
 - [ ] `qipu link {list,tree,path} --direction <bad>` returns exit code `1` instead of `2`
   - Refs: `src/commands/dispatch.rs:67-70`, `src/commands/dispatch.rs:700-703`, `src/commands/dispatch.rs:729-731`, `src/lib/error.rs:76-82`
+- [ ] `qipu load --format records` emits a non-standard header (`H load=1 ...`) instead of the normal records header
+  - Refs: records header `src/commands/load/mod.rs:113-136`; standard header e.g. `src/commands/context/output.rs:445-449`
+
+### `specs/llm-context.md`
+- [ ] `context` budgeting can be violated because selection estimates summary size but human/JSON outputs always emit full body
+  - Budget estimates summary when `--with-body` is false: `src/commands/context/budget.rs:97-103`
+  - Human output prints full body: `src/commands/context/output.rs:208-213`
+  - JSON output always includes `content: note.body`: `src/commands/context/output.rs:23-41`
+- [ ] `--max-chars` is “exact” only for `--format records`; human/JSON use an estimate + buffer and never validate final output size
+  - Estimate + buffer: `src/commands/context/budget.rs:29-33`
+  - Exact records accounting: `src/commands/context/output.rs:53-90`
 
 ### `specs/indexing-search.md`
 - [ ] Search can miss title-only matches when ripgrep path is used
@@ -19,27 +30,47 @@
   - Refs: `src/lib/index/search.rs:53-110`, `src/lib/index/search.rs:125-128`
 - [ ] Recency boost is specified but not present in ranking
   - Refs: ranking is pure BM25 + field boosts: `src/lib/index/search.rs:176-178`, `src/lib/index/search.rs:312-318`
+- [ ] “Exact tag match should rank above plain text match” is not implemented (tags are BM25-scored text)
+  - Refs: tags scored as `meta.tags.join(" ")`: `src/lib/index/search.rs:65-66`, `src/lib/index/search.rs:168-169`
+
+### `specs/storage-format.md`
+- [ ] Markdown links to other notes by relative path are not resolved unless the target contains a `qp-...` ID
+  - Spec allows `[label](relative/path/to/note.md)`; impl only recognizes markdown links containing a Qipu ID.
+  - Refs: markdown link extraction `src/lib/index/links.rs:57-107`
 
 ### `specs/graph-traversal.md`
 - [ ] “(seen)” references in human tree output are effectively unreachable
   - Traversal only records first-discovery edges in `spanning_tree`, so later edges to visited nodes are not available for rendering as “(seen)”.
   - Refs: `src/lib/graph/traversal.rs:190-223`, “(seen)” rendering `src/commands/link/tree.rs:195-223`
+- [ ] Tree/path truncation is not reported when exploration stops due to `--max-hops`
+  - Traversal stops expanding when `hop >= max_hops` without setting `truncated=true`.
+  - Refs: `src/lib/graph/traversal.rs:87-90`
 - [ ] Default semantic inversion introduces `source=virtual` + inverted types for inbound traversal; spec does not describe this behavior
   - Refs: inversion `src/lib/index/types.rs:43-54`, traversal uses inversion `src/lib/graph/traversal.rs:110-125`, flag `src/cli/mod.rs:82-85`
 - [ ] Tree ordering can diverge from “sort neighbors by (type,id)” guidance due to spanning-tree re-sort
   - Refs: neighbor sort `src/lib/graph/traversal.rs:130-135`, spanning-tree sort `src/lib/graph/traversal.rs:235`
+
+### `specs/records-output.md`
+- [ ] Records headers are inconsistent across commands (`mode=` before/after `store=`), reducing cross-command parse stability
+  - Refs: context header `src/commands/context/output.rs:445-449`; tree header `src/commands/link/tree.rs:319-325`; list header `src/commands/link/list.rs:381-392`
+- [ ] Records quoting is not escaped for note titles/summaries, so titles containing `"` can break record parsing
+  - Refs: context `N ... "{title}"` `src/commands/context/output.rs:306-314`; link list `src/commands/link/list.rs:307-310`
 
 ### `specs/similarity-ranking.md`
 - [ ] Stop words removal is required but not implemented
   - Refs: tokenizer `src/lib/text/mod.rs:7-13` (no stopword filtering); no stopword list in `src/`
 - [ ] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
   - Refs: CLI default `src/cli/commands.rs:183-185`
+- [ ] Similarity is described as TF-IDF cosine; implementation uses cosine over BM25-weighted vectors with `tf=1` (no term frequencies stored)
+  - Refs: tf=1 + TODO `src/lib/similarity/mod.rs:33-37`, BM25-weighted vectors `src/lib/similarity/mod.rs:119-148`
 
 ### `specs/provenance.md`
 - [ ] `qipu create --format json` omits provenance fields (`source/author/generated_by/prompt_hash/verified`)
   - Refs: `src/commands/create.rs:52-63`
 - [ ] `qipu capture --format json` omits provenance fields
   - Refs: `src/commands/capture.rs:70-82`
+- [ ] `qipu context --format json` omits per-note provenance fields (even though `show --format json` includes them)
+  - Refs: context JSON shape `src/commands/context/output.rs:18-42`; show JSON includes provenance `src/commands/show.rs:57-75`
 
 ### `specs/export.md`
 - [ ] MOC-driven export ordering does not follow MOC ordering for bundle/json/records
@@ -47,6 +78,8 @@
   - Refs: sort `src/commands/export/mod.rs:101-103`, sort fn `src/commands/export/plan.rs:100-110`
 - [ ] `--link-mode anchors` likely produces broken anchors (`#note-<id>` targets not emitted)
   - Refs: anchor map `src/commands/export/emit/links.rs:16-18`, headings lack explicit anchors `src/commands/export/emit/bundle.rs:31`, `src/commands/export/emit/outline.rs:74`
+- [ ] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
+  - Refs: copy target `src/commands/export/mod.rs:164-167`, copy regex expects `../attachments/...` `src/commands/export/mod.rs:203-205`
 - [ ] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
   - Refs: JSON export always emits notes array `src/commands/export/emit/json.rs:26-86`
 
@@ -54,6 +87,8 @@
 - [ ] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit
   - Truncation boolean exists but is only surfaced via records (`D compacted_truncated`) / human messages.
   - Refs: truncation computed `src/lib/compaction/expansion.rs:48-58`; JSON emits only IDs `src/commands/list.rs:88-97`
+- [ ] `--expand-compaction` drops truncation reporting entirely (expanded set can be silently truncated)
+  - Refs: expansion returns `(notes, truncated)` but callers discard it: `src/commands/context/output.rs:72-110`
 - [ ] `compact guide` claims `report/suggest` are “coming soon” even though both exist
   - Refs: `src/commands/compact/guide.rs:49-51`
 
@@ -67,6 +102,8 @@
   - Refs: traversal `src/commands/dump/mod.rs:81-112`
 - [ ] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not “actually loaded” set)
   - Refs: `load_links` signature `src/commands/load/mod.rs:92-99`
+- [ ] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
+  - Refs: encoding selected by CLI format `src/commands/dump/mod.rs:52-62`
 
 ### `specs/workspaces.md`
 - [ ] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
@@ -75,6 +112,12 @@
   - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
 - [ ] `workspace new --empty` flag is accepted but ignored
   - Refs: ignored arg `_empty` `src/commands/workspace/new.rs:13-14`
+- [ ] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
+  - Refs: overwrite path copies note `src/commands/workspace/merge.rs:44-47`; `copy_note` writes a new filename `src/commands/workspace/merge.rs:89-107`
+- [ ] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
+  - Refs: `match strategy { "overwrite" | "merge-links" | "skip" | _ => skip }`: `src/commands/workspace/merge.rs:43-69`
+- [ ] Workspace metadata schema differs from spec (`[workspace]` table vs top-level `WorkspaceMetadata`)
+  - Refs: metadata struct serde `src/lib/store/workspace.rs:6-33`
 
 ### `specs/structured-logging.md`
 - [ ] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)
@@ -89,6 +132,10 @@
   - Refs: `crates/llm-tool-test/src/results.rs:228-230`
 
 ## P2: Missing Test Coverage
+
+### `specs/cli-tool.md`
+- [ ] Add tests for `--root` affecting discovery start dir and relative `--store` resolution
+  - Refs: `--root` flag `src/cli/mod.rs:29-33`, used `src/commands/dispatch.rs:14-18`; existing discovery test is cwd-only `tests/cli/misc.rs:99-114`
 
 ### `specs/graph-traversal.md`
 - [ ] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`
@@ -118,6 +165,8 @@
   - Refs: global sort `src/commands/export/mod.rs:101-103`
 - [ ] Add test validating anchor rewriting produces a target anchor that exists in output
   - Refs: rewrite `src/commands/export/emit/links.rs:56-96`
+- [ ] Add test validating `--with-attachments` produces rewritten attachment links that resolve in the export folder
+  - Refs: copy logic `src/commands/export/mod.rs:161-242`
 
 ### `specs/compaction.md`
 - [ ] Add tests for `compact apply`, `compact show`, `compact status` (CLI-level)
@@ -128,14 +177,16 @@
   - Refs: init `src/lib/logging.rs:31-40`, flags `src/cli/mod.rs:50-57`, golden `tests/golden/help.txt:41-44`
 
 ### `specs/llm-context.md`
+- [ ] Add test with large bodies in human/JSON to catch `--max-chars` / `--max-tokens` budget violations (summary-estimate vs full-body output)
+  - Refs: estimate `src/commands/context/budget.rs:97-103`, output `src/commands/context/output.rs:208-213`
 - [ ] Add tests for `context --transitive` (nested MOC traversal)
   - Refs: traversal `src/commands/context/select.rs:22-28`
 - [ ] Add test for records safety banner line (`W ...`) under `--format records --safety-banner`
   - Refs: records banner `src/commands/context/output.rs:436-443`
 
 ### `specs/pack.md`
-- [ ] Fix/replace outdated CLI pack tests (positional arg handling in `dump` appears changed)
-  - Refs: test uses `.arg("dump").arg(&note_id).arg("--output") ...`: `tests/cli/pack.rs:60-69`; CLI positional is file: `src/cli/commands.rs:299-302`; conflict check `src/commands/dispatch.rs:785-789`
+- [ ] Add tests for dump traversal filters (`--type`, `--typed-only`, `--inline-only`) and verify they affect reachability, not just included edges
+  - Refs: traversal ignores options `src/commands/dump/mod.rs:81-112`
 
 ## P3: Unimplemented Optional / Future
 
@@ -150,6 +201,9 @@
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) is not implemented
   - Refs: no stemming code in `src/`
+- [ ] “Related notes” similarity expansion (threshold > 0.3) is described but not implemented as a CLI/context feature
+  - Similarity API exists but is unused by `context`.
+  - Refs: similarity API `src/lib/similarity/mod.rs:49-75`, context selection `src/commands/context/mod.rs:72-109`
 
 ### `specs/llm-context.md`
 - [ ] Backlinks-in-context is described as open/future; not implemented
@@ -170,7 +224,7 @@
   - Refs: config `src/lib/config.rs:40-69`, spec mismatch noted in semantic-graph audit
 
 ### `specs/records-output.md`
-- [ ] Reconcile record prefixes and terminators (spec suggests `H/N/S/E/B`; impl also emits `W/D/C/M` and `B-END`)
+- [ ] Reconcile record prefix set and terminators (spec suggests `H/N/S/E/B`; impl also emits `W/D/C/M` and `B-END`)
   - Refs: context records `src/commands/context/output.rs:436-443` (`W`), `src/commands/context/output.rs:344-354` (`D source`), `src/commands/context/output.rs:361-362` (`B-END`); prime records `src/commands/prime.rs:201-219` (`C/M`)
 
 ### `specs/graph-traversal.md` + `specs/semantic-graph.md`

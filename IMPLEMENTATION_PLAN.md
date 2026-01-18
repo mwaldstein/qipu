@@ -44,11 +44,12 @@
  - [x] `merge-links` strategy also unions tags (spec describes link-only merge)
     - Fixed: Removed tag unioning logic, now only unions links as specified
     - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
- - [x] `workspace new --empty` flag is accepted but ignored
-   - Fixed: Changed `_empty` to `empty` and added check to skip all copy operations when `empty` is true
-   - Refs: empty flag check `src/commands/workspace/new.rs:51-74`
- - [ ] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
-  - Refs: overwrite path copies note `src/commands/workspace/merge.rs:44-47`; `copy_note` writes a new filename `src/commands/workspace/merge.rs:89-107`
+  - [x] `workspace new --empty` flag is accepted but ignored
+    - Fixed: Changed `_empty` to `empty` and added check to skip all copy operations when `empty` is true
+    - Refs: empty flag check `src/commands/workspace/new.rs:51-74`
+  - [x] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
+    - Fixed: Now removes existing note file before overwriting when using overwrite strategy
+    - Refs: file removal before overwrite `src/commands/workspace/merge.rs:54-58`
 - [ ] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
   - Refs: `match strategy { "overwrite" | "merge-links" | "skip" | _ => skip }`: `src/commands/workspace/merge.rs:43-69`
 - [ ] Workspace metadata schema differs from spec (`[workspace]` table vs top-level `WorkspaceMetadata`)

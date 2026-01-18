@@ -52,6 +52,10 @@ pub fn execute(
             if !dry_run {
                 match strategy {
                     "overwrite" => {
+                        let target_note = target_store.get_note(&id)?;
+                        if let Some(path) = target_note.path {
+                            let _ = std::fs::remove_file(path);
+                        }
                         copy_note(note, &target_store)?;
                     }
                     "merge-links" => {

@@ -42,11 +42,12 @@
   - Fixed: dry_run now produces detailed report showing notes to add, conflicts, and actions based on strategy; success message only shown when not dry_run
   - Refs: dry_run report `src/commands/workspace/merge.rs:39-80`
  - [x] `merge-links` strategy also unions tags (spec describes link-only merge)
-   - Fixed: Removed tag unioning logic, now only unions links as specified
-   - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
-- [ ] `workspace new --empty` flag is accepted but ignored
-  - Refs: ignored arg `_empty` `src/commands/workspace/new.rs:13-14`
-- [ ] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
+    - Fixed: Removed tag unioning logic, now only unions links as specified
+    - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
+ - [x] `workspace new --empty` flag is accepted but ignored
+   - Fixed: Changed `_empty` to `empty` and added check to skip all copy operations when `empty` is true
+   - Refs: empty flag check `src/commands/workspace/new.rs:51-74`
+ - [ ] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
   - Refs: overwrite path copies note `src/commands/workspace/merge.rs:44-47`; `copy_note` writes a new filename `src/commands/workspace/merge.rs:89-107`
 - [ ] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
   - Refs: `match strategy { "overwrite" | "merge-links" | "skip" | _ => skip }`: `src/commands/workspace/merge.rs:43-69`

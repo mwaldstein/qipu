@@ -10,7 +10,7 @@ pub fn execute(
     cli: &Cli,
     name: &str,
     temp: bool,
-    _empty: bool,
+    empty: bool,
     copy_primary: bool,
     from_tag: Option<&str>,
     from_note: Option<&str>,
@@ -48,25 +48,27 @@ pub fn execute(
     };
     metadata.save(&workspace_path.join(WORKSPACE_FILE))?;
 
-    if copy_primary {
-        copy_notes(&primary_store, &ws_store)?;
-    } else if let Some(tag) = from_tag {
-        let notes = primary_store.list_notes()?;
-        for note in notes {
-            if note.frontmatter.tags.contains(&tag.to_string()) {
-                copy_note(&note, &ws_store)?;
+    if !empty {
+        if copy_primary {
+            copy_notes(&primary_store, &ws_store)?;
+        } else if let Some(tag) = from_tag {
+            let notes = primary_store.list_notes()?;
+            for note in notes {
+                if note.frontmatter.tags.contains(&tag.to_string()) {
+                    copy_note(&note, &ws_store)?;
+                }
             }
-        }
-    } else if let Some(note_id) = from_note {
-        // This should be a graph slice, but for now just copy the note
-        let note = primary_store.get_note(note_id)?;
-        copy_note(&note, &ws_store)?;
-    } else if let Some(query) = from_query {
-        // Simple search and copy
-        let notes = primary_store.list_notes()?;
-        for note in notes {
-            if note.title().contains(query) || note.body.contains(query) {
-                copy_note(&note, &ws_store)?;
+        } else if let Some(note_id) = from_note {
+            // This should be a graph slice, but for now just copy the note
+            let note = primary_store.get_note(note_id)?;
+            copy_note(&note, &ws_store)?;
+        } else if let Some(query) = from_query {
+            // Simple search and copy
+            let notes = primary_store.list_notes()?;
+            for note in notes {
+                if note.title().contains(query) || note.body.contains(query) {
+                    copy_note(&note, &ws_store)?;
+                }
             }
         }
     }

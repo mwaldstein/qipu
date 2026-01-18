@@ -195,6 +195,17 @@ impl Database {
                     &path_to_id,
                 );
 
+                // Delete all existing edges for this note before inserting new ones
+                self.conn
+                    .execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
+                    .map_err(|e| {
+                        QipuError::Other(format!(
+                            "failed to delete edges for note {}: {}",
+                            note.id(),
+                            e
+                        ))
+                    })?;
+
                 for edge in edges {
                     let link_type_str = edge.link_type.to_string();
                     let inline_flag =
@@ -206,7 +217,7 @@ impl Database {
 
                     self.conn
                         .execute(
-                            "INSERT OR REPLACE INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
+                            "INSERT INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
                             params![edge.from, edge.to, link_type_str, inline_flag],
                         )
                         .map_err(|e| {
@@ -214,14 +225,31 @@ impl Database {
                         })?;
                 }
 
+                // Delete all existing unresolved references for this note
+                self.conn
+                    .execute(
+                        "DELETE FROM unresolved WHERE source_id = ?1",
+                        params![note.id()],
+                    )
+                    .map_err(|e| {
+                        QipuError::Other(format!(
+                            "failed to delete unresolved refs for note {}: {}",
+                            note.id(),
+                            e
+                        ))
+                    })?;
+
                 for unresolved_ref in unresolved {
                     self.conn
                         .execute(
-                            "INSERT OR REPLACE INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
+                            "INSERT INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
                             params![note.id(), unresolved_ref],
                         )
                         .map_err(|e| {
-                            QipuError::Other(format!("failed to insert unresolved ref {}: {}", unresolved_ref, e))
+                            QipuError::Other(format!(
+                                "failed to insert unresolved ref {}: {}",
+                                unresolved_ref, e
+                            ))
                         })?;
                 }
             }

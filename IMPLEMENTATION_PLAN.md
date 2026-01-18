@@ -143,6 +143,12 @@ Both already call `store.save_note()` which now updates the DB via `insert_note(
 - `save_note()` calls `db.insert_note()` and `db.insert_edges()` (src/lib/store/lifecycle.rs:169-170)
 - `insert_edges()` uses `INSERT OR REPLACE` so it handles both add and remove
 
+**Blocker**: `INSERT OR REPLACE` doesn't remove edges when links are deleted from frontmatter. It only replaces edges with matching primary keys, but if a link is removed and no new link has the same (source_id, target_id, link_type), the edge stays in the database.
+
+**Required fix**: `Database::insert_edges()` must DELETE all edges for a note before inserting new ones. This ensures edges are removed when links are deleted from frontmatter.
+
+**Learning**: The DELETE statement has been added to `insert_edges()`, but the test is still failing. The edge remains in the database even after being removed from the frontmatter and the file is updated. Investigation needed to determine why DELETE is not working.
+
 **Verify with test**: Create test that adds a link, verifies it appears in edges table, removes it, verifies it's gone.
 
 ### Phase 3: Migrate Queries to SQLite

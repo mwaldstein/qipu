@@ -1,5 +1,6 @@
 use crate::cli::support::qipu;
 use predicates::prelude::*;
+use rusqlite::Connection;
 use tempfile::tempdir;
 
 #[test]
@@ -198,17 +199,19 @@ recommends = "This note recommends another note"
     // Create two notes
     let output1 = qipu()
         .current_dir(dir.path())
-        .args(["create", "Note 1"])
+        .args(["create", "Source Note"])
         .output()
         .unwrap();
     let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
 
     let output2 = qipu()
         .current_dir(dir.path())
-        .args(["create", "Note 2"])
+        .args(["create", "Target Note"])
         .output()
         .unwrap();
     let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+
+    eprintln!("Created notes: {} -> {}", id1, id2);
 
     // Add custom link
     qipu()
@@ -233,4 +236,173 @@ recommends = "This note recommends another note"
         .stdout(predicate::str::contains(&id1))
         .stdout(predicate::str::contains("recommended-by"))
         .stdout(predicate::str::contains("(virtual)"));
+}
+
+#[test]
+fn test_link_add_remove_updates_database() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Source Note"])
+        .output()
+        .unwrap();
+    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Target Note"])
+        .output()
+        .unwrap();
+    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+
+    // Add a link
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id2, "--type", "supports"])
+        .assert()
+        .success();
+
+    // Verify link appears in database
+    let db_path = dir.path().join(".qipu/qipu.db");
+    let conn = Connection::open(db_path).unwrap();
+
+    // Debug: check all edges in database after add
+    let mut debug_stmt = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges ORDER BY source_id")
+        .unwrap();
+    let mut debug_rows = debug_stmt.query([]).unwrap();
+    eprintln!("Edges in database after add:");
+    while let Some(row) = debug_rows.next().unwrap() {
+        let source: String = row.get(0).unwrap();
+        let target: String = row.get(1).unwrap();
+        let link_type: String = row.get(2).unwrap();
+        eprintln!("  {} -> {} ({})", source, target, link_type);
+    }
+
+    let mut stmt = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges WHERE source_id = ?1 AND target_id = ?2")
+        .unwrap();
+    let mut rows = stmt.query((&id1, &id2)).unwrap();
+
+    assert!(
+        rows.next().unwrap().is_some(),
+        "Link should exist in edges table after add"
+    );
+
+    // Use show command to check note content before remove
+    let show_output_before = qipu()
+        .current_dir(dir.path())
+        .args(["show", &id1])
+        .output()
+        .unwrap();
+    eprintln!(
+        "Note content before remove:\n{}",
+        String::from_utf8_lossy(&show_output_before.stdout)
+    );
+
+    // Remove the link
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "remove", &id1, &id2, "--type", "supports"])
+        .assert()
+        .success();
+
+    // Use show command to check note content after remove
+    let show_output_after = qipu()
+        .current_dir(dir.path())
+        .args(["show", &id1])
+        .output()
+        .unwrap();
+    eprintln!(
+        "Note content after remove:\n{}",
+        String::from_utf8_lossy(&show_output_after.stdout)
+    );
+
+    // Debug: check all edges in database
+    let mut debug_stmt = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges ORDER BY source_id")
+        .unwrap();
+    let mut debug_rows = debug_stmt.query([]).unwrap();
+    eprintln!("Edges in database after remove:");
+    while let Some(row) = debug_rows.next().unwrap() {
+        let source: String = row.get(0).unwrap();
+        let target: String = row.get(1).unwrap();
+        let link_type: String = row.get(2).unwrap();
+        eprintln!("  {} -> {} ({})", source, target, link_type);
+    }
+
+    // Verify link is removed from database
+    let mut stmt2 = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges WHERE source_id = ?1 AND target_id = ?2")
+        .unwrap();
+    let mut rows = stmt2.query((&id1, &id2)).unwrap();
+    assert!(
+        rows.next().unwrap().is_none(),
+        "Link should not exist in edges table after remove"
+    );
+
+    // Check note file content before remove
+    let note_path = std::fs::read_dir(dir.path())
+        .unwrap()
+        .flat_map(|e| {
+            std::fs::read_dir(e.unwrap().path())
+                .ok()
+                .into_iter()
+                .flatten()
+        })
+        .find(|e| {
+            e.as_ref()
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(&id1)
+        })
+        .unwrap()
+        .unwrap()
+        .path();
+    let note_content = std::fs::read_to_string(&note_path).unwrap();
+    eprintln!("Note content before remove:\n{}", note_content);
+
+    // Remove the link
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "remove", &id1, &id2, "--type", "supports"])
+        .assert()
+        .success();
+
+    // Check note file content after remove
+    let note_content_after = std::fs::read_to_string(&note_path).unwrap();
+    eprintln!("Note content after remove:\n{}", note_content_after);
+    eprintln!("Content changed: {}", note_content != note_content_after);
+
+    // Debug: check all edges in database
+    let mut debug_stmt = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges ORDER BY source_id")
+        .unwrap();
+    let mut debug_rows = debug_stmt.query([]).unwrap();
+    eprintln!("Edges in database after remove:");
+    while let Some(row) = debug_rows.next().unwrap() {
+        let source: String = row.get(0).unwrap();
+        let target: String = row.get(1).unwrap();
+        let link_type: String = row.get(2).unwrap();
+        eprintln!("  {} -> {} ({})", source, target, link_type);
+    }
+
+    // Verify link is removed from database
+    let mut stmt2 = conn
+        .prepare("SELECT source_id, target_id, link_type FROM edges WHERE source_id = ?1 AND target_id = ?2")
+        .unwrap();
+    let mut rows = stmt2.query((&id1, &id2)).unwrap();
+    assert!(
+        rows.next().unwrap().is_none(),
+        "Link should not exist in edges table after remove"
+    );
 }

@@ -12,11 +12,7 @@ fn test_workspace_copy_primary_preserves_id() {
     let root = dir.path();
 
     // 1. Init store
-    qipu()
-        .arg("init")
-        .current_dir(root)
-        .assert()
-        .success();
+    qipu().arg("init").current_dir(root).assert().success();
 
     // 2. Create a note in main store
     let output = qipu()
@@ -62,11 +58,7 @@ fn test_workspace_merge_strategies_links() {
     let root = dir.path();
 
     // 1. Init
-    qipu()
-        .arg("init")
-        .current_dir(root)
-        .assert()
-        .success();
+    qipu().arg("init").current_dir(root).assert().success();
 
     // 2. Create note in main
     let output = qipu()
@@ -177,11 +169,7 @@ fn test_workspace_delete_protection() {
     let root = dir.path();
 
     // Init store
-    qipu()
-        .current_dir(root)
-        .arg("init")
-        .assert()
-        .success();
+    qipu().current_dir(root).arg("init").assert().success();
 
     // 2. Create a workspace
     qipu()

@@ -301,7 +301,7 @@ fn handle_list(
         .map(|s| {
             DateTime::parse_from_rfc3339(s)
                 .map(|dt| dt.with_timezone(&chrono::Utc))
-                .map_err(|e| QipuError::Other(format!("invalid --since date '{}': {}", s, e)))
+                .map_err(|e| QipuError::UsageError(format!("invalid --since date '{}': {}", s, e)))
         })
         .transpose()?;
 
@@ -699,7 +699,9 @@ fn handle_link(cli: &Cli, root: &PathBuf, command: &LinkCommands, start: Instant
         } => {
             let dir = direction
                 .parse::<crate::lib::graph::Direction>()
-                .map_err(QipuError::Other)?;
+                .map_err(|e| {
+                    QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
+                })?;
             let opts = crate::lib::graph::TreeOptions {
                 direction: dir,
                 max_hops: *max_hops,
@@ -728,7 +730,9 @@ fn handle_link(cli: &Cli, root: &PathBuf, command: &LinkCommands, start: Instant
         } => {
             let dir = direction
                 .parse::<crate::lib::graph::Direction>()
-                .map_err(QipuError::Other)?;
+                .map_err(|e| {
+                    QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
+                })?;
             let opts = crate::lib::graph::TreeOptions {
                 direction: dir,
                 max_hops: *max_hops,

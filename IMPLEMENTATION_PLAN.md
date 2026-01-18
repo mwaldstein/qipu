@@ -7,11 +7,10 @@
 ## P1: Correctness Bugs
 
 ### `specs/cli-interface.md`
-- [ ] Usage/argument validation sometimes returns exit code `1` instead of `2` (usage error)
-  - Example: invalid `--since` date path returns `QipuError::Other` -> exit 1
-  - Refs: `src/commands/dispatch.rs:300-306`, `src/lib/error.rs:76-82`
-- [ ] `qipu link {list,tree,path} --direction <bad>` returns exit code `1` instead of `2`
-  - Refs: `src/commands/dispatch.rs:67-70`, `src/commands/dispatch.rs:700-703`, `src/commands/dispatch.rs:729-731`, `src/lib/error.rs:76-82`
+- [x] Usage/argument validation sometimes returns exit code `1` instead of `2` (usage error)
+  - Fixed: invalid `--since` date and `--direction` now return `QipuError::UsageError` -> exit 2
+  - Changed `src/commands/dispatch.rs:304`, `src/commands/dispatch.rs:702`, `src/commands/dispatch.rs:733`
+  - Added tests: `tests/cli/misc.rs:test_invalid_since_date_exit_code_2`, `tests/cli/misc.rs:test_invalid_direction_exit_code_2`
 - [ ] `qipu load --format records` emits a non-standard header (`H load=1 ...`) instead of the normal records header
   - Refs: records header `src/commands/load/mod.rs:113-136`; standard header e.g. `src/commands/context/output.rs:445-449`
 

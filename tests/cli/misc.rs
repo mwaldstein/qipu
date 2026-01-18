@@ -188,3 +188,50 @@ fn test_verbose_flag() {
         .success()
         .stderr(predicate::str::contains("discover_store"));
 }
+
+// ============================================================================
+// Argument validation tests (exit code 2 for usage errors)
+// ============================================================================
+
+#[test]
+fn test_invalid_since_date_exit_code_2() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--since", "not-a-date"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("invalid --since date"));
+}
+
+#[test]
+fn test_invalid_direction_exit_code_2() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note to link
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", "test-note", "--direction", "invalid"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("invalid --direction"));
+}

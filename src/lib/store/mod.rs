@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 use crate::lib::config::StoreConfig;
 use crate::lib::db::Database;
 use crate::lib::error::{QipuError, Result};
-use crate::lib::note::NoteType;
 pub use config::InitOptions;
 use paths::{
     ATTACHMENTS_DIR, CACHE_DIR, CONFIG_FILE, DEFAULT_STORE_DIR, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR,
@@ -226,6 +225,7 @@ impl Store {
     }
 
     /// Get the templates directory
+    #[allow(dead_code)]
     pub fn templates_dir(&self) -> PathBuf {
         self.root.join(TEMPLATES_DIR)
     }
@@ -236,6 +236,7 @@ impl Store {
     }
 
     /// Get the database
+    #[allow(dead_code)]
     pub fn db(&self) -> &Database {
         &self.db
     }
@@ -246,6 +247,7 @@ mod tests {
     use super::*;
     use crate::lib::config::STORE_FORMAT_VERSION;
     use crate::lib::id::IdScheme;
+    use crate::lib::note::NoteType;
     use tempfile::tempdir;
 
     #[test]

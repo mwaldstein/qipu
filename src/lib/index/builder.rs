@@ -4,7 +4,7 @@ use super::types::{FileEntry, Index, NoteMetadata};
 use crate::lib::error::Result;
 use crate::lib::store::Store;
 use crate::lib::text::tokenize;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Index builder - handles construction and updates

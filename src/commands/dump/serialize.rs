@@ -7,6 +7,7 @@ use crate::lib::store::Store;
 use base64::{engine::general_purpose, Engine as _};
 
 /// Serialize pack in readable format (for human/JSON output)
+#[allow(dead_code)]
 pub fn serialize_pack_readable(
     notes: &[Note],
     links: &[PackLink],

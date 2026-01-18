@@ -1,6 +1,6 @@
 use super::links::{build_link_maps, rewrite_links};
 use crate::cli::Cli;
-use crate::commands::export::{ExportOptions, LinkMode};
+use crate::commands::export::ExportOptions;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;

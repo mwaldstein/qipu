@@ -19,6 +19,7 @@ pub struct Database {
 }
 
 /// Parse tags from a space-separated string
+#[allow(dead_code)]
 fn parse_tags(tags_str: &str) -> Vec<String> {
     tags_str
         .split_whitespace()
@@ -50,6 +51,7 @@ impl Database {
     }
 
     /// Rebuild the database from scratch by scanning all notes
+    #[allow(dead_code)]
     pub fn rebuild(&self, store_root: &Path) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
@@ -178,7 +180,7 @@ impl Database {
         use std::collections::{HashMap, HashSet};
 
         let mut unresolved = HashSet::new();
-        let mut path_to_id = HashMap::new();
+        let path_to_id = HashMap::new();
 
         if note.path.is_some() {
             if let Ok(existing_ids) =
@@ -234,6 +236,7 @@ impl Database {
     /// - Title: 2.0x boost
     /// - Body: 1.0x (baseline)
     /// - Tags: 1.5x boost
+    #[allow(dead_code)]
     pub fn search(
         &self,
         query: &str,
@@ -436,7 +439,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
-        let note = store
+        let _note = store
             .create_note_with_content(
                 "Test Note",
                 None,

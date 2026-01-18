@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::graph::{Direction, TreeOptions};

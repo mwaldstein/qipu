@@ -20,6 +20,7 @@ pub enum NoteType {
 
 impl NoteType {
     /// All valid note types
+    #[allow(dead_code)]
     pub const VALID_TYPES: &'static [&'static str] =
         &["fleeting", "literature", "permanent", "moc"];
 }
@@ -121,6 +122,7 @@ impl LinkType {
     }
 
     /// All valid link types (stored on disk by default)
+    #[allow(dead_code)]
     pub const VALID_TYPES: &'static [&'static str] = &[
         Self::RELATED,
         Self::DERIVED_FROM,

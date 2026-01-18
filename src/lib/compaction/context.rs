@@ -16,6 +16,7 @@ pub struct CompactionContext {
     pub compacted_by: HashMap<String, Vec<String>>,
 
     /// Cached map from note ID to note reference (built on first use)
+    #[allow(dead_code)]
     note_cache: HashMap<String, usize>,
 }
 

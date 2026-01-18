@@ -122,6 +122,7 @@ pub fn execute(
 }
 
 /// Find path between two nodes using BFS with optional compaction resolution
+#[allow(dead_code)]
 fn bfs_find_path(
     index: &Index,
     from: &str,

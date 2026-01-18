@@ -1,11 +1,11 @@
 //! Similarity engine for finding related notes and duplicates
 
 use crate::lib::index::types::Index;
-use crate::lib::text::tokenize;
 use std::collections::HashMap;
 
 /// Similarity score between two notes
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub struct SimilarityResult {
     /// Note ID
     pub id: String,
@@ -47,6 +47,7 @@ impl<'a> SimilarityEngine<'a> {
     }
 
     /// Get top N similar notes for a given note
+    #[allow(dead_code)]
     pub fn find_similar(
         &self,
         note_id: &str,
@@ -142,7 +143,6 @@ mod tests {
     use super::*;
     use crate::lib::index::types::NoteMetadata;
     use crate::lib::note::NoteType;
-    use std::collections::HashSet;
 
     fn create_test_index() -> Index {
         let mut index = Index::new();

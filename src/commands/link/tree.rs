@@ -8,7 +8,7 @@ use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
-use super::{resolve_note_id, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult};
+use super::{resolve_note_id, TreeLink, TreeOptions, TreeResult};
 
 /// Execute the link tree command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) -> Result<()> {

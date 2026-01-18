@@ -18,6 +18,7 @@ pub struct DumpOptions<'a> {
 
 /// Pack file header
 #[derive(Debug, Clone, Serialize)]
+#[allow(dead_code)]
 pub struct PackHeader {
     pub version: String,
     pub store_version: u32,
@@ -30,6 +31,7 @@ pub struct PackHeader {
 
 /// Pack entry for a note
 #[derive(Debug, Clone, Serialize)]
+#[allow(dead_code)]
 pub struct PackNote {
     pub id: String,
     pub title: String,
@@ -51,6 +53,7 @@ pub struct PackNote {
 
 /// Pack entry for a source reference
 #[derive(Debug, Clone, Serialize)]
+#[allow(dead_code)]
 pub struct PackSource {
     pub url: String,
     pub title: Option<String>,

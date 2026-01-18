@@ -11,7 +11,6 @@ pub mod model;
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use base64::{engine::general_purpose, Engine as _};
 

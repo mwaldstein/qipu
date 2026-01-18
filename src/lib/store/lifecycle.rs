@@ -208,4 +208,24 @@ impl Store {
 
         Ok(ids)
     }
+
+    pub fn delete_note(&self, note_id: &str) -> Result<()> {
+        let note = self.get_note(note_id)?;
+        let path = note
+            .path
+            .as_ref()
+            .ok_or_else(|| QipuError::Other("note has no path".to_string()))?;
+
+        fs::remove_file(path).map_err(|e| {
+            QipuError::Other(format!(
+                "failed to delete note file {}: {}",
+                path.display(),
+                e
+            ))
+        })?;
+
+        self.db.delete_note(note_id)?;
+
+        Ok(())
+    }
 }

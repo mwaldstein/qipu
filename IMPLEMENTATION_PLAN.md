@@ -117,45 +117,24 @@ WITH RECURSIVE reachable(id, depth) AS (
 
 **Remaining Phase 2 tasks:**
 
-#### 2.1: Implement `Database::delete_note()`
-File: `src/lib/db/mod.rs`
+#### 2.1: Implement `Database::delete_note()` ✅ COMPLETE
+File: `src/lib/db/mod.rs:337-363`
 
-Add method to remove note from all tables:
-```rust
-pub fn delete_note(&self, note_id: &str) -> Result<()> {
-    // Delete from edges (both source and target references)
-    self.conn.execute("DELETE FROM edges WHERE source_id = ?1 OR target_id = ?1", params![note_id])?;
-    // Delete from unresolved
-    self.conn.execute("DELETE FROM unresolved WHERE source_id = ?1", params![note_id])?;
-    // Delete from tags
-    self.conn.execute("DELETE FROM tags WHERE note_id = ?1", params![note_id])?;
-    // Delete from notes (CASCADE should handle FTS via content=notes)
-    self.conn.execute("DELETE FROM notes WHERE id = ?1", params![note_id])?;
-    // Manually delete from FTS since we use external content table
-    self.conn.execute("DELETE FROM notes_fts WHERE rowid = (SELECT rowid FROM notes WHERE id = ?1)", params![note_id])?;
-    Ok(())
-}
-```
+Implemented method to remove note from all tables:
+- Deletes from edges (both source and target references)
+- Deletes from unresolved
+- Deletes from tags
+- Deletes from notes (FTS handled via external content table)
+- Returns `NoteNotFound` error if note doesn't exist
 
-#### 2.2: Add `Store::delete_note()` method
-File: `src/lib/store/lifecycle.rs`
+#### 2.2: Add `Store::delete_note()` method ✅ COMPLETE
+File: `src/lib/store/lifecycle.rs:212-225`
 
-Add method that removes file and updates DB:
-```rust
-pub fn delete_note(&self, note_id: &str) -> Result<()> {
-    let note = self.get_note(note_id)?;
-    let path = note.path.as_ref()
-        .ok_or_else(|| QipuError::Other("note has no path".to_string()))?;
-    
-    // Delete file first
-    std::fs::remove_file(path)?;
-    
-    // Then remove from database
-    self.db.delete_note(note_id)?;
-    
-    Ok(())
-}
-```
+Implemented method that removes file and updates DB:
+- Gets note using `get_note()`
+- Deletes file from filesystem
+- Calls `db.delete_note()` to remove from database
+- Returns error if note has no path or file deletion fails
 
 #### 2.3: Wire up `link add/remove` to update DB
 Files: `src/commands/link/add.rs`, `src/commands/link/remove.rs`

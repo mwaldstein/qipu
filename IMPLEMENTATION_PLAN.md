@@ -38,8 +38,9 @@
 ### `specs/workspaces.md`
 - [ ] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
   - Refs: CLI promise `src/cli/workspace.rs:60-63`, behavior `src/commands/workspace/merge.rs:82-84`
-- [ ] `merge-links` strategy also unions tags (spec describes link-only merge)
-  - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
+ - [x] `merge-links` strategy also unions tags (spec describes link-only merge)
+   - Fixed: Removed tag unioning logic, now only unions links as specified
+   - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
 - [ ] `workspace new --empty` flag is accepted but ignored
   - Refs: ignored arg `_empty` `src/commands/workspace/new.rs:13-14`
 - [ ] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)

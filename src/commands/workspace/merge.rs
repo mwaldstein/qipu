@@ -49,13 +49,6 @@ pub fn execute(
                 "merge-links" => {
                     if !dry_run {
                         let mut target_note = target_store.get_note(&id)?;
-                        // Simple merge: union of tags (as a proxy for links for now)
-                        for tag in &note.frontmatter.tags {
-                            if !target_note.frontmatter.tags.contains(tag) {
-                                target_note.frontmatter.tags.push(tag.clone());
-                            }
-                        }
-                        // Merge links
                         for link in &note.frontmatter.links {
                             if !target_note.frontmatter.links.contains(link) {
                                 target_note.frontmatter.links.push(link.clone());

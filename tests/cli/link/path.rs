@@ -383,14 +383,18 @@ fn test_link_path_typed_only() {
         .args(["create", "Typed Child"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
+        .trim()
+        .to_string();
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Inline Child"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
+        .trim()
+        .to_string();
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -398,7 +402,9 @@ fn test_link_path_typed_only() {
         .write_stdin(format!("See [[{}]]", id_child2))
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+    let id_root = String::from_utf8_lossy(&output_root.stdout)
+        .trim()
+        .to_string();
 
     qipu()
         .current_dir(dir.path())
@@ -443,14 +449,18 @@ fn test_link_path_inline_only() {
         .args(["create", "Typed Child"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
+        .trim()
+        .to_string();
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Inline Child"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
+        .trim()
+        .to_string();
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -458,7 +468,9 @@ fn test_link_path_inline_only() {
         .write_stdin(format!("See [[{}]]", id_child2))
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+    let id_root = String::from_utf8_lossy(&output_root.stdout)
+        .trim()
+        .to_string();
 
     qipu()
         .current_dir(dir.path())

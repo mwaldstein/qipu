@@ -14,18 +14,21 @@ use tracing::debug;
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
 enum RipgrepMatch {
-    Begin {
-        path: String,
-    },
-    End {
-        path: String,
-    },
+    #[serde(rename = "data.path.text")]
+    Begin { path: String },
+    #[serde(rename = "data.path.text")]
+    End { path: String },
+    #[serde(rename = "data.path.text")]
     Match {
+        #[serde(rename = "data.path.text")]
         path: String,
+        #[serde(rename = "data.lines.text")]
         lines: String,
         #[allow(dead_code)]
+        #[serde(rename = "data.line_number")]
         line_number: u64,
         #[allow(dead_code)]
+        #[serde(rename = "data.absolute_offset")]
         absolute_offset: u64,
     },
 }

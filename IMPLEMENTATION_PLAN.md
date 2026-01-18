@@ -92,10 +92,13 @@
   - Refs: tree direction tests `tests/cli/link/tree.rs:681-766`, path direction tests `tests/cli/link/path.rs:491-577`
 
 ### `specs/indexing-search.md`
-- [ ] Add tests asserting ranking rules (title boost > body; tag boost behavior)
-  - Current tests check presence, not ordering.
+- [x] Add tests asserting ranking rules (title boost > body; tag boost behavior)
+  - Added: `test_search_title_match_ranks_above_body_match` and `test_search_exact_tag_match_ranks_above_body` already existed
+  - Added: `test_search_title_only_match_included_with_ripgrep_results` to ensure title-only matches are found when ripgrep returns other results
   - Refs: boosts `src/lib/index/search.rs:176-178`
-- [ ] Add test that would fail if title-only matches are missed when ripgrep returns results
+- [x] Add test that would fail if title-only matches are missed when ripgrep returns results
+  - Added: `test_search_title_only_match_included_with_ripgrep_results` in `tests/cli/search.rs`
+  - Verifies that title-only matches are included even when ripgrep finds body matches (so fallback to embedded search is not triggered)
   - Refs: ripgrep path `src/lib/index/search.rs:53-110`
 
 ### `specs/similarity-ranking.md`

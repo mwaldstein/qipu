@@ -518,3 +518,99 @@ fn test_search_exact_tag_match_ranks_above_body() {
         second_relevance
     );
 }
+
+#[test]
+fn test_search_title_only_match_included_with_ripgrep_results() {
+    // Regression test: ensure title-only matches are found even when ripgrep
+    // returns other results (so we don't fall back to embedded search)
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create note 1: unique word ONLY in title (ripgrep won't find it)
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Xylophone Musical"])
+        .assert()
+        .success();
+
+    // Create note 2: unique word in body only (ripgrep will find this)
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Generic Note"])
+        .assert()
+        .success();
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note_files: Vec<_> = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(note_files.len(), 2);
+
+    for note_file in &note_files {
+        let note_path = note_file.path();
+        let content = fs::read_to_string(&note_path).unwrap();
+
+        if content.contains("title: Xylophone Musical") {
+            // Xylophone Musical: word "musical" only in title, NOT in body
+            let mut modified = content.clone();
+            modified.push_str("\nThis note discusses instruments but avoids using the keyword.");
+            fs::write(&note_path, modified).unwrap();
+        } else if content.contains("title: Generic Note") {
+            // Generic Note: word "musical" in body (ripgrep will find this)
+            let mut modified = content.clone();
+            modified.push_str("\nThis note contains information about musical instruments.");
+            fs::write(&note_path, modified).unwrap();
+        }
+    }
+
+    // Rebuild index
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    // Search for "musical" which appears in:
+    // - Xylophone Musical title (ripgrep won't find it if it's only in frontmatter)
+    // - Generic Note body (ripgrep WILL find this)
+    // Both should appear in results
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "search", "musical"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output);
+    let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let results_array = results.as_array().expect("Expected JSON array");
+
+    // Both notes should be found
+    assert_eq!(
+        results_array.len(),
+        2,
+        "Both title-only match and body match should be returned"
+    );
+
+    // Verify we got both titles
+    let titles: Vec<&str> = results_array
+        .iter()
+        .map(|r| r["title"].as_str().unwrap())
+        .collect();
+    assert!(
+        titles.contains(&"Xylophone Musical"),
+        "Title-only match should be found"
+    );
+    assert!(
+        titles.contains(&"Generic Note"),
+        "Body match should be found"
+    );
+}

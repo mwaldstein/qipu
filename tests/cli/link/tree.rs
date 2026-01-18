@@ -533,3 +533,347 @@ fn test_link_tree_spanning_tree_ordering() {
     assert_eq!(spanning_tree[1]["to"].as_str().unwrap(), id_a);
     assert_eq!(spanning_tree[2]["to"].as_str().unwrap(), id_c);
 }
+
+#[test]
+fn test_link_tree_type_filter() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create root note and children with different link types
+    let output_root = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Root"])
+        .output()
+        .unwrap();
+    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+
+    let output_child1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Child 1"])
+        .output()
+        .unwrap();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+
+    let output_child2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Child 2"])
+        .output()
+        .unwrap();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+
+    // Add typed links with different types
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child1, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child2, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // With --type supports, should only show Child 1
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_root, "--type", "supports"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Child 1"))
+        .stdout(predicate::str::contains("Child 2").not());
+}
+
+#[test]
+fn test_link_tree_exclude_type_filter() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_root = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Root"])
+        .output()
+        .unwrap();
+    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+
+    let output_child1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Child 1"])
+        .output()
+        .unwrap();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+
+    let output_child2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Child 2"])
+        .output()
+        .unwrap();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child1, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child2, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // With --exclude-type supports, should only show Child 2
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_root, "--exclude-type", "supports"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Child 2"))
+        .stdout(predicate::str::contains("Child 1").not());
+}
+
+#[test]
+fn test_link_tree_typed_only() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_child1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Typed Child"])
+        .output()
+        .unwrap();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+
+    let output_child2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Inline Child"])
+        .output()
+        .unwrap();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+
+    let output_root = qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--title", "Root"])
+        .write_stdin(format!("See [[{}]]", id_child2))
+        .output()
+        .unwrap();
+    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child1, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_root, "--typed-only"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Typed Child"))
+        .stdout(predicate::str::contains("Inline Child").not());
+}
+
+#[test]
+fn test_link_tree_inline_only() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_child1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Typed Child"])
+        .output()
+        .unwrap();
+    let id_child1 = String::from_utf8_lossy(&output_child1.stdout).trim().to_string();
+
+    let output_child2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Inline Child"])
+        .output()
+        .unwrap();
+    let id_child2 = String::from_utf8_lossy(&output_child2.stdout).trim().to_string();
+
+    let output_root = qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--title", "Root"])
+        .write_stdin(format!("See [[{}]]", id_child2))
+        .output()
+        .unwrap();
+    let id_root = String::from_utf8_lossy(&output_root.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_child1, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_root, "--inline-only"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Inline Child"))
+        .stdout(predicate::str::contains("Typed Child").not());
+}
+
+#[test]
+fn test_link_tree_direction_in() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_b, "--direction", "in"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Node B"))
+        .stdout(predicate::str::contains("Node A"))
+        .stdout(predicate::str::contains("Node C").not());
+}
+
+#[test]
+fn test_link_tree_direction_both() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_b, "--direction", "both"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Node B"))
+        .stdout(predicate::str::contains("Node A"))
+        .stdout(predicate::str::contains("Node C"));
+}

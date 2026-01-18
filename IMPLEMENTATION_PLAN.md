@@ -84,11 +84,12 @@
   - Tests verify: discovery starts from `--root`, relative `--store` resolved against `--root`
 
 ### `specs/graph-traversal.md`
-- [ ] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`
-  - Filters exist but are untested: `src/lib/graph/types.rs:35-59`
-- [ ] Add tests for `direction=in` and `direction=both` on `link tree` and `link path`
-  - Direction parsing exists; tests currently cover `out` and some hop limits.
-  - Refs: direction enum `src/lib/graph/types.rs:5-30`; existing tests `tests/cli/link/tree.rs:229-288`
+- [x] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`
+  - Added: 6 tests for type/exclude filters and typed-only/inline-only
+  - Refs: tree tests `tests/cli/link/tree.rs:5-230`, path tests `tests/cli/link/path.rs:203-490`
+- [x] Add tests for `direction=in` and `direction=both` on `link tree` and `link path`
+  - Added: 4 tests for direction=in and direction=both
+  - Refs: tree direction tests `tests/cli/link/tree.rs:681-766`, path direction tests `tests/cli/link/path.rs:491-577`
 
 ### `specs/indexing-search.md`
 - [ ] Add tests asserting ranking rules (title boost > body; tag boost behavior)

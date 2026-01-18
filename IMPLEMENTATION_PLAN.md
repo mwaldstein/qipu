@@ -46,7 +46,11 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `src/lib/compaction/expansion.rs` - Note expansion and metrics (138 lines) ✅
    - `src/lib/compaction/suggestion.rs` - Graph clustering for suggestions (188 lines) ✅
    - `src/lib/compaction/validation.rs` - Invariant validation (69 lines) ✅
-5. **`src/cli/mod.rs` (634 lines)** - CLI argument definitions for all commands
+5. **`src/cli/mod.rs` (635 lines)** ✅ COMPLETE - Refactored into modular structure:
+   - `src/cli/mod.rs` - Core CLI structure and global flags (163 lines) ✅
+   - `src/cli/commands.rs` - Main Commands enum (368 lines) ✅
+   - `src/cli/compact.rs` - CompactCommands enum (54 lines) ✅
+   - `src/cli/workspace.rs` - WorkspaceCommands enum (72 lines) ✅
 6. **`src/lib/store/mod.rs` (608 lines)** - Mixed store concerns
 7. **`src/commands/export/emit.rs` (601 lines)** - Multiple export formats
 8. **`src/commands/link/tree.rs` (586 lines)** - Algorithm + formatting mixing
@@ -270,4 +274,4 @@ Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activa
 
 ---
 
-*Last updated: 2026-01-17*
+*Last updated: 2026-01-18*

@@ -14,23 +14,36 @@ use tracing::debug;
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
 enum RipgrepMatch {
-    #[serde(rename = "data.path.text")]
-    Begin { path: String },
-    #[serde(rename = "data.path.text")]
-    End { path: String },
-    #[serde(rename = "data.path.text")]
-    Match {
-        #[serde(rename = "data.path.text")]
-        path: String,
-        #[serde(rename = "data.lines.text")]
-        lines: String,
-        #[allow(dead_code)]
-        #[serde(rename = "data.line_number")]
-        line_number: u64,
-        #[allow(dead_code)]
-        #[serde(rename = "data.absolute_offset")]
-        absolute_offset: u64,
-    },
+    Begin { data: RipgrepBeginData },
+    End { data: RipgrepEndData },
+    Match { data: RipgrepMatchData },
+    Context { data: RipgrepMatchData },
+    Summary {},
+}
+
+#[derive(Deserialize, Debug)]
+struct RipgrepBeginData {
+    path: RipgrepText,
+}
+
+#[derive(Deserialize, Debug)]
+struct RipgrepEndData {
+    path: RipgrepText,
+}
+
+#[derive(Deserialize, Debug)]
+struct RipgrepMatchData {
+    path: RipgrepText,
+    lines: RipgrepText,
+    #[allow(dead_code)]
+    line_number: u64,
+    #[allow(dead_code)]
+    absolute_offset: u64,
+}
+
+#[derive(Deserialize, Debug)]
+struct RipgrepText {
+    text: String,
 }
 
 /// Calculate recency boost based on how recently a note was updated.
@@ -105,11 +118,10 @@ fn search_with_ripgrep(
     let mut rg_cmd = Command::new("rg");
     rg_cmd
         .arg("--json")
-        .arg("--case-insensitive")
+        .arg("--ignore-case")
         .arg("--no-heading")
         .arg("--with-filename")
-        .arg("--context-before=1")
-        .arg("--context-after=1")
+        .arg("--context=1")
         .arg("--max-columns=200");
 
     // Add search pattern (OR all terms together)
@@ -134,26 +146,31 @@ fn search_with_ripgrep(
     let mut path_contexts: HashMap<PathBuf, String> = HashMap::new();
 
     for line in stdout.lines() {
-        if let Ok(rg_match) = serde_json::from_str::<RipgrepMatch>(line) {
-            match rg_match {
-                RipgrepMatch::Begin { path, .. } | RipgrepMatch::End { path, .. } => {
-                    matching_paths.insert(PathBuf::from(path));
+        match serde_json::from_str::<RipgrepMatch>(line) {
+            Ok(rg_match) => match rg_match {
+                RipgrepMatch::Begin { data } => {
+                    matching_paths.insert(PathBuf::from(&data.path.text));
                 }
-                RipgrepMatch::Match { path, lines, .. } => {
-                    let path_buf = PathBuf::from(&path);
+                RipgrepMatch::End { data } => {
+                    matching_paths.insert(PathBuf::from(&data.path.text));
+                }
+                RipgrepMatch::Match { data } | RipgrepMatch::Context { data } => {
+                    let path_buf = PathBuf::from(&data.path.text);
                     matching_paths.insert(path_buf.clone());
 
                     // Store first context snippet for this file
                     if let std::collections::hash_map::Entry::Vacant(e) =
                         path_contexts.entry(path_buf)
                     {
-                        let context = lines.replace('\n', " ").trim().to_string();
+                        let context = data.lines.text.replace('\n', " ").trim().to_string();
                         if !context.is_empty() {
                             e.insert(format!("...{}...", context));
                         }
                     }
                 }
-            }
+                RipgrepMatch::Summary {} => {}
+            },
+            Err(_) => {}
         }
     }
 

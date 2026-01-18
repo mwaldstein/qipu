@@ -135,15 +135,28 @@
 - [ ] Add tests for dump traversal filters (`--type`, `--typed-only`, `--inline-only`) and verify they affect reachability, not just included edges
   - Refs: traversal ignores options `src/commands/dump/mod.rs:81-112`
 
+## P1.5: SQLite Operational Database
+
+### `specs/operational-database.md` (NEW)
+- [ ] Implement SQLite operational database layer
+  - [ ] Add rusqlite dependency with bundled SQLite
+  - [ ] Create database schema (notes, tags, edges, unresolved, notes_fts)
+  - [ ] Implement inline updates: all note mutations update DB atomically with file writes
+  - [ ] Implement startup validation and auto-rebuild if missing/corrupt
+  - [ ] Migrate search to use FTS5 with BM25 ranking
+  - [ ] Migrate list/filter to use SQLite queries
+  - [ ] Migrate graph operations (backlinks, traversal) to use SQLite
+  - [ ] Migrate doctor checks to use SQLite
+  - Refs: new spec `specs/operational-database.md`
+- [ ] Remove legacy components
+  - [ ] Delete ripgrep integration (`search_with_ripgrep`, `RipgrepMatch` structs, etc.)
+  - [ ] Delete JSON cache code (`.cache/` directory, all `*.json` index files)
+  - [ ] Delete `Index` struct and JSON serialization
+  - [ ] Update `index --rebuild` to only rebuild SQLite
+  - [ ] Add migration: detect `.cache/`, rebuild DB, delete `.cache/`
+  - Refs: `src/lib/index/search.rs`, `src/lib/index/mod.rs`, `src/lib/index/builder.rs`
+
 ## P3: Unimplemented Optional / Future
-
-### `specs/indexing-search.md`
-- [ ] Optional SQLite FTS5 backend is not implemented
-  - Refs: no SQLite search layer; spec mentions optional FTS5; `qipu.db` not used.
-
-### `specs/storage-format.md`
-- [ ] Optional `qipu.db` is not implemented (only gitignored)
-  - Refs: gitignore entry `src/lib/store/io.rs:44-71`
 
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) is not implemented

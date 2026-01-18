@@ -77,8 +77,10 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 - `export.md`: MOC bundle ordering, anchor existence, attachment link validity
 - `structured-logging.md`: runtime logging behaviors
 
+### P1.5: SQLite Operational Database
+- `operational-database.md`: SQLite as performance layer, JSON remains source of truth
+
 ### P3: Future/Optional Items
-- SQLite FTS5 (indexing-search)
 - Stemming (similarity-ranking)
 - Backlinks-in-context (llm-context)
 

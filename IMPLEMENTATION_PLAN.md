@@ -206,8 +206,8 @@ pub fn list_notes(
 - All filters optional and composable
 - Returns `Vec<NoteMetadata>` with full metadata including tags
 
-#### 3.3: Add `Database::get_backlinks()` for backlink lookup
-File: `src/lib/db/mod.rs`
+#### 3.3: Add `Database::get_backlinks()` for backlink lookup ✅ COMPLETE
+File: `src/lib/db/mod.rs:684-726`
 
 ```rust
 pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<Edge>> {
@@ -219,6 +219,20 @@ pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<Edge>> {
 ```
 
 Used by: `qipu show --links`, `qipu link list`
+
+**Implementation details:**
+- Added imports for `Edge` and `LinkSource` types
+- Query returns source_id, link_type, and inline fields from edges table
+- Constructs `Edge` objects with proper LinkSource (Inline vs Typed)
+- Returns `Vec<Edge>` with all backlinks to the specified note
+
+**Testing:**
+- Added comprehensive test `test_get_backlinks()` that:
+  1. Creates three notes
+  2. Adds links from two notes to a third note
+  3. Uses `store.save_note()` to persist links
+  4. Verifies `get_backlinks()` returns correct number and type of edges
+  5. Validates each backlink has correct source, target, link_type, and source type
 
 #### 3.4: Add `Database::traverse()` for graph traversal
 File: `src/lib/db/mod.rs`

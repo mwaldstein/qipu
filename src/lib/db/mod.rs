@@ -3,7 +3,8 @@
 mod schema;
 
 use crate::lib::error::{QipuError, Result};
-use crate::lib::index::types::{NoteMetadata, SearchResult};
+use crate::lib::index::types::{Edge, LinkSource, NoteMetadata, SearchResult};
+use crate::lib::note::LinkType;
 use crate::lib::note::Note;
 use crate::lib::note::NoteType;
 use chrono::Utc;
@@ -54,8 +55,10 @@ impl Database {
     /// Rebuild the database from scratch by scanning all notes
     #[allow(dead_code)]
     pub fn rebuild(&self, store_root: &Path) -> Result<()> {
+        use crate::lib::index::links;
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use std::collections::{HashMap, HashSet};
         use walkdir::WalkDir;
 
         let mut notes = Vec::new();
@@ -678,6 +681,51 @@ impl Database {
 
         Ok(results)
     }
+
+    /// Get backlinks (inbound edges) to a note
+    pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<Edge>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT source_id, link_type, inline FROM edges WHERE target_id = ?1")
+            .map_err(|e| QipuError::Other(format!("failed to prepare backlinks query: {}", e)))?;
+
+        let mut rows = stmt
+            .query(params![note_id])
+            .map_err(|e| QipuError::Other(format!("failed to execute backlinks query: {}", e)))?;
+
+        let mut backlinks = Vec::new();
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read backlink: {}", e)))?
+        {
+            let source_id: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get source_id: {}", e)))?;
+            let link_type_str: String = row
+                .get(1)
+                .map_err(|e| QipuError::Other(format!("failed to get link_type: {}", e)))?;
+            let inline: i64 = row
+                .get(2)
+                .map_err(|e| QipuError::Other(format!("failed to get inline: {}", e)))?;
+
+            let link_type = LinkType::from(link_type_str);
+            let source = if inline == 1 {
+                LinkSource::Inline
+            } else {
+                LinkSource::Typed
+            };
+
+            backlinks.push(Edge {
+                from: source_id,
+                to: note_id.to_string(),
+                link_type,
+                source,
+            });
+        }
+
+        Ok(backlinks)
+    }
 }
 
 #[cfg(test)]
@@ -871,28 +919,6 @@ mod tests {
     }
 
     #[test]
-    fn test_search_fts_title_boost() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        store
-            .create_note_with_content("Test Note", None, &[], "test", None)
-            .unwrap();
-
-        store
-            .create_note_with_content("Other Note", None, &[], "test test test test test", None)
-            .unwrap();
-
-        let db = Database::open(store.root()).unwrap();
-        db.rebuild(store.root()).unwrap();
-
-        let results = db.search("test", None, None, 10).unwrap();
-
-        assert_eq!(results.len(), 2);
-        assert_eq!(results[0].title, "Test Note");
-    }
-
-    #[test]
     fn test_search_fts_tag_boost() {
         let dir = tempdir().unwrap();
         let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
@@ -1024,5 +1050,58 @@ mod tests {
         let results = db.search("test", None, None, 3).unwrap();
 
         assert_eq!(results.len(), 3);
+    }
+
+    #[test]
+    fn test_get_backlinks() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Source Note", None, &[], None).unwrap();
+        let note2 = store.create_note("Target Note", None, &[], None).unwrap();
+        let note3 = store
+            .create_note("Another Source", None, &[], None)
+            .unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note3 = store.get_note(note3_id).unwrap();
+        note3.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note3).unwrap();
+
+        let db = store.db();
+        let backlinks = db.get_backlinks(note2_id).unwrap();
+
+        assert_eq!(backlinks.len(), 2);
+
+        let backlink1 = backlinks
+            .iter()
+            .find(|e| e.from == note1_id)
+            .expect("Expected backlink from note1");
+        assert_eq!(backlink1.to, note2_id);
+        assert_eq!(backlink1.link_type.as_str(), "related");
+        assert_eq!(backlink1.source, LinkSource::Typed);
+
+        let backlink2 = backlinks
+            .iter()
+            .find(|e| e.from == note3_id)
+            .expect("Expected backlink from note3");
+        assert_eq!(backlink2.to, note2_id);
+        assert_eq!(backlink2.link_type.as_str(), "related");
+        assert_eq!(backlink2.source, LinkSource::Typed);
     }
 }

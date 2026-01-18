@@ -27,22 +27,14 @@ Config should allow alternate roots:
   mocs/
   attachments/
   templates/
-  qipu.db            # optional, derived local index (gitignored)
-  .cache/            # derived; safe to delete
-    index_meta.json
-    metadata.json
-    tags.json
-    edges.json
-    unresolved.json
-    files.json
-    id_to_path.json
+  qipu.db            # derived local index (gitignored)
 ```
 
 Notes:
 - `notes/` contains all non-MOC notes.
 - `mocs/` contains map-of-content notes.
 - `attachments/` contains optional binaries (images, PDFs).
-- `.cache/` and `qipu.db` are derived and should be gitignored by default.
+- `qipu.db` is derived and should be gitignored by default.
 
 ## "Stealth mode" (local-only store)
 Beads supports `bd init --stealth` for private per-repo tracking. Qipu should support an analogous mode.
@@ -127,10 +119,8 @@ Canonicalization:
 - Avoid embedding huge binaries by default; provide guidance.
 
 ## Derived files / caches
-- `.qipu/qipu.db` (optional) accelerates search/backlinks/graph queries.
-- `.qipu/.cache/` can store JSON indexes for interoperability.
+- `.qipu/qipu.db` accelerates search/backlinks/graph queries.
 - All derived data must be rebuildable (`qipu index --rebuild`).
-- The absence of caches must not break core workflows.
 
 ## Git integration
 Recommended defaults (beads-inspired: portable data in git, local acceleration out of git):
@@ -141,7 +131,6 @@ Recommended defaults (beads-inspired: portable data in git, local acceleration o
   - `.qipu/config.toml` (optional)
 - Ignore:
   - `.qipu/qipu.db`
-  - `.qipu/.cache/`
 
 Provide `qipu doctor` checks for:
 - duplicate IDs

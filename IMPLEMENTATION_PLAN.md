@@ -5,256 +5,484 @@
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
 - All P1 correctness bugs completed (2026-01-18).
 
+## Technology Choices
+
+### Database: SQLite with rusqlite
+- **Crate**: `rusqlite` with `bundled` feature (embeds SQLite)
+- **Mode**: WAL (Write-Ahead Logging) for better concurrency
+- **FTS**: FTS5 with porter tokenizer for English stemming
+
+### Logging: tracing ecosystem ✅ IMPLEMENTED
+- **Crates**: `tracing`, `tracing-subscriber` with `env-filter` and `json` features
+- **Output**: Compact format by default, JSON via `--log-json`
+- **CLI flags**: `--verbose`, `--log-level`, `--log-json`
+- **Env var**: `QIPU_LOG` override
+- **Init**: `src/lib/logging.rs`
+
+Current instrumentation:
+- `src/main.rs` - parse timing
+- `src/commands/dispatch.rs` - command timing
+- `src/commands/load/mod.rs` - load operations
+- `src/commands/search.rs` - search method selection
+- `src/lib/index/search.rs` - search method selection
+- `src/lib/index/links.rs` - regex warnings
+- `src/lib/db/mod.rs` - parse failures
+- `src/lib/store/query.rs` - parse failures
+
+**Remaining instrumentation (low priority):**
+- Add spans to `Store::open()`, `Database::rebuild()`
+- Add timing spans to graph traversal operations
+- Add structured context to error chains
+
 ## P1: SQLite Migration & Ripgrep Removal (PRIORITY)
 
 Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep. Ripgrep must be removed.
 
-### Phase 1: Add SQLite Foundation
+### Phase 1: Add SQLite Foundation ✅ COMPLETE
 - [x] Add `rusqlite` dependency with bundled SQLite to `Cargo.toml`
-- [x] Create database schema in `src/lib/db/schema.rs` (notes, notes_fts, tags, edges, unresolved, index_meta)
+- [x] Create database schema in `src/lib/db/schema.rs`
 - [x] Implement `Database` struct with open/create/rebuild in `src/lib/db/mod.rs`
-- [x] Implement FTS5 with porter tokenizer and BM25 ranking (title 2.0x, tags 1.5x, body 1.0x)
+- [x] Implement FTS5 with porter tokenizer and BM25 ranking
 - [x] Add database path at `.qipu/qipu.db`
 
-### Phase 2: Inline Updates
+#### Schema (Implemented)
+```sql
+CREATE TABLE notes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    path TEXT NOT NULL UNIQUE,
+    created TEXT,
+    updated TEXT,
+    body TEXT,
+    mtime INTEGER
+);
+
+CREATE VIRTUAL TABLE notes_fts USING fts5(
+    title, body, tags,
+    content=notes, content_rowid=rowid,
+    tokenize='porter unicode61'
+);
+
+CREATE TABLE tags (
+    note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (note_id, tag)
+);
+
+CREATE TABLE edges (
+    source_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    link_type TEXT,
+    inline INTEGER DEFAULT 0,
+    PRIMARY KEY (source_id, target_id, link_type)
+);
+
+CREATE TABLE unresolved (
+    source_id TEXT NOT NULL,
+    target_ref TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_ref)
+);
+
+CREATE TABLE index_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+```
+
+#### Key SQL Patterns
+```sql
+-- FTS search with BM25 ranking (title 2.0x, body 1.0x, tags 1.5x)
+SELECT n.id, n.title, bm25(notes_fts, 2.0, 1.0, 1.5) AS rank
+FROM notes_fts JOIN notes n ON notes_fts.rowid = n.rowid
+WHERE notes_fts MATCH ? ORDER BY rank LIMIT ?;
+
+-- Backlinks
+SELECT source_id, link_type, inline FROM edges WHERE target_id = ?;
+
+-- Graph traversal (recursive CTE)
+WITH RECURSIVE reachable(id, depth) AS (
+    SELECT ?, 0
+    UNION
+    SELECT e.target_id, r.depth + 1
+    FROM reachable r JOIN edges e ON e.source_id = r.id
+    WHERE r.depth < ?
+) SELECT DISTINCT id FROM reachable;
+```
+
+### Phase 2: Inline Updates (CURRENT)
 - [x] Update `Store` to hold `Database` instance
-  - Added `db: Database` field to Store struct
-  - Updated all Store constructors (`open`, `open_unchecked`, `init_at`) to initialize Database
-  - Added `pub fn db(&self) -> &Database` accessor method
-  - Changed `Database::rebuild(&self, store: &Store)` to `Database::rebuild(&self, store_root: &Path)` to avoid circular dependency
-  - Refs: Store struct `src/lib/store/mod.rs:28-35`, db accessor `src/lib/store/mod.rs:237-239`, rebuild signature `src/lib/db/mod.rs:53`
 - [x] Modify `create_note` to write file + insert into DB atomically
-  - Added `Database::insert_note()` public method to insert note, FTS index, and tags
-  - Added `Database::insert_edges()` public method to insert edges (links) and unresolved refs
-  - Modified `Store::create_note()` to call both methods after writing file
-  - Modified `Store::create_note_with_content()` to call both methods after writing file
-  - Refs: insert_note `src/lib/db/mod.rs:106-168`, insert_edges `src/lib/db/mod.rs:170-233`, create_note `src/lib/store/lifecycle.rs:56-63`
 - [x] Modify `update_note` (edit) to update file + re-index in DB
-  - Modified `Store::save_note()` to call `db.insert_note()` and `db.insert_edges()` after writing file
-  - Database methods use `INSERT OR REPLACE`, so they handle both insert and update
-  - Refs: save_note `src/lib/store/lifecycle.rs:144-178`
-- [ ] Modify `delete_note` to remove file + remove from DB
-- [ ] Modify `link add/remove` to update file + update edges table
+
+**Remaining Phase 2 tasks:**
+
+#### 2.1: Implement `Database::delete_note()`
+File: `src/lib/db/mod.rs`
+
+Add method to remove note from all tables:
+```rust
+pub fn delete_note(&self, note_id: &str) -> Result<()> {
+    // Delete from edges (both source and target references)
+    self.conn.execute("DELETE FROM edges WHERE source_id = ?1 OR target_id = ?1", params![note_id])?;
+    // Delete from unresolved
+    self.conn.execute("DELETE FROM unresolved WHERE source_id = ?1", params![note_id])?;
+    // Delete from tags
+    self.conn.execute("DELETE FROM tags WHERE note_id = ?1", params![note_id])?;
+    // Delete from notes (CASCADE should handle FTS via content=notes)
+    self.conn.execute("DELETE FROM notes WHERE id = ?1", params![note_id])?;
+    // Manually delete from FTS since we use external content table
+    self.conn.execute("DELETE FROM notes_fts WHERE rowid = (SELECT rowid FROM notes WHERE id = ?1)", params![note_id])?;
+    Ok(())
+}
+```
+
+#### 2.2: Add `Store::delete_note()` method
+File: `src/lib/store/lifecycle.rs`
+
+Add method that removes file and updates DB:
+```rust
+pub fn delete_note(&self, note_id: &str) -> Result<()> {
+    let note = self.get_note(note_id)?;
+    let path = note.path.as_ref()
+        .ok_or_else(|| QipuError::Other("note has no path".to_string()))?;
+    
+    // Delete file first
+    std::fs::remove_file(path)?;
+    
+    // Then remove from database
+    self.db.delete_note(note_id)?;
+    
+    Ok(())
+}
+```
+
+#### 2.3: Wire up `link add/remove` to update DB
+Files: `src/commands/link/add.rs`, `src/commands/link/remove.rs`
+
+Both already call `store.save_note()` which now updates the DB via `insert_note()` and `insert_edges()`. The current implementation already works because:
+- `save_note()` calls `db.insert_note()` and `db.insert_edges()` (src/lib/store/lifecycle.rs:169-170)
+- `insert_edges()` uses `INSERT OR REPLACE` so it handles both add and remove
+
+**Verify with test**: Create test that adds a link, verifies it appears in edges table, removes it, verifies it's gone.
 
 ### Phase 3: Migrate Queries to SQLite
-- [ ] Migrate `search` command to use FTS5 (replace `search_with_ripgrep` and `search_embedded`)
-- [ ] Migrate `list` command filters to use SQLite metadata queries
-- [ ] Migrate backlinks lookup to use edges table
-- [ ] Migrate graph traversal (`link tree/path`) to use recursive CTE
-- [ ] Migrate `doctor` checks to use SQLite validation queries
-- [ ] Migrate `context` note selection to use SQLite
+
+#### 3.1: Migrate `search` command to FTS5
+File: `src/commands/search.rs`
+
+Current state: Uses `Index` struct loaded from `.cache/` + ripgrep fallback (lines 31-40)
+
+Change to:
+```rust
+pub fn execute(...) -> Result<()> {
+    // Use SQLite FTS5 search instead of Index/ripgrep
+    let results = store.db().search(query, type_filter, tag_filter, 200)?;
+    
+    // Rest of compaction logic stays the same
+    ...
+}
+```
+
+The `Database::search()` method already exists (src/lib/db/mod.rs:237-305) and returns `Vec<SearchResult>`.
+
+**Migration steps:**
+1. Remove `Index::load()` and `IndexBuilder::new(store).build()` calls
+2. Replace `search(store, &index, query, type_filter, tag_filter)` with `store.db().search(...)`
+3. Update any code that references `index.metadata` or `index.get_metadata()` to use DB queries
+
+#### 3.2: Add `Database::list_notes()` for metadata queries
+File: `src/lib/db/mod.rs`
+
+Add method for `list` command filters:
+```rust
+pub fn list_notes(
+    &self,
+    type_filter: Option<NoteType>,
+    tag_filter: Option<&str>,
+    since: Option<chrono::DateTime<Utc>>,
+) -> Result<Vec<NoteMetadata>> {
+    let mut sql = String::from("SELECT n.id, n.title, n.type, n.path, n.created, n.updated FROM notes n");
+    // Build WHERE clauses based on filters
+    // JOIN tags if tag_filter is set
+    ...
+}
+```
+
+#### 3.3: Add `Database::get_backlinks()` for backlink lookup
+File: `src/lib/db/mod.rs`
+
+```rust
+pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<Edge>> {
+    let mut stmt = self.conn.prepare(
+        "SELECT source_id, link_type, inline FROM edges WHERE target_id = ?1"
+    )?;
+    ...
+}
+```
+
+Used by: `qipu show --links`, `qipu link list`
+
+#### 3.4: Add `Database::traverse()` for graph traversal
+File: `src/lib/db/mod.rs`
+
+```rust
+pub fn traverse(
+    &self,
+    start_id: &str,
+    direction: TraversalDirection,
+    max_hops: u32,
+    max_nodes: Option<usize>,
+) -> Result<Vec<String>> {
+    // Use recursive CTE per spec (specs/operational-database.md:137-148)
+    let sql = match direction {
+        TraversalDirection::Out => "WITH RECURSIVE reachable(id, depth) AS (...) SELECT DISTINCT id FROM reachable",
+        TraversalDirection::In => "...",
+        TraversalDirection::Both => "...",
+    };
+    ...
+}
+```
+
+Used by: `qipu link tree`, `qipu link path`, `qipu context --moc`
+
+#### 3.5: Migrate `doctor` checks to SQLite
+File: `src/commands/doctor/checks.rs`
+
+Replace file-scanning checks with DB queries:
+- Orphaned notes: `SELECT id FROM notes WHERE id NOT IN (SELECT target_id FROM edges)`
+- Broken links: Use `unresolved` table
+- Duplicate IDs: `SELECT id, COUNT(*) FROM notes GROUP BY id HAVING COUNT(*) > 1`
+
+#### 3.6: Migrate `context` note selection to SQLite
+File: `src/commands/context/select.rs`
+
+Replace `store.list_notes()` + in-memory filtering with DB queries.
 
 ### Phase 4: Remove Legacy Components
-- [ ] Delete ripgrep integration:
-  - [ ] Remove `RipgrepMatch`, `RipgrepBeginData`, `RipgrepEndData`, `RipgrepMatchData`, `RipgrepText` structs from `src/lib/index/search.rs`
-  - [ ] Remove `is_ripgrep_available()` function
-  - [ ] Remove `search_with_ripgrep()` function
-  - [ ] Remove ripgrep fallback logic from `search()` function
-- [ ] Delete JSON cache code:
-  - [ ] Remove `.cache/` directory creation and all JSON index file code
-  - [ ] Remove `Index` struct JSON serialization
-  - [ ] Delete `src/lib/index/builder.rs` JSON cache building
-- [ ] Update `index --rebuild` to only rebuild SQLite
-- [ ] Add migration: detect `.cache/`, rebuild DB, delete `.cache/`
-- [ ] Update tests that reference ripgrep (e.g., `test_search_title_only_match_included_with_ripgrep_results`)
+
+#### 4.1: Delete ripgrep integration
+File: `src/lib/index/search.rs`
+
+Delete entirely:
+- Lines 13-48: `RipgrepMatch`, `RipgrepBeginData`, `RipgrepEndData`, `RipgrepMatchData`, `RipgrepText` structs
+- Lines 80-87: `is_ripgrep_available()` function
+- Lines 101-301: `search_with_ripgrep()` function
+- Lines 303-429: `search_embedded()` function (replaced by DB search)
+- Lines 431-450: `search()` function wrapper
+
+After removal, `src/lib/index/search.rs` should only contain utility functions if any are still needed, or can be deleted entirely.
+
+#### 4.2: Delete JSON cache code
+Files to modify:
+- `src/lib/index/mod.rs` - Remove `Index::load()`, `Index::save()`
+- `src/lib/index/builder.rs` - Delete file entirely or gut JSON-building logic
+- `src/lib/index/types.rs` - Keep `SearchResult`, `Edge`, `NoteMetadata`; remove JSON-specific fields
+
+Delete:
+- Any code creating `.cache/` directory
+- `Index` struct JSON serialization (serde derives if only for caching)
+
+#### 4.3: Update `index --rebuild` command
+File: `src/commands/index.rs`
+
+Change from:
+```rust
+IndexBuilder::new(store).build()?.save(&cache_dir)?;
+```
+
+To:
+```rust
+store.db().rebuild(store.root())?;
+```
+
+#### 4.4: Add migration from `.cache/`
+File: `src/lib/store/mod.rs` or `src/lib/db/mod.rs`
+
+On startup (in `Store::open` or `Database::open`):
+```rust
+let cache_dir = store_root.join(".cache");
+if cache_dir.exists() {
+    tracing::info!("Migrating from JSON cache to SQLite...");
+    // DB rebuild happens automatically when qipu.db doesn't exist
+    // After successful rebuild, delete .cache/
+    std::fs::remove_dir_all(&cache_dir)?;
+    tracing::info!("Migration complete, deleted .cache/");
+}
+```
+
+#### 4.5: Update tests referencing ripgrep
+File: `tests/cli/search.rs`
+
+Test `test_search_title_only_match_included_with_ripgrep_results` will need renaming/updating since ripgrep no longer exists. The test validates title-only matches work - keep the test but update name/comments.
 
 ### Phase 5: Startup Validation
-- [ ] On startup: check if `qipu.db` exists, trigger full rebuild if missing
-- [ ] Quick consistency check: compare note count in DB vs filesystem, sample mtimes
-- [ ] Incremental repair when external changes detected
-- [ ] Handle schema version mismatch with auto-rebuild
 
-Refs: spec `specs/operational-database.md`, current ripgrep code `src/lib/index/search.rs:13-48,80-301`
+#### 5.1: Check if `qipu.db` exists on startup
+File: `src/lib/db/mod.rs` in `Database::open()`
 
-## P1-LEGACY: Correctness Bugs (COMPLETED)
+Already partially implemented - schema is created if missing. Need to add:
+```rust
+// Check if tables are empty (fresh DB vs existing)
+let note_count: i64 = conn.query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))?;
+if note_count == 0 && store_has_notes(store_root) {
+    // DB is empty but store has notes - trigger rebuild
+    let db = Database { conn };
+    db.rebuild(store_root)?;
+}
+```
 
-### `specs/export.md`
-- [x] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
-  - Fixed: added `rewrite_attachment_links()` to transform `../attachments/` to `./attachments/` in output content
-- [x] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
-  - Fixed: JSON export now emits `sources` array with extracted bibliography entries instead of `notes` array
+#### 5.2: Quick consistency check
+File: `src/lib/db/mod.rs`
 
-### `specs/compaction.md`
-- [x] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit
-  - Fixed: JSON now includes `compacted_ids_truncated: true` when truncation occurs (`src/commands/list.rs:97-103`)
-- [x] `--expand-compaction` drops truncation reporting entirely (expanded set can be silently truncated)
-  - Fixed: JSON now includes `compacted_ids_truncated: true` and `compacted_notes_truncated: true` when truncation occurs (`src/commands/context/output.rs:128-186`)
-- [x] `compact guide` claims `report/suggest` are "coming soon" even though both exist
-  - Fixed: removed "(coming soon)" from guide output
+Add method:
+```rust
+pub fn validate_consistency(&self, store_root: &Path) -> Result<bool> {
+    // Count notes in DB
+    let db_count: i64 = self.conn.query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))?;
+    
+    // Count files on filesystem
+    let fs_count = count_note_files(store_root)?;
+    
+    if db_count != fs_count {
+        return Ok(false);
+    }
+    
+    // Sample a few mtimes
+    let mut stmt = self.conn.prepare("SELECT path, mtime FROM notes ORDER BY RANDOM() LIMIT 5")?;
+    // Compare against actual file mtimes
+    ...
+    
+    Ok(true)
+}
+```
 
-### `specs/pack.md`
-- [x] `load --strategy merge-links` does not match spec semantics (content preservation + links union)
-  - Fixed: Now returns loaded IDs from `load_notes` and uses that set in `load_links` to ensure pack links are added to merged notes
-  - Refs: empty links `src/commands/load/mod.rs:198`, note body set from pack `src/commands/load/mod.rs:211-213`, merge branch `src/commands/load/mod.rs:249-276`
- - [x] Dump `--typed-only` / `--inline-only` filtering is inverted
-   - Fixed: Corrected filter conditions to skip non-inline links when `--inline-only` is set, and skip inline links when `--typed-only` is set
-   - Refs: `src/commands/dump/mod.rs:236-241`
- - [x] Dump traversal expansion ignores type/source filters (`--type`, `--typed-only`, `--inline-only`)
-    - Fixed: Added filter checks in `perform_simple_traversal` to respect type_include, typed_only, and inline_only options when deciding which edges to follow during traversal
-    - Refs: traversal filtering `src/commands/dump/mod.rs:289-301`
- - [x] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not "actually loaded" set)
-   - Fixed: With skip strategy, don't process any links at all. This ensures that skipped notes are never mutated - even loaded notes cannot add links to skipped notes, preventing unintended modifications.
-   - Refs: skip strategy skip link processing `src/commands/load/mod.rs:88-99`
- - [x] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
-   - Fixed: Removed format-based encoding selection; dump now always uses records format per spec
-   - Refs: encoding removed `src/commands/dump/mod.rs:52-62`
+#### 5.3: Incremental repair
+File: `src/lib/db/mod.rs`
 
-### `specs/workspaces.md`
-- [x] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
-  - Fixed: dry_run now produces detailed report showing notes to add, conflicts, and actions based on strategy; success message only shown when not dry_run
-  - Refs: dry_run report `src/commands/workspace/merge.rs:39-80`
-  - [x] `merge-links` strategy also unions tags (spec describes link-only merge)
-     - Fixed: Removed tag unioning logic, now only unions links as specified
-     - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
-  - [x] `workspace new --empty` flag is accepted but ignored
-     - Fixed: Changed `_empty` to `empty` and added check to skip all copy operations when `empty` is true
-     - Refs: empty flag check `src/commands/workspace/new.rs:51-74`
- - [x] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
-      - Fixed: Now removes existing note file before overwriting when using overwrite strategy
-      - Refs: file removal before overwrite `src/commands/workspace/merge.rs:54-58`
- - [x] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
-   - Fixed: Added early validation that rejects unknown strategies with UsageError (exit code 2) and lists valid options
-   - Refs: validation `src/commands/workspace/merge.rs:16-21`, match updated `src/commands/workspace/merge.rs:53-58`
-- [x] Workspace metadata schema differs from spec (`[workspace]` table vs top-level `WorkspaceMetadata`)
-   - Fixed: Added `WorkspaceMetadataFile` wrapper to serialize metadata under `[workspace]` table per spec
-   - Refs: wrapper struct `src/lib/store/workspace.rs:14-15`, load/save updated `src/lib/store/workspace.rs:18-36`
+```rust
+pub fn incremental_repair(&self, store_root: &Path) -> Result<()> {
+    // Find files changed since last sync
+    // Re-parse and update changed entries
+    // Remove entries for deleted files
+    ...
+}
+```
 
-### `specs/structured-logging.md`
-- [x] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)
-  - Fixed: Replaced legacy `VERBOSE` atomic and `verbose_enabled()` with proper `tracing::debug!`, `tracing::warn!` instrumentation
-  - Updated all timing statements in dispatch.rs, search method selection in index/search.rs, regex warnings in index/links.rs, load operation info in commands/load/mod.rs, and parse warnings in store/query.rs
-  - Fixed test expectations: changed from stderr to stdout for verbose output checks
-  - Refs: tracing init `src/lib/logging.rs:14-51`, timing `tracing::debug!` `src/commands/dispatch.rs:22`, search method `tracing::debug!` `src/lib/index/search.rs:425,430`, regex warnings `tracing::warn!` `src/lib/index/links.rs:37,64`
+#### 5.4: Handle schema version mismatch
+File: `src/lib/db/schema.rs`
 
-### `specs/llm-user-validation.md`
-- [x] `llm-tool-test` CLI default tool value is inconsistent with runtime support
-  - Fixed: Changed default from "qipu" to "opencode" to match runtime support
-  - Refs: CLI default `crates/llm-tool-test/src/cli.rs:23`; runtime match `crates/llm-tool-test/src/main.rs:59-63`
-- [x] Rubric YAML fixtures don't match the deserialization shape expected by the judge
-  - Fixed: Converted YAML fixtures from mapping structure to array structure with `id` field
-  - Refs: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml`, `crates/llm-tool-test/fixtures/qipu/rubrics/link_v1.yaml`
-  - [x] Regression detection message/condition appears reversed
-    - Fixed: Corrected condition from `!baseline.gates_passed && current.gates_passed` to `baseline.gates_passed && !current.gates_passed` to properly detect gate regressions (gates that previously passed now failing)
-    - Refs: fixed condition `crates/llm-tool-test/src/results.rs:228`
+Add version tracking:
+```rust
+const SCHEMA_VERSION: i32 = 1;
+
+pub fn create_schema(conn: &Connection) -> Result<()> {
+    // Check existing version
+    let current_version: Option<i32> = conn.query_row(
+        "SELECT value FROM index_meta WHERE key = 'schema_version'",
+        [], |r| r.get(0)
+    ).ok();
+    
+    match current_version {
+        None => { /* Fresh install - create tables */ }
+        Some(v) if v < SCHEMA_VERSION => { /* Migration needed */ }
+        Some(v) if v == SCHEMA_VERSION => { /* Up to date */ }
+        Some(v) => { /* Future version - error or rebuild */ }
+    }
+}
+```
+
+---
 
 ## P2: Missing Test Coverage
 
-### `specs/cli-tool.md`
-- [x] Add tests for `--root` affecting discovery start dir and relative `--store` resolution
-  - Added: `test_root_flag_affects_discovery_start_dir` and `test_relative_store_resolved_against_root` in `tests/cli/misc.rs:144-175`
-  - Tests verify: discovery starts from `--root`, relative `--store` resolved against `--root`
+### Completed
+- [x] `--root` flag tests (specs/cli-tool.md)
+- [x] `link tree/path` type filters and direction tests (specs/graph-traversal.md)
+- [x] Search ranking tests (specs/indexing-search.md)
+- [x] `doctor --duplicates` threshold test (specs/similarity-ranking.md)
+- [x] MOC-driven export order test (specs/export.md)
 
-### `specs/graph-traversal.md`
-- [x] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`
-  - Added: 6 tests for type/exclude filters and typed-only/inline-only
-  - Refs: tree tests `tests/cli/link/tree.rs:5-230`, path tests `tests/cli/link/path.rs:203-490`
-- [x] Add tests for `direction=in` and `direction=both` on `link tree` and `link path`
-  - Added: 4 tests for direction=in and direction=both
-  - Refs: tree direction tests `tests/cli/link/tree.rs:681-766`, path direction tests `tests/cli/link/path.rs:491-577`
+### Remaining
 
-### `specs/indexing-search.md`
-- [x] Add tests asserting ranking rules (title boost > body; tag boost behavior)
-  - Added: `test_search_title_match_ranks_above_body_match` and `test_search_exact_tag_match_ranks_above_body` already existed
-  - Added: `test_search_title_only_match_included_with_ripgrep_results` to ensure title-only matches are found when ripgrep returns other results
-  - Refs: boosts `src/lib/index/search.rs:176-178`
-- [x] Add test that would fail if title-only matches are missed when ripgrep returns results
-  - Added: `test_search_title_only_match_included_with_ripgrep_results` in `tests/cli/search.rs`
-  - Verifies that title-only matches are included even when ripgrep finds body matches (so fallback to embedded search is not triggered)
-  - Refs: ripgrep path `src/lib/index/search.rs:53-110`
+#### `specs/provenance.md`
+- [ ] Add CLI test for `--prompt-hash` via `create` or `capture`
+  - Test: Create note with `--prompt-hash`, verify it appears in frontmatter
+  - File: `tests/cli/capture.rs`
 
-### `specs/similarity-ranking.md`
-- [x] Add CLI/integration test for `qipu doctor --duplicates` with threshold behavior
-   - Added: `test_doctor_duplicates_threshold` in `tests/cli/doctor.rs:246-306`
-   - Tests verify: `--duplicates` flag works, `--threshold` affects output, different thresholds (0.5, 0.99, default 0.85) detect duplicates appropriately
-   - Refs: CLI flags `src/cli/commands.rs:173-186`, doctor path `src/commands/doctor/checks.rs:261-280`
+#### `specs/export.md`
+- [ ] Add test validating anchor rewriting produces existing target anchor
+  - Test: Export bundle with internal links, verify `#note-<id>` anchors exist
+  - File: `tests/cli/export.rs`
+- [ ] Add test validating `--with-attachments` link rewriting
+  - Test: Export with attachments, verify `./attachments/` links resolve
+  - File: `tests/cli/export.rs`
 
-### `specs/provenance.md`
-- [ ] Add CLI test for `--prompt-hash` via `create` or `capture` (not just pack roundtrip)
-  - Flags exist: `src/cli/args.rs:22-40`; test coverage currently relies on pack tests.
+#### `specs/compaction.md`
+- [ ] Add CLI tests for `compact apply`, `compact show`, `compact status`
+  - File: `tests/cli/compact.rs`
 
-### `specs/export.md`
-- [x] Add test that verifies MOC-driven bundle export respects MOC ordering (currently likely fails)
-  - Fixed: Added `test_export_bundle_preserves_moc_order` in `tests/cli/export.rs:204-248`
-  - Verified: MOC ordering is correctly preserved in bundle mode (sorting is skipped when `moc_id` is set)
-  - Refs: global sort `src/commands/export/mod.rs:101-105`, test `tests/cli/export.rs:204-248`
-- [ ] Add test validating anchor rewriting produces a target anchor that exists in output
-  - Refs: rewrite `src/commands/export/emit/links.rs:56-96`
-- [ ] Add test validating `--with-attachments` produces rewritten attachment links that resolve in the export folder
-  - Refs: copy logic `src/commands/export/mod.rs:161-242`
+#### `specs/structured-logging.md`
+- [ ] Add tests for `--log-level`, `--log-json`, `QIPU_LOG` behavior
+  - Test: Verify `--log-json` produces JSON output, `--log-level debug` shows debug messages
+  - Test: Verify `QIPU_LOG=trace` overrides CLI flags
+  - File: `tests/cli/logging.rs` (new)
 
-### `specs/compaction.md`
-- [ ] Add tests for `compact apply`, `compact show`, `compact status` (CLI-level)
-  - Implementations exist but are not directly exercised: `src/commands/compact/apply.rs`, `src/commands/compact/show.rs`, `src/commands/compact/status.rs`
+#### `specs/llm-context.md`
+- [ ] Add test for `--max-chars` / `--max-tokens` budget enforcement
+  - File: `tests/cli/context.rs`
+- [ ] Add test for `--transitive` nested MOC traversal
+  - File: `tests/cli/context.rs`
+- [ ] Add test for records safety banner (`W ...` line)
+  - File: `tests/cli/context.rs`
 
-### `specs/structured-logging.md`
-- [ ] Add tests verifying `--log-level` / `--log-json` / `QIPU_LOG` behavior (currently only help text is covered)
-  - Refs: init `src/lib/logging.rs:31-40`, flags `src/cli/mod.rs:50-57`, golden `tests/golden/help.txt:41-44`
+#### `specs/pack.md`
+- [ ] Add tests for dump traversal filters affecting reachability
+  - File: `tests/cli/dump.rs`
 
-### `specs/llm-context.md`
-- [ ] Add test with large bodies in human/JSON to catch `--max-chars` / `--max-tokens` budget violations (summary-estimate vs full-body output)
-  - Refs: estimate `src/commands/context/budget.rs:97-103`, output `src/commands/context/output.rs:208-213`
-- [ ] Add tests for `context --transitive` (nested MOC traversal)
-  - Refs: traversal `src/commands/context/select.rs:22-28`
-- [ ] Add test for records safety banner line (`W ...`) under `--format records --safety-banner`
-  - Refs: records banner `src/commands/context/output.rs:436-443`
-
-### `specs/pack.md`
-- [ ] Add tests for dump traversal filters (`--type`, `--typed-only`, `--inline-only`) and verify they affect reachability, not just included edges
-  - Refs: traversal ignores options `src/commands/dump/mod.rs:81-112`
-
-
+---
 
 ## P3: Unimplemented Optional / Future
 
 ### `specs/similarity-ranking.md`
-- [ ] Optional stemming (Porter) is not implemented
-  - Refs: no stemming code in `src/`
-- [ ] "Related notes" similarity expansion (threshold > 0.3) is described but not implemented as a CLI/context feature
-  - Similarity API exists but is unused by `context`.
-  - Refs: similarity API `src/lib/similarity/mod.rs:49-75`, context selection `src/commands/context/mod.rs:72-109`
+- [ ] Optional stemming (Porter) - no stemming code exists
+- [ ] "Related notes" similarity expansion in `context` command
 
 ### `specs/llm-context.md`
-- [ ] Backlinks-in-context is described as open/future; not implemented
-  - Refs: context options have no backlinks flag `src/commands/context/types.rs:4-15`
+- [ ] Backlinks-in-context (described as future)
 
 ### `specs/semantic-graph.md`
-- [ ] Weighted traversal / per-edge hop costs are not implemented (if still desired)
-  - Refs: traversal is unweighted BFS `src/lib/graph/traversal.rs:87-90`
+- [ ] Weighted traversal / per-edge hop costs
 
-## P4: Spec Ambiguity / Spec Drift (Needs Clarification Before Implementation)
+---
+
+## P4: Spec Ambiguity / Spec Drift
 
 ### `specs/knowledge-model.md`
-- [ ] Decide whether note "type" should remain a closed enum or allow arbitrary values (spec marks as open question)
-  - Refs: strict enum `src/lib/note/types.rs:6-19`, parsing `src/lib/note/types.rs:27-42`
+- [ ] Decide: note "type" closed enum vs arbitrary values
+  - Current: strict enum (src/lib/note/types.rs:6-19)
 
 ### `specs/semantic-graph.md`
-- [ ] Align custom link-type config schema (spec uses `[graph.types.*]`; impl uses `[links.inverses]` + `[links.descriptions]`)
-  - Refs: config `src/lib/config.rs:40-69`, spec mismatch noted in semantic-graph audit
+- [ ] Align link-type config schema
+  - Spec: `[graph.types.*]`
+  - Impl: `[links.inverses]` + `[links.descriptions]`
 
 ### `specs/records-output.md`
-- [ ] Reconcile record prefix set and terminators (spec suggests `H/N/S/E/B`; impl also emits `W/D/C/M` and `B-END`)
-  - Refs: context records `src/commands/context/output.rs:436-443` (`W`), `src/commands/context/output.rs:344-354` (`D source`), `src/commands/context/output.rs:361-362` (`B-END`); prime records `src/commands/prime.rs:201-219` (`C/M`)
+- [ ] Reconcile record prefix set (`H/N/S/E/B` vs `W/D/C/M`, `B-END`)
 
 ### `specs/graph-traversal.md` + `specs/semantic-graph.md`
-- [ ] Clarify whether semantic inversion is part of traversal semantics (virtual edges) or only a presentation-layer feature
-  - Refs: global flag `src/cli/mod.rs:82-85`, inversion `src/lib/index/types.rs:43-54`
+- [ ] Clarify: semantic inversion in traversal vs presentation-only
 
 ### `specs/export.md`
-- [ ] Clarify expected behavior for anchor rewriting (explicit anchors vs relying on Markdown renderer heading IDs)
-  - Refs: rewrite targets `#note-<id>` `src/commands/export/emit/links.rs:16-18`
+- [ ] Clarify anchor rewriting behavior (explicit vs heading IDs)
+
+---
 
 ## Closed Design Decisions (Specs Updated)
 
 ### `specs/storage-format.md`
-- [x] MOCs use separate `mocs/` directory (not inside `notes/` with type flag)
-  - Provides clear filesystem separation, simpler glob patterns
-  - Refs: `src/lib/store/mod.rs:140-141,211-213`
-- [x] Note paths are flat (no date partitioning like `notes/2026/01/...`)
-  - Keeps paths stable, simplifies resolution; SQLite handles large stores
-  - Refs: `src/lib/store/mod.rs:207-208`
+- [x] MOCs use separate `mocs/` directory
+- [x] Note paths are flat (no date partitioning)
 
 ### `specs/graph-traversal.md`
-- [x] Default `--max-hops` is 3 (not 2); no default `--max-nodes`
-  - Surfaces 2-hop neighborhoods; users reduce with `--max-chars` for LLM context
-  - Refs: `src/lib/graph/types.rs:64`
-
+- [x] Default `--max-hops` is 3; no default `--max-nodes`

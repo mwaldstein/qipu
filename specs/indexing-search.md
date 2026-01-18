@@ -10,18 +10,14 @@ This spec describes how qipu makes a note store navigable:
 This is *only* for the qipu knowledge store. It is not intended to replace repo-wide grep.
 
 ## Indexes (derived data)
-Qipu should be able to build these derived views:
+Qipu builds these derived views:
 
 1. **Metadata index**: `id -> {title,type,tags,path,created,updated}`
 2. **Tag index**: `tag -> [ids…]`
 3. **Backlink index**: `id -> [ids that link to it…]`
 4. **Graph**: adjacency list of links between notes (inline + typed)
 
-Proposed cache locations:
-- `.qipu/.cache/*.json` (portable, tool-friendly)
-- `.qipu/qipu.db` (optional, derived, fast)
-
-This mirrors beads' architecture: git-trackable source data plus a local acceleration layer.
+The index is stored in `.qipu/qipu.db` (derived, gitignored).
 
 ## Incremental indexing
 Indexing should be incremental where practical:
@@ -46,8 +42,7 @@ Link extraction should:
 - Provide type/tag filters.
 - Provide an option to include/exclude MOCs.
 
-Implementation:
-- SQLite FTS5 with BM25 ranking (see `operational-database.md`)
+See `operational-database.md` for search implementation requirements.
 
 ### Result ranking (initial heuristics)
 - Title matches rank above body matches.

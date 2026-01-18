@@ -28,7 +28,7 @@ pub struct Cli {
     pub root: Option<PathBuf>,
 
     /// Explicit store root path
-    #[arg(long, global = true)]
+    #[arg(long, global = true, env = "QIPU_STORE")]
     pub store: Option<PathBuf>,
 
     /// Output format

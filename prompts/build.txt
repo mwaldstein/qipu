@@ -1,20 +1,48 @@
-0a. Study `specs/*` with up to 500 parallel subagents to learn the application specifications.
-0b. Study @IMPLEMENTATION_PLAN.md.
-0c. For reference, the application source code is in `src/*`.
+# Build Task
 
-1. Your task is to implement functionality per the specifications using parallel subagents. Follow @IMPLEMENTATION_PLAN.md and choose the most important item to address. Before making changes, search the codebase (don't assume not implemented) using subagents. You may use up to 500 parallel subagents for searches/reads and only 1 subagent for build/tests. Use subagents when complex reasoning is needed (debugging, architectural decisions).
-2. After implementing functionality or resolving problems, run the tests for that unit of code that was improved. If functionality is missing then it's your job to add it as per the application specifications.
-3. When you discover issues, immediately update @IMPLEMENTATION_PLAN.md with your findings using a subagent. When resolved, update and remove the item.
-4. When the tests pass, update @IMPLEMENTATION_PLAN.md, then `git add -A` then `git commit` with a message describing the changes. After the commit, `git push`.
+Execute exactly ONE atomic change from IMPLEMENTATION_PLAN.md.
 
-99999. Important: When authoring documentation, capture the why — tests and implementation importance.
-999999. Important: Single sources of truth, no migrations/adapters. If tests unrelated to your work fail, resolve them as part of the increment.
-9999999. As soon as there are no build or test errors create a git tag. If there are no git tags start at 0.0.0 and increment patch by 1 for example 0.0.1  if 0.0.0 does not exist.
-99999999. You may add extra logging if required to debug issues.
-999999999. Keep @IMPLEMENTATION_PLAN.md current with learnings using a subagent — future work depends on this to avoid duplicating efforts. Update especially after finishing your turn.
-9999999999. Learn new run command? Update @AGENTS.md via subagent, brief, timeless, no counts, no “current”, no status, no pass/fail, no dates.
-99999999999. For any bugs you notice, resolve them or document them in @IMPLEMENTATION_PLAN.md using a subagent even if it is unrelated to the current piece of work.
-999999999999. Implement functionality completely. Placeholders and stubs waste efforts and time redoing the same work.
-9999999999999. When @IMPLEMENTATION_PLAN.md becomes large periodically clean out the items that are completed from the file using a subagent.
-99999999999999. If you find inconsistencies in the specs/* then use an subagent requested to update the specs.
-999999999999999. IMPORTANT: Keep @AGENTS.md operational only, timeless facts only; status/progress go in `IMPLEMENTATION_PLAN.md`. Bloated AGENTS.md pollutes future context.
+## Phase 1: Assess
+1. Run `cargo test` to check for failures
+2. Read `IMPLEMENTATION_PLAN.md` for current priorities
+
+## Phase 2: Select ONE Task
+
+**If Phase 1 found failures**: Your task is to FIX them. Do not proceed to other work until all tests pass. Investigate, diagnose, and fix the root cause. Only if you've exhausted reasonable attempts (3+ approaches tried) should you document the blocker in IMPLEMENTATION_PLAN.md as a P1 issue and stop.
+
+**If all tests pass**: Choose the **first applicable** item:
+1. **P1** correctness issues (first unfinished sub-item)
+2. **P2** test coverage gaps (first untested area)
+3. **P3** spec-implementation gaps (first unimplemented item)
+
+**Declare your selection**: State the exact task before proceeding (e.g., "TASK: Add capture command tests").
+
+## Phase 3: Implement
+1. Search codebase first—don't assume unimplemented
+2. If spec clarification needed, read relevant `specs/*.md` file
+3. Implement completely—no stubs or placeholders
+4. Run `cargo test` to verify—all tests must pass before proceeding
+
+## Phase 4: Finalize
+1. Update `IMPLEMENTATION_PLAN.md`:
+   - Mark task complete, or note blockers only if fix attempts failed
+   - Add learnings if any
+2. If all tests pass:
+   ```bash
+   git add -A && git commit -m "<type>: <description>"
+   git push
+   ```
+   Commit types: `fix`, `feat`, `test`, `docs`, `refactor`
+3. If `cargo test` shows zero failures AND no P1 items remain:
+   - Get last tag: `git describe --tags --abbrev=0 2>/dev/null || echo "none"`
+   - Create next tag: increment patch (or start at `v0.0.1`)
+
+---
+
+## Rules
+- **One task per run**: Complete one item fully before stopping
+- **No stubs**: Every implementation must be functional
+- **Fix what you break**: If your change causes unrelated test failures, fix them
+- **IMPLEMENTATION_PLAN.md**: Status, progress, blockers, learnings (clean completed items periodically)
+- **AGENTS.md**: Commands only; timeless operational facts
+- **Specs wrong?**: Update `specs/*.md` directly

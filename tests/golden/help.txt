@@ -31,7 +31,7 @@ Options:
       --root <ROOT>
           Base directory for resolving the store
       --store <STORE>
-          Explicit store root path
+          Explicit store root path [env: QIPU_STORE=]
       --format <FORMAT>
           Output format [default: human] [possible values: human, json, records]
   -q, --quiet

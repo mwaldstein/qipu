@@ -107,7 +107,7 @@ mod tests {
         let initial_tags = vec!["alpha".to_string()];
 
         let mut note = store
-            .create_note("Tagged Note", None, &initial_tags)
+            .create_note("Tagged Note", None, &initial_tags, None)
             .unwrap();
 
         let index = IndexBuilder::new(&store).build().unwrap();

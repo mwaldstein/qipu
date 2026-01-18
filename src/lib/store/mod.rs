@@ -565,7 +565,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
-        let note = store.create_note("Test Note", None, &[]).unwrap();
+        let note = store.create_note("Test Note", None, &[], None).unwrap();
         assert!(note.id().starts_with("qp-"));
         assert_eq!(note.title(), "Test Note");
         assert!(note.path.is_some());
@@ -577,8 +577,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
-        store.create_note("Note 1", None, &[]).unwrap();
-        store.create_note("Note 2", None, &[]).unwrap();
+        store.create_note("Note 1", None, &[], None).unwrap();
+        store.create_note("Note 2", None, &[], None).unwrap();
 
         let notes = store.list_notes().unwrap();
         assert_eq!(notes.len(), 2);
@@ -599,7 +599,7 @@ mod tests {
         assert_eq!(store.config().default_note_type, NoteType::Fleeting);
         assert_eq!(store.config().id_scheme, IdScheme::Hash);
 
-        let note = store.create_note("Test Note", None, &[]).unwrap();
+        let note = store.create_note("Test Note", None, &[], None).unwrap();
         assert!(note.id().starts_with("qp-"));
 
         assert!(store.templates_dir().join("fleeting.md").exists());

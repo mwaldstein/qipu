@@ -269,6 +269,9 @@ fn test_load_strategy_overwrite() {
     let store2_path = dir2.path();
     let pack_file = dir1.path().join("test.pack.json");
 
+    // Use a fixed ID for the test
+    let note_id = "qp-test-overwrite";
+
     // 1. Initialize store 1 and create a note with tag "original"
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("init")
@@ -276,25 +279,13 @@ fn test_load_strategy_overwrite() {
         .assert()
         .success();
 
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note_id = list[0]["id"].as_str().unwrap().to_string();
-
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
         .arg("Note A")
         .arg("--tag")
         .arg("original")
         .arg("--id")
-        .arg(&note_id)
+        .arg(note_id)
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -323,7 +314,7 @@ fn test_load_strategy_overwrite() {
         .arg("--tag")
         .arg("modified")
         .arg("--id")
-        .arg(&note_id)
+        .arg(note_id)
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
@@ -342,7 +333,7 @@ fn test_load_strategy_overwrite() {
     let output = Command::cargo_bin("qipu")
         .unwrap()
         .arg("show")
-        .arg(&note_id)
+        .arg(note_id)
         .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
@@ -358,6 +349,14 @@ fn test_load_strategy_merge_links() {
     let store2_path = dir2.path();
     let pack_file = dir1.path().join("test.pack.json");
 
+    // Use unique IDs with timestamp to avoid any parallel test interference
+    let unique_suffix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let target_id = format!("qp-{}", unique_suffix);
+    let linked_id = format!("qp-{}", unique_suffix + 1);
+
     // 1. Initialize store 1 and create a note with links
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("init")
@@ -369,7 +368,7 @@ fn test_load_strategy_merge_links() {
     cmd.arg("create")
         .arg("Target Note")
         .arg("--id")
-        .arg("qp-test-target")
+        .arg(&target_id)
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -378,7 +377,7 @@ fn test_load_strategy_merge_links() {
     cmd.arg("create")
         .arg("Linked Note")
         .arg("--id")
-        .arg("qp-test-linked")
+        .arg(&linked_id)
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -386,8 +385,8 @@ fn test_load_strategy_merge_links() {
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("link")
         .arg("add")
-        .arg("qp-test-target")
-        .arg("qp-test-linked")
+        .arg(&target_id)
+        .arg(&linked_id)
         .arg("--type")
         .arg("related")
         .env("QIPU_STORE", store1_path)
@@ -412,23 +411,12 @@ fn test_load_strategy_merge_links() {
         .assert()
         .success();
 
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note_id = list[0]["id"].as_str().unwrap().to_string();
-
+    // Create target note in store2 with same ID as in store1
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
         .arg("Target Note")
         .arg("--id")
-        .arg(&note_id)
+        .arg(&target_id)
         .arg("--tag")
         .arg("store2")
         .env("QIPU_STORE", store2_path)
@@ -449,13 +437,13 @@ fn test_load_strategy_merge_links() {
     let output = Command::cargo_bin("qipu")
         .unwrap()
         .arg("show")
-        .arg("qp-test-target")
+        .arg(&target_id)
         .arg("--links")
         .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
 
     assert!(
-        predicate::str::contains("qp-test-linked").eval(&String::from_utf8_lossy(&output.stdout))
+        predicate::str::contains(linked_id.as_str()).eval(&String::from_utf8_lossy(&output.stdout))
     );
 }

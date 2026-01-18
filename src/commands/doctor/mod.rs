@@ -105,7 +105,7 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         // Create a valid note
-        store.create_note("Test Note", None, &[]).unwrap();
+        store.create_note("Test Note", None, &[], None).unwrap();
 
         let mut result = DoctorResult::new();
         checks::check_store_structure(&store, &mut result);

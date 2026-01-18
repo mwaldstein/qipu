@@ -34,9 +34,14 @@
   - Fixed: `search_with_ripgrep()` now scans index metadata for title/tag matches in addition to ripgrep file-content matches, ensuring notes with query terms only in title/tags are included
   - Changed `src/lib/index/search.rs:125-197`: builds candidate set from both ripgrep results and index metadata title/tag matches, then scores all candidates
   - Added test: `tests/cli/search.rs:test_search_title_only_match` verifies title-only matches are found
-- [ ] Recency boost is specified but not present in ranking
-  - Refs: ranking is pure BM25 + field boosts: `src/lib/index/search.rs:176-178`, `src/lib/index/search.rs:312-318`
-- [ ] “Exact tag match should rank above plain text match” is not implemented (tags are BM25-scored text)
+- [x] Recency boost is specified but not present in ranking
+  - Fixed: added recency boost to search ranking based on `updated` timestamp
+  - Added function `calculate_recency_boost()` that applies exponential decay: 0.5 boost for notes updated within 7 days, 0.25 for 30 days, 0.1 for 90 days, 0.0 for older notes
+  - Changed `src/lib/index/search.rs:14-60`: added recency boost calculation function
+  - Changed `src/lib/index/search.rs:228-230`: apply recency boost in ripgrep search path
+  - Changed `src/lib/index/search.rs:365-367`: apply recency boost in embedded search path
+  - Added test: `tests/cli/search.rs:test_search_recency_boost` verifies recently updated notes rank higher
+- [ ] "Exact tag match should rank above plain text match" is not implemented (tags are BM25-scored text)
   - Refs: tags scored as `meta.tags.join(" ")`: `src/lib/index/search.rs:65-66`, `src/lib/index/search.rs:168-169`
 
 ### `specs/storage-format.md`

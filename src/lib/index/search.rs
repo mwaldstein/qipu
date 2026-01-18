@@ -4,6 +4,7 @@ use crate::lib::logging;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
 use crate::lib::text::{calculate_bm25, tokenize};
+use chrono::Utc;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -27,6 +28,37 @@ enum RipgrepMatch {
         #[allow(dead_code)]
         absolute_offset: u64,
     },
+}
+
+/// Calculate recency boost based on how recently a note was updated.
+/// Returns a small boost (0.0 to 0.5) that decays exponentially over time.
+/// - Notes updated within 7 days: full boost (0.5)
+/// - Notes updated within 30 days: moderate boost (0.25)
+/// - Notes updated within 90 days: small boost (0.1)
+/// - Notes updated over 90 days ago or without timestamp: no boost (0.0)
+fn calculate_recency_boost(updated: Option<chrono::DateTime<Utc>>) -> f64 {
+    let Some(updated) = updated else {
+        return 0.0;
+    };
+
+    let now = Utc::now();
+    let age_days = (now - updated).num_days();
+
+    if age_days < 0 {
+        // Future date (shouldn't happen, but handle gracefully)
+        return 0.0;
+    }
+
+    // Exponential decay with configurable thresholds
+    if age_days <= 7 {
+        0.5
+    } else if age_days <= 30 {
+        0.25
+    } else if age_days <= 90 {
+        0.1
+    } else {
+        0.0
+    }
 }
 
 /// Check if ripgrep is available on the system
@@ -192,8 +224,10 @@ fn search_with_ripgrep(
             index.doc_lengths.get(&meta.id).copied(),
         );
 
-        // Apply field boosting (Title x2.0, Tags x1.5)
-        let relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        // Apply field boosting (Title x2.0, Tags x1.5) and recency boost
+        let base_relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        let recency_boost = calculate_recency_boost(meta.updated);
+        let relevance = base_relevance + recency_boost;
 
         // Only include results with some relevance
         if relevance > 0.0 {
@@ -315,8 +349,10 @@ fn search_embedded(
             }
         }
 
-        // Apply field boosting (Title x2.0, Tags x1.5)
-        let relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        // Apply field boosting (Title x2.0, Tags x1.5) and recency boost
+        let base_relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        let recency_boost = calculate_recency_boost(meta.updated);
+        let relevance = base_relevance + recency_boost;
 
         if relevance > 0.0 {
             results.push(SearchResult {

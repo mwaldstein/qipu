@@ -40,7 +40,12 @@ Several files have grown overly large and need refactoring to improve maintainab
 
 ### **Medium Priority Production Code:**
 
-4. **`src/lib/compaction.rs` (656 lines)** - Core business logic with multiple responsibilities
+4. **`src/lib/compaction.rs` (656 lines)** ✅ COMPLETE - Refactored into modular structure:
+   - `src/lib/compaction/mod.rs` - Public API and size estimation ✅
+   - `src/lib/compaction/context.rs` - CompactionContext core (122 lines) ✅
+   - `src/lib/compaction/expansion.rs` - Note expansion and metrics (138 lines) ✅
+   - `src/lib/compaction/suggestion.rs` - Graph clustering for suggestions (188 lines) ✅
+   - `src/lib/compaction/validation.rs` - Invariant validation (69 lines) ✅
 5. **`src/cli/mod.rs` (634 lines)** - CLI argument definitions for all commands
 6. **`src/lib/store/mod.rs` (608 lines)** - Mixed store concerns
 7. **`src/commands/export/emit.rs` (601 lines)** - Multiple export formats

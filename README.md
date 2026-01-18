@@ -11,14 +11,14 @@ LLM coding agents (and the humans driving them) are great at searching the curre
 - Preserve external research (docs, blog posts, papers, issue threads) in a durable place
 - Keep intermediate insights discoverable across sessions and across related tasks
 - Avoid repeating the same research on future work
-- Distinguish “useful knowledge” from “committed decisions” (specs) and “planned work” (tickets)
+- Distinguish "useful knowledge" from "committed decisions" (specs) and "planned work" (tickets)
 
 ## Goals
 
 - **Capture quickly**: record research/insights in seconds (stdin, editor, templates).
 - **Structure knowledge**: Zettelkasten-inspired notes, links, tags, and maps of content.
 - **Navigate easily**: list/search notes, follow backlinks, traverse topic maps.
-- **LLM-friendly outputs**: deterministic “context bundles” suitable for prompt injection.
+- **LLM-friendly outputs**: deterministic "context bundles" suitable for prompt injection.
 - **Git-backed**: knowledge should live in the repo as reviewable diffs.
 - **Local/offline-first**: no required network access; no hosted service dependency.
 - **Binary-first distribution**: a single native `qipu` executable (no runtime dependency).
@@ -34,13 +34,13 @@ LLM coding agents (and the humans driving them) are great at searching the curre
 
 ## Target users
 
-- Developers using agentic coding tools (opencode, claudecode) who need durable “project memory”.
+- Developers using agentic coding tools (opencode, claudecode) who need durable "project memory".
 - Teams doing research-heavy work and wanting a lightweight, reviewable knowledge base.
 - Writers authoring white papers/design docs and needing structured research notes.
 
 ## Relationship to beads (task tracking)
 
-Beads focuses on capturing and ordering work (“what to do”) as a git-backed graph of issues. Qipu focuses on capturing and linking knowledge (“what we learned”) as a git-backed graph of notes.
+Beads focuses on capturing and ordering work ("what to do") as a git-backed graph of issues. Qipu focuses on capturing and linking knowledge ("what we learned") as a git-backed graph of notes.
 
 Typical flow:
 

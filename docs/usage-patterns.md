@@ -40,7 +40,7 @@ Goal: keep external research and intermediate insights available throughout a co
 5. When working with an LLM tool, generate a bundle:
    - `qipu context --moc <moc-id> --max-chars 20000`
 
-## Workflow: “insight that isn’t a spec yet”
+## Workflow: "insight that isn't a spec yet"
 Goal: capture ideas before they become commitments.
 
 - Use fleeting notes for early thoughts.
@@ -68,7 +68,7 @@ Goal: structure research so it can be turned into a publishable document.
 ## Bridging to tasks (beads/tickets)
 Qipu is intentionally not a task tracker, but it should support a clean boundary:
 
-- Notes can contain “Next steps” sections.
+- Notes can contain "Next steps" sections.
 - `qipu export` may support a task-extraction format that a task tool can ingest.
 
 ## Anti-patterns
@@ -77,5 +77,5 @@ Qipu is intentionally not a task tracker, but it should support a clean boundary
 - Using deep folder hierarchies as the primary organization mechanism.
 
 ## Open questions
-- Should qipu provide a first-class “promote” command (fleeting -> permanent)?
+- Should qipu provide a first-class "promote" command (fleeting -> permanent)?
 - Should qipu support per-repo and global stores simultaneously?

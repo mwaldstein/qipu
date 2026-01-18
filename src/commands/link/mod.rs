@@ -45,7 +45,12 @@ pub struct LinkEntry {
 pub fn resolve_note_id(store: &Store, id_or_path: &str) -> Result<String> {
     // If it looks like an ID (starts with qp-), try to use it directly
     if id_or_path.starts_with("qp-") {
-        // Could be a full filename like qp-xxxx-slug.md or just qp-xxxx
+        // First check if it's a valid ID that exists
+        if store.note_exists(id_or_path) {
+            return Ok(id_or_path.to_string());
+        }
+
+        // If not, try parsing as a filename like qp-xxxx-slug.md
         let id = id_or_path
             .trim_end_matches(".md")
             .split('-')

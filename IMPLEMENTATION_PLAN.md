@@ -152,7 +152,14 @@ crates/llm-tool-test/
 - [x] **`--strategy` flag missing**: CLI has no `--strategy` arg for `qipu load`; always overwrites ([cli/mod.rs#L410-L413](file:///home/micah/dev/qipu/src/cli/mod.rs#L410-L413))
 - [x] **Conflict resolution not implemented**: `load_notes` doesn't check if note exists before writing ([load/mod.rs#L121-L187](file:///home/micah/dev/qipu/src/commands/load/mod.rs#L121-L187))
 - [x] **`store_version` header missing**: Not in PackHeader, no compatibility check ([model.rs#L20-L28](file:///home/micah/dev/qipu/src/commands/dump/model.rs#L20-L28))
-- [ ] **Pack tests failing**: `test_load_strategy_merge_links`, `test_load_strategy_overwrite`, `test_load_strategy_skip` are failing - need investigation
+- [x] **Pack tests fixed**: `test_load_strategy_merge_links`, `test_load_strategy_overwrite`, `test_load_strategy_skip` resolved with load_links fix
+
+### Create & Capture Command Enhancements
+- [x] **Add --id flag to create command**: Allows creating notes with specific IDs for testing and advanced use cases (enables pack load strategy tests)
+- [x] **Fix resolve_note_id bug**: IDs starting with "qp-" were being incorrectly parsed as filenames in src/commands/link/mod.rs; added note_exists check to validate IDs before creating notes with specific IDs
+- [x] **Add note_exists method to Store**: Added method to check if a note ID exists in the store
+- [x] **Fix load_links for merge-links strategy**: Modified load_links function in src/commands/load/mod.rs to add links to existing notes when using merge-links strategy
+- [x] **Capture command ID support**: Added --id parameter to capture command's CLI and implementation
 
 ### **P2: Missing Test Coverage**
 

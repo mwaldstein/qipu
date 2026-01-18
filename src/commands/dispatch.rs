@@ -52,6 +52,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 args.r#type,
                 &args.tag,
                 args.open,
+                args.id.clone(),
                 args.source.clone(),
                 args.author.clone(),
                 args.generated_by.clone(),
@@ -208,6 +209,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             generated_by,
             prompt_hash,
             verified,
+            id,
         }) => {
             let store = discover_or_open_store(cli, &root)?;
             if cli.verbose {
@@ -224,6 +226,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 generated_by.clone(),
                 prompt_hash.clone(),
                 *verified,
+                id.as_deref(),
             )
         }
 

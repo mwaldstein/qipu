@@ -241,9 +241,21 @@ fn test_load_strategy_skip() {
         .success();
 
     // 5. Verify the note exists and has original content
+    let output = Command::cargo_bin("qipu")
+        .unwrap()
+        .arg("list")
+        .arg("--format")
+        .arg("json")
+        .env("QIPU_STORE", store2_path)
+        .output()
+        .unwrap();
+
+    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let note_id = list[0]["id"].as_str().unwrap().to_string();
+
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("show")
-        .arg("Original Note")
+        .arg(&note_id)
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
@@ -264,11 +276,25 @@ fn test_load_strategy_overwrite() {
         .assert()
         .success();
 
+    let output = Command::cargo_bin("qipu")
+        .unwrap()
+        .arg("list")
+        .arg("--format")
+        .arg("json")
+        .env("QIPU_STORE", store1_path)
+        .output()
+        .unwrap();
+
+    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let note_id = list[0]["id"].as_str().unwrap().to_string();
+
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
         .arg("Note A")
         .arg("--tag")
         .arg("original")
+        .arg("--id")
+        .arg(&note_id)
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -290,18 +316,6 @@ fn test_load_strategy_overwrite() {
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
-
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note_id = list[0]["id"].as_str().unwrap().to_string();
 
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
@@ -354,6 +368,8 @@ fn test_load_strategy_merge_links() {
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
         .arg("Target Note")
+        .arg("--id")
+        .arg("qp-test-target")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -361,6 +377,8 @@ fn test_load_strategy_merge_links() {
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("create")
         .arg("Linked Note")
+        .arg("--id")
+        .arg("qp-test-linked")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -368,8 +386,8 @@ fn test_load_strategy_merge_links() {
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("link")
         .arg("add")
-        .arg("Target Note")
-        .arg("Linked Note")
+        .arg("qp-test-target")
+        .arg("qp-test-linked")
         .arg("--type")
         .arg("related")
         .env("QIPU_STORE", store1_path)
@@ -387,7 +405,7 @@ fn test_load_strategy_merge_links() {
         .assert()
         .success();
 
-    // 3. Initialize store 2 and create the target note with same ID but different links
+    // 3. Initialize store 2 and create a target note with same ID but different links
     let mut cmd = Command::cargo_bin("qipu").unwrap();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)

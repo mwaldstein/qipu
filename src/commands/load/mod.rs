@@ -305,29 +305,42 @@ fn load_links(store: &Store, pack_links: &[PackLink], loaded_notes: &[PackNote])
     }
 
     for (source_id, links) in links_by_source {
-        // Only process if the source note was loaded
-        if loaded_ids.contains(&source_id) {
+        // Only process if the source note was loaded or already exists in store
+        if loaded_ids.contains(&source_id) || store.note_exists(&source_id) {
             // Load the source note
             let mut source_note = store.get_note(&source_id)?;
 
             // Add each link to the note's frontmatter
             for pack_link in links {
                 // Only load links between notes that were loaded
-                if loaded_ids.contains(&pack_link.to) {
-                    // Parse link type if present
-                    if let Some(ref type_str) = pack_link.link_type {
-                        let link_type = type_str.parse().map_err(|e| {
-                            QipuError::Other(format!("invalid link type '{}': {}", type_str, e))
-                        })?;
+                if loaded_ids.contains(&pack_link.to) || store.note_exists(&pack_link.to) {
+                    // Check if link already exists to avoid duplicates
+                    let link_exists = source_note.frontmatter.links.iter().any(|l| {
+                        l.id == pack_link.to.as_str()
+                            && l.link_type.to_string()
+                                == pack_link
+                                    .link_type
+                                    .as_ref()
+                                    .map(|s| s.as_str())
+                                    .unwrap_or("")
+                    });
 
-                        source_note
-                            .frontmatter
-                            .links
-                            .push(crate::lib::note::TypedLink {
-                                link_type,
-                                id: pack_link.to.clone(),
-                            });
-                        loaded_count += 1;
+                    if !link_exists {
+                        // Parse link type if present
+                        if let Some(ref type_str) = pack_link.link_type {
+                            let link_type = type_str.parse().map_err(|e| {
+                                QipuError::Other(format!("invalid link type '{}': {}", type_str, e))
+                            })?;
+
+                            source_note
+                                .frontmatter
+                                .links
+                                .push(crate::lib::note::TypedLink {
+                                    link_type,
+                                    id: pack_link.to.clone(),
+                                });
+                            loaded_count += 1;
+                        }
                     }
                 }
             }

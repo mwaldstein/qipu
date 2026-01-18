@@ -29,6 +29,7 @@ pub fn execute(
     generated_by: Option<String>,
     prompt_hash: Option<String>,
     verified: Option<bool>,
+    id: Option<&str>,
 ) -> Result<()> {
     // Read content from stdin
     let mut content = String::new();
@@ -47,7 +48,7 @@ pub fn execute(
     let note_type = note_type.or(Some(NoteType::Fleeting));
 
     // Create note with the captured content
-    let mut note = store.create_note_with_content(&title, note_type, tags, content)?;
+    let mut note = store.create_note_with_content(&title, note_type, tags, content, id)?;
 
     // Add provenance fields if provided
     if source.is_some()

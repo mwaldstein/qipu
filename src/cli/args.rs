@@ -38,4 +38,8 @@ pub struct CreateArgs {
     /// Flag indicating if a human has manually reviewed the content
     #[arg(long)]
     pub verified: Option<bool>,
+
+    /// Note ID (for testing and advanced use cases)
+    #[arg(long)]
+    pub id: Option<String>,
 }

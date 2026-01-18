@@ -260,15 +260,34 @@ impl Store {
         Ok(ids)
     }
 
+    /// Check if a note with a given ID exists in the store
+    pub fn note_exists(&self, id: &str) -> bool {
+        match self.existing_ids() {
+            Ok(ids) => ids.contains(id),
+            Err(_) => false,
+        }
+    }
+
     /// Create a new note
     pub fn create_note(
         &self,
         title: &str,
         note_type: Option<NoteType>,
         tags: &[String],
+        id: Option<&str>,
     ) -> Result<Note> {
-        let existing_ids = self.existing_ids()?;
-        let id = NoteId::generate(self.config.id_scheme, title, &existing_ids);
+        let id = if let Some(id) = id {
+            if self.note_exists(id) {
+                return Err(QipuError::Other(format!(
+                    "note with id '{}' already exists",
+                    id
+                )));
+            }
+            NoteId::new_unchecked(id.to_string())
+        } else {
+            let existing_ids = self.existing_ids()?;
+            NoteId::generate(self.config.id_scheme, title, &existing_ids)
+        };
 
         let note_type = note_type.unwrap_or(self.config.default_note_type);
         let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())
@@ -306,9 +325,20 @@ impl Store {
         note_type: Option<NoteType>,
         tags: &[String],
         content: &str,
+        id: Option<&str>,
     ) -> Result<Note> {
         let existing_ids = self.existing_ids()?;
-        let id = NoteId::generate(self.config.id_scheme, title, &existing_ids);
+        let id = if let Some(id) = id {
+            if existing_ids.contains(id) {
+                return Err(QipuError::Other(format!(
+                    "note with id '{}' already exists",
+                    id
+                )));
+            }
+            NoteId::new_unchecked(id.to_string())
+        } else {
+            NoteId::generate(self.config.id_scheme, title, &existing_ids)
+        };
 
         let note_type = note_type.unwrap_or(self.config.default_note_type);
         let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())

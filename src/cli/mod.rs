@@ -163,6 +163,10 @@ pub enum Commands {
         /// Flag indicating if a human has manually reviewed the content
         #[arg(long)]
         verified: Option<bool>,
+
+        /// Note ID (for testing and advanced use cases)
+        #[arg(long)]
+        id: Option<String>,
     },
 
     /// Build or refresh derived indexes

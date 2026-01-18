@@ -22,13 +22,14 @@ pub fn execute(
     note_type: Option<NoteType>,
     tags: &[String],
     open: bool,
+    id: Option<String>,
     source: Option<String>,
     author: Option<String>,
     generated_by: Option<String>,
     prompt_hash: Option<String>,
     verified: Option<bool>,
 ) -> Result<()> {
-    let mut note = store.create_note(title, note_type, tags)?;
+    let mut note = store.create_note(title, note_type, tags, id.as_deref())?;
 
     // Add provenance fields if provided
     if source.is_some()

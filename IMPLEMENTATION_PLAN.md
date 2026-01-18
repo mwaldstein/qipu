@@ -116,10 +116,17 @@ Author a human-run testing guide in the docs folder to validate core user flows 
 
 ---
 
-## **P2: Correctness Issues** ⚠️ MOSTLY COMPLETE
+## **P2: Correctness Issues** ✅ COMPLETE
 - Workspace merge bugs: 3/3 fixed ✅
 - Pack load missing features: 3/3 fixed (test was flaky, not actual bug) ✅
 - List performance: Fixed O(n²) compaction_pct calculation by caching note_map ✅
+
+---
+
+## **P2: Missing Test Coverage** ⚠️ PARTIAL (2/6 complete)
+- Workspace commands: Partially tested ✅
+- Capture command: Comprehensive test suite added (18 tests) ✅
+- **4 areas remain untested**: Graph traversal limits, Type filtering, Provenance fields (prompt_hash), Token budgeting
 
 ---
 
@@ -149,11 +156,7 @@ Current codebase contains 262 instances of `.unwrap()` and `.expect()` calls out
 
 ---
 
-## **P3: Missing Test Coverage** ⚠️ PARTIAL (1/6 complete)
-- Workspace commands: Partially tested ✅
-- **5 areas remain untested**: Capture command, Graph traversal limits, Type filtering, Pack conflict strategies, Provenance fields, Token budgeting
 
----
 
 ## **P4: Spec-Implementation Gaps** ❌ NOT STARTED (10 items remain)
 
@@ -178,18 +181,18 @@ Current codebase contains 262 instances of `.unwrap()` and `.expect()` calls out
 
 ---
 
-## **P3 Test Coverage Status** ⚠️ PARTIAL (1/6 complete)
+## **P3 Test Coverage Status** ⚠️ PARTIAL (2/6 complete)
 
 **Completed:**
-1. Workspace commands: Partially tested
+1. Workspace commands: Partially tested ✅
+2. Capture command: Comprehensive test suite added (18 tests) ✅
 
-**Remaining (5 areas):**
-1. Capture command: No dedicated tests exist
-2. Graph traversal limits: `--max-nodes`, `--max-edges`, `--max-fanout`, `--direction in` flags are not tested
-3. Type filtering: `--type`, `--exclude-type`, `--typed-only`, `--inline-only` flags are not tested
-4. Pack conflict strategies: No tests exist (skip, overwrite, merge-links)
-5. Provenance fields: `prompt_hash` not tested
-6. Token budgeting: `--max-tokens` flag has no integration tests
+**Remaining (4 areas):**
+1. Graph traversal limits: `--max-nodes`, `--max-edges`, `--max-fanout`, `--direction in` flags are not tested
+2. Type filtering: `--type`, `--exclude-type`, `--typed-only`, `--inline-only` flags are not tested
+3. Pack conflict strategies: Already tested (skip, overwrite, merge-links) ✅
+4. Provenance fields: `prompt_hash` not tested
+5. Token budgeting: `--max-tokens` flag has no integration tests
 
 ---
 
@@ -261,6 +264,8 @@ Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activa
 
 4. **Spec-compliant but complex**: The application is mostly spec-compliant with well-structured code. However, pack load test coverage is complex due to state management requirements.
 
+5. **Capture command fully functional**: The capture command implementation is robust, with title auto-generation from content, provenance support, and all output formats working correctly. 18 comprehensive tests added covering basic capture, title generation, type/tag/provenance fields, and all output formats (human, JSON, records).
+
 ---
 
 ## **Next Steps (Prioritized)**
@@ -274,4 +279,4 @@ Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activa
 
 ---
 
-*Last updated: 2026-01-18*
+*Last updated: 2026-01-17*

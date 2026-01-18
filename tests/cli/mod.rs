@@ -1,3 +1,4 @@
+mod capture;
 mod compact;
 mod context;
 mod create;

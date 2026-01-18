@@ -3,10 +3,13 @@
 mod schema;
 
 use crate::lib::error::{QipuError, Result};
+use crate::lib::index::types::SearchResult;
 use crate::lib::note::Note;
+use crate::lib::note::NoteType;
 use crate::lib::store::Store;
 use rusqlite::{params, Connection};
 use std::path::Path;
+use std::str::FromStr;
 
 pub use schema::create_schema;
 
@@ -14,6 +17,15 @@ pub use schema::create_schema;
 #[derive(Debug)]
 pub struct Database {
     conn: Connection,
+}
+
+/// Parse tags from a space-separated string
+fn parse_tags(tags_str: &str) -> Vec<String> {
+    tags_str
+        .split_whitespace()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
 }
 
 impl Database {
@@ -128,6 +140,109 @@ impl Database {
         }
 
         Ok(())
+    }
+
+    /// Perform full-text search using FTS5 with BM25 ranking
+    ///
+    /// Field weights for BM25:
+    /// - Title: 2.0x boost
+    /// - Body: 1.0x (baseline)
+    /// - Tags: 1.5x boost
+    pub fn search(
+        &self,
+        query: &str,
+        type_filter: Option<NoteType>,
+        tag_filter: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<SearchResult>> {
+        if query.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let limit_i64 = limit as i64;
+
+        let mut sql = String::from(
+            r#"
+            SELECT n.id, n.title, n.path, n.type, notes_fts.tags,
+                   bm25(notes_fts, 2.0, 1.0, 1.5) AS rank
+            FROM notes_fts
+            JOIN notes n ON notes_fts.rowid = n.rowid
+            WHERE notes_fts MATCH ?
+        "#,
+        );
+
+        let type_filter_str = type_filter.map(|t| t.to_string());
+        let tag_filter_str = tag_filter.map(|t| t.to_string());
+
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(query)];
+
+        if type_filter_str.is_some() {
+            sql.push_str(" AND n.type = ?");
+            params.push(Box::new(type_filter_str.unwrap()));
+        }
+
+        if tag_filter_str.is_some() {
+            sql.push_str(
+                " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = ?)",
+            );
+            params.push(Box::new(tag_filter_str.unwrap()));
+        }
+
+        sql.push_str(" ORDER BY rank LIMIT ?;");
+        params.push(Box::new(limit_i64));
+
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| QipuError::Other(format!("failed to prepare search query: {}", e)))?;
+
+        let mut results = Vec::new();
+
+        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+
+        let mut rows = stmt
+            .query(param_refs.as_slice())
+            .map_err(|e| QipuError::Other(format!("failed to execute search query: {}", e)))?;
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read search results: {}", e)))?
+        {
+            let id: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get id: {}", e)))?;
+            let title: String = row
+                .get(1)
+                .map_err(|e| QipuError::Other(format!("failed to get title: {}", e)))?;
+            let path: String = row
+                .get(2)
+                .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?;
+            let note_type_str: String = row
+                .get(3)
+                .map_err(|e| QipuError::Other(format!("failed to get type: {}", e)))?;
+            let tags_str: String = row
+                .get(4)
+                .map_err(|e| QipuError::Other(format!("failed to get tags: {}", e)))?;
+            let rank: f64 = row
+                .get(5)
+                .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
+
+            let note_type = NoteType::from_str(&note_type_str).unwrap_or(NoteType::Fleeting);
+            let tags = parse_tags(&tags_str);
+
+            results.push(SearchResult {
+                id,
+                title,
+                note_type,
+                tags,
+                path,
+                match_context: None,
+                relevance: rank,
+                via: None,
+            });
+        }
+
+        Ok(results)
     }
 }
 
@@ -283,5 +398,196 @@ mod tests {
             .unwrap();
 
         assert_eq!(note_count, 0);
+    }
+
+    #[test]
+    fn test_search_fts_basic() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note_with_content(
+                "Test Note One",
+                None,
+                &["test-tag".to_string()],
+                "This is a test body with some content",
+                None,
+            )
+            .unwrap();
+
+        store
+            .create_note_with_content(
+                "Another Note",
+                None,
+                &["other-tag".to_string()],
+                "Different content here",
+                None,
+            )
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("test", None, None, 10).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Test Note One");
+        assert!(results[0].id.starts_with("qp-"));
+    }
+
+    #[test]
+    fn test_search_fts_title_boost() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note_with_content("Test Note", None, &[], "test", None)
+            .unwrap();
+
+        store
+            .create_note_with_content("Other Note", None, &[], "test test test test test", None)
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("test", None, None, 10).unwrap();
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].title, "Test Note");
+    }
+
+    #[test]
+    fn test_search_fts_tag_boost() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note_with_content(
+                "Test Note",
+                None,
+                &["test-tag".to_string()],
+                "content",
+                None,
+            )
+            .unwrap();
+
+        store
+            .create_note_with_content(
+                "Other Note",
+                None,
+                &["other-tag".to_string()],
+                "test test test",
+                None,
+            )
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("test", None, None, 10).unwrap();
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].title, "Test Note");
+    }
+
+    #[test]
+    fn test_search_with_type_filter() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note_with_content("Test Note", Some(NoteType::Fleeting), &[], "test", None)
+            .unwrap();
+
+        store
+            .create_note_with_content("Test MOC", Some(NoteType::Moc), &[], "test", None)
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db
+            .search("test", Some(NoteType::Fleeting), None, 10)
+            .unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Test Note");
+    }
+
+    #[test]
+    fn test_search_with_tag_filter() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note_with_content(
+                "Test Note One",
+                None,
+                &["test-tag".to_string()],
+                "content",
+                None,
+            )
+            .unwrap();
+
+        store
+            .create_note_with_content(
+                "Test Note Two",
+                None,
+                &["other-tag".to_string()],
+                "content",
+                None,
+            )
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("test", None, Some("test-tag"), 10).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Test Note One");
+    }
+
+    #[test]
+    fn test_search_empty_query() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["test-tag".to_string()], None)
+            .unwrap();
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("", None, None, 10).unwrap();
+
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_search_limit() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        for i in 0..5 {
+            store
+                .create_note_with_content(
+                    &format!("Test Note {}", i),
+                    None,
+                    &[],
+                    "test content",
+                    None,
+                )
+                .unwrap();
+        }
+
+        let db = Database::open(store.root()).unwrap();
+        db.rebuild(&store).unwrap();
+
+        let results = db.search("test", None, None, 3).unwrap();
+
+        assert_eq!(results.len(), 3);
     }
 }

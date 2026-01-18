@@ -13,7 +13,7 @@ Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep
 - [x] Add `rusqlite` dependency with bundled SQLite to `Cargo.toml`
 - [x] Create database schema in `src/lib/db/schema.rs` (notes, notes_fts, tags, edges, unresolved, index_meta)
 - [x] Implement `Database` struct with open/create/rebuild in `src/lib/db/mod.rs`
-- [ ] Implement FTS5 with porter tokenizer and BM25 ranking (title 2.0x, tags 1.5x, body 1.0x)
+- [x] Implement FTS5 with porter tokenizer and BM25 ranking (title 2.0x, tags 1.5x, body 1.0x)
 - [x] Add database path at `.qipu/qipu.db`
 
 ### Phase 2: Inline Updates

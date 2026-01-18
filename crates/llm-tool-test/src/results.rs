@@ -225,7 +225,7 @@ pub fn compare_runs(current: &ResultRecord, baseline: &ResultRecord) -> Regressi
         None
     };
 
-    if !baseline.gates_passed && current.gates_passed {
+    if baseline.gates_passed && !current.gates_passed {
         alerts.push("Gate failures that previously passed".to_string());
     }
 

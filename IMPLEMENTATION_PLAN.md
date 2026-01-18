@@ -71,8 +71,9 @@
 - [x] Rubric YAML fixtures don't match the deserialization shape expected by the judge
   - Fixed: Converted YAML fixtures from mapping structure to array structure with `id` field
   - Refs: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml`, `crates/llm-tool-test/fixtures/qipu/rubrics/link_v1.yaml`
-- [ ] Regression detection message/condition appears reversed
-   - Refs: `crates/llm-tool-test/src/results.rs:228-230`
+  - [x] Regression detection message/condition appears reversed
+    - Fixed: Corrected condition from `!baseline.gates_passed && current.gates_passed` to `baseline.gates_passed && !current.gates_passed` to properly detect gate regressions (gates that previously passed now failing)
+    - Refs: fixed condition `crates/llm-tool-test/src/results.rs:228`
 
 ## P2: Missing Test Coverage
 

@@ -48,6 +48,9 @@ regex = "1"
 base64 = "0.22.1"
 mime_guess = "2.0.5"
 
+# SQLite database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
 # Structured logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }

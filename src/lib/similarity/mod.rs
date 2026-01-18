@@ -24,24 +24,24 @@ impl<'a> SimilarityEngine<'a> {
         SimilarityEngine { index }
     }
 
-    /// Calculate cosine similarity between two sets of terms using BM25 weights
+    /// Calculate cosine similarity between two notes using TF-IDF vectors
     pub fn calculate_similarity(&self, note_id_a: &str, note_id_b: &str) -> f64 {
-        let terms_a = match self.index.note_terms.get(note_id_a) {
+        let term_freqs_a = match self.index.note_terms.get(note_id_a) {
             Some(t) => t,
             None => return 0.0,
         };
-        let terms_b = match self.index.note_terms.get(note_id_b) {
+        let term_freqs_b = match self.index.note_terms.get(note_id_b) {
             Some(t) => t,
             None => return 0.0,
         };
 
-        if terms_a.is_empty() || terms_b.is_empty() {
+        if term_freqs_a.is_empty() || term_freqs_b.is_empty() {
             return 0.0;
         }
 
-        // Get BM25 weighted vectors for both notes
-        let vec_a = self.get_bm25_vector(note_id_a, terms_a);
-        let vec_b = self.get_bm25_vector(note_id_b, terms_b);
+        // Get TF-IDF weighted vectors for both notes
+        let vec_a = self.get_tfidf_vector(term_freqs_a);
+        let vec_b = self.get_tfidf_vector(term_freqs_b);
 
         self.cosine_similarity(&vec_a, &vec_b)
     }
@@ -116,31 +116,20 @@ impl<'a> SimilarityEngine<'a> {
         dot_product / (norm_a.sqrt() * norm_b.sqrt())
     }
 
-    /// Get BM25 weighted vector for a note
-    fn get_bm25_vector(
-        &self,
-        note_id: &str,
-        terms: &std::collections::HashSet<String>,
-    ) -> HashMap<String, f64> {
+    /// Get TF-IDF weighted vector for a note
+    fn get_tfidf_vector(&self, term_freqs: &HashMap<String, f64>) -> HashMap<String, f64> {
         let mut vector = HashMap::new();
         let total_docs = self.index.total_docs as f64;
-        let avgdl = (self.index.total_len as f64 / total_docs).max(1.0);
-        let doc_len = *self.index.doc_lengths.get(note_id).unwrap_or(&0) as f64;
 
-        let k1 = 1.2;
-        let b = 0.75;
-
-        // In a real BM25, we'd need term frequencies within the document.
-        // Since we only store the set of terms in the index for now, we assume tf=1
-        // for each term in the note for similarity purposes.
-        // TODO: Store term frequencies in index for more accurate similarity.
-        let tf = 1.0;
-
-        for term in terms {
+        for (term, &tf) in term_freqs {
             let df = *self.index.term_df.get(term).unwrap_or(&1) as f64;
-            let idf = ((total_docs - df + 0.5) / (df + 0.5) + 1.0).ln();
+            // IDF formula with smoothing to avoid zero: log((N + 1) / (df + 1)) + 1
+            // This ensures IDF is always positive even when df == N
+            let idf = ((total_docs + 1.0) / (df + 1.0)).ln() + 1.0;
 
-            let weight = idf * (tf * (k1 + 1.0)) / (tf + k1 * (1.0 - b + b * (doc_len / avgdl)));
+            // TF-IDF weight = TF * IDF
+            // TF already includes field weighting from index builder
+            let weight = tf * idf;
             vector.insert(term.clone(), weight);
         }
 
@@ -158,13 +147,13 @@ mod tests {
     fn create_test_index() -> Index {
         let mut index = Index::new();
 
-        // Note 1: Apple Banana Cherry
+        // Note 1: Apple Banana Cherry (each term appears once with weight 1.0)
         let id1 = "qp-1".to_string();
-        let terms1: HashSet<_> = vec!["apple", "banana", "cherry"]
-            .into_iter()
-            .map(String::from)
-            .collect();
-        index.note_terms.insert(id1.clone(), terms1.clone());
+        let mut term_freqs1 = HashMap::new();
+        term_freqs1.insert("apple".to_string(), 1.0);
+        term_freqs1.insert("banana".to_string(), 1.0);
+        term_freqs1.insert("cherry".to_string(), 1.0);
+        index.note_terms.insert(id1.clone(), term_freqs1);
         index.doc_lengths.insert(id1.clone(), 3);
         index.metadata.insert(
             id1.clone(),
@@ -179,13 +168,13 @@ mod tests {
             },
         );
 
-        // Note 2: Apple Banana Date
+        // Note 2: Apple Banana Date (each term appears once with weight 1.0)
         let id2 = "qp-2".to_string();
-        let terms2: HashSet<_> = vec!["apple", "banana", "date"]
-            .into_iter()
-            .map(String::from)
-            .collect();
-        index.note_terms.insert(id2.clone(), terms2.clone());
+        let mut term_freqs2 = HashMap::new();
+        term_freqs2.insert("apple".to_string(), 1.0);
+        term_freqs2.insert("banana".to_string(), 1.0);
+        term_freqs2.insert("date".to_string(), 1.0);
+        index.note_terms.insert(id2.clone(), term_freqs2);
         index.doc_lengths.insert(id2.clone(), 3);
         index.metadata.insert(
             id2.clone(),

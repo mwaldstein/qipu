@@ -4,7 +4,7 @@ use super::types::{FileEntry, Index, NoteMetadata};
 use crate::lib::error::Result;
 use crate::lib::store::Store;
 use crate::lib::text::tokenize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 /// Index builder - handles construction and updates
@@ -66,10 +66,29 @@ impl<'a> IndexBuilder<'a> {
             if needs_reindex {
                 self.prune_note_indexes(&path, note.id());
 
-                // BM25 statistics
-                let terms = tokenize(&note.body);
-                let word_count = terms.len();
-                let unique_terms: HashSet<String> = terms.into_iter().collect();
+                // TF-IDF statistics with field weighting
+                // Per spec: title weight=2.0, tags weight=1.5, body weight=1.0
+                let mut term_freqs: HashMap<String, f64> = HashMap::new();
+
+                // Tokenize and weight title (weight: 2.0)
+                for term in tokenize(note.title()) {
+                    *term_freqs.entry(term).or_insert(0.0) += 2.0;
+                }
+
+                // Tokenize and weight tags (weight: 1.5)
+                for tag in &note.frontmatter.tags {
+                    for term in tokenize(tag) {
+                        *term_freqs.entry(term).or_insert(0.0) += 1.5;
+                    }
+                }
+
+                // Tokenize and weight body (weight: 1.0)
+                for term in tokenize(&note.body) {
+                    *term_freqs.entry(term).or_insert(0.0) += 1.0;
+                }
+
+                let word_count = term_freqs.values().map(|&f| f as usize).sum();
+                let unique_terms: HashSet<String> = term_freqs.keys().cloned().collect();
 
                 self.index.total_docs += 1;
                 self.index.total_len += word_count;
@@ -82,7 +101,7 @@ impl<'a> IndexBuilder<'a> {
                 }
                 self.index
                     .note_terms
-                    .insert(note.id().to_string(), unique_terms);
+                    .insert(note.id().to_string(), term_freqs);
 
                 // Update metadata
                 let meta = NoteMetadata {
@@ -224,17 +243,17 @@ impl<'a> IndexBuilder<'a> {
             self.index.total_len = self.index.total_len.saturating_sub(length);
         }
 
-        if let Some(terms) = self.index.note_terms.remove(note_id) {
-            for term in terms {
+        if let Some(term_freqs) = self.index.note_terms.remove(note_id) {
+            for term in term_freqs.keys() {
                 let mut remove_term = false;
-                if let Some(df) = self.index.term_df.get_mut(&term) {
+                if let Some(df) = self.index.term_df.get_mut(term) {
                     *df = df.saturating_sub(1);
                     if *df == 0 {
                         remove_term = true;
                     }
                 }
                 if remove_term {
-                    self.index.term_df.remove(&term);
+                    self.index.term_df.remove(term);
                 }
             }
         }

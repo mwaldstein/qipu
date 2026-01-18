@@ -324,7 +324,7 @@ fn search_embedded(
         let matches_body = index
             .note_terms
             .get(note_id)
-            .map(|terms| tokenized_query.iter().any(|t| terms.contains(t)))
+            .map(|term_freqs| tokenized_query.iter().any(|t| term_freqs.contains_key(t)))
             .unwrap_or(true);
 
         if !matches_title_or_tags && !matches_body {

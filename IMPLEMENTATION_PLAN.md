@@ -102,8 +102,14 @@
 - [x] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
   - Fixed: changed CLI default value from 0.8 to 0.85 to match spec
   - Changed `src/cli/commands.rs:184`: updated default_value from "0.8" to "0.85"
-- [ ] Similarity is described as TF-IDF cosine; implementation uses cosine over BM25-weighted vectors with `tf=1` (no term frequencies stored)
-  - Refs: tf=1 + TODO `src/lib/similarity/mod.rs:33-37`, BM25-weighted vectors `src/lib/similarity/mod.rs:119-148`
+- [x] Similarity is described as TF-IDF cosine; implementation uses cosine over BM25-weighted vectors with `tf=1` (no term frequencies stored)
+  - Fixed: implemented TF-IDF cosine similarity as specified
+  - Changed index to store term frequencies with field weights: `src/lib/index/types.rs:146-149`
+  - Updated index builder to tokenize title (weight 2.0), tags (weight 1.5), and body (weight 1.0): `src/lib/index/builder.rs:69-104`
+  - Replaced BM25 calculation with TF-IDF using smoothed IDF formula: `src/lib/similarity/mod.rs:119-140`
+  - Updated search.rs to work with new HashMap structure: `src/lib/index/search.rs:324-328`
+  - Updated builder.rs prune function to work with HashMap: `src/lib/index/builder.rs:246-259`
+  - Updated test to use HashMap: `src/lib/similarity/mod.rs:147-197`
 
 ### `specs/provenance.md`
 - [ ] `qipu create --format json` omits provenance fields (`source/author/generated_by/prompt_hash/verified`)

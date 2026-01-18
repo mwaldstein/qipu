@@ -143,9 +143,10 @@ pub struct Index {
     /// Term document frequency: term -> number of documents containing it (for BM25)
     #[serde(default)]
     pub term_df: HashMap<String, usize>,
-    /// Terms in each note (for incremental term_df updates)
+    /// Term frequencies in each note with field weighting applied (for TF-IDF similarity)
+    /// Maps note_id -> (term -> weighted_frequency)
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub(crate) note_terms: HashMap<String, HashSet<String>>,
+    pub(crate) note_terms: HashMap<String, HashMap<String, f64>>,
 }
 
 /// Current index format version

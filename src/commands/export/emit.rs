@@ -21,6 +21,9 @@ pub fn export_bundle(
     let mut output = String::new();
     let (body_map, anchor_map) = build_link_maps(notes);
 
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(all_notes);
+
     output.push_str("# Exported Notes\n\n");
 
     for (i, note) in notes.iter().enumerate() {
@@ -54,7 +57,7 @@ pub fn export_bundle(
         if compacts_count > 0 {
             output.push_str(&format!("**Compaction:** compacts={}", compacts_count));
 
-            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
                 output.push_str(&format!(" compaction={:.0}%", pct));
             }
             output.push_str("\n\n");
@@ -138,6 +141,9 @@ pub fn export_outline(
     // Export notes in MOC link order
     let ordered_ids = extract_moc_ordered_ids(&moc.body, resolve_compaction, compaction_ctx);
 
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let compaction_note_map = CompactionContext::build_note_map(all_notes);
+
     // Create a lookup for fast note access
     let note_map: HashMap<_, _> = notes.iter().map(|n| (n.id(), n)).collect();
 
@@ -178,7 +184,7 @@ pub fn export_outline(
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
             if compacts_count > 0 {
                 output.push_str(&format!("**Compaction:** compacts={}", compacts_count));
-                if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                if let Some(pct) = compaction_ctx.get_compaction_pct(note, &compaction_note_map) {
                     output.push_str(&format!(" compaction={:.0}%", pct));
                 }
                 output.push_str("\n\n");
@@ -406,6 +412,9 @@ pub fn export_json(
     compaction_ctx: &CompactionContext,
     all_notes: &[Note],
 ) -> Result<String> {
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(all_notes);
+
     let mode_str = match options.mode {
         ExportMode::Bundle => "bundle",
         ExportMode::Outline => "outline",
@@ -446,7 +455,7 @@ pub fn export_json(
                 if compacts_count > 0 {
                     if let Some(obj_mut) = obj.as_object_mut() {
                         obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
-                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
                             obj_mut.insert(
                                 "compaction_pct".to_string(),
                                 serde_json::json!(format!("{:.1}", pct)),
@@ -485,6 +494,9 @@ pub fn export_records(
     compaction_ctx: &CompactionContext,
     all_notes: &[Note],
 ) -> Result<String> {
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(all_notes);
+
     let mut output = String::new();
 
     // Header line
@@ -536,7 +548,7 @@ pub fn export_records(
         let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
         if compacts_count > 0 {
             annotations.push_str(&format!(" compacts={}", compacts_count));
-            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
                 annotations.push_str(&format!(" compaction={:.0}%", pct));
             }
         }

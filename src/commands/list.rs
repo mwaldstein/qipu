@@ -30,6 +30,9 @@ pub fn execute(
     // Per spec (specs/compaction.md line 101): hide notes with a compactor by default
     let compaction_ctx = CompactionContext::build(&all_notes)?;
 
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(&all_notes);
+
     if !cli.no_resolve_compaction {
         notes.retain(|n| !compaction_ctx.is_compacted(&n.frontmatter.id));
     }
@@ -73,7 +76,7 @@ pub fn execute(
                         if let Some(obj) = json.as_object_mut() {
                             obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                            if let Some(pct) = compaction_ctx.get_compaction_pct(n, &all_notes) {
+                            if let Some(pct) = compaction_ctx.get_compaction_pct(n, &note_map) {
                                 obj.insert(
                                     "compaction_pct".to_string(),
                                     serde_json::json!(format!("{:.1}", pct)),
@@ -121,7 +124,7 @@ pub fn execute(
                     if compacts_count > 0 {
                         annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
+                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
                             annotations.push_str(&format!(" compaction={:.0}%", pct));
                         }
                     }
@@ -177,7 +180,7 @@ pub fn execute(
                 if compacts_count > 0 {
                     annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, &all_notes) {
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
                         annotations.push_str(&format!(" compaction={:.0}%", pct));
                     }
                 }

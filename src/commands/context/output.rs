@@ -3,6 +3,7 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
+use std::collections::HashMap;
 
 /// Output in JSON format
 pub fn output_json(
@@ -11,7 +12,8 @@ pub fn output_json(
     notes: &[&SelectedNote],
     truncated: bool,
     compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
+    note_map: &std::collections::HashMap<&str, &Note>,
+    all_notes: &[Note], // Keep for compatibility with get_compacted_notes_expanded
 ) -> Result<()> {
     let output = serde_json::json!({
         "store": store_path,
@@ -51,7 +53,7 @@ pub fn output_json(
                 if let Some(obj) = json.as_object_mut() {
                     obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
                         obj.insert("compaction_pct".to_string(), serde_json::json!(format!("{:.1}", pct)));
                     }
 
@@ -125,7 +127,8 @@ pub fn output_human(
     truncated: bool,
     safety_banner: bool,
     compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
+    note_map: &HashMap<&str, &Note>,
+    all_notes: &[Note], // Keep for compatibility
 ) {
     println!("# Qipu Context Bundle");
     println!("Store: {}", store_path);
@@ -164,7 +167,7 @@ pub fn output_human(
         if compacts_count > 0 {
             compaction_parts.push(format!("compacts={}", compacts_count));
 
-            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
                 compaction_parts.push(format!("compaction={:.0}%", pct));
             }
         }
@@ -266,7 +269,8 @@ pub fn output_records(
     notes: &[&SelectedNote],
     config: &RecordsOutputConfig,
     compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
+    note_map: &HashMap<&str, &Note>,
+    all_notes: &[Note], // Keep for compatibility
 ) {
     let budget = config.max_chars;
     let mut blocks = Vec::new();
@@ -293,7 +297,7 @@ pub fn output_records(
         if compacts_count > 0 {
             annotations.push_str(&format!(" compacts={}", compacts_count));
 
-            if let Some(pct) = compaction_ctx.get_compaction_pct(note, all_notes) {
+            if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
                 annotations.push_str(&format!(" compaction={:.0}%", pct));
             }
         }

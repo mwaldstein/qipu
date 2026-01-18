@@ -18,7 +18,6 @@ use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::{search, IndexBuilder};
-use crate::lib::note::Note;
 use crate::lib::store::Store;
 
 pub use types::ContextOptions;
@@ -33,10 +32,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     let all_notes = store.list_notes()?;
     let compaction_ctx = CompactionContext::build(&all_notes)?;
 
-    let note_map: HashMap<String, &Note> = all_notes
-        .iter()
-        .map(|note| (note.id().to_string(), note))
-        .collect();
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(&all_notes);
 
     // Collect notes based on selection criteria
     let mut selected_notes: Vec<SelectedNote> = Vec::new();
@@ -57,11 +54,12 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
 
         if seen_ids.insert(resolved_id.clone()) {
-            let note = note_map
-                .get(&resolved_id)
-                .ok_or_else(|| QipuError::NoteNotFound {
-                    id: resolved_id.clone(),
-                })?;
+            let note =
+                note_map
+                    .get(resolved_id.as_str())
+                    .ok_or_else(|| QipuError::NoteNotFound {
+                        id: resolved_id.clone(),
+                    })?;
             selected_notes.push(SelectedNote {
                 note: *note,
                 via: None,
@@ -169,6 +167,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &notes_to_output,
                 truncated,
                 &compaction_ctx,
+                &note_map,
                 &all_notes,
             )?;
         }
@@ -180,6 +179,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 truncated,
                 options.safety_banner,
                 &compaction_ctx,
+                &note_map,
                 &all_notes,
             );
         }
@@ -196,6 +196,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &notes_to_output,
                 &config,
                 &compaction_ctx,
+                &note_map,
                 &all_notes,
             );
         }

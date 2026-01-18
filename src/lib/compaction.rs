@@ -31,6 +31,9 @@ pub struct CompactionContext {
 
     /// Map from digest ID to the set of notes it compacts
     pub compacted_by: HashMap<String, Vec<String>>,
+
+    /// Cached map from note ID to note reference (built on first use)
+    note_cache: HashMap<String, usize>,
 }
 
 /// A compaction candidate cluster
@@ -80,6 +83,7 @@ impl CompactionContext {
         Ok(CompactionContext {
             compactors,
             compacted_by,
+            note_cache: HashMap::new(),
         })
     }
 
@@ -231,21 +235,28 @@ impl CompactionContext {
         Some((notes, ids.1))
     }
 
+    /// Build note map from notes for efficient lookups
+    pub fn build_note_map<'a>(all_notes: &'a [Note]) -> HashMap<&'a str, &'a Note> {
+        all_notes
+            .iter()
+            .map(|note| (note.frontmatter.id.as_str(), note))
+            .collect()
+    }
+
     /// Calculate compaction percentage for a digest
     /// Based on spec lines 156-166 in specs/compaction.md
     /// Returns None if not a digest or expanded_size is 0
-    pub fn get_compaction_pct(&self, digest: &Note, all_notes: &[Note]) -> Option<f32> {
+    /// Note: For efficiency, build the note_map once with build_note_map() and reuse it
+    pub fn get_compaction_pct(
+        &self,
+        digest: &Note,
+        note_map: &HashMap<&str, &Note>,
+    ) -> Option<f32> {
         // Check if this is a digest (has compacted notes)
         let compacted_ids = self.get_compacted_notes(&digest.frontmatter.id)?;
         if compacted_ids.is_empty() {
             return None;
         }
-
-        // Build a map for quick note lookup
-        let note_map: HashMap<&str, &Note> = all_notes
-            .iter()
-            .map(|n| (n.frontmatter.id.as_str(), n))
-            .collect();
 
         // Calculate digest size using summary
         let digest_size = estimate_note_size(digest);

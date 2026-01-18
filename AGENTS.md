@@ -29,47 +29,22 @@ qipu --version
 - `docs/` - Usage patterns and guidance
 - `prompts/` - Prompt templates used by agents/tools
 
-## Key Commands
+## Code Structure (Prefer Small)
 
-### Core Operations
-- `qipu init` - Create a new store
-- `qipu create` - Create a new note
-- `qipu capture` - Quick capture with optional stdin
-- `qipu list` - List notes
-- `qipu show <id>` - Display a note
-- `qipu search <query>` - Search notes
-- `qipu inbox` - Show inbox items
+When making changes, prefer small functions and small files.
 
-### Link Management
-- `qipu link add <from> <to> --type <t>` - Create a link between notes
-- `qipu link remove <from> <to> --type <t>` - Remove a link
-- `qipu link list <id>` - List links for a note
-- `qipu link tree <id>` - Show link tree
-- `qipu link path <from> <to>` - Find path between notes
+- Keep functions focused on a single job; extract helpers instead of growing one "do everything" function.
+- Aim for functions you can understand without scrolling; if it gets long, split it.
+- Keep modules/files cohesive and purpose-driven; if a file starts collecting unrelated concerns, split by responsibility.
+- Prefer private helpers (`fn ...`) and small types over large, complicated control flow.
+- Avoid over-fragmentation: split when it improves clarity, testability, or reuse—not just to hit a line count.
 
-### Workspace Operations
-- `qipu workspace new <name>` - Create a new workspace
-- `qipu workspace list` - List workspaces
-- `qipu workspace merge <name>` - Merge workspace changes
-- `qipu workspace delete <name>` - Delete a workspace
+## CLI Reference
 
-### Advanced
-- `qipu context` - Show contextual notes
-- `qipu prime` - Prime notes for AI context
-- `qipu verify <id>` - Toggle verification status of a note
-- `qipu export` - Export store data; supports --with-attachments to copy media
-- `qipu index` - Manage search index
-- `qipu sync` - Update indexes and optionally validate; supports --commit/--push for git automation
-- `qipu doctor` - Check store health
+Keep `AGENTS.md` focused on agent/developer operations rather than end-user CLI documentation.
 
-### Output Formats
-
-All commands support multiple output formats:
-```bash
---format human    # Human-readable (default)
---format json     # JSON output
---format records  # Record-based format
-```
+- For a user-facing command quick reference, see `README.md`.
+- When writing scripts/tools that parse output, prefer `--format json`.
 
 ## Testing
 

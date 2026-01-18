@@ -24,6 +24,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`compaction.md`](compaction.md) | Compaction | Digest-first navigation and lossless decay |
 | [`pack.md`](pack.md) | Pack | Single-file dump/load for sharing raw knowledge |
 | [`workspaces.md`](workspaces.md) | Workspaces | Temporary and secondary stores for agent tasks |
+| [`structured-logging.md`](structured-logging.md) | Infrastructure | Structured logging framework with tracing support |
 
 ## Status Tracking
 
@@ -51,6 +52,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `compaction.md` | ✅ | ✅ | ✅ | |
 | `pack.md` | ✅ | ⚠️ | ⚠️ | Missing: --strategy, store_version, conflict resolution |
 | `workspaces.md` | ✅ | ⚠️ | ❌ | **Bugs**: merge strategies broken; **No tests** |
+| `structured-logging.md` | ✅ | ❌ | ❌ | **Not started**: Infrastructure improvement |
 
 ## Legend
 

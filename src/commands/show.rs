@@ -31,6 +31,9 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
     let all_notes = store.list_notes()?;
     let compaction_ctx = CompactionContext::build(&all_notes)?;
 
+    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
+    let note_map = CompactionContext::build_note_map(&all_notes);
+
     // Resolve compaction unless disabled
     let mut via = None;
     if !cli.no_resolve_compaction {
@@ -83,7 +86,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 if let Some(obj) = output.as_object_mut() {
                     obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                    if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                    if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &note_map) {
                         obj.insert(
                             "compaction_pct".to_string(),
                             serde_json::json!(format!("{:.1}", pct)),
@@ -136,7 +139,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
             if compacts_count > 0 {
                 annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &all_notes) {
+                if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &note_map) {
                     annotations.push_str(&format!(" compaction={:.0}%", pct));
                 }
             }

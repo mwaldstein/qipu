@@ -47,12 +47,22 @@ pub fn execute(
         || cli.compaction_max_nodes.is_some();
 
     // Only load all notes and build compaction context if needed
-    let (all_notes, compaction_ctx) = if needs_compaction {
-        let notes = store.list_notes()?;
-        let ctx = CompactionContext::build(&notes)?;
-        (notes, Some(ctx))
+    let all_notes = if needs_compaction {
+        store.list_notes()?
     } else {
-        (Vec::new(), None)
+        Vec::new()
+    };
+
+    let compaction_ctx = if needs_compaction {
+        Some(CompactionContext::build(&all_notes)?)
+    } else {
+        None
+    };
+
+    let compaction_note_map = if needs_compaction {
+        Some(CompactionContext::build_note_map(&all_notes))
+    } else {
+        None
     };
 
     // Apply compaction resolution (unless --no-resolve-compaction)
@@ -162,11 +172,13 @@ pub fn execute(
 
                                 // For compaction_pct, use cached note to avoid repeated I/O
                                 if let Some(note) = notes_cache.get(&r.id) {
-                                    if let Some(pct) = ctx.get_compaction_pct(note, &all_notes) {
-                                        obj_mut.insert(
-                                            "compaction_pct".to_string(),
-                                            serde_json::json!(format!("{:.1}", pct)),
-                                        );
+                                    if let Some(ref note_map) = compaction_note_map {
+                                        if let Some(pct) = ctx.get_compaction_pct(note, note_map) {
+                                            obj_mut.insert(
+                                                "compaction_pct".to_string(),
+                                                serde_json::json!(format!("{:.1}", pct)),
+                                            );
+                                        }
                                     }
                                 }
 
@@ -226,8 +238,10 @@ pub fn execute(
 
                             // For compaction_pct, use cached note to avoid repeated I/O
                             if let Some(note) = notes_cache.get(&result.id) {
-                                if let Some(pct) = ctx.get_compaction_pct(note, &all_notes) {
-                                    annotations.push_str(&format!(" compaction={:.0}%", pct));
+                                if let Some(ref note_map) = compaction_note_map {
+                                    if let Some(pct) = ctx.get_compaction_pct(note, note_map) {
+                                        annotations.push_str(&format!(" compaction={:.0}%", pct));
+                                    }
                                 }
                             }
                         }
@@ -298,8 +312,10 @@ pub fn execute(
 
                         // For compaction_pct, use cached note to avoid repeated I/O
                         if let Some(note) = notes_cache.get(&result.id) {
-                            if let Some(pct) = ctx.get_compaction_pct(note, &all_notes) {
-                                annotations.push_str(&format!(" compaction={:.0}%", pct));
+                            if let Some(ref note_map) = compaction_note_map {
+                                if let Some(pct) = ctx.get_compaction_pct(note, note_map) {
+                                    annotations.push_str(&format!(" compaction={:.0}%", pct));
+                                }
                             }
                         }
                     }

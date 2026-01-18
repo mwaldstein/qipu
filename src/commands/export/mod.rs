@@ -99,7 +99,10 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     }
 
     // Sort notes deterministically (by created, then by id)
-    plan::sort_notes_by_created_id(&mut selected_notes);
+    // Skip sorting for MOC-driven exports to preserve MOC ordering
+    if options.moc_id.is_none() {
+        plan::sort_notes_by_created_id(&mut selected_notes);
+    }
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {

@@ -126,9 +126,12 @@
   - Added test: `tests/cli/context/formats.rs:106-169` verifies provenance fields are included in context JSON output
 
 ### `specs/export.md`
-- [ ] MOC-driven export ordering does not follow MOC ordering for bundle/json/records
-  - Global created/id sort runs before emitting regardless of `--moc`.
-  - Refs: sort `src/commands/export/mod.rs:101-103`, sort fn `src/commands/export/plan.rs:100-110`
+- [x] MOC-driven export ordering does not follow MOC ordering for bundle/json/records
+  - Fixed: `get_moc_linked_notes()` now re-parses MOC body to extract links in order of appearance (typed links from frontmatter, then wiki links, then markdown links)
+  - Export command now skips sorting when `--moc` is specified to preserve MOC ordering
+  - Changed `src/commands/export/plan.rs:112-211`: rewrote `get_moc_linked_notes()` to extract links in order using regex matching on MOC body
+  - Changed `src/commands/export/mod.rs:101-106`: added conditional to skip sorting when `options.moc_id.is_some()`
+  - Existing test `tests/cli/export.rs:test_export_outline_preserves_moc_order` verifies MOC ordering is preserved
 - [ ] `--link-mode anchors` likely produces broken anchors (`#note-<id>` targets not emitted)
   - Refs: anchor map `src/commands/export/emit/links.rs:16-18`, headings lack explicit anchors `src/commands/export/emit/bundle.rs:31`, `src/commands/export/emit/outline.rs:74`
 - [ ] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location

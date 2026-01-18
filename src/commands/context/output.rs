@@ -11,6 +11,7 @@ pub fn output_json(
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
+    with_body: bool,
     compaction_ctx: &CompactionContext,
     note_map: &std::collections::HashMap<&str, &Note>,
     all_notes: &[Note], // Keep for compatibility with get_compacted_notes_expanded
@@ -20,13 +21,18 @@ pub fn output_json(
         "truncated": truncated,
         "notes": notes.iter().map(|selected| {
             let note = selected.note;
+            let content = if with_body {
+                note.body.clone()
+            } else {
+                note.summary()
+            };
             let mut json = serde_json::json!({
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
                 "tags": note.frontmatter.tags,
                 "path": note.path.as_ref().map(|p| p.display().to_string()),
-                "content": note.body,
+                "content": content,
                 "sources": note.frontmatter.sources.iter().map(|s| {
                     let mut obj = serde_json::json!({
                         "url": s.url,
@@ -125,6 +131,7 @@ pub fn output_human(
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
+    with_body: bool,
     safety_banner: bool,
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
@@ -207,7 +214,11 @@ pub fn output_human(
 
         println!();
         println!("---");
-        println!("{}", note.body.trim());
+        if with_body {
+            println!("{}", note.body.trim());
+        } else {
+            println!("{}", note.summary().trim());
+        }
         println!();
         println!("---");
 

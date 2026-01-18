@@ -16,10 +16,12 @@
   - Changed `src/commands/load/mod.rs:127-135`
 
 ### `specs/llm-context.md`
-- [ ] `context` budgeting can be violated because selection estimates summary size but human/JSON outputs always emit full body
-  - Budget estimates summary when `--with-body` is false: `src/commands/context/budget.rs:97-103`
-  - Human output prints full body: `src/commands/context/output.rs:208-213`
-  - JSON output always includes `content: note.body`: `src/commands/context/output.rs:23-41`
+- [x] `context` budgeting can be violated because selection estimates summary size but human/JSON outputs always emit full body
+  - Fixed: human and JSON outputs now respect `--with-body` flag
+  - When `--with-body=false`, outputs use `note.summary()` instead of `note.body`
+  - Changed `src/commands/context/output.rs:23-33`, `src/commands/context/output.rs:210-216`
+  - Updated function signatures to accept `with_body` parameter: `src/commands/context/output.rs:9`, `src/commands/context/output.rs:123`
+  - Updated call sites: `src/commands/context/mod.rs:164-172`, `src/commands/context/mod.rs:174-184`
 - [ ] `--max-chars` is “exact” only for `--format records`; human/JSON use an estimate + buffer and never validate final output size
   - Estimate + buffer: `src/commands/context/budget.rs:29-33`
   - Exact records accounting: `src/commands/context/output.rs:53-90`

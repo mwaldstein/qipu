@@ -21,8 +21,8 @@
   - Fixed: removed "(coming soon)" from guide output
 
 ### `specs/pack.md`
-- [ ] `load --strategy merge-links` does not match spec semantics (content preservation + links union)
-  - Incoming note frontmatter links are initialized empty, so “merge” is a no-op; content still overwritten.
+- [x] `load --strategy merge-links` does not match spec semantics (content preservation + links union)
+  - Fixed: Now returns loaded IDs from `load_notes` and uses that set in `load_links` to ensure pack links are added to merged notes
   - Refs: empty links `src/commands/load/mod.rs:198`, note body set from pack `src/commands/load/mod.rs:211-213`, merge branch `src/commands/load/mod.rs:249-276`
 - [ ] Dump `--typed-only` / `--inline-only` filtering is inverted
   - Refs: `src/commands/dump/mod.rs:36-41`

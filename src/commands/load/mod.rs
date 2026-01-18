@@ -86,10 +86,10 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     }
 
     // Load notes
-    let loaded_notes_count = load_notes(store, &pack_data.notes, &strategy)?;
+    let (loaded_notes_count, loaded_ids) = load_notes(store, &pack_data.notes, &strategy)?;
 
     // Load links
-    let loaded_links_count = load_links(store, &pack_data.links, &pack_data.notes)?;
+    let loaded_links_count = load_links(store, &pack_data.links, &loaded_ids)?;
 
     // Load attachments
     let loaded_attachments_count = if !pack_data.attachments.is_empty() {
@@ -164,8 +164,13 @@ fn write_note_preserving_updated(note: &Note) -> Result<()> {
 }
 
 /// Load notes from pack into store
-fn load_notes(store: &Store, pack_notes: &[PackNote], strategy: &LoadStrategy) -> Result<usize> {
+fn load_notes(
+    store: &Store,
+    pack_notes: &[PackNote],
+    strategy: &LoadStrategy,
+) -> Result<(usize, HashSet<String>)> {
     let mut loaded_count = 0;
+    let mut loaded_ids: HashSet<String> = HashSet::new();
     let existing_ids = store.existing_ids()?;
 
     for pack_note in pack_notes {
@@ -285,15 +290,19 @@ fn load_notes(store: &Store, pack_notes: &[PackNote], strategy: &LoadStrategy) -
             // Save note without overwriting pack timestamps
             write_note_preserving_updated(&note)?;
             loaded_count += 1;
+            loaded_ids.insert(note.id().to_string());
         }
     }
 
-    Ok(loaded_count)
+    Ok((loaded_count, loaded_ids))
 }
 
 /// Load links from pack into store
-fn load_links(store: &Store, pack_links: &[PackLink], loaded_notes: &[PackNote]) -> Result<usize> {
-    let loaded_ids: HashSet<_> = loaded_notes.iter().map(|n| &n.id).collect();
+fn load_links(
+    store: &Store,
+    pack_links: &[PackLink],
+    loaded_ids: &HashSet<String>,
+) -> Result<usize> {
     let mut loaded_count = 0;
 
     // Group links by source note to batch process
@@ -307,15 +316,15 @@ fn load_links(store: &Store, pack_links: &[PackLink], loaded_notes: &[PackNote])
     }
 
     for (source_id, links) in links_by_source {
-        // Only process if the source note was loaded or already exists in store
-        if loaded_ids.contains(&source_id) || store.note_exists(&source_id) {
+        // Only process links for notes that were actually loaded
+        if loaded_ids.contains(&source_id) {
             // Load the source note
             let mut source_note = store.get_note(&source_id)?;
 
             // Add each link to the note's frontmatter
             for pack_link in links {
                 // Only load links between notes that were loaded
-                if loaded_ids.contains(&pack_link.to) || store.note_exists(&pack_link.to) {
+                if loaded_ids.contains(&pack_link.to) {
                     // Check if link already exists to avoid duplicates
                     let link_exists = source_note.frontmatter.links.iter().any(|l| {
                         l.id == pack_link.to.as_str()

@@ -68,10 +68,11 @@
 - [x] `llm-tool-test` CLI default tool value is inconsistent with runtime support
   - Fixed: Changed default from "qipu" to "opencode" to match runtime support
   - Refs: CLI default `crates/llm-tool-test/src/cli.rs:23`; runtime match `crates/llm-tool-test/src/main.rs:59-63`
-- [ ] Rubric YAML fixtures don’t match the deserialization shape expected by the judge
-  - Expects `criteria: Vec<...>`: `crates/llm-tool-test/src/judge.rs:5-17`; fixtures are a mapping: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml:1-16`
+- [x] Rubric YAML fixtures don't match the deserialization shape expected by the judge
+  - Fixed: Converted YAML fixtures from mapping structure to array structure with `id` field
+  - Refs: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml`, `crates/llm-tool-test/fixtures/qipu/rubrics/link_v1.yaml`
 - [ ] Regression detection message/condition appears reversed
-  - Refs: `crates/llm-tool-test/src/results.rs:228-230`
+   - Refs: `crates/llm-tool-test/src/results.rs:228-230`
 
 ## P2: Missing Test Coverage
 

@@ -14,16 +14,70 @@ pub fn export_json(
     compaction_ctx: &CompactionContext,
     all_notes: &[Note],
 ) -> Result<String> {
-    // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
-    let note_map = CompactionContext::build_note_map(all_notes);
-
     let mode_str = match options.mode {
         ExportMode::Bundle => "bundle",
         ExportMode::Outline => "outline",
         ExportMode::Bibliography => "bibliography",
     };
 
-    let output = serde_json::json!({
+    let output = match options.mode {
+        ExportMode::Bibliography => export_bibliography_json(notes, store, mode_str),
+        _ => export_notes_json(notes, store, options, cli, compaction_ctx, all_notes, mode_str),
+    };
+
+    Ok(serde_json::to_string_pretty(&output)?)
+}
+
+fn export_bibliography_json(
+    notes: &[Note],
+    store: &Store,
+    mode_str: &str,
+) -> serde_json::Value {
+    let mut all_sources: Vec<_> = notes
+        .iter()
+        .flat_map(|note| {
+            note.frontmatter.sources.iter().map(move |source| {
+                let mut obj = serde_json::json!({
+                    "url": source.url,
+                    "from_note_id": note.id(),
+                    "from_note_title": note.title(),
+                });
+                if let Some(title) = &source.title {
+                    obj["title"] = serde_json::json!(title);
+                }
+                if let Some(accessed) = &source.accessed {
+                    obj["accessed"] = serde_json::json!(accessed);
+                }
+                obj
+            })
+        })
+        .collect();
+
+    all_sources.sort_by(|a, b| {
+        let url_a = a["url"].as_str().unwrap_or("");
+        let url_b = b["url"].as_str().unwrap_or("");
+        url_a.cmp(url_b)
+    });
+
+    serde_json::json!({
+        "store": store.root().display().to_string(),
+        "mode": mode_str,
+        "sources": all_sources,
+    })
+}
+
+fn export_notes_json(
+    notes: &[Note],
+    store: &Store,
+    _options: &ExportOptions,
+    cli: &Cli,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[Note],
+    mode_str: &str,
+) -> serde_json::Value {
+    let note_map = CompactionContext::build_note_map(all_notes);
+
+    serde_json::json!({
         "store": store.root().display().to_string(),
         "mode": mode_str,
         "notes": notes
@@ -83,7 +137,5 @@ pub fn export_json(
                 obj
             })
             .collect::<Vec<_>>(),
-    });
-
-    Ok(serde_json::to_string_pretty(&output)?)
+    })
 }

@@ -9,8 +9,8 @@
 ### `specs/export.md`
 - [x] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
   - Fixed: added `rewrite_attachment_links()` to transform `../attachments/` to `./attachments/` in output content
-- [ ] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
-  - Refs: JSON export always emits notes array `src/commands/export/emit/json.rs:26-86`
+- [x] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
+  - Fixed: JSON export now emits `sources` array with extracted bibliography entries instead of `notes` array
 
 ### `specs/compaction.md`
 - [ ] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit

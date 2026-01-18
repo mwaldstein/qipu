@@ -161,16 +161,23 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         }
     };
 
-    // Handle attachment copying if requested
-    if options.with_attachments {
+    // Handle attachment copying and link rewriting if requested
+    let output_content = if options.with_attachments {
         if let Some(output_path) = options.output {
             let output_dir = output_path.parent().unwrap_or(std::path::Path::new("."));
             let attachments_target_dir = output_dir.join("attachments");
             copy_attachments(store, &selected_notes, &attachments_target_dir, cli)?;
-        } else if cli.verbose && !cli.quiet {
-            eprintln!("warning: --with-attachments ignored when exporting to stdout");
+            // Rewrite attachment links from ../attachments/ to ./attachments/
+            rewrite_attachment_links(&output_content)
+        } else {
+            if cli.verbose && !cli.quiet {
+                eprintln!("warning: --with-attachments ignored when exporting to stdout");
+            }
+            output_content
         }
-    }
+    } else {
+        output_content
+    };
 
     // Write output to file or stdout
     if let Some(output_path) = options.output {
@@ -191,6 +198,13 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Rewrite attachment links from ../attachments/ to ./attachments/
+fn rewrite_attachment_links(content: &str) -> String {
+    use regex::Regex;
+    let re = Regex::new(r"\.\./attachments/").expect("valid regex");
+    re.replace_all(content, "./attachments/").into_owned()
 }
 
 /// Copy referenced attachments to the target directory

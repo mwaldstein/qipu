@@ -71,6 +71,17 @@ fn test_export_with_attachments() {
         fs::read_to_string(dir.path().join("attachments/test.png")).unwrap(),
         "image data"
     );
+
+    // Verify exported content has rewritten links (../attachments/ -> ./attachments/)
+    let export_content = fs::read_to_string(dir.path().join("export.md")).unwrap();
+    assert!(
+        export_content.contains("./attachments/test.png"),
+        "exported content should have rewritten attachment links to ./attachments/"
+    );
+    assert!(
+        !export_content.contains("../attachments/test.png"),
+        "exported content should not contain original ../attachments/ links"
+    );
 }
 
 #[test]

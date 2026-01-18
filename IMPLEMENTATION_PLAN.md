@@ -7,8 +7,8 @@
 ## P1: Correctness Bugs
 
 ### `specs/export.md`
-- [ ] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
-  - Refs: copy target `src/commands/export/mod.rs:164-167`, copy regex expects `../attachments/...` `src/commands/export/mod.rs:203-205`
+- [x] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
+  - Fixed: added `rewrite_attachment_links()` to transform `../attachments/` to `./attachments/` in output content
 - [ ] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
   - Refs: JSON export always emits notes array `src/commands/export/emit/json.rs:26-86`
 

@@ -1,19 +1,17 @@
 name: CI
 
 # =============================================================================
-# WORKFLOW DISABLED - GitHub Actions is not enabled on this account
+# WORKFLOW DISABLED - Runs only on manual trigger
 # =============================================================================
-# DO NOT enable this workflow until Actions is activated in the GitHub repo settings.
-#
-# To enable, replace `on: {}` with:
-#   on:
-#     push:
-#       branches: [ main ]
-#     pull_request:
-#       branches: [ main ]
+# To enable automatic runs, add push/pull_request triggers:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
 # =============================================================================
 
-on: {}
+on:
+  workflow_dispatch: # Manual trigger only
 
 env:
   CARGO_TERM_COLOR: always

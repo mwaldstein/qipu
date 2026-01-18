@@ -94,8 +94,11 @@
   - Added test: `tests/cli/context/formats.rs:64-96` verifies quotes in titles are properly escaped
 
 ### `specs/similarity-ranking.md`
-- [ ] Stop words removal is required but not implemented
-  - Refs: tokenizer `src/lib/text/mod.rs:7-13` (no stopword filtering); no stopword list in `src/`
+- [x] Stop words removal is required but not implemented
+  - Fixed: added common English stop words list (33 words: a, an, and, are, as, at, be, but, by, for, if, in, into, is, it, no, not, of, on, or, such, that, the, their, then, there, these, they, this, to, was, will, with)
+  - Stop words are now filtered during tokenization using a static `OnceLock<HashSet<&str>>` for efficient lookup
+  - Changed `src/lib/text/mod.rs:1-40`: added `get_stop_words()` function and updated `tokenize()` to filter stop words
+  - Added tests: `src/lib/text/mod.rs:69-118` (6 unit tests verifying stop word removal)
 - [ ] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
   - Refs: CLI default `src/cli/commands.rs:183-185`
 - [ ] Similarity is described as TF-IDF cosine; implementation uses cosine over BM25-weighted vectors with `tf=1` (no term frequencies stored)

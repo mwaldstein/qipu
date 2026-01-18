@@ -125,19 +125,25 @@ fn build_json_output(
                     // Add compacted IDs if --with-compaction-ids is set
                     if cli.with_compaction_ids {
                         let depth = cli.compaction_depth.unwrap_or(1);
-                        if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                        if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
                             &note.frontmatter.id,
                             depth,
                             cli.compaction_max_nodes,
                         ) {
                             obj.insert("compacted_ids".to_string(), serde_json::json!(ids));
+                            if truncated {
+                                obj.insert(
+                                    "compacted_ids_truncated".to_string(),
+                                    serde_json::json!(true),
+                                );
+                            }
                         }
                     }
 
                     // Add expanded compacted notes if --expand-compaction is set
                     if cli.expand_compaction {
                         let depth = cli.compaction_depth.unwrap_or(1);
-                        if let Some((compacted_notes, _truncated)) = compaction_ctx.get_compacted_notes_expanded(
+                        if let Some((compacted_notes, truncated)) = compaction_ctx.get_compacted_notes_expanded(
                             &note.frontmatter.id,
                             depth,
                             cli.compaction_max_nodes,
@@ -171,6 +177,12 @@ fn build_json_output(
                                         .collect::<Vec<_>>()
                                 ),
                             );
+                            if truncated {
+                                obj.insert(
+                                    "compacted_notes_truncated".to_string(),
+                                    serde_json::json!(true),
+                                );
+                            }
                         }
                     }
                 }

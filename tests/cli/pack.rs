@@ -1,6 +1,8 @@
-use assert_cmd::Command;
+mod support;
+
 use predicates::prelude::*;
 use std::fs;
+use support::qipu;
 use tempfile::tempdir;
 
 #[test]
@@ -12,14 +14,14 @@ fn test_pack_unpack_json_roundtrip() {
     let pack_file = dir1.path().join("test.pack.json");
 
     // 1. Initialize store 1
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Create a note with all fields
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Test Note")
         .arg("--type")
@@ -33,8 +35,7 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // Get the ID of the created note
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
@@ -57,7 +58,7 @@ fn test_pack_unpack_json_roundtrip() {
     fs::write(&note_path, updated_content).unwrap();
 
     // 3. Pack to JSON
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg(&note_id)
         .arg("--output")
@@ -69,14 +70,14 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
@@ -84,7 +85,7 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("show")
         .arg(&note_id)
         .env("QIPU_STORE", store2_path)
@@ -117,14 +118,14 @@ fn test_pack_unpack_records_roundtrip() {
     let pack_file = dir1.path().join("test.pack.records");
 
     // 1. Initialize store 1
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Create a note with all fields
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Test Note Records")
         .arg("--type")
@@ -138,8 +139,7 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // Get the ID of the created note
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
@@ -162,7 +162,7 @@ fn test_pack_unpack_records_roundtrip() {
     fs::write(&note_path, updated_content).unwrap();
 
     // 3. Pack to Records
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg(&note_id)
         .arg("--output")
@@ -174,14 +174,14 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
@@ -189,7 +189,7 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("show")
         .arg(&note_id)
         .env("QIPU_STORE", store2_path)

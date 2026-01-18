@@ -1,7 +1,10 @@
-use assert_cmd::Command;
-use predicates::prelude::*;
-use std::fs;
+use assert_cmd::{cargo::cargo_bin_cmd, Command};
+use predicates;
 use tempfile::tempdir;
+
+fn qipu() -> Command {
+    cargo_bin_cmd!("qipu")
+}
 
 #[test]
 fn test_workspace_copy_primary_preserves_id() {
@@ -9,16 +12,14 @@ fn test_workspace_copy_primary_preserves_id() {
     let root = dir.path();
 
     // 1. Init store
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("init")
         .current_dir(root)
         .assert()
         .success();
 
     // 2. Create a note in main store
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("create")
         .arg("Main Note")
         .current_dir(root)
@@ -29,8 +30,7 @@ fn test_workspace_copy_primary_preserves_id() {
     assert!(!main_id.is_empty(), "Main ID should not be empty");
 
     // 3. Create a workspace with copy-primary
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("workspace")
         .arg("new")
         .arg("dev")
@@ -40,8 +40,7 @@ fn test_workspace_copy_primary_preserves_id() {
         .success();
 
     // 4. List notes in workspace and verify ID matches
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--workspace")
         .arg("dev")
@@ -63,16 +62,14 @@ fn test_workspace_merge_strategies_links() {
     let root = dir.path();
 
     // 1. Init
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("init")
         .current_dir(root)
         .assert()
         .success();
 
     // 2. Create note in main
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("create")
         .arg("Target")
         .current_dir(root)
@@ -81,8 +78,7 @@ fn test_workspace_merge_strategies_links() {
     let id = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
     // 3. Copy to workspace
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("workspace")
         .arg("new")
         .arg("ws_links")
@@ -97,8 +93,7 @@ fn test_workspace_merge_strategies_links() {
     // CLI --store argument should work.
     let ws_store_str = ws_store_path.to_str().unwrap();
 
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("--store")
         .arg(ws_store_str)
         .arg("create")
@@ -109,8 +104,7 @@ fn test_workspace_merge_strategies_links() {
     let ws_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
     // Link Target -> WorkspaceOnly in workspace
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("--store")
         .arg(ws_store_str)
         .arg("link")
@@ -124,8 +118,7 @@ fn test_workspace_merge_strategies_links() {
         .success();
 
     // 5. Create MainOnly in main
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("create")
         .arg("MainOnly")
         .current_dir(root)
@@ -134,8 +127,7 @@ fn test_workspace_merge_strategies_links() {
     let main_only_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
     // Link Target -> MainOnly in main
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("link")
         .arg("add")
         .arg("--type")
@@ -147,8 +139,7 @@ fn test_workspace_merge_strategies_links() {
         .success();
 
     // 6. Merge workspace into main with merge-links
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .arg("workspace")
         .arg("merge")
         .arg("ws_links")
@@ -160,8 +151,7 @@ fn test_workspace_merge_strategies_links() {
         .success();
 
     // 7. Verify Target in main has BOTH links
-    let links_out = Command::cargo_bin("qipu")
-        .unwrap()
+    let links_out = qipu()
         .arg("link")
         .arg("list")
         .arg(&id)
@@ -187,32 +177,28 @@ fn test_workspace_delete_protection() {
     let root = dir.path();
 
     // Init store
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .current_dir(root)
         .arg("init")
         .assert()
         .success();
 
     // 2. Create a workspace
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .current_dir(root)
         .args(&["workspace", "new", "test_ws"])
         .assert()
         .success();
 
     // 3. Add a note to the workspace (unmerged change)
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .current_dir(root)
         .args(&["create", "My Note", "--workspace", "test_ws"])
         .assert()
         .success();
 
     // 4. Try to delete without --force (should fail with the fix)
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .current_dir(root)
         .args(&["workspace", "delete", "test_ws"])
         .assert()
@@ -220,8 +206,7 @@ fn test_workspace_delete_protection() {
         .stderr(predicates::str::contains("unmerged changes"));
 
     // 5. Try to delete WITH --force (should succeed)
-    Command::cargo_bin("qipu")
-        .unwrap()
+    qipu()
         .current_dir(root)
         .args(&["workspace", "delete", "test_ws", "--force"])
         .assert()

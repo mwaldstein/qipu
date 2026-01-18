@@ -1,7 +1,11 @@
-use assert_cmd::Command;
+use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
+
+fn qipu() -> Command {
+    cargo_bin_cmd!("qipu")
+}
 
 #[test]
 fn test_pack_unpack_json_roundtrip() {
@@ -12,14 +16,14 @@ fn test_pack_unpack_json_roundtrip() {
     let pack_file = dir1.path().join("test.pack.json");
 
     // 1. Initialize store 1
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Create a note with all fields
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Test Note")
         .arg("--type")
@@ -33,8 +37,7 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // Find the note ID from the output
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
@@ -62,7 +65,7 @@ fn test_pack_unpack_json_roundtrip() {
     }
 
     // 3. Pack to JSON
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--output")
         .arg(&pack_file)
@@ -73,14 +76,14 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
@@ -88,7 +91,7 @@ fn test_pack_unpack_json_roundtrip() {
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("show")
         .arg(&note_id)
         .env("QIPU_STORE", store2_path)
@@ -106,14 +109,14 @@ fn test_pack_unpack_records_roundtrip() {
     let pack_file = dir1.path().join("test.pack.records");
 
     // 1. Initialize store 1
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Create a note
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Test Note Records")
         .arg("--type")
@@ -127,8 +130,7 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // Find the note ID
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
@@ -156,7 +158,7 @@ fn test_pack_unpack_records_roundtrip() {
     }
 
     // 3. Pack to Records
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--output")
         .arg(&pack_file)
@@ -167,14 +169,14 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
@@ -182,7 +184,7 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("show")
         .arg(&note_id)
         .env("QIPU_STORE", store2_path)
@@ -199,13 +201,13 @@ fn test_load_strategy_skip() {
     let pack_file = dir1.path().join("test.pack.json");
 
     // 1. Initialize store 1 and create a note
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Original Note")
         .env("QIPU_STORE", store1_path)
@@ -213,7 +215,7 @@ fn test_load_strategy_skip() {
         .success();
 
     // 2. Pack the note
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--output")
         .arg(&pack_file)
@@ -224,14 +226,14 @@ fn test_load_strategy_skip() {
         .success();
 
     // 3. Initialize store 2
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 4. Load with skip strategy (default)
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .arg("--strategy")
@@ -241,8 +243,7 @@ fn test_load_strategy_skip() {
         .success();
 
     // 5. Verify the note exists and has original content
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
@@ -253,7 +254,7 @@ fn test_load_strategy_skip() {
     let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let note_id = list[0]["id"].as_str().unwrap().to_string();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("show")
         .arg(&note_id)
         .env("QIPU_STORE", store2_path)
@@ -273,13 +274,13 @@ fn test_load_strategy_overwrite() {
     let note_id = "qp-test-overwrite";
 
     // 1. Initialize store 1 and create a note with tag "original"
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note A")
         .arg("--tag")
@@ -291,7 +292,7 @@ fn test_load_strategy_overwrite() {
         .success();
 
     // 2. Pack the note
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--output")
         .arg(&pack_file)
@@ -302,13 +303,13 @@ fn test_load_strategy_overwrite() {
         .success();
 
     // 3. Initialize store 2 and create a note with same ID but different content
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note B")
         .arg("--tag")
@@ -320,7 +321,7 @@ fn test_load_strategy_overwrite() {
         .success();
 
     // 4. Load with overwrite strategy
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .arg("--strategy")
@@ -330,8 +331,7 @@ fn test_load_strategy_overwrite() {
         .success();
 
     // 5. Verify the note has been overwritten with pack content
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("show")
         .arg(note_id)
         .env("QIPU_STORE", store2_path)
@@ -358,13 +358,13 @@ fn test_load_strategy_merge_links() {
     let linked_id = format!("qp-{}", unique_suffix + 1);
 
     // 1. Initialize store 1 and create a note with links
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Target Note")
         .arg("--id")
@@ -373,7 +373,7 @@ fn test_load_strategy_merge_links() {
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Linked Note")
         .arg("--id")
@@ -382,7 +382,7 @@ fn test_load_strategy_merge_links() {
         .assert()
         .success();
 
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
         .arg(&target_id)
@@ -394,7 +394,7 @@ fn test_load_strategy_merge_links() {
         .success();
 
     // 2. Pack the notes
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--output")
         .arg(&pack_file)
@@ -405,14 +405,14 @@ fn test_load_strategy_merge_links() {
         .success();
 
     // 3. Initialize store 2 and create a target note with same ID but different links
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // Create target note in store2 with same ID as in store1
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("create")
         .arg("Target Note")
         .arg("--id")
@@ -424,7 +424,7 @@ fn test_load_strategy_merge_links() {
         .success();
 
     // 4. Load with merge-links strategy
-    let mut cmd = Command::cargo_bin("qipu").unwrap();
+    let mut cmd = qipu();
     cmd.arg("load")
         .arg(&pack_file)
         .arg("--strategy")
@@ -434,8 +434,7 @@ fn test_load_strategy_merge_links() {
         .success();
 
     // 5. Verify the target note now has the merged link from pack
-    let output = Command::cargo_bin("qipu")
-        .unwrap()
+    let output = qipu()
         .arg("show")
         .arg(&target_id)
         .arg("--links")

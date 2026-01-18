@@ -449,10 +449,13 @@ fn test_load_strategy_merge_links() {
     let output = Command::cargo_bin("qipu")
         .unwrap()
         .arg("show")
-        .arg("Target Note")
+        .arg("qp-test-target")
+        .arg("--links")
         .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
 
-    assert!(predicate::str::contains("Linked Note").eval(&String::from_utf8_lossy(&output.stdout)));
+    assert!(
+        predicate::str::contains("qp-test-linked").eval(&String::from_utf8_lossy(&output.stdout))
+    );
 }

@@ -15,13 +15,11 @@ CREATE TABLE IF NOT EXISTS notes (
     mtime INTEGER
 );
 
--- Full-text search index with FTS5
+ -- Full-text search index with FTS5
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     title,
     body,
     tags,
-    content=notes,
-    content_rowid=rowid,
     tokenize='porter unicode61'
 );
 

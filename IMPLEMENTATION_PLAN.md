@@ -112,8 +112,10 @@
   - Updated test to use HashMap: `src/lib/similarity/mod.rs:147-197`
 
 ### `specs/provenance.md`
-- [ ] `qipu create --format json` omits provenance fields (`source/author/generated_by/prompt_hash/verified`)
-  - Refs: `src/commands/create.rs:52-63`
+- [x] `qipu create --format json` omits provenance fields (`source/author/generated_by/prompt_hash/verified`)
+  - Fixed: added provenance fields to JSON output matching `show` command format
+  - Changed `src/commands/create.rs:52-68`: added source, author, generated_by, prompt_hash, verified to JSON output
+  - Added test: `tests/cli/create.rs:102-144` verifies provenance fields are included in JSON output
 - [ ] `qipu capture --format json` omits provenance fields
   - Refs: `src/commands/capture.rs:70-82`
 - [ ] `qipu context --format json` omits per-note provenance fields (even though `show --format json` includes them)

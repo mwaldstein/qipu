@@ -97,3 +97,52 @@ fn test_new_alias() {
         .success()
         .stdout(predicate::str::starts_with("qp-"));
 }
+
+#[test]
+fn test_create_json_with_provenance() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "json",
+            "create",
+            "--source",
+            "https://example.com",
+            "--author",
+            "TestBot",
+            "--generated-by",
+            "gpt-4o",
+            "--prompt-hash",
+            "abc123",
+            "--verified",
+            "false",
+            "Provenance Test",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    // Verify provenance fields are present
+    assert_eq!(json["source"], "https://example.com");
+    assert_eq!(json["author"], "TestBot");
+    assert_eq!(json["generated_by"], "gpt-4o");
+    assert_eq!(json["prompt_hash"], "abc123");
+    assert_eq!(json["verified"], false);
+
+    // Verify standard fields are also present
+    assert!(json["id"].as_str().unwrap().starts_with("qp-"));
+    assert_eq!(json["title"], "Provenance Test");
+}

@@ -1,5 +1,5 @@
 //! Link tree command
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
@@ -7,9 +7,7 @@ use crate::lib::error::Result;
 use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::store::Store;
 
-use super::{
-    resolve_note_id, Direction, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult,
-};
+use super::{resolve_note_id, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult};
 
 /// Execute the link tree command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) -> Result<()> {
@@ -64,34 +62,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     // Output
     match cli.format {
         OutputFormat::Json => {
-            let mut json_result = serde_json::to_value(&result)?;
-            // Add compacted IDs if --with-compaction-ids is set
-            if cli.with_compaction_ids {
-                if let Some(ref ctx) = compaction_ctx {
-                    if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut())
-                    {
-                        for note in notes {
-                            if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
-                                let compacts_count = ctx.get_compacts_count(id);
-                                if compacts_count > 0 {
-                                    let depth = cli.compaction_depth.unwrap_or(1);
-                                    if let Some((ids, _truncated)) =
-                                        ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
-                                    {
-                                        if let Some(obj_mut) = note.as_object_mut() {
-                                            obj_mut.insert(
-                                                "compacted_ids".to_string(),
-                                                serde_json::json!(ids),
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            println!("{}", serde_json::to_string_pretty(&json_result)?);
+            output_tree_json(cli, &result, compaction_ctx.as_ref())?;
         }
         OutputFormat::Human => {
             output_tree_human(cli, &result, &index, compaction_ctx.as_ref());
@@ -104,223 +75,40 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     Ok(())
 }
 
-/// Perform BFS traversal from a root node with optional compaction resolution
-fn bfs_traverse(
+/// Output tree in JSON format
+fn output_tree_json(
     cli: &Cli,
-    index: &Index,
-    store: &Store,
-    root: &str,
-    opts: &TreeOptions,
+    result: &TreeResult,
     compaction_ctx: Option<&CompactionContext>,
-    equivalence_map: Option<&HashMap<String, Vec<String>>>,
-) -> Result<TreeResult> {
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
-    let mut notes: Vec<TreeNote> = Vec::new();
-    let mut links: Vec<TreeLink> = Vec::new();
-    let mut spanning_tree: Vec<SpanningTreeEntry> = Vec::new();
-
-    let mut truncated = false;
-    let mut truncation_reason: Option<String> = None;
-
-    // Initialize with root
-    queue.push_back((root.to_string(), 0));
-    visited.insert(root.to_string());
-
-    // Add root note
-    if let Some(meta) = index.get_metadata(root) {
-        notes.push(TreeNote {
-            id: meta.id.clone(),
-            title: meta.title.clone(),
-            note_type: meta.note_type,
-            tags: meta.tags.clone(),
-            path: meta.path.clone(),
-        });
-    }
-
-    while let Some((current_id, hop)) = queue.pop_front() {
-        // Check max_nodes limit
-        if let Some(max) = opts.max_nodes {
-            if visited.len() >= max {
-                truncated = true;
-                truncation_reason = Some("max_nodes".to_string());
-                break;
-            }
-        }
-
-        // Check max_edges limit
-        if let Some(max) = opts.max_edges {
-            if links.len() >= max {
-                truncated = true;
-                truncation_reason = Some("max_edges".to_string());
-                break;
-            }
-        }
-
-        // Don't expand beyond max_hops
-        if hop >= opts.max_hops {
-            continue;
-        }
-
-        // Get neighbors based on direction (gather edges from all compacted notes)
-        let source_ids = equivalence_map
-            .and_then(|map| map.get(&current_id).cloned())
-            .unwrap_or_else(|| vec![current_id.clone()]);
-
-        let mut neighbors = Vec::new();
-
-        // Outbound edges
-        if opts.direction == Direction::Out || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in index.get_outbound_edges(source_id) {
-                    if super::filter_edge(edge, opts) {
-                        neighbors.push((edge.to.clone(), edge.clone()));
-                    }
-                }
-            }
-        }
-
-        // Inbound edges (Inversion point)
-        if opts.direction == Direction::In || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in index.get_inbound_edges(source_id) {
-                    if !cli.no_semantic_inversion {
-                        // Virtual Inversion
-                        let virtual_edge = edge.invert(store.config());
-                        if super::filter_edge(&virtual_edge, opts) {
-                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
-                        }
-                    } else {
-                        // Raw backlink
-                        if super::filter_edge(edge, opts) {
-                            neighbors.push((edge.from.clone(), edge.clone()));
+) -> Result<()> {
+    let mut json_result = serde_json::to_value(result)?;
+    // Add compacted IDs if --with-compaction-ids is set
+    if cli.with_compaction_ids {
+        if let Some(ref ctx) = compaction_ctx {
+            if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut()) {
+                for note in notes {
+                    if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
+                        let compacts_count = ctx.get_compacts_count(id);
+                        if compacts_count > 0 {
+                            let depth = cli.compaction_depth.unwrap_or(1);
+                            if let Some((ids, _truncated)) =
+                                ctx.get_compacted_ids(id, depth, cli.compaction_max_nodes)
+                            {
+                                if let Some(obj_mut) = note.as_object_mut() {
+                                    obj_mut.insert(
+                                        "compacted_ids".to_string(),
+                                        serde_json::json!(ids),
+                                    );
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-
-        // Sort for determinism
-        neighbors.sort_by(|a, b| {
-            a.1.link_type
-                .cmp(&b.1.link_type)
-                .then_with(|| a.0.cmp(&b.0))
-        });
-
-        // Apply max_fanout
-        let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {
-            if neighbors.len() > max_fanout {
-                truncated = true;
-                truncation_reason = Some("max_fanout".to_string());
-            }
-            neighbors.into_iter().take(max_fanout).collect()
-        } else {
-            neighbors
-        };
-
-        for (neighbor_id, edge) in neighbors {
-            // Canonicalize edge endpoints if using compaction
-            let canonical_from = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&edge.from)?
-            } else {
-                edge.from.clone()
-            };
-            let canonical_to = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&edge.to)?
-            } else {
-                edge.to.clone()
-            };
-
-            // Skip self-loops introduced by compaction contraction
-            if canonical_from == canonical_to {
-                continue;
-            }
-
-            // Canonicalize the neighbor ID
-            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&neighbor_id)?
-            } else {
-                neighbor_id.clone()
-            };
-
-            // Check max_edges again before adding
-            if let Some(max) = opts.max_edges {
-                if links.len() >= max {
-                    truncated = true;
-                    truncation_reason = Some("max_edges".to_string());
-                    break;
-                }
-            }
-
-            // Add edge with canonical IDs
-            links.push(TreeLink {
-                from: canonical_from,
-                to: canonical_to,
-                link_type: edge.link_type.to_string(),
-                source: edge.source.to_string(),
-            });
-
-            // Process neighbor if not visited (use canonical ID)
-            if !visited.contains(&canonical_neighbor) {
-                // Check max_nodes before adding
-                if let Some(max) = opts.max_nodes {
-                    if visited.len() >= max {
-                        truncated = true;
-                        truncation_reason = Some("max_nodes".to_string());
-                        break;
-                    }
-                }
-
-                visited.insert(canonical_neighbor.clone());
-
-                // Add to spanning tree (first discovery, use canonical IDs)
-                spanning_tree.push(SpanningTreeEntry {
-                    from: current_id.clone(),
-                    to: canonical_neighbor.clone(),
-                    hop: hop + 1,
-                });
-
-                // Add note metadata (use canonical ID)
-                if let Some(meta) = index.get_metadata(&canonical_neighbor) {
-                    notes.push(TreeNote {
-                        id: meta.id.clone(),
-                        title: meta.title.clone(),
-                        note_type: meta.note_type,
-                        tags: meta.tags.clone(),
-                        path: meta.path.clone(),
-                    });
-                }
-
-                // Queue for further expansion (use canonical ID)
-                queue.push_back((canonical_neighbor, hop + 1));
-            }
-        }
     }
-
-    // Sort for determinism
-    notes.sort_by(|a, b| a.id.cmp(&b.id));
-    links.sort_by(|a, b| {
-        a.from
-            .cmp(&b.from)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| a.to.cmp(&b.to))
-    });
-    spanning_tree.sort_by(|a, b| a.hop.cmp(&b.hop).then_with(|| a.to.cmp(&b.to)));
-
-    Ok(TreeResult {
-        root: root.to_string(),
-        direction: match opts.direction {
-            crate::commands::link::Direction::Out => "out".to_string(),
-            crate::commands::link::Direction::In => "in".to_string(),
-            crate::commands::link::Direction::Both => "both".to_string(),
-        },
-        max_hops: opts.max_hops,
-        truncated,
-        truncation_reason,
-        notes,
-        links,
-        spanning_tree,
-    })
+    println!("{}", serde_json::to_string_pretty(&json_result)?);
+    Ok(())
 }
 
 /// Output tree in human-readable format

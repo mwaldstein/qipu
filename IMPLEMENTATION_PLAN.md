@@ -63,7 +63,10 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `src/commands/export/emit/bibliography.rs` - Bibliography export format (43 lines) ✅
    - `src/commands/export/emit/json.rs` - JSON export format (86 lines) ✅
    - `src/commands/export/emit/records.rs` - Records export format (132 lines) ✅
-8. **`src/commands/link/tree.rs` (586 lines)** - Algorithm + formatting mixing
+8. **`src/commands/link/tree.rs` (586 lines)** ✅ COMPLETE - Refactored to 374 lines:
+   - Removed duplicate bfs_traverse function (now uses lib/graph/traversal.rs) ✅
+   - Extracted JSON output formatting to separate function ✅
+   - Cleaned up imports and structure ✅
 
 ### **Function-Level Refactoring:**
 
@@ -286,6 +289,14 @@ Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activa
 4. **Implement structured logging**: Replace primitive logging with tracing framework for better observability
 5. **Audit unwrap/expect usage**: Review and improve error handling to reduce panic risks
 6. **Implement missing P4 features**: Focus on spec-implementation gaps, particularly similarity ranking improvements
+
+---
+
+## **Refactoring Learnings**
+
+1. **Duplicate BFS traversal removed**: The `src/commands/link/tree.rs` file had a duplicate `bfs_traverse` function that was identical to the one in `src/lib/graph/traversal.rs`. Removed the duplicate and now uses the library version consistently.
+
+2. **File size reduction**: Refactoring `src/commands/link/tree.rs` reduced it from 586 lines to 374 lines (36% reduction) by removing the duplicate traversal function and improving output formatting organization.
 
 ---
 

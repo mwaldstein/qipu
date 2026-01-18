@@ -65,8 +65,9 @@
   - Refs: tracing init `src/lib/logging.rs:14-51`, timing `tracing::debug!` `src/commands/dispatch.rs:22`, search method `tracing::debug!` `src/lib/index/search.rs:425,430`, regex warnings `tracing::warn!` `src/lib/index/links.rs:37,64`
 
 ### `specs/llm-user-validation.md`
-- [ ] `llm-tool-test` CLI default tool value is inconsistent with runtime support
-  - CLI default `--tool qipu`: `crates/llm-tool-test/src/cli.rs:22-25`; runtime only accepts `amp|opencode`: `crates/llm-tool-test/src/main.rs:59-63`
+- [x] `llm-tool-test` CLI default tool value is inconsistent with runtime support
+  - Fixed: Changed default from "qipu" to "opencode" to match runtime support
+  - Refs: CLI default `crates/llm-tool-test/src/cli.rs:23`; runtime match `crates/llm-tool-test/src/main.rs:59-63`
 - [ ] Rubric YAML fixtures don’t match the deserialization shape expected by the judge
   - Expects `criteria: Vec<...>`: `crates/llm-tool-test/src/judge.rs:5-17`; fixtures are a mapping: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml:1-16`
 - [ ] Regression detection message/condition appears reversed

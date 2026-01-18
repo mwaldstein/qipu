@@ -19,8 +19,8 @@ pub enum Commands {
         #[arg(long)]
         tags: Vec<String>,
 
-        /// Tool to test (e.g., qipu)
-        #[arg(long, default_value = "qipu")]
+        /// Tool to test (e.g., amp, opencode)
+        #[arg(long, default_value = "opencode")]
         tool: String,
 
         /// Maximum cost in USD

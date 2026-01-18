@@ -51,7 +51,10 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `src/cli/commands.rs` - Main Commands enum (368 lines) ✅
    - `src/cli/compact.rs` - CompactCommands enum (54 lines) ✅
    - `src/cli/workspace.rs` - WorkspaceCommands enum (72 lines) ✅
-6. **`src/lib/store/mod.rs` (608 lines)** - Mixed store concerns
+6. **`src/lib/store/mod.rs` (608 lines)** ✅ COMPLETE - Refactored into modular structure:
+   - `src/lib/store/mod.rs` - Core Store struct and initialization (311 lines) ✅
+   - `src/lib/store/lifecycle.rs` - Note creation and persistence (202 lines) ✅
+   - `src/lib/store/query.rs` - Note lookup and listing (122 lines) ✅
 7. **`src/commands/export/emit.rs` (601 lines)** - Multiple export formats
 8. **`src/commands/link/tree.rs` (586 lines)** - Algorithm + formatting mixing
 

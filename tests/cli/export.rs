@@ -108,6 +108,50 @@ fn test_export_outline_preserves_moc_order() {
 }
 
 #[test]
+fn test_export_outline_anchors() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(
+        &note_a_path,
+        "---\nid: qp-aaaa\ntitle: Note A\n---\nSee [[qp-bbbb]]",
+    )
+    .unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(&note_b_path, "---\nid: qp-bbbb\ntitle: Note B\n---\nBody B").unwrap();
+
+    let moc_path = dir.path().join(".qipu/mocs/qp-moc1-outline.md");
+    fs::write(
+        &moc_path,
+        "---\nid: qp-moc1\ntitle: Outline\ntype: moc\n---\n[[qp-aaaa]]\n[[qp-bbbb]]\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "export",
+            "--moc",
+            "qp-moc1",
+            "--mode",
+            "outline",
+            "--link-mode",
+            "anchors",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(r#"<a id="note-qp-aaaa"></a>"#))
+        .stdout(predicate::str::contains(r#"<a id="note-qp-bbbb"></a>"#))
+        .stdout(predicate::str::contains("See [qp-bbbb](#note-qp-bbbb)"));
+}
+
+#[test]
 fn test_export_bundle_rewrites_links_to_anchors() {
     let dir = tempdir().unwrap();
     qipu()
@@ -141,5 +185,7 @@ fn test_export_bundle_rewrites_links_to_anchors() {
         .success()
         .stdout(predicate::str::contains(
             "See [Note A](#note-qp-aaaa) and [ref](#note-qp-aaaa)",
-        ));
+        ))
+        .stdout(predicate::str::contains(r#"<a id="note-qp-aaaa"></a>"#))
+        .stdout(predicate::str::contains(r#"<a id="note-qp-bbbb"></a>"#));
 }

@@ -71,7 +71,17 @@ pub fn export_outline(
         }
         if let Some(note) = note_map.get(target_id.as_str()) {
             output.push_str("\n---\n\n");
-            output.push_str(&format!("## {} ({})\n\n", note.title(), note.id()));
+            // Add anchor if using anchor mode
+            if options.link_mode == super::super::LinkMode::Anchors {
+                output.push_str(&format!(
+                    "<a id=\"note-{}\"></a>\n## {} ({})\n\n",
+                    note.id(),
+                    note.title(),
+                    note.id()
+                ));
+            } else {
+                output.push_str(&format!("## {} ({})\n\n", note.title(), note.id()));
+            }
 
             // Minimal metadata for outline mode
             if !note.frontmatter.tags.is_empty() {

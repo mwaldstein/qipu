@@ -27,8 +27,17 @@ pub fn export_bundle(
             output.push_str("\n---\n\n");
         }
 
-        // Note header
-        output.push_str(&format!("## Note: {} ({})\n\n", note.title(), note.id()));
+        // Note header with anchor if using anchor mode
+        if options.link_mode == super::LinkMode::Anchors {
+            output.push_str(&format!(
+                "<a id=\"note-{}\"></a>\n## Note: {} ({})\n\n",
+                note.id(),
+                note.title(),
+                note.id()
+            ));
+        } else {
+            output.push_str(&format!("## Note: {} ({})\n\n", note.title(), note.id()));
+        }
 
         // Metadata
         output.push_str(&format!("**Type:** {}\n\n", note.note_type()));

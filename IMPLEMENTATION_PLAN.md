@@ -126,14 +126,12 @@
   - Added test: `tests/cli/context/formats.rs:106-169` verifies provenance fields are included in context JSON output
 
 ### `specs/export.md`
-- [x] MOC-driven export ordering does not follow MOC ordering for bundle/json/records
-  - Fixed: `get_moc_linked_notes()` now re-parses MOC body to extract links in order of appearance (typed links from frontmatter, then wiki links, then markdown links)
-  - Export command now skips sorting when `--moc` is specified to preserve MOC ordering
-  - Changed `src/commands/export/plan.rs:112-211`: rewrote `get_moc_linked_notes()` to extract links in order using regex matching on MOC body
-  - Changed `src/commands/export/mod.rs:101-106`: added conditional to skip sorting when `options.moc_id.is_some()`
-  - Existing test `tests/cli/export.rs:test_export_outline_preserves_moc_order` verifies MOC ordering is preserved
-- [ ] `--link-mode anchors` likely produces broken anchors (`#note-<id>` targets not emitted)
-  - Refs: anchor map `src/commands/export/emit/links.rs:16-18`, headings lack explicit anchors `src/commands/export/emit/bundle.rs:31`, `src/commands/export/emit/outline.rs:74`
+- [x] `--link-mode anchors` produces broken anchors (`#note-<id>` targets were not emitted)
+  - Fixed: added HTML anchor tags `<a id="note-{id}"></a>` before note headings when using `--link-mode anchors` in both bundle and outline export modes
+  - Changed `src/commands/export/emit/bundle.rs:30-40`: added anchor tag emission when link_mode is Anchors
+  - Changed `src/commands/export/emit/outline.rs:73-83`: added anchor tag emission for outline mode
+  - Added test: `tests/cli/export.rs:142-147` verifies anchor tags are present in bundle export
+  - Added test: `tests/cli/export.rs:110-149` verifies anchor tags work in outline mode with cross-references
 - [ ] `--with-attachments` copies files but does not rewrite note markdown links to point at the copied `./attachments/` location
   - Refs: copy target `src/commands/export/mod.rs:164-167`, copy regex expects `../attachments/...` `src/commands/export/mod.rs:203-205`
 - [ ] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output

@@ -6,11 +6,11 @@ Core P0/P1 features are substantially complete. Detailed audit conducted on 2026
 
 ---
 
-## **Current Priority: Code Refactoring (unless test failures exist)**
+## **Current Priority: Code Refactoring **
 
 ---
 
-## **P0: Large File Refactoring** ❌ NOT STARTED
+## **P0: Large File Refactoring** ⚠️ IN PROGRESS
 
 **Priority**: Top priority unless test failures exist (test failures always take precedence)
 
@@ -18,13 +18,13 @@ Several files have grown overly large and need refactoring to improve maintainab
 
 ### **Highest Priority Refactoring Candidates:**
 
-1. **`tests/cli/link.rs` (1,438 lines)** - Break into separate modules:
-   - `tests/cli/link/list.rs` - link list command tests
-   - `tests/cli/link/tree.rs` - link tree command tests  
-   - `tests/cli/link/path.rs` - link path command tests
-   - `tests/cli/link/add_remove.rs` - basic link operations
-   - `tests/cli/link/compaction.rs` - compaction-related link tests
-   - `tests/cli/link/mod.rs` - shared test utilities
+1. **`tests/cli/link.rs` (1,438 lines)** ✅ COMPLETE - Broken into separate modules:
+   - `tests/cli/link/list.rs` - link list command tests ✅
+   - `tests/cli/link/tree.rs` - link tree command tests ✅
+   - `tests/cli/link/path.rs` - link path command tests ✅
+   - `tests/cli/link/add_remove.rs` - basic link operations ✅
+   - `tests/cli/link/compaction.rs` - compaction-related link tests ✅
+   - `tests/cli/link/mod.rs` - module declarations ✅
 
 2. **`tests/cli/context.rs` (1,059 lines)** - Break into:
    - `tests/cli/context/basic.rs` - basic context selection tests

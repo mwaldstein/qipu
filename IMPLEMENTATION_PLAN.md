@@ -307,10 +307,29 @@ Replace file-scanning checks with DB queries:
 - `test_doctor_healthy_store` verifies no false positives
 - `test_doctor_broken_link_detection` verifies missing files are detected
 
-#### 3.6: Migrate `context` note selection to SQLite
-File: `src/commands/context/select.rs`
+#### 3.6: Migrate `context` note selection to SQLite ✅ COMPLETE
+File: `src/commands/context/select.rs`, `src/commands/context/mod.rs`, `src/lib/db/mod.rs`
 
-Replace `store.list_notes()` + in-memory filtering with DB queries.
+Replaced `store.list_notes()` + in-memory filtering with DB queries:
+- **Tag selection**: Uses `Database::list_notes(None, Some(tag), None)` instead of iterating through `all_notes.frontmatter.tags`
+- **MOC selection**: Uses `Database::get_outbound_edges()` for graph traversal instead of `Index::get_outbound_edges()`
+- **Query selection**: Uses `Database::search(query, None, None, 100)` instead of `search(store, &index, ...)`
+- **Transitive MOC**: Modified `select::get_moc_linked_ids()` to use `Database` and `Database::get_outbound_edges()` for nested MOC traversal
+
+**Additional changes:**
+- Added `Database::get_outbound_edges()` method (src/lib/db/mod.rs:771-821) for fetching outbound links
+- Added `Database::insert_edges_internal()` method (src/lib/db/mod.rs:177-239) for inserting edges during rebuild
+- Fixed `rebuild()` method to insert edges for each note (was missing edge insertion)
+- Fixed FTS5 search to wrap queries in double quotes to prevent hyphen parsing issues
+
+**Blocker resolved**: The `rebuild()` method was not inserting edges into the database, causing all link-based operations to fail after rebuild. Added `insert_edges_internal()` call in the rebuild loop.
+
+**Learning**: FTS5 interprets hyphenated terms (e.g., "unique-token-123") as column references (column:query syntax). Wrapping queries in double quotes treats them as phrase searches and avoids this issue.
+
+**Verified with tests:**
+- `test_context_by_moc` verifies MOC selection includes linked notes
+- `test_compaction_annotations` verifies query selection works with hyphenated queries
+- All context selection methods (note, tag, moc, query) now use SQLite
 
 ### Phase 4: Remove Legacy Components
 

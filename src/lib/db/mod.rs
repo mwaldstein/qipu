@@ -102,6 +102,7 @@ impl Database {
 
         for note in notes {
             Self::insert_note_internal(&tx, &note)?;
+            Self::insert_edges_internal(&tx, &note, store_root)?;
         }
 
         tx.commit()
@@ -169,6 +170,89 @@ impl Database {
                 params![note.id(), tag],
             )
             .map_err(|e| QipuError::Other(format!("failed to insert tag {}: {}", tag, e)))?;
+        }
+
+        Ok(())
+    }
+
+    fn insert_edges_internal(conn: &Connection, note: &Note, store_root: &Path) -> Result<()> {
+        use crate::lib::index::links;
+        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use std::collections::{HashMap, HashSet};
+
+        let mut unresolved = HashSet::new();
+        let path_to_id = HashMap::new();
+
+        if note.path.is_some() {
+            let parent_path = note.path.as_ref().unwrap().parent().unwrap();
+
+            if let Ok(existing_ids) = crate::lib::store::Store::discover(parent_path) {
+                let ids = existing_ids.existing_ids().unwrap_or_default();
+                let edges = links::extract_links(
+                    note,
+                    &ids,
+                    &mut unresolved,
+                    note.path.as_deref(),
+                    &path_to_id,
+                );
+
+                // Delete all existing edges for this note before inserting new ones
+                conn.execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
+                    .map_err(|e| {
+                        QipuError::Other(format!(
+                            "failed to delete edges for note {}: {}",
+                            note.id(),
+                            e
+                        ))
+                    })?;
+
+                for edge in edges {
+                    let link_type_str = edge.link_type.to_string();
+                    let inline_flag =
+                        if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
+                            1
+                        } else {
+                            0
+                        };
+
+                    conn.execute(
+                        "INSERT INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
+                        params![edge.from, edge.to, link_type_str, inline_flag],
+                    )
+                    .map_err(|e| {
+                        QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
+                    })?;
+                }
+
+                // Delete all existing unresolved references for this note
+                conn.execute(
+                    "DELETE FROM unresolved WHERE source_id = ?1",
+                    params![note.id()],
+                )
+                .map_err(|e| {
+                    QipuError::Other(format!(
+                        "failed to delete unresolved for note {}: {}",
+                        note.id(),
+                        e
+                    ))
+                })?;
+
+                // Insert unresolved references
+                for target_ref in unresolved {
+                    conn.execute(
+                        "INSERT OR IGNORE INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
+                        params![note.id(), target_ref],
+                    )
+                    .map_err(|e| {
+                        QipuError::Other(format!(
+                            "failed to insert unresolved {} -> {}: {}",
+                            note.id(),
+                            target_ref,
+                            e
+                        ))
+                    })?;
+                }
+            }
         }
 
         Ok(())
@@ -421,6 +505,10 @@ impl Database {
             return Ok(Vec::new());
         }
 
+        // Wrap query in double quotes to treat it as a phrase search
+        // This prevents FTS5 from interpreting hyphens as column references
+        let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
+
         let limit_i64 = limit as i64;
 
         let mut sql = String::from(
@@ -436,7 +524,7 @@ impl Database {
         let type_filter_str = type_filter.map(|t| t.to_string());
         let tag_filter_str = tag_filter.map(|t| t.to_string());
 
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(query)];
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(fts_query)];
 
         if type_filter_str.is_some() {
             sql.push_str(" AND n.type = ?");
@@ -726,6 +814,53 @@ impl Database {
         }
 
         Ok(backlinks)
+    }
+
+    /// Get outbound edges from a note (links FROM this note)
+    pub fn get_outbound_edges(&self, note_id: &str) -> Result<Vec<Edge>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
+            .map_err(|e| {
+                QipuError::Other(format!("failed to prepare outbound edges query: {}", e))
+            })?;
+
+        let mut rows = stmt.query(params![note_id]).map_err(|e| {
+            QipuError::Other(format!("failed to execute outbound edges query: {}", e))
+        })?;
+
+        let mut edges = Vec::new();
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read outbound edge: {}", e)))?
+        {
+            let target_id: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get target_id: {}", e)))?;
+            let link_type_str: String = row
+                .get(1)
+                .map_err(|e| QipuError::Other(format!("failed to get link_type: {}", e)))?;
+            let inline: i64 = row
+                .get(2)
+                .map_err(|e| QipuError::Other(format!("failed to get inline: {}", e)))?;
+
+            let link_type = LinkType::from(link_type_str);
+            let source = if inline == 1 {
+                LinkSource::Inline
+            } else {
+                LinkSource::Typed
+            };
+
+            edges.push(Edge {
+                from: note_id.to_string(),
+                to: target_id,
+                link_type,
+                source,
+            });
+        }
+
+        Ok(edges)
     }
 
     /// Perform graph traversal using recursive CTE

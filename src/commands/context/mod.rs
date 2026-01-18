@@ -17,7 +17,6 @@ use std::collections::{HashMap, HashSet};
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
-use crate::lib::index::{search, IndexBuilder};
 use crate::lib::store::Store;
 
 pub use types::ContextOptions;
@@ -25,9 +24,6 @@ use types::{RecordsOutputConfig, SelectedNote};
 
 /// Execute the context command
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
-    // Build or load index for searching
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
-
     // Build compaction context for annotations
     let all_notes = store.list_notes()?;
     let compaction_ctx = CompactionContext::build(&all_notes)?;
@@ -77,17 +73,16 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     // Selection by tag
     if let Some(tag_name) = options.tag {
-        for note in &all_notes {
-            if note.frontmatter.tags.contains(&tag_name.to_string()) {
-                let resolved_id = resolve_id(note.id())?;
-                insert_selected(resolved_id, None)?;
-            }
+        let notes_with_tag = store.db().list_notes(None, Some(&tag_name), None)?;
+        for note in &notes_with_tag {
+            let resolved_id = resolve_id(&note.id)?;
+            insert_selected(resolved_id, None)?;
         }
     }
 
     // Selection by MOC
     if let Some(moc) = options.moc_id {
-        let linked_ids = select::get_moc_linked_ids(&index, moc, options.transitive);
+        let linked_ids = select::get_moc_linked_ids(store.db(), moc, options.transitive)?;
         for id in linked_ids {
             let resolved_id = resolve_id(&id)?;
             insert_selected(resolved_id, None)?;
@@ -96,7 +91,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = search(store, &index, q, None, None)?;
+        let results = store.db().search(q, None, None, 100)?;
         for result in results {
             let resolved_id = resolve_id(&result.id)?;
             let via_source = if !cli.no_resolve_compaction && resolved_id != result.id {

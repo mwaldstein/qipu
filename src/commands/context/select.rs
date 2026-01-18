@@ -1,9 +1,10 @@
-use crate::lib::index::Index;
+use crate::lib::db::Database;
+use crate::lib::error::Result;
 use crate::lib::note::NoteType;
 use std::collections::HashSet;
 
 /// Get note IDs linked from a MOC (including the MOC itself)
-pub fn get_moc_linked_ids(index: &Index, moc_id: &str, transitive: bool) -> Vec<String> {
+pub fn get_moc_linked_ids(db: &Database, moc_id: &str, transitive: bool) -> Result<Vec<String>> {
     let mut result = Vec::new();
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue = vec![moc_id.to_string()];
@@ -13,7 +14,7 @@ pub fn get_moc_linked_ids(index: &Index, moc_id: &str, transitive: bool) -> Vec<
 
     while let Some(current_id) = queue.pop() {
         // Get outbound edges from current note
-        let edges = index.get_outbound_edges(&current_id);
+        let edges = db.get_outbound_edges(&current_id)?;
 
         for edge in edges {
             if visited.insert(edge.to.clone()) {
@@ -21,7 +22,7 @@ pub fn get_moc_linked_ids(index: &Index, moc_id: &str, transitive: bool) -> Vec<
 
                 // If transitive and target is a MOC, add to queue for further traversal
                 if transitive {
-                    if let Some(meta) = index.get_metadata(&edge.to) {
+                    if let Some(meta) = db.get_note_metadata(&edge.to)? {
                         if meta.note_type == NoteType::Moc {
                             queue.push(edge.to.clone());
                         }
@@ -31,5 +32,5 @@ pub fn get_moc_linked_ids(index: &Index, moc_id: &str, transitive: bool) -> Vec<
         }
     }
 
-    result
+    Ok(result)
 }

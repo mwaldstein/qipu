@@ -17,7 +17,12 @@ Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep
 - [x] Add database path at `.qipu/qipu.db`
 
 ### Phase 2: Inline Updates
-- [ ] Update `Store` to hold `Database` instance
+- [x] Update `Store` to hold `Database` instance
+  - Added `db: Database` field to Store struct
+  - Updated all Store constructors (`open`, `open_unchecked`, `init_at`) to initialize Database
+  - Added `pub fn db(&self) -> &Database` accessor method
+  - Changed `Database::rebuild(&self, store: &Store)` to `Database::rebuild(&self, store_root: &Path)` to avoid circular dependency
+  - Refs: Store struct `src/lib/store/mod.rs:28-35`, db accessor `src/lib/store/mod.rs:237-239`, rebuild signature `src/lib/db/mod.rs:53`
 - [ ] Modify `create_note` to write file + insert into DB atomically
 - [ ] Modify `update_note` (edit) to update file + re-index in DB
 - [ ] Modify `delete_note` to remove file + remove from DB

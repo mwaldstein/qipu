@@ -6,7 +6,6 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::SearchResult;
 use crate::lib::note::Note;
 use crate::lib::note::NoteType;
-use crate::lib::store::Store;
 use rusqlite::{params, Connection};
 use std::path::Path;
 use std::str::FromStr;
@@ -51,8 +50,34 @@ impl Database {
     }
 
     /// Rebuild the database from scratch by scanning all notes
-    pub fn rebuild(&self, store: &Store) -> Result<()> {
-        let notes = store.list_notes()?;
+    pub fn rebuild(&self, store_root: &Path) -> Result<()> {
+        use crate::lib::note::Note;
+        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use walkdir::WalkDir;
+
+        let mut notes = Vec::new();
+
+        for dir in [store_root.join(NOTES_DIR), store_root.join(MOCS_DIR)] {
+            if !dir.exists() {
+                continue;
+            }
+
+            for entry in WalkDir::new(&dir)
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "md") {
+                    match Note::parse(&std::fs::read_to_string(path)?, Some(path.to_path_buf())) {
+                        Ok(note) => notes.push(note),
+                        Err(e) => {
+                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
+                        }
+                    }
+                }
+            }
+        }
 
         let tx = self
             .conn
@@ -249,6 +274,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lib::store::Store;
     use tempfile::tempdir;
 
     #[test]
@@ -283,7 +309,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let note_count: i64 = db
             .conn
@@ -314,7 +340,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let initial_count: i64 = db
             .conn
@@ -327,7 +353,7 @@ mod tests {
         note.frontmatter.tags = vec!["tag2".to_string()];
         store.save_note(&mut note).unwrap();
 
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let final_count: i64 = db
             .conn
@@ -360,7 +386,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let fts_count: i64 = db
             .conn
@@ -388,7 +414,7 @@ mod tests {
         let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let note_count: i64 = db
             .conn
@@ -426,7 +452,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("test", None, None, 10).unwrap();
 
@@ -449,7 +475,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("test", None, None, 10).unwrap();
 
@@ -483,7 +509,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("test", None, None, 10).unwrap();
 
@@ -505,7 +531,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db
             .search("test", Some(NoteType::Fleeting), None, 10)
@@ -541,7 +567,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("test", None, Some("test-tag"), 10).unwrap();
 
@@ -559,7 +585,7 @@ mod tests {
             .unwrap();
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("", None, None, 10).unwrap();
 
@@ -584,7 +610,7 @@ mod tests {
         }
 
         let db = Database::open(store.root()).unwrap();
-        db.rebuild(&store).unwrap();
+        db.rebuild(store.root()).unwrap();
 
         let results = db.search("test", None, None, 3).unwrap();
 

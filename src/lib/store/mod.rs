@@ -15,6 +15,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::lib::config::StoreConfig;
+use crate::lib::db::Database;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::NoteType;
 pub use config::InitOptions;
@@ -30,6 +31,8 @@ pub struct Store {
     root: PathBuf,
     /// Store configuration
     config: StoreConfig,
+    /// SQLite database
+    db: Database,
 }
 
 impl Store {
@@ -61,9 +64,12 @@ impl Store {
         let templates_dir = path.join(TEMPLATES_DIR);
         io::ensure_default_templates(&templates_dir)?;
 
+        let db = Database::open(path)?;
+
         Ok(Store {
             root: path.to_path_buf(),
             config,
+            db,
         })
     }
 
@@ -83,9 +89,12 @@ impl Store {
             StoreConfig::default()
         };
 
+        let db = Database::open(path)?;
+
         Ok(Store {
             root: path.to_path_buf(),
             config,
+            db,
         })
     }
 
@@ -192,9 +201,12 @@ impl Store {
             git::checkout_branch(repo_root, &orig_branch)?;
         }
 
+        let db = Database::open(store_root)?;
+
         Ok(Store {
             root: store_root.to_path_buf(),
             config,
+            db,
         })
     }
 
@@ -221,6 +233,11 @@ impl Store {
     /// Get the config
     pub fn config(&self) -> &StoreConfig {
         &self.config
+    }
+
+    /// Get the database
+    pub fn db(&self) -> &Database {
+        &self.db
     }
 }
 

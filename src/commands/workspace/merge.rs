@@ -1,5 +1,5 @@
 use crate::cli::Cli;
-use crate::lib::error::Result;
+use crate::lib::error::{QipuError, Result};
 use crate::lib::store::paths::WORKSPACES_DIR;
 use crate::lib::store::Store;
 use std::env;
@@ -13,6 +13,13 @@ pub fn execute(
     strategy: &str,
     delete_source: bool,
 ) -> Result<()> {
+    if !matches!(strategy, "overwrite" | "merge-links" | "skip") {
+        return Err(QipuError::UsageError(format!(
+            "unknown merge strategy: '{}' (expected: overwrite, merge-links, or skip)",
+            strategy
+        )));
+    }
+
     let root = cli
         .root
         .clone()
@@ -46,7 +53,8 @@ pub fn execute(
             let action = match strategy {
                 "overwrite" => "overwrite",
                 "merge-links" => "merge-links",
-                "skip" | _ => "skip",
+                "skip" => "skip",
+                _ => unreachable!(),
             };
             conflicts.push((id.clone(), action));
             if !dry_run {
@@ -67,7 +75,8 @@ pub fn execute(
                         }
                         target_store.save_note(&mut target_note)?;
                     }
-                    "skip" | _ => {}
+                    "skip" => {}
+                    _ => unreachable!(),
                 }
             }
         } else {

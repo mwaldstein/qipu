@@ -5,6 +5,7 @@ use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::{Edge, Index, IndexBuilder};
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 use super::{get_filtered_neighbors, resolve_note_id, PathResult, TreeLink, TreeNote, TreeOptions};
@@ -327,7 +328,10 @@ fn output_path_records(
             };
             lines.push(format!(
                 "N {} {} \"{}\" tags={}",
-                note.id, note.note_type, note.title, tags_csv
+                note.id,
+                note.note_type,
+                escape_quotes(&note.title),
+                tags_csv
             ));
 
             if cli.with_compaction_ids {

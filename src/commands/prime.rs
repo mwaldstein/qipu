@@ -9,6 +9,7 @@
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Maximum number of MOCs to include in the primer
@@ -225,7 +226,7 @@ fn output_records_primer(
             "N {} {} \"{}\" tags={}",
             note.id(),
             note.note_type(),
-            note.title(),
+            escape_quotes(note.title()),
             if tags_csv.is_empty() { "-" } else { &tags_csv }
         );
     }

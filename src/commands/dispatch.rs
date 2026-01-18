@@ -8,6 +8,7 @@ use chrono::DateTime;
 use crate::cli::{Cli, Commands, LinkCommands, OutputFormat};
 use crate::commands;
 use crate::lib::error::{QipuError, Result};
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 pub fn run(cli: &Cli, start: Instant) -> Result<()> {
@@ -423,7 +424,7 @@ fn output_inbox_notes(
                     "N {} {} \"{}\" tags={}",
                     note.id(),
                     note.note_type(),
-                    note.title(),
+                    escape_quotes(note.title()),
                     tags_csv
                 );
             }

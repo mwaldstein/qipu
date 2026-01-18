@@ -3,6 +3,7 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
+use crate::lib::records::escape_quotes;
 use std::collections::HashMap;
 
 /// Output in JSON format
@@ -426,7 +427,7 @@ pub fn output_records(
             "N {} {} \"{}\" tags={} path={}{}",
             note.id(),
             note.note_type(),
-            note.title(),
+            escape_quotes(note.title()),
             tags_csv,
             path_str,
             annotations
@@ -466,7 +467,7 @@ pub fn output_records(
             lines.push(format!(
                 "D source url={} title=\"{}\" accessed={} from={}",
                 source.url,
-                title,
+                escape_quotes(title),
                 accessed,
                 note.id()
             ));
@@ -507,7 +508,7 @@ pub fn output_records(
                         "N {} {} \"{}\" tags={} path={} compacted_from={}",
                         compacted_note.id(),
                         compacted_note.note_type(),
-                        compacted_note.title(),
+                        escape_quotes(compacted_note.title()),
                         compacted_tags_csv,
                         compacted_path_str,
                         note.id()
@@ -532,7 +533,7 @@ pub fn output_records(
                         lines.push(format!(
                             "D source url={} title=\"{}\" accessed={} from={}",
                             source.url,
-                            title,
+                            escape_quotes(title),
                             accessed,
                             compacted_note.id()
                         ));

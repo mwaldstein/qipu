@@ -14,6 +14,7 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::{search, Index, IndexBuilder, SearchResult};
 use crate::lib::note::NoteType;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Execute the search command
@@ -323,7 +324,11 @@ pub fn execute(
 
                 println!(
                     "N {} {} \"{}\" tags={}{}",
-                    result.id, result.note_type, result.title, tags_csv, annotations
+                    result.id,
+                    result.note_type,
+                    escape_quotes(&result.title),
+                    tags_csv,
+                    annotations
                 );
                 if let Some(ctx) = &result.match_context {
                     println!("S {} {}", result.id, ctx);

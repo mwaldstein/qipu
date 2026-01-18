@@ -13,6 +13,7 @@ use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Execute the list command
@@ -189,7 +190,7 @@ pub fn execute(
                     "N {} {} \"{}\" tags={}{}",
                     note.id(),
                     note.note_type(),
-                    note.title(),
+                    escape_quotes(note.title()),
                     tags_csv,
                     annotations
                 );

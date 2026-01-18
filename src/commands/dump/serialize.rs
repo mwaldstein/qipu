@@ -2,6 +2,7 @@ use super::model::{PackAttachment, PackHeader, PackLink, PackNote, PackSource};
 use crate::lib::config::STORE_FORMAT_VERSION;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 use base64::{engine::general_purpose, Engine as _};
 
@@ -106,7 +107,7 @@ pub fn serialize_pack_records(
             "N {} {} \"{}\" tags={} created={} updated={}",
             note.id(),
             note.note_type(),
-            note.title(),
+            escape_quotes(note.title()),
             tags_csv,
             note.frontmatter
                 .created

@@ -87,8 +87,11 @@
   - Updated test assertions: `tests/cli/context/basic.rs:305`, `tests/cli/context/formats.rs:58`, `tests/cli/context/compaction.rs:307`, `tests/cli/prime.rs:159`
   - Spec pattern (`specs/records-output.md:63,73`): `H qipu=1 records=1 store=... mode=...`
   - Now consistent with tree/list/path/load commands which already used this order
-- [ ] Records quoting is not escaped for note titles/summaries, so titles containing `"` can break record parsing
-  - Refs: context `N ... "{title}"` `src/commands/context/output.rs:306-314`; link list `src/commands/link/list.rs:307-310`
+- [x] Records quoting is not escaped for note titles/summaries, so titles containing `"` can break record parsing
+  - Fixed: added `escape_quotes()` utility in `src/lib/records.rs` that replaces `"` with `\"`
+  - Updated all N record formatting to escape titles: `src/commands/context/output.rs:429,510`, `src/commands/link/list.rs:309`, `src/commands/link/tree.rs:277`, `src/commands/link/path.rs:331`, `src/commands/dispatch.rs:426`, `src/commands/list.rs:193`, `src/commands/search.rs:327`, `src/commands/create.rs:89`, `src/commands/capture.rs:108`, `src/commands/show.rs:151`, `src/commands/prime.rs:228`, `src/commands/export/emit/records.rs:96`, `src/commands/dump/serialize.rs:109`
+  - Updated all D source record formatting to escape titles: `src/commands/context/output.rs:470,536`, `src/commands/export/emit/records.rs:63`
+  - Added test: `tests/cli/context/formats.rs:64-96` verifies quotes in titles are properly escaped
 
 ### `specs/similarity-ranking.md`
 - [ ] Stop words removal is required but not implemented

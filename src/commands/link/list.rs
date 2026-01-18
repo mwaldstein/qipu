@@ -3,6 +3,7 @@ use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::{Index, IndexBuilder};
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 use super::{
@@ -306,7 +307,10 @@ fn append_note_metadata_lines(
             };
             lines.push(format!(
                 "N {} {} \"{}\" tags={}",
-                link_id, meta.note_type, meta.title, tags_csv
+                link_id,
+                meta.note_type,
+                escape_quotes(&meta.title),
+                tags_csv
             ));
 
             // Add summary line if available

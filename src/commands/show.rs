@@ -13,6 +13,7 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::index::IndexBuilder;
 use crate::lib::note::Note;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Execute the show command
@@ -148,7 +149,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "N {} {} \"{}\" tags={}{}",
                 note.id(),
                 note.note_type(),
-                note.title(),
+                escape_quotes(note.title()),
                 tags_csv,
                 annotations
             );

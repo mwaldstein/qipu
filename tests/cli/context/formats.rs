@@ -59,3 +59,46 @@ fn test_context_records_format() {
         .stdout(predicate::str::contains("N "))
         .stdout(predicate::str::contains("Records Context Note"));
 }
+
+#[test]
+fn test_context_records_escapes_quotes_in_title() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Title with \"quotes\" inside"])
+        .output()
+        .unwrap();
+    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "context", "--note", &id])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // The title should be escaped with backslash before quotes
+    assert!(
+        stdout.contains(r#"Title with \"quotes\" inside"#),
+        "Expected escaped quotes in title, got: {}",
+        stdout
+    );
+
+    // Ensure it's not double-escaped or unescaped
+    assert!(
+        !stdout.contains(r#"Title with ""quotes"" inside"#),
+        "Title should not be double-quoted"
+    );
+    assert!(
+        !stdout.contains(r#"Title with "quotes" inside"#) || stdout.contains(r#"\"quotes\""#),
+        "Quotes must be escaped"
+    );
+}

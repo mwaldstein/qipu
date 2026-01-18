@@ -4,6 +4,7 @@ use crate::commands::export::ExportOptions;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
+use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 pub fn export_records(
@@ -60,7 +61,7 @@ fn export_bibliography_records(output: &mut String, notes: &[Note]) {
         output.push_str(&format!(
             "D source url={} title=\"{}\" accessed={} from={}\n",
             source.url,
-            title,
+            escape_quotes(title),
             accessed,
             note.id()
         ));
@@ -93,7 +94,7 @@ fn export_note_record(
         "N {} {} \"{}\" tags={}{}\n",
         note.id(),
         note.note_type(),
-        note.title(),
+        escape_quotes(note.title()),
         tags_csv,
         annotations
     ));

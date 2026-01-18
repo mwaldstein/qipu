@@ -99,8 +99,9 @@
   - Stop words are now filtered during tokenization using a static `OnceLock<HashSet<&str>>` for efficient lookup
   - Changed `src/lib/text/mod.rs:1-40`: added `get_stop_words()` function and updated `tokenize()` to filter stop words
   - Added tests: `src/lib/text/mod.rs:69-118` (6 unit tests verifying stop word removal)
-- [ ] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
-  - Refs: CLI default `src/cli/commands.rs:183-185`
+- [x] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
+  - Fixed: changed CLI default value from 0.8 to 0.85 to match spec
+  - Changed `src/cli/commands.rs:184`: updated default_value from "0.8" to "0.85"
 - [ ] Similarity is described as TF-IDF cosine; implementation uses cosine over BM25-weighted vectors with `tf=1` (no term frequencies stored)
   - Refs: tf=1 + TODO `src/lib/similarity/mod.rs:33-37`, BM25-weighted vectors `src/lib/similarity/mod.rs:119-148`
 

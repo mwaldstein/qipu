@@ -181,7 +181,7 @@ pub enum Commands {
         duplicates: bool,
 
         /// Similarity threshold for duplicate detection (0.0 to 1.0)
-        #[arg(long, default_value = "0.8")]
+        #[arg(long, default_value = "0.85")]
         threshold: f64,
     },
 

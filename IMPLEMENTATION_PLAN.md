@@ -1,317 +1,204 @@
 # Qipu Implementation Plan
 
-## **Status: Active Development**
-
-Core P0/P1 features are substantially complete. Detailed audit conducted on 2026-01-17 identified gaps requiring attention.
-
----
-
-## **Current Priority: Code Refactoring **
-
----
-
-## **P0: Large File Refactoring** ⚠️ IN PROGRESS
-
-**Priority**: Top priority unless test failures exist (test failures always take precedence)
-
-Several files have grown overly large and need refactoring to improve maintainability:
-
-### **Highest Priority Refactoring Candidates:**
-
-1. **`tests/cli/link.rs` (1,438 lines)** ✅ COMPLETE - Broken into separate modules:
-   - `tests/cli/link/list.rs` - link list command tests ✅
-   - `tests/cli/link/tree.rs` - link tree command tests ✅
-   - `tests/cli/link/path.rs` - link path command tests ✅
-   - `tests/cli/link/add_remove.rs` - basic link operations ✅
-   - `tests/cli/link/compaction.rs` - compaction-related link tests ✅
-   - `tests/cli/link/mod.rs` - module declarations ✅
-
-2. **`tests/cli/context.rs` (1,059 lines)** ✅ COMPLETE - Broken into separate modules:
-   - `tests/cli/context/basic.rs` - basic context selection tests ✅
-   - `tests/cli/context/budget.rs` - budget and truncation tests ✅
-   - `tests/cli/context/compaction.rs` - compaction expansion tests ✅
-   - `tests/cli/context/formats.rs` - output format tests ✅
-   - `tests/cli/context/mod.rs` - module declarations ✅
-
-3. **`tests/cli/compact.rs` (896 lines)** ✅ COMPLETE - Broken into separate modules:
-   - `tests/cli/compact/commands.rs` - compact report/suggest/apply tests ✅
-   - `tests/cli/compact/annotations.rs` - compaction visibility tests ✅
-   - `tests/cli/compact/mod.rs` - module declarations ✅
-
-### **Medium Priority Production Code:**
-
-4. **`src/lib/compaction.rs` (656 lines)** ✅ COMPLETE - Refactored into modular structure:
-   - `src/lib/compaction/mod.rs` - Public API and size estimation ✅
-   - `src/lib/compaction/context.rs` - CompactionContext core (122 lines) ✅
-   - `src/lib/compaction/expansion.rs` - Note expansion and metrics (138 lines) ✅
-   - `src/lib/compaction/suggestion.rs` - Graph clustering for suggestions (188 lines) ✅
-   - `src/lib/compaction/validation.rs` - Invariant validation (69 lines) ✅
-5. **`src/cli/mod.rs` (635 lines)** ✅ COMPLETE - Refactored into modular structure:
-   - `src/cli/mod.rs` - Core CLI structure and global flags (163 lines) ✅
-   - `src/cli/commands.rs` - Main Commands enum (368 lines) ✅
-   - `src/cli/compact.rs` - CompactCommands enum (54 lines) ✅
-   - `src/cli/workspace.rs` - WorkspaceCommands enum (72 lines) ✅
-6. **`src/lib/store/mod.rs` (608 lines)** ✅ COMPLETE - Refactored into modular structure:
-   - `src/lib/store/mod.rs` - Core Store struct and initialization (311 lines) ✅
-   - `src/lib/store/lifecycle.rs` - Note creation and persistence (202 lines) ✅
-   - `src/lib/store/query.rs` - Note lookup and listing (122 lines) ✅
-7. **`src/commands/export/emit.rs` (601 lines)** ✅ COMPLETE - Refactored into modular structure:
-   - `src/commands/export/emit/mod.rs` - Public API and module declarations ✅
-   - `src/commands/export/emit/links.rs` - Link rewriting utilities (122 lines) ✅
-   - `src/commands/export/emit/bundle.rs` - Bundle export format (117 lines) ✅
-   - `src/commands/export/emit/outline.rs` - Outline export format (157 lines) ✅
-   - `src/commands/export/emit/bibliography.rs` - Bibliography export format (43 lines) ✅
-   - `src/commands/export/emit/json.rs` - JSON export format (86 lines) ✅
-   - `src/commands/export/emit/records.rs` - Records export format (132 lines) ✅
-8. **`src/commands/link/tree.rs` (586 lines)** ✅ COMPLETE - Refactored to 374 lines:
-   - Removed duplicate bfs_traverse function (now uses lib/graph/traversal.rs) ✅
-   - Extracted JSON output formatting to separate function ✅
-   - Cleaned up imports and structure ✅
-
-### **Function-Level Refactoring:**
-
-9. **`src/commands/dispatch.rs`** ✅ COMPLETE - Refactored large match statement:
-   - Extracted 20+ command handlers into separate functions (259 lines → 832 lines total, but well-organized)
-   - Each handler is self-contained with clear responsibilities
-   - Improved maintainability and testability
-   - All tests pass after refactoring
-10. **`src/commands/link/list.rs`** ✅ COMPLETE - Refactored `output_list_records` function:
-   - Broke down 135-line function into 8 focused helper functions
-   - Extracted note metadata collection, edge line generation, and truncation logic
-   - Improved code clarity and maintainability without changing behavior
-   - All tests pass after refactoring
-
-**Recommended approach**: Start with test files (easier to refactor), then focus on `src/lib/compaction.rs` as core business logic, followed by function-level decomposition.
-
----
-
-## **P1: LLM User Validation Testing Harness** ✅ COMPLETE
-All 6 phases completed:
-- Phase 1: Separate Crate Setup ✅
-- Phase 2: Test Fixtures ✅
-- Phase 3: Core Harness Infrastructure ✅
-- Phase 4: Tool Adapters ✅
-- Phase 5: Evaluation System ✅
-- Phase 6: Results & Reporting ✅
-
----
-
-## **P1.5: Structured Logging Infrastructure** ⚠️ PHASE 1 COMPLETE (2026-01-17)
-
-**Priority**: High - Improves observability and debugging capabilities
-
-Replace primitive boolean logging with structured logging framework:
-
-### **Phase 1: Infrastructure Setup** ✅ COMPLETE
-1. **Add tracing dependencies**: `tracing`, `tracing-subscriber`, `tracing-appender` to `Cargo.toml` ✅
-2. **Extend CLI arguments**: Added `--log-level` and `--log-json` flags to CLI ✅
-3. **Initialize logging system**: Set up structured logging in `main.rs` with environment variable support (`QIPU_LOG`) ✅
-4. **Update tests**: Updated golden help test for new CLI flags ✅
-
-### **Phase 2: Core Operations** ❌ NOT STARTED
-1. **Instrument core operations**: Add spans to store, search, index, graph operations
-2. **Replace eprintln! statements**: Convert to structured logging with appropriate levels
-3. **Add performance tracing**: Timing spans for major operations
-
-### **Phase 3: Enhanced Observability** ❌ NOT STARTED
-1. **Enhance error context**: Structured error information with operation traces
-2. **Implement operation tracing**: Complex workflows with detailed context
-3. **Add optional file output**: Log rotation and file-based logging
-
-**Spec**: `specs/structured-logging.md` ✅ COMPLETE  
-**Target**: Zero performance impact when disabled, granular control when enabled  
-**Status**: Infrastructure in place, backward compatible, all 243 tests pass
-
----
-
-## **P1.6: Human Testing Guide** ❌ NOT STARTED
-
-**Priority**: Medium - Improves release confidence and onboarding
-
-Author a human-run testing guide in the docs folder to validate core user flows end-to-end.
-
-### **Implementation Tasks**
-1. **Create doc**: `docs/human-testing.md`
-2. **Cover core flows**: init/store creation, create/capture, list/show/search, links, context/prime, export
-3. **Include fixtures**: sample commands and expected outputs (human format)
-4. **Cross-platform notes**: macOS/Linux differences (paths, editor, clipboard)
-5. **Define "done"**: minimal smoke test vs full regression checklist
-
----
-
-## **P2: Correctness Issues** ✅ COMPLETE
-- Workspace merge bugs: 3/3 fixed ✅
-- Pack load missing features: 3/3 fixed (test was flaky, not actual bug) ✅
-- List performance: Fixed O(n²) compaction_pct calculation by caching note_map ✅
-
----
-
-## **P2: Missing Test Coverage** ⚠️ PARTIAL (2/6 complete)
-- Workspace commands: Partially tested ✅
-- Capture command: Comprehensive test suite added (18 tests) ✅
-- **4 areas remain untested**: Graph traversal limits, Type filtering, Provenance fields (prompt_hash), Token budgeting
-
----
-
-## **P2.5: Code Quality and Safety Audit** ❌ NOT STARTED
-
-**Priority**: Medium-High - Improves code robustness and error handling
-
-### **Unwrap/Expect Usage Audit**
-Current codebase contains 262 instances of `.unwrap()` and `.expect()` calls outside of tests, creating potential panic risks:
-
-**Audit Tasks:**
-1. **Catalog all unwrap/expect locations**: Systematically review each instance
-2. **Categorize by safety level**: 
-   - Safe (guaranteed by invariants)
-   - Defensive (has fallback with `unwrap_or`)  
-   - Risky (could panic in normal operation)
-3. **Replace risky unwraps**: Convert to proper error handling with `?` operator
-4. **Add context to expect calls**: Ensure all `.expect()` calls have descriptive messages
-5. **Document safety invariants**: Add comments explaining why remaining unwraps are safe
-
-**Examples found:**
-- `current_dir().unwrap_or_else(|_| PathBuf::from("."))` ✅ Safe (has fallback)
-- `.unwrap_or(std::cmp::Ordering::Equal)` ✅ Safe (has fallback)
-- Other `.unwrap()` calls need review for safety
-
-**Target**: Reduce panic risks while maintaining code clarity
-
----
-
-
-
-## **P4: Spec-Implementation Gaps** ❌ NOT STARTED (10 items remain)
-
-#### Similarity Ranking Issues
-- **Stop words removal**: Required by spec, not implemented
-- **Stemming**: Optional Porter stemmer mentioned in spec, not implemented
-- **Term frequency storage**: Index stores only unique terms (tf=1 assumed), reducing accuracy ([similarity/mod.rs#L136-L137])
-
-#### Indexing/Search Issues
-- **SQLite FTS5 backend**: Optional SQLite FTS mentioned in spec, not implemented
-- **Recency boost**: Spec says recent notes can receive boost, not included in ranking
-
-#### Workspace Additional Issues
-- **`--from-note` doesn't copy graph slice**: Only copies single note, not linked notes
-- **`--from-query` uses simple substring match**: Doesn't leverage search index
-- **`last_updated` missing from list output**
-- **Dry-run shows no conflict report**
-- **No `doctor` check after merge**
-
-#### Provenance Issue
-- **JSON output missing provenance**: The create command's JSON output omits provenance fields
-
----
-
-## **P3 Test Coverage Status** ⚠️ PARTIAL (2/6 complete)
-
-**Completed:**
-1. Workspace commands: Partially tested ✅
-2. Capture command: Comprehensive test suite added (18 tests) ✅
-
-**Remaining (4 areas):**
-1. Graph traversal limits: `--max-nodes`, `--max-edges`, `--max-fanout`, `--direction in` flags are not tested
-2. Type filtering: `--type`, `--exclude-type`, `--typed-only`, `--inline-only` flags are not tested
-3. Pack conflict strategies: Already tested (skip, overwrite, merge-links) ✅
-4. Provenance fields: `prompt_hash` not tested
-5. Token budgeting: `--max-tokens` flag has no integration tests
-
----
-
-## **P4 Spec-Implementation Gaps** ❌ NOT STARTED (10 items remain)
-
-### Similarity Ranking (3 items)
-- Stop words removal (required by spec)
-- Stemming (optional Porter stemmer)
-- Term frequency storage (TODO: store unique terms, tf=1 assumption)
-
-### Indexing/Search (3 items)
-- SQLite FTS5 backend (optional)
-- Recency boost (recent notes can receive boost)
-
-### Workspace Additional (4 items)
-- `--from-note` doesn't copy graph slice (only copies single note)
-- `--from-query` uses simple substring match (doesn't leverage search index)
-- `last_updated` missing from list output
-- Dry-run shows no conflict report
-- No `doctor` check after merge
-
-### Provenance (1 item)
-- JSON output missing provenance (create command omits fields)
-
----
-
-## **Completed Work Summary**
-
-### Fully Complete (11 items) ✅
-1. CLI Tool (cli-tool.md)
-2. Knowledge Model (knowledge-model.md)
-3. Storage Format (storage-format.md)
-4. CLI Interface (cli-interface.md)
-5. Semantic Graph (semantic-graph.md)
-6. Graph Traversal (graph-traversal.md)
-7. Records Output (records-output.md)
-8. LLM Context (llm-context.md)
-9. Export (export.md)
-10. Compaction (compaction.md)
-11. LLM User Validation (llm-user-validation.md)
-
-### Substantially Complete (4 items) ⚠️
-1. Indexing & Search (with noted gaps)
-2. Provenance (substantially complete)
-3. Pack (marked complete with some gaps)
-4. Similarity Ranking (partial - missing stop words, stemming, term frequency storage)
-5. Workspaces (partial - missing rename strategy, graph slice seeding, more tests)
-
-### Partial (2 items) ⚠️
-1. Semantic Graph (missing some tests)
-2. Workspaces (partial)
-
----
-
-## **Infrastructure**
-
-### GitHub Actions
-Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activated in GitHub repo settings.**
-
----
-
-## **Key Learnings**
-
-1. **`--id` flag works**: The implementation allows creating notes with specific IDs for testing and advanced use cases. This enables proper testing of pack load strategies.
-
-2. **Pack load merge-links works**: Links are correctly added to existing notes when using merge-links strategy.
-
-3. **Complex test isolation needed**: Current pack tests have state pollution issues between runs. Tests need proper isolation (unique temp directories) to ensure deterministic results.
-
-4. **Spec-compliant but complex**: The application is mostly spec-compliant with well-structured code. However, pack load test coverage is complex due to state management requirements.
-
-5. **Capture command fully functional**: The capture command implementation is robust, with title auto-generation from content, provenance support, and all output formats working correctly. 18 comprehensive tests added covering basic capture, title generation, type/tag/provenance fields, and all output formats (human, JSON, records).
-
----
-
-## **Next Steps (Prioritized)**
-
-1. **Fix pack load test isolation**: Ensure tests don't pollute each other's state
-2. **Add missing pack load tests**: Create proper test coverage for skip, overwrite, and merge-links strategies
-3. **Complete large file refactoring**: Break down oversized files and large functions for better maintainability
-4. **Implement structured logging**: Replace primitive logging with tracing framework for better observability
-5. **Audit unwrap/expect usage**: Review and improve error handling to reduce panic risks
-6. **Implement missing P4 features**: Focus on spec-implementation gaps, particularly similarity ranking improvements
-
----
-
-## **Refactoring Learnings**
-
-1. **Duplicate BFS traversal removed**: The `src/commands/link/tree.rs` file had a duplicate `bfs_traverse` function that was identical to the one in `src/lib/graph/traversal.rs`. Removed the duplicate and now uses the library version consistently.
-
-2. **File size reduction**: Refactoring `src/commands/link/tree.rs` reduced it from 586 lines to 374 lines (36% reduction) by removing the duplicate traversal function and improving output formatting organization.
-
-3. **Large match delegation pattern**: The `src/commands/dispatch.rs` refactoring successfully extracted command dispatch logic into dedicated handler functions. While the total file size increased (259→832 lines), the code is now more maintainable with each handler being a focused, testable unit. The match statement reduced from 537 lines to just 100 lines by delegating to 20+ handler functions.
-
-4. **Function extraction pattern**: The `src/commands/link/list.rs::output_list_records` refactoring demonstrated the value of breaking down large functions (135 lines) into focused helper functions. By extracting 8 helper functions, each with a single responsibility (collect unique IDs, append note metadata, append summary, append compaction lines, append edges, build header, calculate truncation, output with truncation), the code became much more readable and maintainable while preserving exact behavior.
-
----
-
-*Last updated: 2026-01-17*
+## Status (Last Audited: 2026-01-18)
+- Test baseline: `cargo test` passes (2026-01-18).
+- Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
+
+## P1: Correctness Bugs
+
+### `specs/cli-interface.md`
+- [ ] Usage/argument validation sometimes returns exit code `1` instead of `2` (usage error)
+  - Example: invalid `--since` date path returns `QipuError::Other` -> exit 1
+  - Refs: `src/commands/dispatch.rs:300-306`, `src/lib/error.rs:76-82`
+- [ ] `qipu link {list,tree,path} --direction <bad>` returns exit code `1` instead of `2`
+  - Refs: `src/commands/dispatch.rs:67-70`, `src/commands/dispatch.rs:700-703`, `src/commands/dispatch.rs:729-731`, `src/lib/error.rs:76-82`
+
+### `specs/indexing-search.md`
+- [ ] Search can miss title-only matches when ripgrep path is used
+  - `search_with_ripgrep()` selects candidates from file-content matches, then BM25-scores; a note that matches only in title may be skipped.
+  - Refs: `src/lib/index/search.rs:53-110`, `src/lib/index/search.rs:125-128`
+- [ ] Recency boost is specified but not present in ranking
+  - Refs: ranking is pure BM25 + field boosts: `src/lib/index/search.rs:176-178`, `src/lib/index/search.rs:312-318`
+
+### `specs/graph-traversal.md`
+- [ ] “(seen)” references in human tree output are effectively unreachable
+  - Traversal only records first-discovery edges in `spanning_tree`, so later edges to visited nodes are not available for rendering as “(seen)”.
+  - Refs: `src/lib/graph/traversal.rs:190-223`, “(seen)” rendering `src/commands/link/tree.rs:195-223`
+- [ ] Default semantic inversion introduces `source=virtual` + inverted types for inbound traversal; spec does not describe this behavior
+  - Refs: inversion `src/lib/index/types.rs:43-54`, traversal uses inversion `src/lib/graph/traversal.rs:110-125`, flag `src/cli/mod.rs:82-85`
+- [ ] Tree ordering can diverge from “sort neighbors by (type,id)” guidance due to spanning-tree re-sort
+  - Refs: neighbor sort `src/lib/graph/traversal.rs:130-135`, spanning-tree sort `src/lib/graph/traversal.rs:235`
+
+### `specs/similarity-ranking.md`
+- [ ] Stop words removal is required but not implemented
+  - Refs: tokenizer `src/lib/text/mod.rs:7-13` (no stopword filtering); no stopword list in `src/`
+- [ ] Duplicate threshold default differs from spec (spec: 0.85; impl default: 0.8)
+  - Refs: CLI default `src/cli/commands.rs:183-185`
+
+### `specs/provenance.md`
+- [ ] `qipu create --format json` omits provenance fields (`source/author/generated_by/prompt_hash/verified`)
+  - Refs: `src/commands/create.rs:52-63`
+- [ ] `qipu capture --format json` omits provenance fields
+  - Refs: `src/commands/capture.rs:70-82`
+
+### `specs/export.md`
+- [ ] MOC-driven export ordering does not follow MOC ordering for bundle/json/records
+  - Global created/id sort runs before emitting regardless of `--moc`.
+  - Refs: sort `src/commands/export/mod.rs:101-103`, sort fn `src/commands/export/plan.rs:100-110`
+- [ ] `--link-mode anchors` likely produces broken anchors (`#note-<id>` targets not emitted)
+  - Refs: anchor map `src/commands/export/emit/links.rs:16-18`, headings lack explicit anchors `src/commands/export/emit/bundle.rs:31`, `src/commands/export/emit/outline.rs:74`
+- [ ] `--mode bibliography --format json` does not produce a bibliography-shaped JSON output
+  - Refs: JSON export always emits notes array `src/commands/export/emit/json.rs:26-86`
+
+### `specs/compaction.md`
+- [ ] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit
+  - Truncation boolean exists but is only surfaced via records (`D compacted_truncated`) / human messages.
+  - Refs: truncation computed `src/lib/compaction/expansion.rs:48-58`; JSON emits only IDs `src/commands/list.rs:88-97`
+- [ ] `compact guide` claims `report/suggest` are “coming soon” even though both exist
+  - Refs: `src/commands/compact/guide.rs:49-51`
+
+### `specs/pack.md`
+- [ ] `load --strategy merge-links` does not match spec semantics (content preservation + links union)
+  - Incoming note frontmatter links are initialized empty, so “merge” is a no-op; content still overwritten.
+  - Refs: empty links `src/commands/load/mod.rs:198`, note body set from pack `src/commands/load/mod.rs:211-213`, merge branch `src/commands/load/mod.rs:249-276`
+- [ ] Dump `--typed-only` / `--inline-only` filtering is inverted
+  - Refs: `src/commands/dump/mod.rs:36-41`
+- [ ] Dump traversal expansion ignores type/source filters (`--type`, `--typed-only`, `--inline-only`)
+  - Refs: traversal `src/commands/dump/mod.rs:81-112`
+- [ ] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not “actually loaded” set)
+  - Refs: `load_links` signature `src/commands/load/mod.rs:92-99`
+
+### `specs/workspaces.md`
+- [ ] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
+  - Refs: CLI promise `src/cli/workspace.rs:60-63`, behavior `src/commands/workspace/merge.rs:82-84`
+- [ ] `merge-links` strategy also unions tags (spec describes link-only merge)
+  - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`
+- [ ] `workspace new --empty` flag is accepted but ignored
+  - Refs: ignored arg `_empty` `src/commands/workspace/new.rs:13-14`
+
+### `specs/structured-logging.md`
+- [ ] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)
+  - Refs: tracing init `src/lib/logging.rs:15-52`, legacy verbose gate `src/lib/logging.rs:4-12`, timing `eprintln!` `src/main.rs:64-66`
+
+### `specs/llm-user-validation.md`
+- [ ] `llm-tool-test` CLI default tool value is inconsistent with runtime support
+  - CLI default `--tool qipu`: `crates/llm-tool-test/src/cli.rs:22-25`; runtime only accepts `amp|opencode`: `crates/llm-tool-test/src/main.rs:59-63`
+- [ ] Rubric YAML fixtures don’t match the deserialization shape expected by the judge
+  - Expects `criteria: Vec<...>`: `crates/llm-tool-test/src/judge.rs:5-17`; fixtures are a mapping: `crates/llm-tool-test/fixtures/qipu/rubrics/capture_v1.yaml:1-16`
+- [ ] Regression detection message/condition appears reversed
+  - Refs: `crates/llm-tool-test/src/results.rs:228-230`
+
+## P2: Missing Test Coverage
+
+### `specs/graph-traversal.md`
+- [ ] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`
+  - Filters exist but are untested: `src/lib/graph/types.rs:35-59`
+- [ ] Add tests for `direction=in` and `direction=both` on `link tree` and `link path`
+  - Direction parsing exists; tests currently cover `out` and some hop limits.
+  - Refs: direction enum `src/lib/graph/types.rs:5-30`; existing tests `tests/cli/link/tree.rs:229-288`
+
+### `specs/indexing-search.md`
+- [ ] Add tests asserting ranking rules (title boost > body; tag boost behavior)
+  - Current tests check presence, not ordering.
+  - Refs: boosts `src/lib/index/search.rs:176-178`
+- [ ] Add test that would fail if title-only matches are missed when ripgrep returns results
+  - Refs: ripgrep path `src/lib/index/search.rs:53-110`
+
+### `specs/similarity-ranking.md`
+- [ ] Add CLI/integration test for `qipu doctor --duplicates` with threshold behavior
+  - Core similarity has unit test, but no CLI test.
+  - Refs: CLI flags `src/cli/commands.rs:173-186`, doctor path `src/commands/doctor/checks.rs:261-280`
+
+### `specs/provenance.md`
+- [ ] Add CLI test for `--prompt-hash` via `create` or `capture` (not just pack roundtrip)
+  - Flags exist: `src/cli/args.rs:22-40`; test coverage currently relies on pack tests.
+
+### `specs/export.md`
+- [ ] Add test that verifies MOC-driven bundle export respects MOC ordering (currently likely fails)
+  - Refs: global sort `src/commands/export/mod.rs:101-103`
+- [ ] Add test validating anchor rewriting produces a target anchor that exists in output
+  - Refs: rewrite `src/commands/export/emit/links.rs:56-96`
+
+### `specs/compaction.md`
+- [ ] Add tests for `compact apply`, `compact show`, `compact status` (CLI-level)
+  - Implementations exist but are not directly exercised: `src/commands/compact/apply.rs`, `src/commands/compact/show.rs`, `src/commands/compact/status.rs`
+
+### `specs/structured-logging.md`
+- [ ] Add tests verifying `--log-level` / `--log-json` / `QIPU_LOG` behavior (currently only help text is covered)
+  - Refs: init `src/lib/logging.rs:31-40`, flags `src/cli/mod.rs:50-57`, golden `tests/golden/help.txt:41-44`
+
+### `specs/llm-context.md`
+- [ ] Add tests for `context --transitive` (nested MOC traversal)
+  - Refs: traversal `src/commands/context/select.rs:22-28`
+- [ ] Add test for records safety banner line (`W ...`) under `--format records --safety-banner`
+  - Refs: records banner `src/commands/context/output.rs:436-443`
+
+### `specs/pack.md`
+- [ ] Fix/replace outdated CLI pack tests (positional arg handling in `dump` appears changed)
+  - Refs: test uses `.arg("dump").arg(&note_id).arg("--output") ...`: `tests/cli/pack.rs:60-69`; CLI positional is file: `src/cli/commands.rs:299-302`; conflict check `src/commands/dispatch.rs:785-789`
+
+## P3: Unimplemented Optional / Future
+
+### `specs/indexing-search.md`
+- [ ] Optional SQLite FTS5 backend is not implemented
+  - Refs: no SQLite search layer; spec mentions optional FTS5; `qipu.db` not used.
+
+### `specs/storage-format.md`
+- [ ] Optional `qipu.db` is not implemented (only gitignored)
+  - Refs: gitignore entry `src/lib/store/io.rs:44-71`
+
+### `specs/similarity-ranking.md`
+- [ ] Optional stemming (Porter) is not implemented
+  - Refs: no stemming code in `src/`
+
+### `specs/llm-context.md`
+- [ ] Backlinks-in-context is described as open/future; not implemented
+  - Refs: context options have no backlinks flag `src/commands/context/types.rs:4-15`
+
+### `specs/semantic-graph.md`
+- [ ] Weighted traversal / per-edge hop costs are not implemented (if still desired)
+  - Refs: traversal is unweighted BFS `src/lib/graph/traversal.rs:87-90`
+
+## P4: Spec Ambiguity / Spec Drift (Needs Clarification Before Implementation)
+
+### `specs/knowledge-model.md`
+- [ ] Decide whether note “type” should remain a closed enum or allow arbitrary values (spec marks as open question)
+  - Refs: strict enum `src/lib/note/types.rs:6-19`, parsing `src/lib/note/types.rs:27-42`
+
+### `specs/semantic-graph.md`
+- [ ] Align custom link-type config schema (spec uses `[graph.types.*]`; impl uses `[links.inverses]` + `[links.descriptions]`)
+  - Refs: config `src/lib/config.rs:40-69`, spec mismatch noted in semantic-graph audit
+
+### `specs/records-output.md`
+- [ ] Reconcile record prefixes and terminators (spec suggests `H/N/S/E/B`; impl also emits `W/D/C/M` and `B-END`)
+  - Refs: context records `src/commands/context/output.rs:436-443` (`W`), `src/commands/context/output.rs:344-354` (`D source`), `src/commands/context/output.rs:361-362` (`B-END`); prime records `src/commands/prime.rs:201-219` (`C/M`)
+
+### `specs/graph-traversal.md` + `specs/semantic-graph.md`
+- [ ] Clarify whether semantic inversion is part of traversal semantics (virtual edges) or only a presentation-layer feature
+  - Refs: global flag `src/cli/mod.rs:82-85`, inversion `src/lib/index/types.rs:43-54`
+
+### `specs/export.md`
+- [ ] Clarify expected behavior for anchor rewriting (explicit anchors vs relying on Markdown renderer heading IDs)
+  - Refs: rewrite targets `#note-<id>` `src/commands/export/emit/links.rs:16-18`
+
+## Completed (Verified Working)
+
+### `specs/cli-tool.md`
+- [x] Store discovery rules (`--store`, walk-up `.qipu/` then `qipu/`) and exit code `3` on missing store
+  - Refs: discovery `src/lib/store/paths.rs:29-58`, error mapping `src/lib/error.rs:83-88`, tests `tests/cli/misc.rs:84-93`
+- [x] JSON usage-error envelope when `--format json` is present (including parse-time failures)
+  - Refs: parse-time detection `src/main.rs:28-50`, JSON error emit `src/main.rs:75-81`, tests `tests/cli/misc.rs:52-59`
+
+### `specs/knowledge-model.md`
+- [x] Note parsing/serialization with YAML frontmatter and required fields (`id`, `title`)
+  - Refs: parse `src/lib/note/parse.rs:10-55`, serialize `src/lib/note/mod.rs:61-65`, tests `src/lib/note/mod.rs:121-140`
+- [x] Core note types (fleeting/literature/permanent/moc) enforced and tested
+  - Refs: enum `src/lib/note/types.rs:6-19`, tests `src/lib/note/mod.rs:90-103`
+
+### `specs/records-output.md`
+- [x] Records format implemented for `context`, `prime`, and link traversal commands with max-chars truncation support (context + link commands)
+  - Refs: context `src/commands/context/output.rs:265-527`, tree `src/commands/link/tree.rs:255-374`, path `src/commands/link/path.rs:309-438`, list `src/commands/link/list.rs:253-442`, tests `tests/cli/context/budget.rs:117-147`
+
+### Non-spec maintenance
+- [x] Full test suite currently green
+  - Refs: `cargo test` (2026-01-18)

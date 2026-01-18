@@ -32,27 +32,27 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-17*
+*Last audited: 2026-01-18*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ✅ | Performance budgets not automated |
-| `knowledge-model.md` | ✅ | ✅ | ✅ | |
-| `storage-format.md` | ✅ | ✅ | ✅ | `qipu.db` not implemented (future) |
-| `cli-interface.md` | ✅ | ✅ | ⚠️ | Missing tests: capture, workspace commands |
-| `indexing-search.md` | ✅ | ⚠️ | ✅ | Missing: SQLite FTS5, recency boost |
-| `semantic-graph.md` | ✅ | ✅ | ⚠️ | No unit tests for LinkType::inverse() |
-| `graph-traversal.md` | ✅ | ✅ | ⚠️ | Missing tests: limits, direction=in, type filtering |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Missing: stop words, stemming, term freq storage |
-| `records-output.md` | ✅ | ✅ | ⚠️ | Limited test coverage |
-| `llm-context.md` | ✅ | ✅ | ✅ | Open: backlinks, summarization |
-| `llm-user-validation.md` | ✅ | ❌ | ⚠️ | **Scaffold only** - no actual LLM invocation |
-| `provenance.md` | ✅ | ✅ | ⚠️ | Missing: prompt_hash test, JSON output fields |
-| `export.md` | ✅ | ✅ | ⚠️ | Missing tests: --tag, --query, bibliography mode |
-| `compaction.md` | ✅ | ✅ | ✅ | |
-| `pack.md` | ✅ | ⚠️ | ⚠️ | Missing: --strategy, store_version, conflict resolution |
-| `workspaces.md` | ✅ | ⚠️ | ❌ | **Bugs**: merge strategies broken; **No tests** |
-| `structured-logging.md` | ✅ | ❌ | ❌ | **Not started**: Infrastructure improvement |
+| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | Determinism/perf/hygiene partially asserted; verbose timing keys incomplete (`src/main.rs:64-66`) |
+| `knowledge-model.md` | ✅ | ⚠️ | ✅ | ID length growth is collision-driven (`src/lib/id.rs:79-87`); tag aliases not implemented |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Markdown relative path links only resolved if `qp-...` appears (`src/lib/index/links.rs:57-107`); `qipu.db` not implemented |
+| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Some post-parse arg errors exit 1 not 2 (`src/commands/dispatch.rs:300-306`); `--max-chars` for link cmds records-only |
+| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | Recency boost missing; ripgrep path can miss title-only matches (`src/lib/index/search.rs:53-110`) |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Custom type config schema differs from spec (`src/lib/config.rs:40-69`); no direct `inverse()` unit tests |
+| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | “(seen)” refs not rendered; type filters + direction=in/both missing tests |
+| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Stop words + stemming missing; similarity uses BM25-ish weights + tf=1 (`src/lib/similarity/mod.rs:133-137`) |
+| `records-output.md` | ✅ | ⚠️ | ✅ | Records schema has extra prefixes (`W/D/C/M`) and `B-END` terminator |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime bounded by counts not tokens/chars (`src/commands/prime.rs:14-19`); backlinks-in-context not implemented |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness exists but many spec features missing; tool default mismatch (`crates/llm-tool-test/src/cli.rs:22-25`) |
+| `provenance.md` | ✅ | ⚠️ | ⚠️ | `create/capture --format json` omit provenance fields; `prompt_hash` not covered via CLI provenance tests |
+| `export.md` | ✅ | ⚠️ | ⚠️ | MOC bundle ordering not honored; anchor rewriting likely broken (`src/commands/export/emit/links.rs:16-18`) |
+| `compaction.md` | ✅ | ⚠️ | ⚠️ | JSON outputs omit compaction truncation flag (`src/commands/list.rs:88-97`); `compact apply/show/status` lack direct tests |
+| `pack.md` | ✅ | ❌ | ⚠️ | `merge-links` semantics wrong (`src/commands/load/mod.rs:198`); dump filters inverted (`src/commands/dump/mod.rs:36-41`) |
+| `workspaces.md` | ✅ | ⚠️ | ⚠️ | `--dry-run` lacks conflict report (`src/commands/workspace/merge.rs:82-84`); seeding is shallow (`src/commands/workspace/new.rs:60-71`) |
+| `structured-logging.md` | ✅ | ⚠️ | ❌ | Tracing init + flags exist, but no span/event instrumentation; still many `eprintln!` callsites |
 
 ## Legend
 
@@ -63,25 +63,23 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 ## Detailed Gap Summary
 
 ### P1: Correctness Issues
-- **workspaces.md**: `overwrite` and `merge-links` strategies have bugs; `--force` ignored
-- **pack.md**: `--strategy` not implemented; always overwrites on load
-- **llm-user-validation.md**: Test framework exists but doesn't invoke actual LLM
+- **pack.md**: `load --strategy merge-links` and dump `--typed-only/--inline-only` filtering do not match spec (`src/commands/load/mod.rs:198`, `src/commands/dump/mod.rs:36-41`)
+- **workspaces.md**: `workspace merge --dry-run` lacks conflict report and prints success-like message (`src/commands/workspace/merge.rs:82-84`)
+- **export.md**: anchor link rewriting likely broken (rewrites to `#note-<id>` without emitting anchors) (`src/commands/export/emit/links.rs:16-18`)
+- **indexing-search.md**: ripgrep-based search can miss title-only matches (`src/lib/index/search.rs:53-110`)
+- **cli-interface.md**: some invalid-arg errors return exit code 1 instead of 2 (`src/commands/dispatch.rs:300-306`)
 
 ### P2: Missing Test Coverage
-- `capture` command (cli-interface)
-- `workspace` commands (workspaces)
-- Graph traversal limits (graph-traversal)
-- Type filtering (graph-traversal)
-- Pack conflict strategies (pack)
-- `prompt_hash` (provenance)
-- `--max-tokens` (llm-context)
+- `graph-traversal.md`: type filters, typed-only/inline-only, direction=in/both
+- `provenance.md`: `prompt_hash` via CLI create/capture
+- `export.md`: MOC bundle ordering, anchor existence
+- `structured-logging.md`: runtime logging behaviors
 
 ### P3: Future/Optional Items
 - SQLite FTS5 (indexing-search)
-- Recency boost (indexing-search)
-- Stop words, stemming (similarity-ranking)
-- Term frequency storage (similarity-ranking)
-- Wiki-link canonicalization in index (records-output)
-- Backlinks in context (llm-context)
-- LLM meta-evaluation (llm-user-validation)
-- `rename` merge strategy (workspaces)
+- Stemming (similarity-ranking)
+- Backlinks-in-context (llm-context)
+
+### P4: Spec ambiguity / drift
+- semantic-graph custom type config schema differs from spec
+- records-output has extra record prefixes + `B-END` terminator

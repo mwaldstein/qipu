@@ -167,6 +167,67 @@ impl Database {
         Ok(())
     }
 
+    /// Insert a note into the database (public API for inline updates)
+    pub fn insert_note(&self, note: &Note) -> Result<()> {
+        Self::insert_note_internal(&self.conn, note)
+    }
+
+    /// Insert edges (links) for a note into the database
+    pub fn insert_edges(&self, note: &Note) -> Result<()> {
+        use crate::lib::index::links;
+        use std::collections::{HashMap, HashSet};
+
+        let mut unresolved = HashSet::new();
+        let mut path_to_id = HashMap::new();
+
+        if note.path.is_some() {
+            if let Ok(existing_ids) =
+                crate::lib::store::Store::discover(note.path.as_ref().unwrap().parent().unwrap())
+            {
+                let ids = existing_ids.existing_ids().unwrap_or_default();
+                let edges = links::extract_links(
+                    note,
+                    &ids,
+                    &mut unresolved,
+                    note.path.as_deref(),
+                    &path_to_id,
+                );
+
+                for edge in edges {
+                    let link_type_str = edge.link_type.to_string();
+                    let inline_flag =
+                        if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
+                            1
+                        } else {
+                            0
+                        };
+
+                    self.conn
+                        .execute(
+                            "INSERT OR REPLACE INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
+                            params![edge.from, edge.to, link_type_str, inline_flag],
+                        )
+                        .map_err(|e| {
+                            QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
+                        })?;
+                }
+
+                for unresolved_ref in unresolved {
+                    self.conn
+                        .execute(
+                            "INSERT OR REPLACE INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
+                            params![note.id(), unresolved_ref],
+                        )
+                        .map_err(|e| {
+                            QipuError::Other(format!("failed to insert unresolved ref {}: {}", unresolved_ref, e))
+                        })?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Perform full-text search using FTS5 with BM25 ranking
     ///
     /// Field weights for BM25:

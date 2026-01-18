@@ -23,7 +23,12 @@ Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep
   - Added `pub fn db(&self) -> &Database` accessor method
   - Changed `Database::rebuild(&self, store: &Store)` to `Database::rebuild(&self, store_root: &Path)` to avoid circular dependency
   - Refs: Store struct `src/lib/store/mod.rs:28-35`, db accessor `src/lib/store/mod.rs:237-239`, rebuild signature `src/lib/db/mod.rs:53`
-- [ ] Modify `create_note` to write file + insert into DB atomically
+- [x] Modify `create_note` to write file + insert into DB atomically
+  - Added `Database::insert_note()` public method to insert note, FTS index, and tags
+  - Added `Database::insert_edges()` public method to insert edges (links) and unresolved refs
+  - Modified `Store::create_note()` to call both methods after writing file
+  - Modified `Store::create_note_with_content()` to call both methods after writing file
+  - Refs: insert_note `src/lib/db/mod.rs:106-168`, insert_edges `src/lib/db/mod.rs:170-233`, create_note `src/lib/store/lifecycle.rs:56-63`
 - [ ] Modify `update_note` (edit) to update file + re-index in DB
 - [ ] Modify `delete_note` to remove file + remove from DB
 - [ ] Modify `link add/remove` to update file + update edges table

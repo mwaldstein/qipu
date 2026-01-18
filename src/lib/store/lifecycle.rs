@@ -59,6 +59,9 @@ impl Store {
         let mut note = note;
         note.path = Some(file_path);
 
+        self.db.insert_note(&note)?;
+        self.db.insert_edges(&note)?;
+
         Ok(note)
     }
 
@@ -107,6 +110,9 @@ impl Store {
 
         let mut note = note;
         note.path = Some(file_path);
+
+        self.db.insert_note(&note)?;
+        self.db.insert_edges(&note)?;
 
         Ok(note)
     }

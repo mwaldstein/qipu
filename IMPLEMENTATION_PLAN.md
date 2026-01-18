@@ -41,8 +41,12 @@
   - Changed `src/lib/index/search.rs:228-230`: apply recency boost in ripgrep search path
   - Changed `src/lib/index/search.rs:365-367`: apply recency boost in embedded search path
   - Added test: `tests/cli/search.rs:test_search_recency_boost` verifies recently updated notes rank higher
-- [ ] "Exact tag match should rank above plain text match" is not implemented (tags are BM25-scored text)
-  - Refs: tags scored as `meta.tags.join(" ")`: `src/lib/index/search.rs:65-66`, `src/lib/index/search.rs:168-169`
+- [x] "Exact tag match should rank above plain text match" is not implemented (tags are BM25-scored text)
+  - Fixed: added exact tag match detection with higher boost (3.0x) to ensure exact tag matches rank above body text matches
+  - Changed `src/lib/index/search.rs:218-236`: added exact tag match counting and boosting in ripgrep search path
+  - Changed `src/lib/index/search.rs:321-371`: added exact tag match counting and boosting in embedded search path
+  - Ranking now applies: Title x2.0, Exact tag match x3.0, Tags (BM25) x1.5, Body x1.0
+  - Added test: `tests/cli/search.rs:test_search_exact_tag_match_ranks_above_body` verifies exact tag matches rank higher than body text matches
 
 ### `specs/storage-format.md`
 - [ ] Markdown links to other notes by relative path are not resolved unless the target contains a `qp-...` ID

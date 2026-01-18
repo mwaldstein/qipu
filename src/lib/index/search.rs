@@ -216,6 +216,17 @@ fn search_with_ripgrep(
         };
 
         let title_score = calculate_bm25(&tokenized_query, &meta.title, index, None);
+
+        // Check for exact tag matches (case-insensitive)
+        let exact_tag_matches = tokenized_query
+            .iter()
+            .filter(|term| {
+                meta.tags
+                    .iter()
+                    .any(|tag| tag.to_lowercase() == term.to_lowercase())
+            })
+            .count() as f64;
+
         let tags_score = calculate_bm25(&tokenized_query, &meta.tags.join(" "), index, None);
         let body_score = calculate_bm25(
             &tokenized_query,
@@ -224,8 +235,10 @@ fn search_with_ripgrep(
             index.doc_lengths.get(&meta.id).copied(),
         );
 
-        // Apply field boosting (Title x2.0, Tags x1.5) and recency boost
-        let base_relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        // Apply field boosting (Title x2.0, Exact tag match x3.0, Tags x1.5) and recency boost
+        // Exact tag matches get a higher boost (3.0) to ensure they rank above body matches
+        let base_relevance =
+            2.0 * title_score + 3.0 * exact_tag_matches + 1.5 * tags_score + body_score;
         let recency_boost = calculate_recency_boost(meta.updated);
         let relevance = base_relevance + recency_boost;
 
@@ -319,6 +332,17 @@ fn search_embedded(
         }
 
         let title_score = calculate_bm25(&tokenized_query, &meta.title, index, None);
+
+        // Check for exact tag matches (case-insensitive)
+        let exact_tag_matches = tokenized_query
+            .iter()
+            .filter(|term| {
+                meta.tags
+                    .iter()
+                    .any(|tag| tag.to_lowercase() == term.to_lowercase())
+            })
+            .count() as f64;
+
         let tags_score = calculate_bm25(&tokenized_query, &meta.tags.join(" "), index, None);
 
         let mut body_score = 0.0;
@@ -349,8 +373,10 @@ fn search_embedded(
             }
         }
 
-        // Apply field boosting (Title x2.0, Tags x1.5) and recency boost
-        let base_relevance = 2.0 * title_score + 1.5 * tags_score + body_score;
+        // Apply field boosting (Title x2.0, Exact tag match x3.0, Tags x1.5) and recency boost
+        // Exact tag matches get a higher boost (3.0) to ensure they rank above body matches
+        let base_relevance =
+            2.0 * title_score + 3.0 * exact_tag_matches + 1.5 * tags_score + body_score;
         let recency_boost = calculate_recency_boost(meta.updated);
         let relevance = base_relevance + recency_boost;
 

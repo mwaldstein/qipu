@@ -234,26 +234,41 @@ Used by: `qipu show --links`, `qipu link list`
   4. Verifies `get_backlinks()` returns correct number and type of edges
   5. Validates each backlink has correct source, target, link_type, and source type
 
-#### 3.4: Add `Database::traverse()` for graph traversal
-File: `src/lib/db/mod.rs`
+#### 3.4: Add `Database::traverse()` for graph traversal ✅ COMPLETE
+File: `src/lib/db/mod.rs:732-801`
 
+Implemented method for graph traversal using recursive CTE:
 ```rust
 pub fn traverse(
     &self,
     start_id: &str,
-    direction: TraversalDirection,
+    direction: Direction,
     max_hops: u32,
     max_nodes: Option<usize>,
-) -> Result<Vec<String>> {
-    // Use recursive CTE per spec (specs/operational-database.md:137-148)
-    let sql = match direction {
-        TraversalDirection::Out => "WITH RECURSIVE reachable(id, depth) AS (...) SELECT DISTINCT id FROM reachable",
-        TraversalDirection::In => "...",
-        TraversalDirection::Both => "...",
-    };
-    ...
-}
+) -> Result<Vec<String>>
 ```
+
+**Features:**
+- Uses recursive CTE for efficient graph traversal
+- Supports all three directions: `Direction::Out`, `Direction::In`, `Direction::Both`
+- Respects `max_hops` to limit traversal depth
+- Optional `max_nodes` to limit total results
+- Returns distinct note IDs reachable from the starting node
+
+**SQL implementation:**
+- Out direction: Follows outbound edges (source_id -> target_id)
+- In direction: Follows inbound edges (target_id <- source_id)  
+- Both direction: Combines both inbound and outbound traversal
+
+**Testing:**
+Added comprehensive test suite with 5 tests:
+- `test_traverse_outbound`: Verifies outbound traversal follows links correctly
+- `test_traverse_inbound`: Verifies inbound traversal finds backlinks
+- `test_traverse_both_directions`: Verifies bidirectional traversal
+- `test_traverse_max_hops`: Verifies max_hops limits depth
+- `test_traverse_max_nodes`: Verifies max_nodes truncates results
+
+All tests pass, confirming correct behavior.
 
 Used by: `qipu link tree`, `qipu link path`, `qipu context --moc`
 

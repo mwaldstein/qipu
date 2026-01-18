@@ -3,6 +3,7 @@
 mod schema;
 
 use crate::lib::error::{QipuError, Result};
+use crate::lib::graph::types::Direction;
 use crate::lib::index::types::{Edge, LinkSource, NoteMetadata, SearchResult};
 use crate::lib::note::LinkType;
 use crate::lib::note::Note;
@@ -726,6 +727,78 @@ impl Database {
 
         Ok(backlinks)
     }
+
+    /// Perform graph traversal using recursive CTE
+    pub fn traverse(
+        &self,
+        start_id: &str,
+        direction: Direction,
+        max_hops: u32,
+        max_nodes: Option<usize>,
+    ) -> Result<Vec<String>> {
+        let sql = match direction {
+            Direction::Out => {
+                "WITH RECURSIVE reachable(id, depth) AS (
+                    SELECT ?1, 0
+                    UNION
+                    SELECT e.target_id, r.depth + 1
+                    FROM reachable r JOIN edges e ON e.source_id = r.id
+                    WHERE r.depth < ?2
+                ) SELECT DISTINCT id FROM reachable"
+            }
+            Direction::In => {
+                "WITH RECURSIVE reachable(id, depth) AS (
+                    SELECT ?1, 0
+                    UNION
+                    SELECT e.source_id, r.depth + 1
+                    FROM reachable r JOIN edges e ON e.target_id = r.id
+                    WHERE r.depth < ?2
+                ) SELECT DISTINCT id FROM reachable"
+            }
+            Direction::Both => {
+                "WITH RECURSIVE reachable(id, depth) AS (
+                    SELECT ?1, 0
+                    UNION
+                    SELECT e.target_id, r.depth + 1
+                    FROM reachable r JOIN edges e ON e.source_id = r.id
+                    WHERE r.depth < ?2
+                    UNION
+                    SELECT e.source_id, r.depth + 1
+                    FROM reachable r JOIN edges e ON e.target_id = r.id
+                    WHERE r.depth < ?2
+                ) SELECT DISTINCT id FROM reachable"
+            }
+        };
+
+        let mut stmt = self
+            .conn
+            .prepare(sql)
+            .map_err(|e| QipuError::Other(format!("failed to prepare traversal query: {}", e)))?;
+
+        let mut rows = stmt
+            .query(params![start_id, max_hops])
+            .map_err(|e| QipuError::Other(format!("failed to execute traversal query: {}", e)))?;
+
+        let mut reachable = Vec::new();
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read traversal result: {}", e)))?
+        {
+            let id: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get note id: {}", e)))?;
+            reachable.push(id);
+        }
+
+        if let Some(max) = max_nodes {
+            if reachable.len() > max {
+                reachable.truncate(max);
+            }
+        }
+
+        Ok(reachable)
+    }
 }
 
 #[cfg(test)]
@@ -1103,5 +1176,204 @@ mod tests {
         assert_eq!(backlink2.to, note2_id);
         assert_eq!(backlink2.link_type.as_str(), "related");
         assert_eq!(backlink2.source, LinkSource::Typed);
+    }
+
+    #[test]
+    fn test_traverse_outbound() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+        let note4 = store.create_note("Note 4", None, &[], None).unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+        let note4_id = note4.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store.get_note(note2_id).unwrap();
+        note2.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("supports"),
+            id: note3_id.to_string(),
+        });
+        store.save_note(&mut note2).unwrap();
+
+        let mut note3 = store.get_note(note3_id).unwrap();
+        note3.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note4_id.to_string(),
+        });
+        store.save_note(&mut note3).unwrap();
+
+        let db = store.db();
+        let reachable = db.traverse(note1_id, Direction::Out, 3, None).unwrap();
+
+        assert_eq!(reachable.len(), 4);
+        assert!(reachable.iter().any(|id| id == note1_id));
+        assert!(reachable.iter().any(|id| id == note2_id));
+        assert!(reachable.iter().any(|id| id == note3_id));
+        assert!(reachable.iter().any(|id| id == note4_id));
+    }
+
+    #[test]
+    fn test_traverse_inbound() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note3 = store.get_note(note3_id).unwrap();
+        note3.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("supports"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note3).unwrap();
+
+        let db = store.db();
+        let reachable = db.traverse(note2_id, Direction::In, 3, None).unwrap();
+
+        assert_eq!(reachable.len(), 3);
+        assert!(reachable.iter().any(|id| id == note1_id));
+        assert!(reachable.iter().any(|id| id == note2_id));
+        assert!(reachable.iter().any(|id| id == note3_id));
+    }
+
+    #[test]
+    fn test_traverse_both_directions() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note3 = store.get_note(note3_id).unwrap();
+        note3.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note3).unwrap();
+
+        let db = store.db();
+        let reachable = db.traverse(note2_id, Direction::Both, 3, None).unwrap();
+
+        assert_eq!(reachable.len(), 3);
+        assert!(reachable.iter().any(|id| id == note1_id));
+        assert!(reachable.iter().any(|id| id == note2_id));
+        assert!(reachable.iter().any(|id| id == note3_id));
+    }
+
+    #[test]
+    fn test_traverse_max_hops() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store.get_note(note2_id).unwrap();
+        note2.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note3_id.to_string(),
+        });
+        store.save_note(&mut note2).unwrap();
+
+        let db = store.db();
+        let reachable = db.traverse(note1_id, Direction::Out, 1, None).unwrap();
+
+        assert_eq!(reachable.len(), 2);
+        assert!(reachable.iter().any(|id| id == note1_id));
+        assert!(reachable.iter().any(|id| id == note2_id));
+        assert!(!reachable.iter().any(|id| id == note3_id));
+    }
+
+    #[test]
+    fn test_traverse_max_nodes() {
+        use crate::lib::note::TypedLink;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let note1_id = note1.id();
+        let note2_id = note2.id();
+        let note3_id = note3.id();
+
+        let mut note1 = store.get_note(note1_id).unwrap();
+        note1.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note2_id.to_string(),
+        });
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store.get_note(note2_id).unwrap();
+        note2.frontmatter.links.push(TypedLink {
+            link_type: LinkType::from("related"),
+            id: note3_id.to_string(),
+        });
+        store.save_note(&mut note2).unwrap();
+
+        let db = store.db();
+        let reachable = db.traverse(note1_id, Direction::Out, 3, Some(2)).unwrap();
+
+        assert_eq!(reachable.len(), 2);
+        assert!(reachable.iter().any(|id| id == note1_id));
+        assert!(reachable.iter().any(|id| id == note2_id));
     }
 }

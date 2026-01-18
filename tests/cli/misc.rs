@@ -141,6 +141,75 @@ fn test_explicit_store_path() {
 }
 
 #[test]
+fn test_root_flag_affects_discovery_start_dir() {
+    let dir = tempdir().unwrap();
+    let root = dir.path().join("root");
+    let subdir = dir.path().join("somewhere/else");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir_all(&subdir).unwrap();
+
+    // Init at root location
+    qipu().current_dir(&root).arg("init").assert().success();
+
+    // From a different directory, --root should allow discovery
+    qipu()
+        .current_dir(&subdir)
+        .args(["--root", root.to_str().unwrap(), "list"])
+        .assert()
+        .success();
+
+    // Without --root, discovery from subdir should fail
+    qipu()
+        .current_dir(&subdir)
+        .arg("list")
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("store not found"));
+}
+
+#[test]
+fn test_relative_store_resolved_against_root() {
+    let dir = tempdir().unwrap();
+    let root = dir.path().join("root");
+    let subdir = dir.path().join("somewhere/else");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir_all(&subdir).unwrap();
+
+    // Create a store in a subdirectory of root
+    let store_path = root.join("mystore");
+
+    // Init using relative path from root
+    qipu()
+        .current_dir(&subdir)
+        .args([
+            "--root",
+            root.to_str().unwrap(),
+            "--store",
+            "mystore",
+            "init",
+        ])
+        .assert()
+        .success();
+
+    // Verify store was created at root/mystore, not subdir/mystore
+    assert!(store_path.join("config.toml").exists());
+    assert!(!subdir.join("mystore").exists());
+
+    // Should be able to use with relative --store and --root
+    qipu()
+        .current_dir(&subdir)
+        .args([
+            "--root",
+            root.to_str().unwrap(),
+            "--store",
+            "mystore",
+            "list",
+        ])
+        .assert()
+        .success();
+}
+
+#[test]
 fn test_store_flag_plain_directory_is_invalid() {
     let dir = tempdir().unwrap();
     let store_dir = dir.path().join("not-a-store");

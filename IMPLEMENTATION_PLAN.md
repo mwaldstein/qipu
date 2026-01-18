@@ -67,8 +67,9 @@
 ## P2: Missing Test Coverage
 
 ### `specs/cli-tool.md`
-- [ ] Add tests for `--root` affecting discovery start dir and relative `--store` resolution
-  - Refs: `--root` flag `src/cli/mod.rs:29-33`, used `src/commands/dispatch.rs:14-18`; existing discovery test is cwd-only `tests/cli/misc.rs:99-114`
+- [x] Add tests for `--root` affecting discovery start dir and relative `--store` resolution
+  - Added: `test_root_flag_affects_discovery_start_dir` and `test_relative_store_resolved_against_root` in `tests/cli/misc.rs:144-175`
+  - Tests verify: discovery starts from `--root`, relative `--store` resolved against `--root`
 
 ### `specs/graph-traversal.md`
 - [ ] Add tests for `link tree/path` include/exclude type filters and `--typed-only/--inline-only`

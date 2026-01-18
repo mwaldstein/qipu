@@ -11,8 +11,9 @@
   - Fixed: invalid `--since` date and `--direction` now return `QipuError::UsageError` -> exit 2
   - Changed `src/commands/dispatch.rs:304`, `src/commands/dispatch.rs:702`, `src/commands/dispatch.rs:733`
   - Added tests: `tests/cli/misc.rs:test_invalid_since_date_exit_code_2`, `tests/cli/misc.rs:test_invalid_direction_exit_code_2`
-- [ ] `qipu load --format records` emits a non-standard header (`H load=1 ...`) instead of the normal records header
-  - Refs: records header `src/commands/load/mod.rs:113-136`; standard header e.g. `src/commands/context/output.rs:445-449`
+- [x] `qipu load --format records` emits a non-standard header (`H load=1 ...`) instead of the normal records header
+  - Fixed: changed to standard format `H qipu=1 records=1 store={} mode=load pack_file={} notes={} links={} attachments={}`
+  - Changed `src/commands/load/mod.rs:127-135`
 
 ### `specs/llm-context.md`
 - [ ] `context` budgeting can be violated because selection estimates summary size but human/JSON outputs always emit full body

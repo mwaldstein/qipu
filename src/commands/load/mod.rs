@@ -125,8 +125,10 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
         OutputFormat::Records => {
+            let store_path = store.root().display().to_string();
             println!(
-                "H load=1 pack_file={} notes={} links={} attachments={}",
+                "H qipu=1 records=1 store={} mode=load pack_file={} notes={} links={} attachments={}",
+                store_path,
                 pack_file.display(),
                 loaded_notes_count,
                 loaded_links_count,

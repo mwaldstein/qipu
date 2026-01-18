@@ -38,8 +38,9 @@
    - Refs: encoding removed `src/commands/dump/mod.rs:52-62`
 
 ### `specs/workspaces.md`
-- [ ] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
-  - Refs: CLI promise `src/cli/workspace.rs:60-63`, behavior `src/commands/workspace/merge.rs:82-84`
+- [x] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message
+  - Fixed: dry_run now produces detailed report showing notes to add, conflicts, and actions based on strategy; success message only shown when not dry_run
+  - Refs: dry_run report `src/commands/workspace/merge.rs:39-80`
  - [x] `merge-links` strategy also unions tags (spec describes link-only merge)
    - Fixed: Removed tag unioning logic, now only unions links as specified
    - Refs: tag union `src/commands/workspace/merge.rs:52-57`, link union `src/commands/workspace/merge.rs:58-63`

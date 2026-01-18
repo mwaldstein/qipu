@@ -37,17 +37,24 @@ pub fn execute(
     let source_notes = source_store.list_notes()?;
     let target_notes_ids = target_store.existing_ids()?;
 
-    for note in source_notes {
+    let mut conflicts: Vec<(String, &str)> = Vec::new();
+    let mut additions: Vec<String> = Vec::new();
+
+    for note in &source_notes {
         let id: String = note.id().to_string();
         if target_notes_ids.contains(&id) {
-            match strategy {
-                "overwrite" => {
-                    if !dry_run {
-                        copy_note(&note, &target_store)?;
+            let action = match strategy {
+                "overwrite" => "overwrite",
+                "merge-links" => "merge-links",
+                "skip" | _ => "skip",
+            };
+            conflicts.push((id.clone(), action));
+            if !dry_run {
+                match strategy {
+                    "overwrite" => {
+                        copy_note(note, &target_store)?;
                     }
-                }
-                "merge-links" => {
-                    if !dry_run {
+                    "merge-links" => {
                         let mut target_note = target_store.get_note(&id)?;
                         for link in &note.frontmatter.links {
                             if !target_note.frontmatter.links.contains(link) {
@@ -56,24 +63,50 @@ pub fn execute(
                         }
                         target_store.save_note(&mut target_note)?;
                     }
-                }
-                "skip" | _ => {
-                    // Default skip
+                    "skip" | _ => {}
                 }
             }
         } else {
+            additions.push(id.clone());
             if !dry_run {
-                copy_note(&note, &target_store)?;
+                copy_note(note, &target_store)?;
             }
         }
     }
 
-    if delete_source && !dry_run && source_name != "." {
+    if dry_run {
+        println!(
+            "Dry-run: Workspace merge from '{}' to '{}'",
+            source_name, target_name
+        );
+        println!();
+        println!("Notes to add: {}", additions.len());
+        if !additions.is_empty() {
+            for id in &additions {
+                println!("  + {}", id);
+            }
+        }
+        println!();
+        println!("Conflicts: {}", conflicts.len());
+        if !conflicts.is_empty() {
+            println!("Strategy: {}", strategy);
+            for (id, action) in &conflicts {
+                println!("  {} [{}]", id, action);
+            }
+        }
+        return Ok(());
+    }
+
+    if delete_source && source_name != "." {
         std::fs::remove_dir_all(source_store.root())?;
     }
 
     if !cli.quiet {
         println!("Merged workspace '{}' into '{}'", source_name, target_name);
+        println!("  Added: {} notes", additions.len());
+        if !conflicts.is_empty() {
+            println!("  Conflicts resolved: {} notes", conflicts.len());
+        }
     }
 
     Ok(())

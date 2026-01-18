@@ -2,13 +2,16 @@ use super::types::{Edge, LinkSource};
 use crate::lib::logging;
 use crate::lib::note::Note;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 
 /// Extract all links from a note
 pub(crate) fn extract_links(
     note: &Note,
     valid_ids: &HashSet<String>,
     unresolved: &mut HashSet<String>,
+    source_path: Option<&Path>,
+    path_to_id: &HashMap<PathBuf, String>,
 ) -> Vec<Edge> {
     let mut edges = Vec::new();
     let from_id = note.id().to_string();
@@ -54,7 +57,7 @@ pub(crate) fn extract_links(
         });
     }
 
-    // Extract markdown links to qipu notes: [text](qp-xxxx) or [text](./qp-xxxx-slug.md)
+    // Extract markdown links to qipu notes: [text](qp-xxxx) or [text](./qp-xxxx-slug.md) or [text](relative/path.md)
     let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
         Ok(re) => re,
         Err(e) => {
@@ -67,12 +70,20 @@ pub(crate) fn extract_links(
     for cap in md_link_re.captures_iter(&note.body) {
         let target = cap[2].trim();
 
-        // Check if this looks like a qipu note reference
+        // Skip external URLs and anchors
+        if target.starts_with("http://")
+            || target.starts_with("https://")
+            || target.starts_with('#')
+        {
+            continue;
+        }
+
+        // Try to resolve the link to a note ID
         let to_id = if target.starts_with("qp-") {
-            // Direct ID reference
-            target.split('-').take(2).collect::<Vec<_>>().join("-")
+            // Direct ID reference: [text](qp-xxxx)
+            Some(target.split('-').take(2).collect::<Vec<_>>().join("-"))
         } else if target.contains("qp-") {
-            // Path reference like ./qp-xxxx-slug.md
+            // Path reference containing ID: [text](./qp-xxxx-slug.md)
             if let Some(start) = target.find("qp-") {
                 let rest = &target[start..];
                 // Extract the ID portion (qp-xxxx)
@@ -80,19 +91,41 @@ pub(crate) fn extract_links(
                     .find('-')
                     .and_then(|first| rest[first + 1..].find('-').map(|second| first + 1 + second));
                 match end {
-                    Some(end) => rest[..end].to_string(),
-                    None => rest.trim_end_matches(".md").to_string(),
+                    Some(end) => Some(rest[..end].to_string()),
+                    None => Some(rest.trim_end_matches(".md").to_string()),
                 }
             } else {
-                continue;
+                None
+            }
+        } else if target.ends_with(".md") && source_path.is_some() {
+            // Relative path to markdown file: [text](../other/note.md)
+            let source = source_path.unwrap();
+            if let Some(source_dir) = source.parent() {
+                let target_path = source_dir.join(target);
+
+                // Canonicalize the path to resolve .. and .
+                let canonical_target = match target_path.canonicalize() {
+                    Ok(p) => p,
+                    Err(_) => {
+                        // Path doesn't exist, try without canonicalizing
+                        // (might be a reference to a note that will be created)
+                        target_path
+                    }
+                };
+
+                // Look up the ID from the path
+                path_to_id.get(&canonical_target).cloned()
+            } else {
+                None
             }
         } else {
-            continue;
+            None
         };
 
-        if to_id.is_empty() || !to_id.starts_with("qp-") {
-            continue;
-        }
+        let to_id = match to_id {
+            Some(id) if !id.is_empty() && id.starts_with("qp-") => id,
+            _ => continue,
+        };
 
         if !valid_ids.contains(&to_id) {
             unresolved.insert(to_id.clone());

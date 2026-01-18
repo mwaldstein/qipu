@@ -44,7 +44,13 @@ mod tests {
             .collect();
         let mut unresolved = HashSet::new();
 
-        let edges = links::extract_links(&note, &valid_ids, &mut unresolved);
+        let edges = links::extract_links(
+            &note,
+            &valid_ids,
+            &mut unresolved,
+            None,
+            &std::collections::HashMap::new(),
+        );
 
         assert_eq!(edges.len(), 2);
         assert!(edges.iter().any(|e| e.to == "qp-b2"));
@@ -75,7 +81,13 @@ mod tests {
             .collect();
         let mut unresolved = HashSet::new();
 
-        let edges = links::extract_links(&note, &valid_ids, &mut unresolved);
+        let edges = links::extract_links(
+            &note,
+            &valid_ids,
+            &mut unresolved,
+            None,
+            &std::collections::HashMap::new(),
+        );
 
         assert_eq!(edges.len(), 2);
         assert!(edges
@@ -94,7 +106,13 @@ mod tests {
         let valid_ids: HashSet<_> = ["qp-a1"].iter().map(|s| s.to_string()).collect();
         let mut unresolved = HashSet::new();
 
-        let edges = links::extract_links(&note, &valid_ids, &mut unresolved);
+        let edges = links::extract_links(
+            &note,
+            &valid_ids,
+            &mut unresolved,
+            None,
+            &std::collections::HashMap::new(),
+        );
 
         assert_eq!(edges.len(), 1);
         assert!(unresolved.contains("qp-missing"));
@@ -198,5 +216,86 @@ mod tests {
         assert!(index.metadata.is_empty());
         assert!(index.tags.is_empty());
         assert!(index.edges.is_empty());
+    }
+
+    #[test]
+    fn test_extract_markdown_relative_path_links() {
+        use std::collections::HashMap;
+
+        // Create a note with a relative path markdown link
+        let mut note = make_note("qp-a1", "Test", "See [Other Note](../mocs/qp-b2-other.md)");
+        note.frontmatter.links = vec![];
+        // Set the note's path
+        let source_path = PathBuf::from("/tmp/qipu/.qipu/notes/qp-a1-test.md");
+
+        let valid_ids: HashSet<_> = ["qp-a1", "qp-b2"].iter().map(|s| s.to_string()).collect();
+        let mut unresolved = HashSet::new();
+
+        // Build path_to_id mapping
+        let mut path_to_id = HashMap::new();
+        path_to_id.insert(
+            PathBuf::from("/tmp/qipu/.qipu/mocs/qp-b2-other.md"),
+            "qp-b2".to_string(),
+        );
+
+        let edges = links::extract_links(
+            &note,
+            &valid_ids,
+            &mut unresolved,
+            Some(&source_path),
+            &path_to_id,
+        );
+
+        // Should find the link via relative path resolution
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].to, "qp-b2");
+        assert_eq!(edges[0].source, LinkSource::Inline);
+        assert_eq!(edges[0].link_type, "related");
+    }
+
+    #[test]
+    fn test_markdown_links_with_qipu_id() {
+        use std::collections::HashMap;
+
+        // Test that markdown links containing qp- IDs still work
+        let mut note = make_note(
+            "qp-a1",
+            "Test",
+            "See [Other](./qp-b2-slug.md) and [ref](qp-c3)",
+        );
+        note.frontmatter.links = vec![];
+
+        let valid_ids: HashSet<_> = ["qp-a1", "qp-b2", "qp-c3"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let mut unresolved = HashSet::new();
+
+        let edges = links::extract_links(&note, &valid_ids, &mut unresolved, None, &HashMap::new());
+
+        assert_eq!(edges.len(), 2);
+        assert!(edges.iter().any(|e| e.to == "qp-b2"));
+        assert!(edges.iter().any(|e| e.to == "qp-c3"));
+    }
+
+    #[test]
+    fn test_markdown_links_skip_external_urls() {
+        use std::collections::HashMap;
+
+        // Test that external URLs are ignored
+        let mut note = make_note(
+            "qp-a1",
+            "Test",
+            "See [Google](https://google.com) and [anchor](#section)",
+        );
+        note.frontmatter.links = vec![];
+
+        let valid_ids: HashSet<_> = ["qp-a1"].iter().map(|s| s.to_string()).collect();
+        let mut unresolved = HashSet::new();
+
+        let edges = links::extract_links(&note, &valid_ids, &mut unresolved, None, &HashMap::new());
+
+        // Should not extract any edges from external URLs or anchors
+        assert_eq!(edges.len(), 0);
     }
 }

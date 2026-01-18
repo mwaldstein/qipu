@@ -51,7 +51,7 @@ impl<'a> IndexBuilder<'a> {
         self.index.edges.clear();
         self.index.unresolved.clear();
 
-        // Process each note
+        // First pass: Update metadata, BM25 stats, and build path mappings
         for note in &notes {
             let path = match &note.path {
                 Some(p) => p.clone(),
@@ -127,9 +127,27 @@ impl<'a> IndexBuilder<'a> {
                     }
                 }
             }
+        }
 
-            // Always extract links (edges need complete rebuild for consistency)
-            let edges = extract_links(note, &all_ids, &mut self.index.unresolved);
+        // Build path-to-ID mapping for link resolution
+        use std::collections::HashMap;
+        let path_to_id: HashMap<PathBuf, String> = self
+            .index
+            .id_to_path
+            .iter()
+            .map(|(id, path)| (path.clone(), id.clone()))
+            .collect();
+
+        // Second pass: Extract links with complete path mapping available
+        for note in &notes {
+            let path = note.path.as_ref();
+            let edges = extract_links(
+                note,
+                &all_ids,
+                &mut self.index.unresolved,
+                path.map(|p| p.as_path()),
+                &path_to_id,
+            );
             self.index.edges.extend(edges);
         }
 

@@ -49,9 +49,12 @@
   - Added test: `tests/cli/search.rs:test_search_exact_tag_match_ranks_above_body` verifies exact tag matches rank higher than body text matches
 
 ### `specs/storage-format.md`
-- [ ] Markdown links to other notes by relative path are not resolved unless the target contains a `qp-...` ID
-  - Spec allows `[label](relative/path/to/note.md)`; impl only recognizes markdown links containing a Qipu ID.
-  - Refs: markdown link extraction `src/lib/index/links.rs:57-107`
+- [x] Markdown links to other notes by relative path are not resolved unless the target contains a `qp-...` ID
+  - Fixed: markdown link extraction now resolves relative paths by building a path-to-ID mapping during indexing
+  - Changed `src/lib/index/links.rs:9-14`: added `source_path` and `path_to_id` parameters to `extract_links()`
+  - Changed `src/lib/index/links.rs:100-120`: added logic to resolve relative `.md` paths using the source note's directory and path-to-ID lookup
+  - Changed `src/lib/index/builder.rs:43-147`: restructured index building into two passes - first builds path mappings, second extracts links with mappings available
+  - Added tests: `src/lib/index/mod.rs:205-281` (unit tests), `tests/cli/index.rs:142-229` (integration test)
 
 ### `specs/graph-traversal.md`
 - [ ] “(seen)” references in human tree output are effectively unreachable

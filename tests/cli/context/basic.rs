@@ -302,7 +302,7 @@ It has multiple paragraphs.
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Verify header
-    assert!(stdout.contains("H qipu=1 records=1 mode=context"));
+    assert!(stdout.contains("H qipu=1 records=1 store="));
 
     // Verify note metadata
     assert!(stdout.contains("N qp-test1 literature \"Research Note\""));

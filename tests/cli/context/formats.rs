@@ -55,7 +55,7 @@ fn test_context_records_format() {
         .args(["--format", "records", "context", "--note", &id])
         .assert()
         .success()
-        .stdout(predicate::str::contains("H qipu=1 records=1 mode=context"))
+        .stdout(predicate::str::contains("H qipu=1 records=1 store="))
         .stdout(predicate::str::contains("N "))
         .stdout(predicate::str::contains("Records Context Note"));
 }

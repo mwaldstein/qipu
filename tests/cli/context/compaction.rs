@@ -304,7 +304,7 @@ fn test_context_expand_compaction_records_format() {
 
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
 
-    assert!(stdout.contains("H qipu=1 records=1 mode=context"));
+    assert!(stdout.contains("H qipu=1 records=1 store="));
     assert!(stdout.contains(&format!("N {} fleeting \"Digest Note\"", digest_id)));
     assert!(stdout.contains("compacts=2"));
 

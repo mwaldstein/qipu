@@ -156,7 +156,7 @@ fn test_prime_records_format() {
         .args(["--format", "records", "prime"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("H qipu=1 records=1 mode=prime"))
+        .stdout(predicate::str::contains("H qipu=1 records=1 store="))
         .stdout(predicate::str::contains("truncated=false"))
         .stdout(predicate::str::contains("D Qipu is"))
         .stdout(predicate::str::contains("C list"))

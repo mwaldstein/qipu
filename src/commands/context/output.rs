@@ -562,7 +562,7 @@ pub fn output_records(
     };
 
     let header_base = format!(
-        "H qipu=1 records=1 mode=context store={} notes={} truncated=",
+        "H qipu=1 records=1 store={} mode=context notes={} truncated=",
         store_path,
         notes.len()
     );

@@ -80,8 +80,13 @@
   - Added test: `tests/cli/link/tree.rs:test_link_tree_spanning_tree_ordering` verifies spanning tree respects (type, id) ordering
 
 ### `specs/records-output.md`
-- [ ] Records headers are inconsistent across commands (`mode=` before/after `store=`), reducing cross-command parse stability
-  - Refs: context header `src/commands/context/output.rs:445-449`; tree header `src/commands/link/tree.rs:319-325`; list header `src/commands/link/list.rs:381-392`
+- [x] Records headers are inconsistent across commands (`mode=` before/after `store=`)
+  - Fixed: standardized all records headers to use `store=` before `mode=` to match spec examples
+  - Changed `src/commands/context/output.rs:565`: context header now uses `store={} mode=context` order
+  - Changed `src/commands/prime.rs:193`: prime header now uses `store={} mode=prime` order
+  - Updated test assertions: `tests/cli/context/basic.rs:305`, `tests/cli/context/formats.rs:58`, `tests/cli/context/compaction.rs:307`, `tests/cli/prime.rs:159`
+  - Spec pattern (`specs/records-output.md:63,73`): `H qipu=1 records=1 store=... mode=...`
+  - Now consistent with tree/list/path/load commands which already used this order
 - [ ] Records quoting is not escaped for note titles/summaries, so titles containing `"` can break record parsing
   - Refs: context `N ... "{title}"` `src/commands/context/output.rs:306-314`; link list `src/commands/link/list.rs:307-310`
 

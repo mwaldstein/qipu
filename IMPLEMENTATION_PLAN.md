@@ -47,14 +47,15 @@
   - [x] `workspace new --empty` flag is accepted but ignored
      - Fixed: Changed `_empty` to `empty` and added check to skip all copy operations when `empty` is true
      - Refs: empty flag check `src/commands/workspace/new.rs:51-74`
-  - [x] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
-     - Fixed: Now removes existing note file before overwriting when using overwrite strategy
-     - Refs: file removal before overwrite `src/commands/workspace/merge.rs:54-58`
-- [x] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
-  - Fixed: Added early validation that rejects unknown strategies with UsageError (exit code 2) and lists valid options
-  - Refs: validation `src/commands/workspace/merge.rs:16-21`, match updated `src/commands/workspace/merge.rs:53-58`
-- [ ] Workspace metadata schema differs from spec (`[workspace]` table vs top-level `WorkspaceMetadata`)
-  - Refs: metadata struct serde `src/lib/store/workspace.rs:6-33`
+ - [x] `workspace merge --strategy overwrite` can leave duplicate note files for the same note ID (old file not removed)
+      - Fixed: Now removes existing note file before overwriting when using overwrite strategy
+      - Refs: file removal before overwrite `src/commands/workspace/merge.rs:54-58`
+ - [x] Unknown merge strategies silently fall back to `skip` (typos and unimplemented `rename` are not rejected)
+   - Fixed: Added early validation that rejects unknown strategies with UsageError (exit code 2) and lists valid options
+   - Refs: validation `src/commands/workspace/merge.rs:16-21`, match updated `src/commands/workspace/merge.rs:53-58`
+- [x] Workspace metadata schema differs from spec (`[workspace]` table vs top-level `WorkspaceMetadata`)
+   - Fixed: Added `WorkspaceMetadataFile` wrapper to serialize metadata under `[workspace]` table per spec
+   - Refs: wrapper struct `src/lib/store/workspace.rs:14-15`, load/save updated `src/lib/store/workspace.rs:18-36`
 
 ### `specs/structured-logging.md`
 - [ ] Logging is initialized, but most operational output still uses `eprintln!` + legacy `--verbose` gates (minimal/empty tracing output)

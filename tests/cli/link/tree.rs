@@ -361,3 +361,76 @@ fn test_link_tree_cycle_shows_seen() {
     // Should show "(seen)" for the back-edge to Node A
     assert!(stdout.contains("(seen)"));
 }
+
+#[test]
+fn test_link_tree_max_hops_reports_truncation() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a chain of 5 notes: 0 -> 1 -> 2 -> 3 -> 4
+    let mut ids = Vec::new();
+    for i in 0..5 {
+        let output = qipu()
+            .current_dir(dir.path())
+            .args(["create", &format!("Node {}", i)])
+            .output()
+            .unwrap();
+        ids.push(String::from_utf8_lossy(&output.stdout).trim().to_string());
+    }
+
+    // Link them in a chain
+    for i in 0..4 {
+        qipu()
+            .current_dir(dir.path())
+            .args(["link", "add", &ids[i], &ids[i + 1], "--type", "related"])
+            .assert()
+            .success();
+    }
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // With max-hops=2, traversal should be truncated because node 2 has outbound links
+    // that cannot be explored
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "json",
+            "link",
+            "tree",
+            &ids[0],
+            "--max-hops",
+            "2",
+        ])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+    // Should report truncation
+    assert_eq!(json["truncated"], true);
+    assert_eq!(json["truncation_reason"], "max_hops");
+
+    // Should include nodes 0, 1, 2 but not 3, 4
+    let note_ids: Vec<String> = json["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap().to_string())
+        .collect();
+    assert!(note_ids.contains(&ids[0]));
+    assert!(note_ids.contains(&ids[1]));
+    assert!(note_ids.contains(&ids[2]));
+    assert!(!note_ids.contains(&ids[3]));
+    assert!(!note_ids.contains(&ids[4]));
+}

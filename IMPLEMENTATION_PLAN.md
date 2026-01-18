@@ -57,14 +57,15 @@
   - Added tests: `src/lib/index/mod.rs:205-281` (unit tests), `tests/cli/index.rs:142-229` (integration test)
 
 ### `specs/graph-traversal.md`
-- [x] “(seen)” references in human tree output are effectively unreachable
+- [x] "(seen)" references in human tree output are effectively unreachable
   - Fixed: tree rendering now uses `links` instead of `spanning_tree` to build the children map, making back-edges to visited nodes available for "(seen)" rendering
   - Changed `src/commands/link/tree.rs:128-132`: build children map from `result.links` instead of `result.spanning_tree`
   - Changed `src/commands/link/tree.rs:143-148`: updated `print_tree()` signature to accept `HashMap<String, Vec<&TreeLink>>`
   - Added test: `tests/cli/link/tree.rs:test_link_tree_cycle_shows_seen` verifies cycles show "(seen)" marker
-- [ ] Tree/path truncation is not reported when exploration stops due to `--max-hops`
-  - Traversal stops expanding when `hop >= max_hops` without setting `truncated=true`.
-  - Refs: `src/lib/graph/traversal.rs:87-90`
+- [x] Tree/path truncation is not reported when exploration stops due to `--max-hops`
+  - Fixed: traversal now checks for unexpanded neighbors when `hop >= max_hops` and sets `truncated=true` with `truncation_reason="max_hops"` if any exist
+  - Changed `src/lib/graph/traversal.rs:87-124`: added logic to detect unexpanded neighbors at max hop depth and report truncation
+  - Added test: `tests/cli/link/tree.rs:test_link_tree_max_hops_reports_truncation` verifies truncation is reported in JSON output
 - [ ] Default semantic inversion introduces `source=virtual` + inverted types for inbound traversal; spec does not describe this behavior
   - Refs: inversion `src/lib/index/types.rs:43-54`, traversal uses inversion `src/lib/graph/traversal.rs:110-125`, flag `src/cli/mod.rs:82-85`
 - [ ] Tree ordering can diverge from “sort neighbors by (type,id)” guidance due to spanning-tree re-sort

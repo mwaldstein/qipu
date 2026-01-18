@@ -86,6 +86,40 @@ pub fn bfs_traverse(
 
         // Don't expand beyond max_hops
         if hop >= opts.max_hops {
+            // Check if there are any neighbors that would have been expanded
+            // If so, mark as truncated
+            let source_ids = equivalence_map
+                .and_then(|map| map.get(&current_id).cloned())
+                .unwrap_or_else(|| vec![current_id.clone()]);
+
+            let has_unexpanded_neighbors =
+                if opts.direction == Direction::Out || opts.direction == Direction::Both {
+                    source_ids.iter().any(|id| {
+                        provider
+                            .get_outbound_edges(id)
+                            .iter()
+                            .any(|e| filter_edge(e, opts))
+                    })
+                } else {
+                    false
+                } || if opts.direction == Direction::In || opts.direction == Direction::Both {
+                    source_ids.iter().any(|id| {
+                        provider
+                            .get_inbound_edges(id)
+                            .iter()
+                            .any(|e| filter_edge(e, opts))
+                    })
+                } else {
+                    false
+                };
+
+            if has_unexpanded_neighbors {
+                truncated = true;
+                if truncation_reason.is_none() {
+                    truncation_reason = Some("max_hops".to_string());
+                }
+            }
+
             continue;
         }
 

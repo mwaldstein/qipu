@@ -50,16 +50,10 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
     };
 
     // Generate pack content
-    let pack_content = match cli.format {
-        OutputFormat::Human | OutputFormat::Json => {
-            // For human and JSON output, use a more readable format
-            serialize::serialize_pack_readable(&selected_notes, &links, &attachments, store)?
-        }
-        OutputFormat::Records => {
-            // For records output, use the compact pack format
-            serialize::serialize_pack_records(&selected_notes, &links, &attachments, store)?
-        }
-    };
+    // Per spec: --format flags do not alter pack contents (specs/pack.md:63-64)
+    // Always use records format for pack files
+    let pack_content =
+        serialize::serialize_pack_records(&selected_notes, &links, &attachments, store)?;
 
     // Write output to file or stdout
     if let Some(output_path) = options.output {

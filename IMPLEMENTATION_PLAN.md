@@ -33,8 +33,9 @@
  - [x] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not "actually loaded" set)
    - Fixed: With skip strategy, don't process any links at all. This ensures that skipped notes are never mutated - even loaded notes cannot add links to skipped notes, preventing unintended modifications.
    - Refs: skip strategy skip link processing `src/commands/load/mod.rs:88-99`
-- [ ] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
-  - Refs: encoding selected by CLI format `src/commands/dump/mod.rs:52-62`
+ - [x] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
+   - Fixed: Removed format-based encoding selection; dump now always uses records format per spec
+   - Refs: encoding removed `src/commands/dump/mod.rs:52-62`
 
 ### `specs/workspaces.md`
 - [ ] `workspace merge --dry-run` does not produce a conflict report and prints a success-like message

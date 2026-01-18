@@ -72,8 +72,12 @@
   - Documented global flag `--no-semantic-inversion` in CLI surface section
   - Added documentation for `source` field values (typed, inline, virtual) in JSON output section
   - Existing tests already verify this behavior: `tests/cli/link/add_remove.rs:test_link_add_and_list` tests both semantic inversion and `--no-semantic-inversion`
-- [ ] Tree ordering can diverge from "sort neighbors by (type,id)" guidance due to spanning-tree re-sort
-  - Refs: neighbor sort `src/lib/graph/traversal.rs:130-135`, spanning-tree sort `src/lib/graph/traversal.rs:235`
+- [x] Tree ordering can diverge from "sort neighbors by (type,id)" guidance due to spanning-tree re-sort
+  - Fixed: spanning tree now maintains the same (type, id) ordering used during neighbor expansion
+  - Added `link_type` field to `SpanningTreeEntry`: `src/lib/graph/types.rs:99-107`
+  - Updated traversal to populate `link_type` when building spanning tree: `src/lib/graph/traversal.rs:237-243`
+  - Updated spanning tree sort to use (hop, link_type, to_id): `src/lib/graph/traversal.rs:269-273`
+  - Added test: `tests/cli/link/tree.rs:test_link_tree_spanning_tree_ordering` verifies spanning tree respects (type, id) ordering
 
 ### `specs/records-output.md`
 - [ ] Records headers are inconsistent across commands (`mode=` before/after `store=`), reducing cross-command parse stability

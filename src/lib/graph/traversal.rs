@@ -239,6 +239,7 @@ pub fn bfs_traverse(
                     from: current_id.clone(),
                     to: canonical_neighbor.clone(),
                     hop: hop + 1,
+                    link_type: edge.link_type.to_string(),
                 });
 
                 // Add note metadata (use canonical ID)
@@ -266,7 +267,12 @@ pub fn bfs_traverse(
             .then_with(|| a.link_type.cmp(&b.link_type))
             .then_with(|| a.to.cmp(&b.to))
     });
-    spanning_tree.sort_by(|a, b| a.hop.cmp(&b.hop).then_with(|| a.to.cmp(&b.to)));
+    spanning_tree.sort_by(|a, b| {
+        a.hop
+            .cmp(&b.hop)
+            .then_with(|| a.link_type.cmp(&b.link_type))
+            .then_with(|| a.to.cmp(&b.to))
+    });
 
     Ok(TreeResult {
         root: root.to_string(),

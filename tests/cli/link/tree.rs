@@ -434,3 +434,102 @@ fn test_link_tree_max_hops_reports_truncation() {
     assert!(!note_ids.contains(&ids[3]));
     assert!(!note_ids.contains(&ids[4]));
 }
+
+#[test]
+fn test_link_tree_spanning_tree_ordering() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create root note and multiple children with different link types
+    let output_root = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Root"])
+        .output()
+        .unwrap();
+    let id_root = String::from_utf8_lossy(&output_root.stdout)
+        .trim()
+        .to_string();
+
+    // Create children with IDs that would sort differently by ID vs type
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+
+    // Add links with types that have different lexical ordering
+    // "derived-from" < "related" < "supports" (alphabetically: d < r < s)
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_c, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_a, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_root, &id_b, "--type", "derived-from"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Get tree output in JSON format to check spanning tree ordering
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_root, "--format", "json"])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    // Spanning tree should be ordered by (hop, link_type, target_id)
+    // Expected order: "derived-from" < "related" < "supports" (alphabetically)
+    let spanning_tree = json["spanning_tree"].as_array().unwrap();
+    assert_eq!(spanning_tree.len(), 3);
+
+    // Extract types in order
+    let types: Vec<&str> = spanning_tree
+        .iter()
+        .map(|e| e["type"].as_str().unwrap())
+        .collect();
+
+    // Types should be ordered: derived-from, related, supports
+    assert_eq!(types[0], "derived-from");
+    assert_eq!(types[1], "related");
+    assert_eq!(types[2], "supports");
+
+    // Verify target IDs
+    assert_eq!(spanning_tree[0]["to"].as_str().unwrap(), id_b);
+    assert_eq!(spanning_tree[1]["to"].as_str().unwrap(), id_a);
+    assert_eq!(spanning_tree[2]["to"].as_str().unwrap(), id_c);
+}

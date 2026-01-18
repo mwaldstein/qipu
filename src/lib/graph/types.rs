@@ -102,6 +102,8 @@ pub struct SpanningTreeEntry {
     pub from: String,
     pub to: String,
     pub hop: u32,
+    #[serde(rename = "type")]
+    pub link_type: String,
 }
 
 /// Complete traversal result

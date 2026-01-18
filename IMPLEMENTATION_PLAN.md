@@ -13,9 +13,8 @@
   - Fixed: JSON export now emits `sources` array with extracted bibliography entries instead of `notes` array
 
 ### `specs/compaction.md`
-- [ ] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit
-  - Truncation boolean exists but is only surfaced via records (`D compacted_truncated`) / human messages.
-  - Refs: truncation computed `src/lib/compaction/expansion.rs:48-58`; JSON emits only IDs `src/commands/list.rs:88-97`
+- [x] JSON outputs that include `compacted_ids` do not indicate truncation when `--compaction-max-nodes` is hit
+  - Fixed: JSON now includes `compacted_ids_truncated: true` when truncation occurs (`src/commands/list.rs:97-103`)
 - [ ] `--expand-compaction` drops truncation reporting entirely (expanded set can be silently truncated)
   - Refs: expansion returns `(notes, truncated)` but callers discard it: `src/commands/context/output.rs:72-110`
 - [x] `compact guide` claims `report/suggest` are “coming soon” even though both exist

@@ -89,7 +89,13 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     let (loaded_notes_count, loaded_ids) = load_notes(store, &pack_data.notes, &strategy)?;
 
     // Load links
-    let loaded_links_count = load_links(store, &pack_data.links, &loaded_ids)?;
+    // With skip strategy, skip link processing entirely to ensure
+    // no notes are mutated (either skipped notes or notes with links to skipped notes)
+    let loaded_links_count = if matches!(strategy, LoadStrategy::Skip) {
+        0 // Don't process any links with skip strategy
+    } else {
+        load_links(store, &pack_data.links, &loaded_ids)?
+    };
 
     // Load attachments
     let loaded_attachments_count = if !pack_data.attachments.is_empty() {
@@ -323,7 +329,8 @@ fn load_links(
 
             // Add each link to the note's frontmatter
             for pack_link in links {
-                // Only load links between notes that were loaded
+                // Only load links where target note was loaded
+                // This prevents adding links to skipped notes
                 if loaded_ids.contains(&pack_link.to) {
                     // Check if link already exists to avoid duplicates
                     let link_exists = source_note.frontmatter.links.iter().any(|l| {

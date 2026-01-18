@@ -28,10 +28,11 @@
    - Fixed: Corrected filter conditions to skip non-inline links when `--inline-only` is set, and skip inline links when `--typed-only` is set
    - Refs: `src/commands/dump/mod.rs:236-241`
  - [x] Dump traversal expansion ignores type/source filters (`--type`, `--typed-only`, `--inline-only`)
-   - Fixed: Added filter checks in `perform_simple_traversal` to respect type_include, typed_only, and inline_only options when deciding which edges to follow during traversal
-   - Refs: traversal filtering `src/commands/dump/mod.rs:289-301`
-- [ ] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not “actually loaded” set)
-  - Refs: `load_links` signature `src/commands/load/mod.rs:92-99`
+    - Fixed: Added filter checks in `perform_simple_traversal` to respect type_include, typed_only, and inline_only options when deciding which edges to follow during traversal
+    - Refs: traversal filtering `src/commands/dump/mod.rs:289-301`
+ - [x] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not "actually loaded" set)
+   - Fixed: With skip strategy, filter pack links to only process links where both source AND target notes were actually loaded. This prevents modifying skipped notes when loaded notes have links to them.
+   - Refs: skip strategy link filtering `src/commands/load/mod.rs:88-97`
 - [ ] Pack format depends on `--format` (spec claims `--format` should not alter pack contents)
   - Refs: encoding selected by CLI format `src/commands/dump/mod.rs:52-62`
 

@@ -286,3 +286,78 @@ fn test_link_tree_direction_out() {
         .stdout(predicate::str::contains("Node B"))
         .stdout(predicate::str::contains("Node C").not());
 }
+
+#[test]
+fn test_link_tree_cycle_shows_seen() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create 3 notes: A -> B -> C -> A (cycle)
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+
+    // Create a cycle: A -> B -> C -> A
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_c, &id_a, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Tree from A should show the cycle with (seen) marker
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_a])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should contain all three nodes
+    assert!(stdout.contains("Node A"));
+    assert!(stdout.contains("Node B"));
+    assert!(stdout.contains("Node C"));
+
+    // Should show "(seen)" for the back-edge to Node A
+    assert!(stdout.contains("(seen)"));
+}

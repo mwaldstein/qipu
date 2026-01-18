@@ -126,9 +126,10 @@ fn output_tree_human(
     }
 
     // Build tree structure for pretty printing
-    let mut children: HashMap<String, Vec<&SpanningTreeEntry>> = HashMap::new();
-    for entry in &result.spanning_tree {
-        children.entry(entry.from.clone()).or_default().push(entry);
+    // Use links (not spanning_tree) to include back-edges for (seen) rendering
+    let mut children: HashMap<String, Vec<&TreeLink>> = HashMap::new();
+    for link in &result.links {
+        children.entry(link.from.clone()).or_default().push(link);
     }
 
     struct TreePrintConfig<'a> {
@@ -141,7 +142,7 @@ fn output_tree_human(
     // Print tree recursively
     fn print_tree(
         id: &str,
-        children: &HashMap<String, Vec<&SpanningTreeEntry>>,
+        children: &HashMap<String, Vec<&TreeLink>>,
         index: &Index,
         visited: &HashSet<String>,
         config: &TreePrintConfig<'_>,

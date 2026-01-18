@@ -57,9 +57,11 @@
   - Added tests: `src/lib/index/mod.rs:205-281` (unit tests), `tests/cli/index.rs:142-229` (integration test)
 
 ### `specs/graph-traversal.md`
-- [ ] “(seen)” references in human tree output are effectively unreachable
-  - Traversal only records first-discovery edges in `spanning_tree`, so later edges to visited nodes are not available for rendering as “(seen)”.
-  - Refs: `src/lib/graph/traversal.rs:190-223`, “(seen)” rendering `src/commands/link/tree.rs:195-223`
+- [x] “(seen)” references in human tree output are effectively unreachable
+  - Fixed: tree rendering now uses `links` instead of `spanning_tree` to build the children map, making back-edges to visited nodes available for "(seen)" rendering
+  - Changed `src/commands/link/tree.rs:128-132`: build children map from `result.links` instead of `result.spanning_tree`
+  - Changed `src/commands/link/tree.rs:143-148`: updated `print_tree()` signature to accept `HashMap<String, Vec<&TreeLink>>`
+  - Added test: `tests/cli/link/tree.rs:test_link_tree_cycle_shows_seen` verifies cycles show "(seen)" marker
 - [ ] Tree/path truncation is not reported when exploration stops due to `--max-hops`
   - Traversal stops expanding when `hop >= max_hops` without setting `truncated=true`.
   - Refs: `src/lib/graph/traversal.rs:87-90`

@@ -33,10 +33,10 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `tests/cli/context/formats.rs` - output format tests ✅
    - `tests/cli/context/mod.rs` - module declarations ✅
 
-3. **`tests/cli/compact.rs` (896 lines)** - Break into:
-   - `tests/cli/compact/commands.rs` - compact report/suggest/apply tests
-   - `tests/cli/compact/annotations.rs` - compaction visibility tests
-   - `tests/cli/compact/mod.rs` - shared utilities
+3. **`tests/cli/compact.rs` (896 lines)** ✅ COMPLETE - Broken into separate modules:
+   - `tests/cli/compact/commands.rs` - compact report/suggest/apply tests ✅
+   - `tests/cli/compact/annotations.rs` - compaction visibility tests ✅
+   - `tests/cli/compact/mod.rs` - module declarations ✅
 
 ### **Medium Priority Production Code:**
 

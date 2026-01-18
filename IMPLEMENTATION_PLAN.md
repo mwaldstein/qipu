@@ -55,7 +55,14 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `src/lib/store/mod.rs` - Core Store struct and initialization (311 lines) ✅
    - `src/lib/store/lifecycle.rs` - Note creation and persistence (202 lines) ✅
    - `src/lib/store/query.rs` - Note lookup and listing (122 lines) ✅
-7. **`src/commands/export/emit.rs` (601 lines)** - Multiple export formats
+7. **`src/commands/export/emit.rs` (601 lines)** ✅ COMPLETE - Refactored into modular structure:
+   - `src/commands/export/emit/mod.rs` - Public API and module declarations ✅
+   - `src/commands/export/emit/links.rs` - Link rewriting utilities (122 lines) ✅
+   - `src/commands/export/emit/bundle.rs` - Bundle export format (117 lines) ✅
+   - `src/commands/export/emit/outline.rs` - Outline export format (157 lines) ✅
+   - `src/commands/export/emit/bibliography.rs` - Bibliography export format (43 lines) ✅
+   - `src/commands/export/emit/json.rs` - JSON export format (86 lines) ✅
+   - `src/commands/export/emit/records.rs` - Records export format (132 lines) ✅
 8. **`src/commands/link/tree.rs` (586 lines)** - Algorithm + formatting mixing
 
 ### **Function-Level Refactoring:**

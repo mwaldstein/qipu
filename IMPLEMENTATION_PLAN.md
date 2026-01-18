@@ -24,8 +24,9 @@
 - [x] `load --strategy merge-links` does not match spec semantics (content preservation + links union)
   - Fixed: Now returns loaded IDs from `load_notes` and uses that set in `load_links` to ensure pack links are added to merged notes
   - Refs: empty links `src/commands/load/mod.rs:198`, note body set from pack `src/commands/load/mod.rs:211-213`, merge branch `src/commands/load/mod.rs:249-276`
-- [ ] Dump `--typed-only` / `--inline-only` filtering is inverted
-  - Refs: `src/commands/dump/mod.rs:36-41`
+- [x] Dump `--typed-only` / `--inline-only` filtering is inverted
+  - Fixed: Corrected filter conditions to skip non-inline links when `--inline-only` is set, and skip inline links when `--typed-only` is set
+  - Refs: `src/commands/dump/mod.rs:236-241`
 - [ ] Dump traversal expansion ignores type/source filters (`--type`, `--typed-only`, `--inline-only`)
   - Refs: traversal `src/commands/dump/mod.rs:81-112`
 - [ ] `load --strategy skip` can still mutate existing notes via `load_links()` (uses pack IDs, not “actually loaded” set)

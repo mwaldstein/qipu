@@ -233,10 +233,10 @@ fn collect_links(
             // Determine if this is an inline link based on source
             let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
 
-            if is_inline && options.inline_only {
+            if !is_inline && options.inline_only {
                 continue;
             }
-            if !is_inline && options.typed_only {
+            if is_inline && options.typed_only {
                 continue;
             }
 

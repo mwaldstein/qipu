@@ -461,3 +461,50 @@ fn test_capture_records_no_tags() {
         .success()
         .stdout(predicate::str::contains("tags=-"));
 }
+
+#[test]
+fn test_capture_json_with_provenance() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Capture with provenance fields and JSON output
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "json",
+            "capture",
+            "--title",
+            "Provenance JSON Test",
+            "--source",
+            "https://example.com/article",
+            "--author",
+            "Jane Doe",
+            "--generated-by",
+            "gpt-4",
+            "--prompt-hash",
+            "abc123",
+            "--verified",
+            "true",
+        ])
+        .write_stdin("Content with full provenance")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+
+    // Verify all provenance fields are present in JSON output
+    assert!(output_str.contains("\"source\": \"https://example.com/article\""));
+    assert!(output_str.contains("\"author\": \"Jane Doe\""));
+    assert!(output_str.contains("\"generated_by\": \"gpt-4\""));
+    assert!(output_str.contains("\"prompt_hash\": \"abc123\""));
+    assert!(output_str.contains("\"verified\": true"));
+}

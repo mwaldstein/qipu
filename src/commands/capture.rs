@@ -78,6 +78,11 @@ pub fn execute(
                 "tags": note.frontmatter.tags,
                 "created": note.frontmatter.created,
                 "updated": note.frontmatter.updated,
+                "source": note.frontmatter.source,
+                "author": note.frontmatter.author,
+                "generated_by": note.frontmatter.generated_by,
+                "prompt_hash": note.frontmatter.prompt_hash,
+                "verified": note.frontmatter.verified,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }

@@ -164,6 +164,10 @@ impl Store {
 
         if should_write {
             fs::write(path, new_content)?;
+
+            // Update database after file write to maintain consistency
+            self.db.insert_note(note)?;
+            self.db.insert_edges(note)?;
         }
 
         Ok(())

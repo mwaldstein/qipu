@@ -29,7 +29,10 @@ Per `specs/operational-database.md`, SQLite replaces both JSON cache and ripgrep
   - Modified `Store::create_note()` to call both methods after writing file
   - Modified `Store::create_note_with_content()` to call both methods after writing file
   - Refs: insert_note `src/lib/db/mod.rs:106-168`, insert_edges `src/lib/db/mod.rs:170-233`, create_note `src/lib/store/lifecycle.rs:56-63`
-- [ ] Modify `update_note` (edit) to update file + re-index in DB
+- [x] Modify `update_note` (edit) to update file + re-index in DB
+  - Modified `Store::save_note()` to call `db.insert_note()` and `db.insert_edges()` after writing file
+  - Database methods use `INSERT OR REPLACE`, so they handle both insert and update
+  - Refs: save_note `src/lib/store/lifecycle.rs:144-178`
 - [ ] Modify `delete_note` to remove file + remove from DB
 - [ ] Modify `link add/remove` to update file + update edges table
 

@@ -22,17 +22,21 @@ pub fn export_json(
 
     let output = match options.mode {
         ExportMode::Bibliography => export_bibliography_json(notes, store, mode_str),
-        _ => export_notes_json(notes, store, options, cli, compaction_ctx, all_notes, mode_str),
+        _ => export_notes_json(
+            notes,
+            store,
+            options,
+            cli,
+            compaction_ctx,
+            all_notes,
+            mode_str,
+        ),
     };
 
     Ok(serde_json::to_string_pretty(&output)?)
 }
 
-fn export_bibliography_json(
-    notes: &[Note],
-    store: &Store,
-    mode_str: &str,
-) -> serde_json::Value {
+fn export_bibliography_json(notes: &[Note], store: &Store, mode_str: &str) -> serde_json::Value {
     let mut all_sources: Vec<_> = notes
         .iter()
         .flat_map(|note| {

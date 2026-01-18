@@ -287,6 +287,26 @@ fn perform_simple_traversal(
             };
 
             if should_follow {
+                // Apply link type filters to determine if we should follow this edge
+                if !opts.type_include.is_empty()
+                    && !opts
+                        .type_include
+                        .iter()
+                        .any(|t| t == edge.link_type.as_str())
+                {
+                    continue;
+                }
+
+                // Determine if this is an inline link based on source
+                let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
+
+                if !is_inline && opts.inline_only {
+                    continue;
+                }
+                if is_inline && opts.typed_only {
+                    continue;
+                }
+
                 let neighbor_id = if edge.from == current_id {
                     &edge.to
                 } else {

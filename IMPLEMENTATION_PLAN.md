@@ -30,9 +30,10 @@
   - Updated call sites to pass `max_chars`: `src/commands/context/mod.rs:172`, `src/commands/context/mod.rs:186`
 
 ### `specs/indexing-search.md`
-- [ ] Search can miss title-only matches when ripgrep path is used
-  - `search_with_ripgrep()` selects candidates from file-content matches, then BM25-scores; a note that matches only in title may be skipped.
-  - Refs: `src/lib/index/search.rs:53-110`, `src/lib/index/search.rs:125-128`
+- [x] Search can miss title-only matches when ripgrep path is used
+  - Fixed: `search_with_ripgrep()` now scans index metadata for title/tag matches in addition to ripgrep file-content matches, ensuring notes with query terms only in title/tags are included
+  - Changed `src/lib/index/search.rs:125-197`: builds candidate set from both ripgrep results and index metadata title/tag matches, then scores all candidates
+  - Added test: `tests/cli/search.rs:test_search_title_only_match` verifies title-only matches are found
 - [ ] Recency boost is specified but not present in ranking
   - Refs: ranking is pure BM25 + field boosts: `src/lib/index/search.rs:176-178`, `src/lib/index/search.rs:312-318`
 - [ ] “Exact tag match should rank above plain text match” is not implemented (tags are BM25-scored text)

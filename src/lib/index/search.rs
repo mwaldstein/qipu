@@ -122,24 +122,43 @@ fn search_with_ripgrep(
         }
     }
 
-    // If ripgrep found no matches, use embedded search as fallback
-    if matching_paths.is_empty() {
+    // Also scan index metadata for title/tag matches that ripgrep might have missed
+    // (e.g., if the term only appears in the YAML frontmatter title)
+    let mut candidate_note_ids: HashSet<String> = HashSet::new();
+
+    // Add note IDs from ripgrep file matches
+    for path in &matching_paths {
+        if let Some(entry) = index.files.get(path) {
+            candidate_note_ids.insert(entry.note_id.clone());
+        }
+    }
+
+    // Add note IDs that match in title or tags
+    for (note_id, meta) in &index.metadata {
+        let matches_title = tokenized_query
+            .iter()
+            .any(|t| meta.title.to_lowercase().contains(t));
+        let matches_tags = tokenized_query
+            .iter()
+            .any(|t| meta.tags.iter().any(|tag| tag.to_lowercase().contains(t)));
+
+        if matches_title || matches_tags {
+            candidate_note_ids.insert(note_id.clone());
+        }
+    }
+
+    // If no candidates found, use embedded search as fallback
+    if candidate_note_ids.is_empty() {
         return search_embedded(store, index, query, type_filter, tag_filter);
     }
 
-    // Build results from matching files using index metadata
+    // Build results from all candidate notes
     let mut results = Vec::new();
-    let mut matching_paths_sorted: Vec<_> = matching_paths.into_iter().collect();
-    matching_paths_sorted.sort();
+    let mut candidates_sorted: Vec<_> = candidate_note_ids.into_iter().collect();
+    candidates_sorted.sort();
 
-    for path in matching_paths_sorted {
-        // Get note_id for this path from index
-        let note_id = match index.files.get(&path) {
-            Some(entry) => &entry.note_id,
-            None => continue,
-        };
-
-        let meta = match index.metadata.get(note_id) {
+    for note_id in candidates_sorted {
+        let meta = match index.metadata.get(&note_id) {
             Some(m) => m,
             None => continue,
         };
@@ -178,13 +197,17 @@ fn search_with_ripgrep(
 
         // Only include results with some relevance
         if relevance > 0.0 {
+            // Try to get context from ripgrep if available
+            let path = PathBuf::from(&meta.path);
+            let match_context = path_contexts.get(&path).cloned();
+
             results.push(SearchResult {
                 id: meta.id.clone(),
                 title: meta.title.clone(),
                 note_type: meta.note_type,
                 tags: meta.tags.clone(),
                 path: normalize_meta_path(store, &meta.path),
-                match_context: path_contexts.get(&path).cloned(),
+                match_context,
                 relevance,
                 via: None,
             });

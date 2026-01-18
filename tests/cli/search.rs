@@ -136,3 +136,49 @@ fn test_search_json_format() {
         .stdout(predicate::str::contains("\"title\": \"Search Test Note\""))
         .stdout(predicate::str::contains("\"relevance\":"));
 }
+
+#[test]
+fn test_search_title_only_match() {
+    // Regression test for title-only matches being missed by ripgrep
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with a unique word in the title but NOT in the body
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Xylophone"])
+        .assert()
+        .success();
+
+    // Add body content that does NOT contain the title word
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note_files: Vec<_> = std::fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(note_files.len(), 1);
+    let note_path = note_files[0].path();
+    let mut content = std::fs::read_to_string(&note_path).unwrap();
+    content.push_str("\nThis is some body content without the search term.");
+    std::fs::write(&note_path, content).unwrap();
+
+    // Rebuild index to pick up the changes
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    // Search for the title word - it should be found even though it's not in the body
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "xylophone"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Xylophone"));
+}

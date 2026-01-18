@@ -18,8 +18,8 @@
   - Refs: truncation computed `src/lib/compaction/expansion.rs:48-58`; JSON emits only IDs `src/commands/list.rs:88-97`
 - [ ] `--expand-compaction` drops truncation reporting entirely (expanded set can be silently truncated)
   - Refs: expansion returns `(notes, truncated)` but callers discard it: `src/commands/context/output.rs:72-110`
-- [ ] `compact guide` claims `report/suggest` are “coming soon” even though both exist
-  - Refs: `src/commands/compact/guide.rs:49-51`
+- [x] `compact guide` claims `report/suggest` are “coming soon” even though both exist
+  - Fixed: removed "(coming soon)" from guide output
 
 ### `specs/pack.md`
 - [ ] `load --strategy merge-links` does not match spec semantics (content preservation + links union)

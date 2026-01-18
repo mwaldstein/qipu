@@ -46,8 +46,8 @@ in day-to-day retrieval, while keeping the original notes intact.
 - `qipu compact apply <digest> --note <id>...` - Register compaction
 - `qipu compact show <digest>` - Show what a digest compacts
 - `qipu compact status <id>` - Show compaction relationships for a note
-- `qipu compact report <digest>` - Quality metrics (coming soon)
-- `qipu compact suggest` - Suggest compaction candidates (coming soon)
+- `qipu compact report <digest>` - Quality metrics
+- `qipu compact suggest` - Suggest compaction candidates
 - `qipu compact guide` - Print this guide
 
 ## Invariants

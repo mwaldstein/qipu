@@ -75,7 +75,11 @@ Several files have grown overly large and need refactoring to improve maintainab
    - Each handler is self-contained with clear responsibilities
    - Improved maintainability and testability
    - All tests pass after refactoring
-10. **Large functions across codebase** - Break down overly complex functions for maintainability
+10. **`src/commands/link/list.rs`** ✅ COMPLETE - Refactored `output_list_records` function:
+   - Broke down 135-line function into 8 focused helper functions
+   - Extracted note metadata collection, edge line generation, and truncation logic
+   - Improved code clarity and maintainability without changing behavior
+   - All tests pass after refactoring
 
 **Recommended approach**: Start with test files (easier to refactor), then focus on `src/lib/compaction.rs` as core business logic, followed by function-level decomposition.
 
@@ -303,6 +307,8 @@ Currently disabled (`on: {}` in ci.yml). **DO NOT enable until Actions is activa
 2. **File size reduction**: Refactoring `src/commands/link/tree.rs` reduced it from 586 lines to 374 lines (36% reduction) by removing the duplicate traversal function and improving output formatting organization.
 
 3. **Large match delegation pattern**: The `src/commands/dispatch.rs` refactoring successfully extracted command dispatch logic into dedicated handler functions. While the total file size increased (259→832 lines), the code is now more maintainable with each handler being a focused, testable unit. The match statement reduced from 537 lines to just 100 lines by delegating to 20+ handler functions.
+
+4. **Function extraction pattern**: The `src/commands/link/list.rs::output_list_records` refactoring demonstrated the value of breaking down large functions (135 lines) into focused helper functions. By extracting 8 helper functions, each with a single responsibility (collect unique IDs, append note metadata, append summary, append compaction lines, append edges, build header, calculate truncation, output with truncation), the code became much more readable and maintainable while preserving exact behavior.
 
 ---
 

@@ -22,9 +22,12 @@
   - Changed `src/commands/context/output.rs:23-33`, `src/commands/context/output.rs:210-216`
   - Updated function signatures to accept `with_body` parameter: `src/commands/context/output.rs:9`, `src/commands/context/output.rs:123`
   - Updated call sites: `src/commands/context/mod.rs:164-172`, `src/commands/context/mod.rs:174-184`
-- [ ] `--max-chars` is “exact” only for `--format records`; human/JSON use an estimate + buffer and never validate final output size
-  - Estimate + buffer: `src/commands/context/budget.rs:29-33`
-  - Exact records accounting: `src/commands/context/output.rs:53-90`
+- [x] `--max-chars` is "exact" only for `--format records`; human/JSON use an estimate + buffer and never validate final output size
+  - Fixed: human and JSON outputs now validate actual output size and iteratively remove notes until within budget
+  - Added `max_chars` parameter to `output_json()` and `output_human()`: `src/commands/context/output.rs:9`, `src/commands/context/output.rs:169`
+  - Created helper functions `build_json_output()` and `build_human_output()` to build output strings: `src/commands/context/output.rs:36-157`, `src/commands/context/output.rs:210-396`
+  - Iterative budget enforcement loops remove notes one-by-one if output exceeds budget: `src/commands/context/output.rs:18-34`, `src/commands/context/output.rs:178-194`
+  - Updated call sites to pass `max_chars`: `src/commands/context/mod.rs:172`, `src/commands/context/mod.rs:186`
 
 ### `specs/indexing-search.md`
 - [ ] Search can miss title-only matches when ripgrep path is used

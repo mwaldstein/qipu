@@ -170,6 +170,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &compaction_ctx,
                 &note_map,
                 &all_notes,
+                options.max_chars,
             )?;
         }
         OutputFormat::Human => {
@@ -183,6 +184,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &compaction_ctx,
                 &note_map,
                 &all_notes,
+                options.max_chars,
             );
         }
         OutputFormat::Records => {

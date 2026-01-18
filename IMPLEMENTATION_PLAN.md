@@ -3,6 +3,7 @@
 ## Status (Last Audited: 2026-01-18)
 - Test baseline: `cargo test` passes (2026-01-18).
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
+- All P1 correctness bugs completed (2026-01-18).
 
 ## P1: Correctness Bugs
 

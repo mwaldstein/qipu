@@ -26,11 +26,12 @@ Several files have grown overly large and need refactoring to improve maintainab
    - `tests/cli/link/compaction.rs` - compaction-related link tests ✅
    - `tests/cli/link/mod.rs` - module declarations ✅
 
-2. **`tests/cli/context.rs` (1,059 lines)** - Break into:
-   - `tests/cli/context/basic.rs` - basic context selection tests
-   - `tests/cli/context/budget.rs` - budget and truncation tests
-   - `tests/cli/context/compaction.rs` - compaction expansion tests
-   - `tests/cli/context/formats.rs` - output format tests
+2. **`tests/cli/context.rs` (1,059 lines)** ✅ COMPLETE - Broken into separate modules:
+   - `tests/cli/context/basic.rs` - basic context selection tests ✅
+   - `tests/cli/context/budget.rs` - budget and truncation tests ✅
+   - `tests/cli/context/compaction.rs` - compaction expansion tests ✅
+   - `tests/cli/context/formats.rs` - output format tests ✅
+   - `tests/cli/context/mod.rs` - module declarations ✅
 
 3. **`tests/cli/compact.rs` (896 lines)** - Break into:
    - `tests/cli/compact/commands.rs` - compact report/suggest/apply tests

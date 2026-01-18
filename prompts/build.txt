@@ -2,28 +2,22 @@
 
 Execute exactly ONE atomic change from IMPLEMENTATION_PLAN.md.
 
-## Phase 1: Assess
-1. Run `cargo test` to check for failures
-2. Read `IMPLEMENTATION_PLAN.md` for current priorities
+## Phase 1: Select ONE Task
 
-## Phase 2: Select ONE Task
-
-**If Phase 1 found failures**: Your task is to FIX them. Do not proceed to other work until all tests pass. Investigate, diagnose, and fix the root cause. Only if you've exhausted reasonable attempts (3+ approaches tried) should you document the blocker in IMPLEMENTATION_PLAN.md as a P1 issue and stop.
-
-**If all tests pass**: Choose the **first applicable** item:
+Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
 1. **P1** correctness issues (first unfinished sub-item)
 2. **P2** test coverage gaps (first untested area)
 3. **P3** spec-implementation gaps (first unimplemented item)
 
 **Declare your selection**: State the exact task before proceeding (e.g., "TASK: Add capture command tests").
 
-## Phase 3: Implement
+## Phase 2: Implement
 1. Search codebase first—don't assume unimplemented
 2. If spec clarification needed, read relevant `specs/*.md` file
 3. Implement completely—no stubs or placeholders
 4. Run `cargo test` to verify—all tests must pass before proceeding
 
-## Phase 4: Finalize
+## Phase 3: Finalize
 1. Update `IMPLEMENTATION_PLAN.md`:
    - Mark task complete, or note blockers only if fix attempts failed
    - Add learnings if any

@@ -40,9 +40,9 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `knowledge-model.md` | ✅ | ⚠️ | ✅ | Note type is a closed enum (`src/lib/note/types.rs:6-19`); tag aliases not implemented |
 | `storage-format.md` | ✅ | ⚠️ | ⚠️ | Markdown links only resolved if `qp-...` appears (`src/lib/index/links.rs:57-107`); `qipu.db` not implemented |
 | `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Some post-parse arg errors exit 1 not 2 (`src/commands/dispatch.rs:300-306`); `load --format records` header diverges (`src/commands/load/mod.rs:113-136`) |
-| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | Recency boost missing; ripgrep path can miss title-only matches (`src/lib/index/search.rs:53-110`); exact tag match not special-cased (`src/lib/index/search.rs:65-66`) |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Custom type config schema differs from spec (`src/lib/config.rs:40-69`); “prefer typed links under budget” not implemented in context (`src/commands/context/select.rs:14-32`) |
-| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | “(seen)” refs not rendered; `max_hops` doesn’t set `truncated=true` (`src/lib/graph/traversal.rs:87-90`); type filters + direction=in/both missing tests |
+| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | SQLite FTS5 not yet implemented (currently uses ripgrep/embedded search); see `operational-database.md` for migration plan |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Custom type config schema differs from spec (`src/lib/config.rs:40-69`); "prefer typed links under budget" not implemented in context (`src/commands/context/select.rs:14-32`) |
+| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | "(seen)" refs not rendered; `max_hops` doesn't set `truncated=true` (`src/lib/graph/traversal.rs:87-90`); type filters + direction=in/both missing tests |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Stop words + stemming missing; similarity uses BM25-weighted vectors with `tf=1` (`src/lib/similarity/mod.rs:33-37`) |
 | `records-output.md` | ✅ | ⚠️ | ✅ | Schema drift: extra prefixes (`W/D/C/M`) + `B-END`; header field ordering differs across commands (`src/commands/context/output.rs:445-449`) |
 | `llm-context.md` | ✅ | ⚠️ | ⚠️ | Human/JSON budgeting can violate `--max-chars` due to summary estimate vs full body output (`src/commands/context/budget.rs:97-103`); JSON lacks safety banner |
@@ -67,7 +67,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 - **workspaces.md**: `workspace merge --dry-run` lacks conflict report and prints success-like message (`src/commands/workspace/merge.rs:82-84`)
 - **export.md**: anchor link rewriting likely broken (rewrites to `#note-<id>` without emitting anchors) (`src/commands/export/emit/links.rs:16-18`)
 - **llm-context.md**: budgeting can be violated due to summary estimates while output emits full bodies (`src/commands/context/budget.rs:97-103`)
-- **indexing-search.md**: ripgrep-based search can miss title-only matches (`src/lib/index/search.rs:53-110`)
+- **indexing-search.md**: SQLite FTS5 not yet implemented; ripgrep/embedded search still in use (see `operational-database.md`)
 - **cli-interface.md**: some invalid-arg errors return exit code 1 instead of 2 (`src/commands/dispatch.rs:300-306`)
 
 ### P2: Missing Test Coverage

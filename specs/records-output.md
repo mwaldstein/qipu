@@ -20,7 +20,7 @@ This is complementary to `--format json` output:
 - Keep output **deterministic** (stable ordering, stable formatting).
 - Support **budgets** (`--max-chars` exact).
 - Support **progressive disclosure**:
-  - emit a small “index” view first
+  - emit a small "index" view first
   - allow fetching full note bodies only when needed
 
 ## Non-goals
@@ -56,7 +56,7 @@ Recommended record prefixes:
 - `E` edge line (optional)
 - `B` body line(s) (optional; raw markdown)
 
-The grammar does not need to be perfectly machine-parseable (that’s what `--format json` is for), but it should be consistent.
+The grammar does not need to be perfectly machine-parseable (that's what `--format json` is for), but it should be consistent.
 
 ### Example: records output for a traversal
 ```
@@ -103,7 +103,7 @@ A recommended agent workflow:
 3. Fetch full content only for selected notes:
    - `qipu context --note <id> --format records --with-body --max-chars 16000`
 
-This is analogous to “retrieve a small index, then expand” patterns used in RAG systems.
+This is analogous to "retrieve a small index, then expand" patterns used in RAG systems.
 
 ## Open questions
 - Should records output allow selecting a format version (e.g., `records=1` in the header) for stability?

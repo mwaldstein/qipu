@@ -12,7 +12,7 @@ Default (repo-local) store root (beads-aligned):
 - `.qipu/`
 
 Rationale:
-- Mirrors beads’ `.beads/` pattern for “agent memory lives here”.
+- Mirrors beads' `.beads/` pattern for "agent memory lives here".
 - Keeps repo root tidy while remaining git-trackable.
 
 Config should allow alternate roots:
@@ -44,7 +44,7 @@ Notes:
 - `attachments/` contains optional binaries (images, PDFs).
 - `.cache/` and `qipu.db` are derived and should be gitignored by default.
 
-## “Stealth mode” (local-only store)
+## "Stealth mode" (local-only store)
 Beads supports `bd init --stealth` for private per-repo tracking. Qipu should support an analogous mode.
 
 In stealth mode:
@@ -148,7 +148,11 @@ Provide `qipu doctor` checks for:
 - broken links
 - invalid frontmatter
 
+## Design Decisions
+
+**MOCs use a separate directory.** MOCs live in `mocs/` rather than inside `notes/` with a type flag. This provides clear visual separation in the filesystem, simplifies glob patterns for tools, and matches the conceptual distinction between content notes and structural notes. The `type: moc` frontmatter field remains authoritative; the directory is a convention that aids discoverability.
+
+**Note paths are flat.** Notes are stored directly in `notes/` without date partitioning. This keeps paths stable (no moves when dates change), simplifies ID-to-path resolution, and avoids empty directory hierarchies. For stores with thousands of notes, the SQLite index handles listing/filtering efficiently.
+
 ## Open questions
-- Should `mocs/` live inside `notes/` with a type flag instead?
-- Should note paths be flat or date-partitioned (`notes/2026/01/...`)?
 - Should attachments be per-note folders (`attachments/<id>/...`)?

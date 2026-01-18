@@ -4,9 +4,9 @@
 Export should make qipu notes usable outside the qipu store, especially for:
 - writing white papers and design docs
 - sharing research sets with an LLM tool
-- archiving a project’s knowledge base
+- archiving a project's knowledge base
 
-Beads has “compaction” (memory decay) to keep agent context small. In qipu, export is one of the primary ways to produce condensed artifacts (bundles/outlines/digests) without requiring an LLM.
+Beads has "compaction" (memory decay) to keep agent context small. In qipu, export is one of the primary ways to produce condensed artifacts (bundles/outlines/digests) without requiring an LLM.
 
 ## Export inputs
 Exports can be driven by:
@@ -22,7 +22,7 @@ Exports can be driven by:
 
 ### 2) Outline export (MOC-first)
 - Uses a MOC as the outline.
-- Follows the MOC’s ordering.
+- Follows the MOC's ordering.
 
 ### 3) Bibliography export
 - Extracts `sources` from notes.
@@ -43,7 +43,7 @@ Keep defaults conservative to avoid rewriting user content unexpectedly.
 
 ## Attachments
 - Optionally copy attachments into an export folder.
-- Provide a “no attachments” mode (default) for lightweight exports.
+- Provide a "no attachments" mode (default) for lightweight exports.
 
 ## Open questions
 - Should export support `pandoc` integration (optional) for PDF generation?

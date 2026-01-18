@@ -59,7 +59,7 @@ Filters:
 - `--since <date>`
 
 ### `qipu inbox`
-List “unprocessed” notes (the knowledge processing queue).
+List "unprocessed" notes (the knowledge processing queue).
 
 Default behavior:
 - `type in {fleeting, literature}`
@@ -109,7 +109,7 @@ Notes:
 - `--format json` output should be supported for list/tree/path (tool-friendly).
 - `--format records` output should be supported for list/tree/path (low-overhead; see `specs/records-output.md`).
 
-This is intentionally similar to beads’ `bd dep` commands, but for knowledge edges.
+This is intentionally similar to beads' `bd dep` commands, but for knowledge edges.
 
 ### `qipu index`
 Build/refresh derived indexes (tags, backlinks, graph).
@@ -138,7 +138,7 @@ Output formats (proposed):
 Export notes into a single document (e.g., whitepaper notes).
 
 ### `qipu prime`
-Emit a small, stable “primer” intended for agent session start.
+Emit a small, stable "primer" intended for agent session start.
 
 Beads uses `bd prime` to inject workflow context for agents; qipu should provide the same pattern for knowledge:
 - quick command reference
@@ -148,7 +148,7 @@ Beads uses `bd prime` to inject workflow context for agents; qipu should provide
 ### `qipu setup`
 Install qipu integration instructions for common agent tools.
 
-This should follow beads’ recipe approach:
+This should follow beads' recipe approach:
 - `qipu setup --list`
 - `qipu setup <tool>`
 - `qipu setup --print`

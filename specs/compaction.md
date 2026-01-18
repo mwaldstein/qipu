@@ -1,9 +1,9 @@
 # Compaction (Digests and Lossless Knowledge Decay)
 
 ## Motivation
-As a knowledge store grows, the “working set” an LLM needs becomes too large to traverse or load directly.
+As a knowledge store grows, the "working set" an LLM needs becomes too large to traverse or load directly.
 
-Qipu’s answer is **lossless compaction**:
+Qipu's answer is **lossless compaction**:
 - Keep the underlying notes intact.
 - Introduce **digest notes** that summarize sets of notes.
 - Make default navigation **digest-first** so traversal/search/context stays small.
@@ -31,10 +31,10 @@ Important constraint: **qipu must not require calling an LLM API**. Compaction c
 - **Note**: a normal qipu note.
 - **Digest**: a note intended to stand in for a set of notes (usually shorter than the expansion).
 - **Source note**: a note compacted by a digest.
-- **Compaction edge**: a directed relationship `digest -> source` meaning “digest compacts source”.
+- **Compaction edge**: a directed relationship `digest -> source` meaning "digest compacts source".
 - **Compactor**: the digest that compacts a given note.
 - **Compaction chain**: a digest may itself be compacted by a higher-level digest.
-- **Canonical note**: the “topmost” digest reached by following a compaction chain.
+- **Canonical note**: the "topmost" digest reached by following a compaction chain.
 - **Resolved view**: the default view where references are canonicalized (digests shown, compacted notes hidden).
 - **Raw view**: the view where canonicalization is disabled.
 - **Contracted graph**: the effective knowledge graph used in the resolved view after canonicalization.
@@ -56,9 +56,9 @@ If a note is compacted by any digest, it remains:
 Digests may compact other digests, producing multi-level structures.
 
 Qipu must support queries such as:
-- “What does this digest compact (directly)?”
-- “What is the canonical digest for this note?”
-- “Show the compaction tree under this digest (depth-limited).”
+- "What does this digest compact (directly)?"
+- "What is the canonical digest for this note?"
+- "Show the compaction tree under this digest (depth-limited)."
 
 ## Required invariants
 To keep compaction resolution deterministic and useful for LLM tooling, qipu should enforce or at least diagnose these invariants (via `qipu doctor` and/or in `qipu compact apply`):
@@ -69,7 +69,7 @@ To keep compaction resolution deterministic and useful for LLM tooling, qipu sho
 - **All referenced IDs resolve**: compaction edges pointing to unknown notes are data errors.
 
 If invariants are violated, commands that rely on canonicalization should:
-- produce deterministic behavior (never “pick arbitrarily”), and
+- produce deterministic behavior (never "pick arbitrarily"), and
 - surface a clear data error suitable for tool/LLM repair.
 
 ## Canonicalization (resolved view)
@@ -85,13 +85,13 @@ Cycle safety:
 - A detected cycle is a data error.
 
 ### Contracted graph
-When operating in the resolved view, qipu should act as if the user’s note graph is **contracted**:
+When operating in the resolved view, qipu should act as if the user's note graph is **contracted**:
 - Every node ID is mapped through `canon(id)`.
 - Duplicate nodes are merged.
 - Edges are mapped to `(canon(from), canon(to))`.
 - Self-loops introduced by contraction are dropped.
 
-This preserves “topic connectivity” while keeping compacted notes out of the default working set.
+This preserves "topic connectivity" while keeping compacted notes out of the default working set.
 
 ## Visibility rules
 ### Default visibility
@@ -146,12 +146,12 @@ For commands that return note bodies (notably `qipu context`), provide an opt-in
 - `--expand-compaction`: include compacted source notes in the output/bundle, depth-limited by `--compaction-depth`.
 
 In other words:
-- `--with-compaction-ids` shows “what’s inside” (IDs/metadata)
-- `--expand-compaction` shows “the actual contents”
+- `--with-compaction-ids` shows "what's inside" (IDs/metadata)
+- `--expand-compaction` shows "the actual contents"
 
 ## Metrics
 ### Compaction percent
-Compaction percent should help decide whether it’s worth drilling into compacted items.
+Compaction percent should help decide whether it's worth drilling into compacted items.
 
 Define:
 - `digest_size = size(digest)`
@@ -164,7 +164,7 @@ Notes:
 
 ### Size() estimation
 The default `size()` should be aligned with LLM retrieval:
-- Prefer “summary-sized” estimates rather than full bodies.
+- Prefer "summary-sized" estimates rather than full bodies.
 
 Recommended default size basis (deterministic):
 - extract a note summary using the same rules as records summary extraction
@@ -192,7 +192,7 @@ Input ergonomics (recommended):
 ### `qipu compact show <digest-id>`
 Show the direct compaction set:
 - the direct compacted IDs
-- the digest’s `compacts=<N>` and `compaction=<P%>` metrics
+- the digest's `compacts=<N>` and `compaction=<P%>` metrics
 
 With `--compaction-depth <n>`, show a depth-limited compaction tree under the digest.
 
@@ -203,13 +203,13 @@ Show compaction relationships for any note:
 - direct compacted set (if the note is a digest)
 
 ### `qipu compact report <digest-id>`
-Provide mechanical checks an LLM can use to evaluate whether the compaction grouping is “good”.
+Provide mechanical checks an LLM can use to evaluate whether the compaction grouping is "good".
 
 Recommended outputs:
 - `compacts_direct_count`
 - `compaction_pct`
 - boundary edge ratio (how many links from sources point outside the compaction set)
-- “staleness” indicator (sources updated after digest)
+- "staleness" indicator (sources updated after digest)
 - conflicts/cycles (if present)
 
 ### `qipu compact suggest`
@@ -241,12 +241,12 @@ Print stable, copy/pasteable guidance intended for LLM tools (and humans) to per
 Guidance should include:
 1. How to choose a candidate (`qipu compact suggest`).
 2. How to review candidate summaries (`qipu context --format records` in summaries-first mode).
-3. How to author a digest note (externally) with a “high signal, low tokens” structure.
+3. How to author a digest note (externally) with a "high signal, low tokens" structure.
 4. How to register compaction (`qipu compact apply`).
 5. How to validate (`qipu compact report`, plus a resolved traversal/search sanity check).
 
 The guide may include a prompt template such as:
-- “Create a digest that replaces these notes in day-to-day retrieval. Include a one-paragraph Summary, key claims, and a small section explaining when to expand into sources. Keep it short; include IDs for traceability.”
+- "Create a digest that replaces these notes in day-to-day retrieval. Include a one-paragraph Summary, key claims, and a small section explaining when to expand into sources. Keep it short; include IDs for traceability."
 
 ## Search and traversal behavior
 ### Search
@@ -269,6 +269,6 @@ With `--expand-compaction`:
 - traversal/context outputs may include compacted source notes, depth-limited by `--compaction-depth`.
 
 ## Open questions
-- Should qipu support “inactive” compaction edges for history (versioning), or only one active mapping?
+- Should qipu support "inactive" compaction edges for history (versioning), or only one active mapping?
 - Should compaction suggestions default to excluding MOCs/spec notes, or treat them like normal notes?
-- Should there be a first-class concept of “leaf source” vs “intermediate digest” in outputs?
+- Should there be a first-class concept of "leaf source" vs "intermediate digest" in outputs?

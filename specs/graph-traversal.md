@@ -1,7 +1,7 @@
 # Graph Retrieval and Traversal
 
 ## Motivation
-Qipu’s knowledge store is a graph. For both humans and LLM tools, it must be easy to “walk the tree” (i.e., traverse the graph from one or more starting notes) to gather the set of related notes needed to achieve a goal.
+Qipu's knowledge store is a graph. For both humans and LLM tools, it must be easy to "walk the tree" (i.e., traverse the graph from one or more starting notes) to gather the set of related notes needed to achieve a goal.
 
 The primary consumer for traversal is an LLM workflow:
 - the model needs deterministic, bounded expansions
@@ -36,10 +36,10 @@ Inline links that lack explicit semantics are treated as:
 - `type = related`
 - `source = inline`
 
-This preserves the distinction between an intentionally typed relationship and a “plain markdown” link.
+This preserves the distinction between an intentionally typed relationship and a "plain markdown" link.
 
 ## Traversal semantics
-Traversal is a projection of a graph into a readable “tree view”. Because the underlying structure is a graph:
+Traversal is a projection of a graph into a readable "tree view". Because the underlying structure is a graph:
 - nodes may be reachable via multiple paths
 - cycles may exist
 
@@ -118,10 +118,10 @@ Traversal maintains a visited set by note `id`.
 
 - A note is expanded at most once.
 - If an edge points to an already-visited node, the output should:
-  - include the node as a reference (e.g., “(seen)”)
+  - include the node as a reference (e.g., "(seen)")
   - not recursively expand it again
 
-This produces a stable “tree walk” output even on cyclic graphs.
+This produces a stable "tree walk" output even on cyclic graphs.
 
 ## CLI surface
 Traversal lives under `qipu link`, mirroring beads' `bd dep tree` ergonomics.
@@ -189,7 +189,7 @@ Proposed minimal shape:
 
 Notes:
 - `links[]` represents the effective link set encountered during traversal.
-- `spanning_tree[]` encodes the deterministic “tree view” projection (via first-discovery predecessor edges).
+- `spanning_tree[]` encodes the deterministic "tree view" projection (via first-discovery predecessor edges).
 
 - Link `source` values:
   - `typed`: explicit link from note frontmatter
@@ -203,7 +203,10 @@ Traversal results should compose cleanly into context bundles:
 Future-friendly extension (optional):
 - add `qipu context --walk <id> --max-hops <n> ...` to perform traversal-and-bundle in one command.
 
+## Design Decisions
+
+**Default `--max-hops` is 3.** This provides enough context to surface 2-hop neighborhoods (direct links + their links) while remaining bounded. For LLM context, users typically reduce to 1-2 hops with `--max-chars` budget. There is no default `--max-nodes`; users can set one explicitly if needed.
+
 ## Open questions
-- Default limits: should the default `--max-hops` be 2 or 3? Should there be a default `--max-nodes`?
 - Should qipu ever materialize inline links into `links[]` automatically, or only as an explicit opt-in?
 - Do we want additional first-class traversal queries beyond `tree` and `path` (e.g., `neighbors`, `subgraph`, `cycles`)?

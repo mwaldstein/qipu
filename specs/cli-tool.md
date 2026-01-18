@@ -26,7 +26,7 @@ This spec focuses on the CLI as a product surface (parsing, dispatch, output pro
 ### Executable
 
 - The tool is invoked as `qipu`.
-- The primary distribution artifact is a single, self-contained native executable (a “real binary”), not a script.
+- The primary distribution artifact is a single, self-contained native executable (a "real binary"), not a script.
 - `qipu --help` prints stable help output and exits `0`.
 - `qipu --version` prints a single line with version information and exits `0`.
 - The CLI must not require network access for normal operation.
@@ -39,7 +39,7 @@ This spec focuses on the CLI as a product surface (parsing, dispatch, output pro
 
 ### Performance budgets
 
-The CLI is intended to feel “instant” in interactive use.
+The CLI is intended to feel "instant" in interactive use.
 
 Targets (approximate, p95 on a typical developer laptop):
 
@@ -73,7 +73,7 @@ Constraints:
 
 ### Store discovery and resolution
 
-Qipu commands operate against a “store root” directory.
+Qipu commands operate against a "store root" directory.
 
 Resolution order:
 
@@ -83,7 +83,7 @@ Resolution order:
 2. Otherwise, discover a store by walking up from `--root` (or cwd):
    - At each directory, if `.qipu/` exists, treat it as the store root and stop.
    - If `.qipu/` is absent but `qipu/` exists, treat `qipu/` as the store root and stop.
-   - If the filesystem root is reached with no store found, the store is “missing”.
+   - If the filesystem root is reached with no store found, the store is "missing".
 
 Missing-store behavior:
 

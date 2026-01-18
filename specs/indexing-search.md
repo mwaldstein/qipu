@@ -21,7 +21,7 @@ Proposed cache locations:
 - `.qipu/.cache/*.json` (portable, tool-friendly)
 - `.qipu/qipu.db` (optional, derived, fast)
 
-This mirrors beads’ architecture: git-trackable source data plus a local acceleration layer.
+This mirrors beads' architecture: git-trackable source data plus a local acceleration layer.
 
 ## Incremental indexing
 Indexing should be incremental where practical:
@@ -37,7 +37,7 @@ Links can be discovered by parsing:
 - typed links in frontmatter (`links[]`)
 
 Link extraction should:
-- treat unknown IDs as “unresolved” (reported by `doctor`)
+- treat unknown IDs as "unresolved" (reported by `doctor`)
 - ignore links outside the store by default
 
 ## Search behavior
@@ -46,10 +46,8 @@ Link extraction should:
 - Provide type/tag filters.
 - Provide an option to include/exclude MOCs.
 
-Implementation options:
-- A simple embedded matcher for smaller stores
-- Optional integration with `ripgrep` if available
-- Optional SQLite FTS if `.qipu/qipu.db` is present
+Implementation:
+- SQLite FTS5 with BM25 ranking (see `operational-database.md`)
 
 ### Result ranking (initial heuristics)
 - Title matches rank above body matches.
@@ -77,5 +75,4 @@ Qipu must avoid scope creep into code search:
 - it should not attempt to index source code files
 
 ## Open questions
-- Should qipu standardize on JSON indexes, SQLite indexes, or support both?
 - Should backlinks be embedded into notes (opt-in) or remain fully derived?

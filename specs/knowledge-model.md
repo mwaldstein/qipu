@@ -7,7 +7,7 @@ Qipu uses a Zettelkasten-inspired model: many small, linkable notes that form a 
 - Distilling research into durable insights
 - Navigating by links/tags/MOCs rather than deep folder hierarchies
 
-Qipu should also borrow from beads’ core idea: **agent memory works best when it is a graph with stable identifiers and deterministic queries**, stored and shared via git.
+Qipu should also borrow from beads' core idea: **agent memory works best when it is a graph with stable identifiers and deterministic queries**, stored and shared via git.
 
 ## Core concepts
 - **Note (zettel)**: an atomic unit of knowledge stored as a markdown file.
@@ -18,17 +18,17 @@ Qipu should also borrow from beads’ core idea: **agent memory works best when 
 - **Backlink**: a derived relationship (notes that link to a note).
 
 ## Note types
-Qipu should support a small set of note “types” (stored in metadata) to guide workflows:
+Qipu should support a small set of note "types" (stored in metadata) to guide workflows:
 
 - **Fleeting**: quick capture; low ceremony; meant to be refined later.
 - **Literature**: notes derived from an external source (URL, book, paper).
-- **Permanent**: distilled insight, phrased in the author’s own words, meant to stand alone.
+- **Permanent**: distilled insight, phrased in the author's own words, meant to stand alone.
 - **MOC**: a map/index note that links to other notes in a meaningful order.
 
 Type is a hint for tooling and templates; it should not impose rigid structure.
 
 ## Atomicity and quality bar
-- Prefer “one idea per note”.
+- Prefer "one idea per note".
 - Notes should be understandable without hidden context (include short background when needed).
 - Links should include *why* they exist (use a short phrase around links, not a bare list).
 
@@ -55,7 +55,7 @@ Notes:
 ## Typed links (graph semantics)
 Inline links are great for humans, but agents benefit from explicit semantics.
 
-Qipu should support **typed links** in note metadata. These are inspired by beads’ “dependency types”: not every relationship is the same.
+Qipu should support **typed links** in note metadata. These are inspired by beads' "dependency types": not every relationship is the same.
 
 Proposed minimal link types:
 - `related` (soft relationship)
@@ -67,20 +67,20 @@ Proposed minimal link types:
 Typed links should:
 - be optional (qipu remains usable with plain markdown)
 - be derivable/inspectable via `qipu link` and `qipu show --links`
-- enable deterministic navigation (e.g., “show all evidence that supports claim X”)
+- enable deterministic navigation (e.g., "show all evidence that supports claim X")
 
 ## Maps of content (MOCs)
-MOCs are a primary navigation mechanism and are the closest analog to beads’ hierarchical epics: they provide **curation and ordering**.
+MOCs are a primary navigation mechanism and are the closest analog to beads' hierarchical epics: they provide **curation and ordering**.
 
 A MOC note typically:
-- Starts with a brief “what belongs here” description
+- Starts with a brief "what belongs here" description
 - Groups links by subtopic
 - Provides an ordered reading path
 
 MOCs can serve as:
 - A project knowledge index
 - A whitepaper outline
-- A curated “context set” for LLM tools
+- A curated "context set" for LLM tools
 
 ## Knowledge lifecycle (capture -> distill)
 Suggested flow:
@@ -90,9 +90,12 @@ Suggested flow:
 4. **Connect**: add links between notes (inline + typed)
 5. **Promote**: convert stabilized insights into specs/tickets when they become commitments
 
-This lifecycle is qipu’s version of beads’ “ready queue”: it makes the backlog of raw research visible, and it encourages distillation into durable, low-context artifacts.
+This lifecycle is qipu's version of beads' "ready queue": it makes the backlog of raw research visible, and it encourages distillation into durable, low-context artifacts.
+
+## Design Decisions
+
+**Note types are a closed enum.** Qipu enforces a fixed type taxonomy (`fleeting`, `literature`, `permanent`, `moc`). Unknown type values are rejected with an error. This ensures consistent filtering, prevents typos, and keeps the model simple. Link types, by contrast, are open strings to allow domain-specific semantics.
 
 ## Open questions
-- Should qipu enforce a type taxonomy or allow arbitrary `type` values?
 - Which typed link set is the minimal useful set?
 - Should qipu support duplicate/near-duplicate detection and merge (beads analog: `bd duplicates`/`bd merge`)?

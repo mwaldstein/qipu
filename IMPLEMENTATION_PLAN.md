@@ -333,10 +333,37 @@ Human review happens out-of-band after runs complete—runs are never paused:
 
 #### Important Gaps (P2)
 
-##### Test Infrastructure
-- [ ] Only 2 unit tests in entire crate (judge prompt, gate evaluation)
-- [ ] No integration tests for adapters
-- [ ] No mock adapter for offline testing
+##### Test Infrastructure (P1 - Required for Standalone Tool)
+Current state: 11 unit tests across 4 files; many modules untested.
+
+**Unit Test Coverage Plan:**
+
+| Module | Lines | Tests | Priority | What to Test |
+|--------|-------|-------|----------|--------------|
+| `results.rs` | 282 | 0 | P1 | Cache key computation, result serialization/deserialization, DB operations |
+| `session.rs` | 106 | 0 | P1 | PTY session creation, command execution, timeout handling |
+| `cli.rs` | 78 | 0 | P2 | Argument parsing, matrix building, validation |
+| `fixture.rs` | 49 | 0 | P2 | Fixture loading, temp directory setup |
+| `adapter/*.rs` | 156 | 0 | P2 | Availability checks, command construction (mock shell) |
+| `main.rs` | 442 | 0 | P3 | Extract handlers into testable functions first |
+
+**Specific Test Tasks:**
+- [ ] `results.rs`: Add tests for `CacheKey::compute()` with various inputs
+- [ ] `results.rs`: Add tests for `ResultRecord` JSON round-trip
+- [ ] `results.rs`: Add tests for `ResultsDB` CRUD operations (use temp file)
+- [ ] `session.rs`: Add tests for `SessionRunner` timeout logic (mock child process)
+- [ ] `session.rs`: Add tests for command parsing from transcript
+- [ ] `cli.rs`: Add tests for `build_tool_matrix()` with edge cases
+- [ ] `fixture.rs`: Add tests for fixture discovery and loading
+- [ ] `adapter/mod.rs`: Add mock adapter for offline testing
+- [ ] `adapter/*.rs`: Add tests for command string construction
+
+**Integration Test Plan:**
+- [ ] Create `tests/` directory in crate
+- [ ] Add end-to-end test with mock adapter running against fixture
+- [ ] Add regression test that loads cached results and verifies format
+
+**Dead Code:**
 - [ ] Dead code: `ResultsDB::load_latest_by_scenario` (line 94)
 
 ##### Fixture Improvements
@@ -354,13 +381,29 @@ Human review happens out-of-band after runs complete—runs are never paused:
 - [ ] No CI integration (GitHub Actions workflow)
 - [ ] No aggregate statistics across runs
 
+#### File Size Refactoring (P2)
+
+Large files that should be split for maintainability:
+
+| File | Lines | Split Into |
+|------|-------|------------|
+| `main.rs` | 442 | `run.rs` (scenario execution), `commands.rs` (list/show/compare/clean handlers), `output.rs` (print_* functions) |
+| `evaluation.rs` | 382 | `gates.rs` (gate evaluation logic), `qipu_runner.rs` (run_qipu_json, count_notes, etc.) |
+| `results.rs` | 282 | `cache.rs` (CacheKey, Cache), `db.rs` (ResultsDB), `compare.rs` (RegressionReport) |
+| `transcript.rs` | 272 | OK for now, but consider splitting `TranscriptAnalyzer` if it grows |
+
+**Specific refactoring tasks:**
+- [ ] Extract `run_single_scenario` (130 lines) from `main.rs` into `run.rs`
+- [ ] Extract command handlers (`list`, `show`, `compare`, `clean`) into `commands.rs`
+- [ ] Extract `print_result_summary`, `print_regression_report`, `print_matrix_summary` into `output.rs`
+- [ ] Move `CacheKey` and `Cache` from `results.rs` into `cache.rs`
+- [ ] Move `ResultsDB` from `results.rs` into `db.rs`
+- [ ] Extract `run_qipu_json`, `count_notes`, `count_links`, `search_hit` from `evaluation.rs` into `qipu_runner.rs`
+
 #### Minor Gaps (P3)
 
 ##### Code Quality
 - [ ] No tracing instrumentation anywhere in crate
-- [ ] `main.rs` (259 lines) should be split - extract command handlers
-- [ ] `results.rs` (262 lines) - split cache and DB logic
-- [ ] `evaluation.rs` (357 lines) - split gate evaluation from judge logic
 
 ##### CLI Polish
 - [ ] `list` command shows runs, not scenarios - misleading

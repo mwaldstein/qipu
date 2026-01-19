@@ -216,4 +216,71 @@ mod tests {
         let self_score = engine.calculate_similarity("qp-1", "qp-1");
         assert!((self_score - 1.0).abs() < 1e-9);
     }
+
+    #[test]
+    fn test_similarity_with_stemming() {
+        let mut index = Index::new();
+
+        // Note 1: "The graphs are important"
+        let id1 = "qp-1".to_string();
+        let mut term_freqs1 = HashMap::new();
+        // After stemming: "the", "graph", "are", "important"
+        // Stop words removed: "the", "are"
+        // Result: "graph" (weight from body: 1.0)
+        term_freqs1.insert("graph".to_string(), 1.0);
+        term_freqs1.insert("import".to_string(), 1.0);
+        index.note_terms.insert(id1.clone(), term_freqs1);
+        index.doc_lengths.insert(id1.clone(), 2);
+        index.metadata.insert(
+            id1.clone(),
+            NoteMetadata {
+                id: id1.clone(),
+                title: "Note 1".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec![],
+                path: "1.md".to_string(),
+                created: None,
+                updated: None,
+            },
+        );
+
+        // Note 2: "A graph is useful"
+        let id2 = "qp-2".to_string();
+        let mut term_freqs2 = HashMap::new();
+        // After stemming: "a", "graph", "is", "use"
+        // Stop words removed: "a", "is"
+        // Result: "graph" (weight from body: 1.0), "use" (weight from body: 1.0)
+        term_freqs2.insert("graph".to_string(), 1.0);
+        term_freqs2.insert("use".to_string(), 1.0);
+        index.note_terms.insert(id2.clone(), term_freqs2);
+        index.doc_lengths.insert(id2.clone(), 2);
+        index.metadata.insert(
+            id2.clone(),
+            NoteMetadata {
+                id: id2.clone(),
+                title: "Note 2".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec![],
+                path: "2.md".to_string(),
+                created: None,
+                updated: None,
+            },
+        );
+
+        // Stats
+        index.total_docs = 2;
+        index.total_len = 4;
+        index.term_df.insert("graph".to_string(), 2);
+        index.term_df.insert("import".to_string(), 1);
+        index.term_df.insert("use".to_string(), 1);
+
+        let engine = SimilarityEngine::new(&index);
+        let score = engine.calculate_similarity("qp-1", "qp-2");
+
+        // Both notes share "graph" after stemming, so similarity should be > 0
+        assert!(
+            score > 0.0,
+            "Similarity should be > 0 when sharing stemmed terms"
+        );
+    }
 }

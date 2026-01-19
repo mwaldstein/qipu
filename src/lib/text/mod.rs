@@ -1,11 +1,15 @@
 //! Text processing utilities for tokenization and ranking
 
 use crate::lib::index::types::Index;
+use rust_stemmers::{Algorithm, Stemmer};
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 /// Common English stop words to filter out during tokenization
 static STOP_WORDS: OnceLock<HashSet<&'static str>> = OnceLock::new();
+
+/// Porter stemmer for English text
+static STEMMER: OnceLock<Stemmer> = OnceLock::new();
 
 fn get_stop_words() -> &'static HashSet<&'static str> {
     STOP_WORDS.get_or_init(|| {
@@ -20,6 +24,10 @@ fn get_stop_words() -> &'static HashSet<&'static str> {
     })
 }
 
+fn get_stemmer() -> &'static Stemmer {
+    STEMMER.get_or_init(|| Stemmer::create(Algorithm::English))
+}
+
 /// Simple word-based tokenizer splitting on non-alphanumeric characters with stop word removal
 pub fn tokenize(text: &str) -> Vec<String> {
     let stop_words = get_stop_words();
@@ -29,6 +37,20 @@ pub fn tokenize(text: &str) -> Vec<String> {
         .filter(|s| !stop_words.contains(s))
         .map(|s| s.to_string())
         .collect()
+}
+
+/// Tokenize text with optional Porter stemming
+///
+/// When `stem` is true, applies Porter stemming to match words like "graph" and "graphs"
+/// This improves similarity calculation for the similarity engine
+pub fn tokenize_with_stemming(text: &str, stem: bool) -> Vec<String> {
+    let tokens = tokenize(text);
+    if !stem {
+        return tokens;
+    }
+
+    let stemmer = get_stemmer();
+    tokens.iter().map(|t| stemmer.stem(t).to_string()).collect()
 }
 
 /// Calculate BM25 score for a piece of text against a set of query terms
@@ -134,5 +156,33 @@ mod tests {
         let tokens = tokenize(text);
         // "and" is filtered
         assert_eq!(tokens, vec!["graph", "theory", "networks"]);
+    }
+
+    #[test]
+    fn test_tokenize_with_stemming_disabled() {
+        let text = "Graph graphs network networks";
+        let tokens = tokenize_with_stemming(text, false);
+        assert_eq!(tokens, vec!["graph", "graphs", "network", "networks"]);
+    }
+
+    #[test]
+    fn test_tokenize_with_stemming_enabled() {
+        let text = "Graph graphs network networks";
+        let tokens = tokenize_with_stemming(text, true);
+        // Porter stemming should reduce plurals to singular forms
+        assert_eq!(tokens, vec!["graph", "graph", "network", "network"]);
+    }
+
+    #[test]
+    fn test_stemming_matches_similar_words() {
+        let text1 = "The knowledge graph system";
+        let text2 = "Graphing knowledge networks";
+
+        let tokens1 = tokenize_with_stemming(text1, true);
+        let tokens2 = tokenize_with_stemming(text2, true);
+
+        // Both should contain "graph" due to stemming
+        assert!(tokens1.contains(&"graph".to_string()));
+        assert!(tokens2.contains(&"graph".to_string()));
     }
 }

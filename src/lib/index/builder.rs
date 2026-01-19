@@ -2,7 +2,7 @@ use super::links::extract_links;
 use super::types::{Index, NoteMetadata};
 use crate::lib::error::Result;
 use crate::lib::store::Store;
-use crate::lib::text::tokenize;
+use crate::lib::text::tokenize_with_stemming;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -42,22 +42,23 @@ impl<'a> IndexBuilder<'a> {
 
             // TF-IDF statistics with field weighting
             // Per spec: title weight=2.0, tags weight=1.5, body weight=1.0
+            // Use stemming for better similarity matching (e.g., "graph" matches "graphs")
             let mut term_freqs: HashMap<String, f64> = HashMap::new();
 
             // Tokenize and weight title (weight: 2.0)
-            for term in tokenize(note.title()) {
+            for term in tokenize_with_stemming(note.title(), true) {
                 *term_freqs.entry(term).or_insert(0.0) += 2.0;
             }
 
             // Tokenize and weight tags (weight: 1.5)
             for tag in &note.frontmatter.tags {
-                for term in tokenize(tag) {
+                for term in tokenize_with_stemming(tag, true) {
                     *term_freqs.entry(term).or_insert(0.0) += 1.5;
                 }
             }
 
             // Tokenize and weight body (weight: 1.0)
-            for term in tokenize(&note.body) {
+            for term in tokenize_with_stemming(&note.body, true) {
                 *term_freqs.entry(term).or_insert(0.0) += 1.0;
             }
 

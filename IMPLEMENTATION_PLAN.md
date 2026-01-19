@@ -636,7 +636,17 @@ Implemented schema version tracking:
 **Verified with test**: `test_load_strategy_overwrite` in `tests/pack_tests.rs` confirms that overwrite strategy now correctly updates the note content and database.
 
 ### `specs/similarity-ranking.md`
-- [ ] Optional stemming (Porter) - no stemming code exists
+- [x] Optional stemming (Porter) - no stemming code exists
+  - Added `rust-stemmers` dependency (v1.2.0) with Porter algorithm for English
+  - Implemented `tokenize_with_stemming(text, stem)` function that optionally applies stemming
+  - Updated `IndexBuilder` to use stemmed tokens for similarity calculation (stem=true)
+  - Added tests verifying stemming behavior:
+    * `test_tokenize_with_stemming_enabled` - verifies "graph" and "graphs" both stem to "graph"
+    * `test_tokenize_with_stemming_disabled` - verifies stemming can be disabled
+    * `test_stemming_matches_similar_words` - verifies cross-note term matching
+    * `test_similarity_with_stemming` - verifies similarity calculation uses stemmed terms
+  - Stemming is applied consistently for similarity engine, matching FTS5's porter tokenizer
+  - Note: FTS5 search already uses porter tokenizer (`tokenize='porter unicode61'`)
 - [x] "Related notes" similarity expansion in `context` command
   - Added `--related <threshold>` flag to context command (CLI and ContextOptions)
   - When threshold is set, builds Index and uses SimilarityEngine to find similar notes

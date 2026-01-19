@@ -1,0 +1,11 @@
+name: create_smoke
+description: "Tier 0 smoke test: single note creation"
+fixture: qipu
+task:
+  prompt: "Create a note with the title 'Test Note' and content 'This is a test note for smoke testing.'"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+    - type: search_hit
+      query: "Test Note"

@@ -33,7 +33,7 @@ Commands missing tracing instrumentation:
 ## LLM Tool Test Harness (`crates/llm-tool-test`)
 
 ### Scenarios (P1)
-- [ ] Create tier 0 (smoke) scenario: single `qipu create` command
+- [x] Create tier 0 (smoke) scenario: single `qipu create` command
 - [ ] Create tier 1 (quick) scenarios: basic capture, simple linking
 - [ ] Add scenarios: `search_basic`, `context_retrieval`, `compaction_workflow`
 - [ ] Add `setup` step support (pre-populate store with seed notes)

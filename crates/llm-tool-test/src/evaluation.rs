@@ -94,6 +94,14 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     message: format!("Tag '{}' exists: {}", tag, exists),
                 }
             }
+            Gate::ContentContains { id, substring } => {
+                let contains = content_contains(id, substring, env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "ContentContains".to_string(),
+                    passed: contains,
+                    message: format!("Note '{}' contains '{}': {}", id, substring, contains),
+                }
+            }
         };
 
         if result.passed {
@@ -313,6 +321,19 @@ fn tag_exists(tag: &str, env_root: &Path) -> Result<bool> {
                 }
             }
             Ok(false)
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+fn content_contains(id: &str, substring: &str, env_root: &Path) -> Result<bool> {
+    let json = run_qipu_json(&["show", id], env_root);
+    match json {
+        Ok(value) => {
+            let title = value.get("title").and_then(|v| v.as_str()).unwrap_or("");
+            let body = value.get("body").and_then(|v| v.as_str()).unwrap_or("");
+            let content = format!("{}\n{}", title, body);
+            Ok(content.contains(substring))
         }
         Err(_) => Ok(false),
     }
@@ -703,5 +724,49 @@ mod tests {
         };
         let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
+
+        // 13. ContentContains - should pass with existing content
+        let content_scenario_pass = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::ContentContains {
+                    id: first_note_id.to_string(),
+                    substring: "test".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&content_scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+
+        // 14. ContentContains - should fail with non-existent substring
+        let content_scenario_fail = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::ContentContains {
+                    id: first_note_id.to_string(),
+                    substring: "nonexistent text".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
     }
 }

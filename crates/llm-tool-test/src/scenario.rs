@@ -76,6 +76,10 @@ pub enum Gate {
     TagExists {
         tag: String,
     },
+    ContentContains {
+        id: String,
+        substring: String,
+    },
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -346,6 +350,32 @@ evaluation:
         match &scenario.evaluation.gates[0] {
             Gate::TagExists { tag } => assert_eq!(tag, "important"),
             _ => panic!("Expected TagExists gate"),
+        }
+    }
+
+    #[test]
+    fn test_content_contains_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: content_contains
+      id: "qp-1234"
+      substring: "important keyword"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::ContentContains { id, substring } => {
+                assert_eq!(id, "qp-1234");
+                assert_eq!(substring, "important keyword");
+            }
+            _ => panic!("Expected ContentContains gate"),
         }
     }
 }

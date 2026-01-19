@@ -39,11 +39,11 @@ Commands missing tracing instrumentation:
 - [x] Add `setup` step support (pre-populate store with seed notes)
 
 ### Gate Types (P1)
-Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`
+Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagExists`, `ContentContains`
 - [x] Add `NoteExists { id }` - verify specific note created
 - [x] Add `LinkExists { from, to, link_type }` - verify specific link
 - [x] Add `TagExists { tag }` - verify tag usage
-- [ ] Add `ContentContains { id, substring }` - verify note content
+- [x] Add `ContentContains { id, substring }` - verify note content
 - [ ] Add `CommandSucceeds { command }` - arbitrary qipu command
 
 ### LLM Judge Enhancements (P2)

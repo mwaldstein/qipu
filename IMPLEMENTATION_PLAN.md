@@ -363,9 +363,9 @@ Current state: 11 unit tests across 4 files; many modules untested.
 | `main.rs` | 442 | 0 | P3 | Extract handlers into testable functions first |
 
 **Specific Test Tasks:**
-- [ ] `results.rs`: Add tests for `CacheKey::compute()` with various inputs
-- [ ] `results.rs`: Add tests for `ResultRecord` JSON round-trip
-- [ ] `results.rs`: Add tests for `ResultsDB` CRUD operations (use temp file)
+- [x] `results.rs`: Add tests for `CacheKey::compute()` with various inputs
+- [x] `results.rs`: Add tests for `ResultRecord` JSON round-trip
+- [x] `results.rs`: Add tests for `ResultsDB` CRUD operations (use temp file)
 - [ ] `session.rs`: Add tests for `SessionRunner` timeout logic (mock child process)
 - [ ] `session.rs`: Add tests for command parsing from transcript
 - [ ] `cli.rs`: Add tests for `build_tool_matrix()` with edge cases

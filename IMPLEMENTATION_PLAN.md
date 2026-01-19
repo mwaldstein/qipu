@@ -31,7 +31,8 @@ Commands missing tracing instrumentation (39 files):
 
 #### Test Coverage Gaps (P2)
 Command files with no unit tests (integration tests may exist):
-- [ ] Add unit tests to `src/commands/search.rs` (350 lines, high-value)
+- [x] Add unit tests to `src/commands/search.rs` (350 lines, high-value)
+  - Added 13 unit tests covering: empty query, no results, type/tag filters, MOC exclusion, all output formats, compaction resolution, verbose/quiet modes
 - [ ] Add unit tests to `src/commands/show.rs` (366 lines)
 - [ ] Add unit tests to `src/commands/setup.rs` (378 lines)
 - [ ] Add unit tests to `src/commands/list.rs` (231 lines)
@@ -188,9 +189,9 @@ criteria:
   - **Acceptable** (0.5-0.7): Multiple retries, basic output achieved
   - **Poor** (<0.5): Many errors, incomplete or low-quality output
 
-##### 6. Human Review Integration
-For metrics that can't be automated:
-- [ ] Add `--human-review` flag to pause for manual scoring
+##### 6. Human Review Integration (Asynchronous)
+Human review happens out-of-band after runs complete—runs are never paused:
+- [ ] Ensure all transcripts and artifacts are saved for later review
 - [ ] Add `review` subcommand to score past runs:
   ```bash
   llm-tool-test review <RUN_ID> \
@@ -208,6 +209,7 @@ For metrics that can't be automated:
       pub reviewed_at: Option<DateTime<Utc>>,
   }
   ```
+- [ ] Add `list --pending-review` to find runs without human scores
 
 ##### Implementation Priority
 1. Transcript analysis (efficiency metrics) - can derive from existing data
@@ -259,6 +261,15 @@ For metrics that can't be automated:
   - Current implementation is untested speculation
 - [ ] Add timeout handling for long-running LLM sessions
 - [ ] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
+
+##### Scenario Tiers
+- [ ] Add `tier` field to scenario schema (0=smoke, 1=quick, 2=standard, 3=comprehensive)
+  - File: `crates/llm-tool-test/src/scenario.rs`
+- [ ] Add `--tier` CLI flag to filter scenarios by tier
+  - Tier N runs all scenarios with tier <= N
+  - File: `crates/llm-tool-test/src/cli.rs`
+- [ ] Create tier 0 (smoke) scenario: single `qipu create` command
+- [ ] Create tier 1 (quick) scenarios: basic capture, simple linking
 
 ##### Scenario Coverage
 - [ ] Only 2 scenarios exist (`capture_basic`, `link_navigation`)

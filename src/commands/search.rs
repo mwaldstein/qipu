@@ -348,3 +348,288 @@ pub fn execute(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::Cli;
+    use crate::lib::note::NoteType;
+    use crate::lib::store::InitOptions;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_search_empty_query() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            no_resolve_compaction: false,
+            with_compaction_ids: false,
+            compaction_depth: None,
+            compaction_max_nodes: None,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "", None, None, false);
+        assert!(result.is_ok(), "Empty query should not error");
+    }
+
+    #[test]
+    fn test_search_no_results() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "nonexistent", None, None, false);
+        assert!(result.is_ok(), "Search with no results should succeed");
+    }
+
+    #[test]
+    fn test_search_with_type_filter() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store
+            .create_note("Permanent Note", Some(NoteType::Permanent), &[], None)
+            .unwrap();
+        store
+            .create_note("Fleeting Note", Some(NoteType::Fleeting), &[], None)
+            .unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "note", Some(NoteType::Permanent), None, false);
+        assert!(result.is_ok(), "Search with type filter should succeed");
+    }
+
+    #[test]
+    fn test_search_with_tag_filter() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store
+            .create_note("Tagged Note", None, &["rust".to_string()], None)
+            .unwrap();
+        store.create_note("Untagged Note", None, &[], None).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "note", None, Some("rust"), false);
+        assert!(result.is_ok(), "Search with tag filter should succeed");
+    }
+
+    #[test]
+    fn test_search_exclude_mocs() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store
+            .create_note("MOC Note", Some(NoteType::Moc), &[], None)
+            .unwrap();
+        store
+            .create_note("Regular Note", Some(NoteType::Fleeting), &[], None)
+            .unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "note", None, None, true);
+        assert!(result.is_ok(), "Search with MOC exclusion should succeed");
+    }
+
+    #[test]
+    fn test_search_json_format() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["test".to_string()], None)
+            .unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Json,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "test", None, None, false);
+        assert!(result.is_ok(), "Search with JSON format should succeed");
+    }
+
+    #[test]
+    fn test_search_records_format() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["test".to_string()], None)
+            .unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Records,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "test", None, None, false);
+        assert!(result.is_ok(), "Search with records format should succeed");
+    }
+
+    #[test]
+    fn test_search_quiet_no_results() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: true,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "nonexistent", None, None, false);
+        assert!(
+            result.is_ok(),
+            "Quiet search with no results should succeed"
+        );
+    }
+
+    #[test]
+    fn test_search_verbose_output() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store.create_note("Test Note", None, &[], None).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: true,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "test", None, None, false);
+        assert!(result.is_ok(), "Verbose search should succeed");
+    }
+
+    #[test]
+    fn test_search_compaction_resolution() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Digest Note", None, &[], None).unwrap();
+        note1.body = "This is the digest content.\n\nCompacts from qp-abc, qp-def".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store.create_note("Source Note", None, &[], None).unwrap();
+        note2.body = "This will be compacted into qp-digest".to_string();
+        store.save_note(&mut note2).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "digest", None, None, false);
+        assert!(
+            result.is_ok(),
+            "Search with compaction resolution should succeed"
+        );
+    }
+
+    #[test]
+    fn test_search_no_resolve_compaction() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        store.create_note("Test Note", None, &[], None).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            no_resolve_compaction: true,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "test", None, None, false);
+        assert!(
+            result.is_ok(),
+            "Search without compaction resolution should succeed"
+        );
+    }
+
+    #[test]
+    fn test_search_with_compaction_ids() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Digest Note", None, &[], None).unwrap();
+        note1.body = "Digest content\n\nCompacts from qp-source".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            with_compaction_ids: true,
+            compaction_depth: Some(1),
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "digest", None, None, false);
+        assert!(result.is_ok(), "Search with compaction IDs should succeed");
+    }
+
+    #[test]
+    fn test_search_multiple_results() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        for i in 0..5 {
+            store
+                .create_note(&format!("Note {}", i), None, &[], None)
+                .unwrap();
+        }
+
+        let cli = Cli {
+            format: OutputFormat::Human,
+            quiet: false,
+            verbose: false,
+            ..Default::default()
+        };
+
+        let result = execute(&cli, &store, "note", None, None, false);
+        assert!(
+            result.is_ok(),
+            "Search with multiple results should succeed"
+        );
+    }
+}

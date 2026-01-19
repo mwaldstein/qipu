@@ -516,13 +516,27 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
     1. All notes have anchors generated in the output
     2. All internal links are rewritten to anchor format
     3. Every rewritten link points to an existing anchor in the output
-- [ ] Add test validating `--with-attachments` link rewriting
+- [x] Add test validating `--with-attachments` link rewriting
   - Test: Export with attachments, verify `./attachments/` links resolve
   - File: `tests/cli/export.rs`
+  - Already implemented as `test_export_with_attachments()` (lines 28-85)
+  - Creates an attachment, creates a note referencing it, exports with `--with-attachments`
+  - Verifies attachment was copied to output directory
+  - Verifies links were rewritten from `../attachments/` to `./attachments/`
 
 #### `specs/compaction.md`
-- [ ] Add CLI tests for `compact apply`, `compact show`, `compact status`
-  - File: `tests/cli/compact.rs`
+- [x] Add CLI tests for `compact apply`, `compact show`, `compact status`
+  - File: `tests/cli/compact/commands.rs`
+  - Added `test_compact_show()` which tests:
+    * Show compaction tree for a digest note
+    * Human, JSON, and Records output formats
+    * Depth parameter for nested compaction
+    * Error handling for non-digest notes
+  - Added `test_compact_status()` which tests:
+    * Status for a note compacted by digest
+    * Status for a digest that compacts notes
+    * Human, JSON, and Records output formats
+    * Canonical note detection
 
 #### `specs/structured-logging.md`
 - [ ] Add tests for `--log-level`, `--log-json`, `QIPU_LOG` behavior

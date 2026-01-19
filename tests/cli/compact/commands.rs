@@ -417,3 +417,243 @@ This is an isolated note."#;
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(stdout.contains("No compaction candidates found"));
 }
+
+#[test]
+fn test_compact_show() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes to be compacted
+    let note1_content = r#"---
+id: qp-note1
+title: Source Note 1
+type: permanent
+---
+This is source note 1 content."#;
+
+    let note2_content = r#"---
+id: qp-note2
+title: Source Note 2
+type: permanent
+---
+This is source note 2 content."#;
+
+    let digest_content = r#"---
+id: qp-digest
+title: Digest Note
+type: permanent
+---
+## Summary
+This digest summarizes notes 1 and 2.
+
+### Note 1
+Content from source note 1.
+
+### Note 2
+Content from source note 2."#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note1-source-note-1.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note2-source-note-2.md"),
+        note2_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-digest-digest-note.md"),
+        digest_content,
+    )
+    .unwrap();
+
+    // Apply compaction
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "compact",
+            "apply",
+            "qp-digest",
+            "--note",
+            "qp-note1",
+            "--note",
+            "qp-note2",
+        ])
+        .assert()
+        .success();
+
+    // Test compact show command
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["compact", "show", "qp-digest"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("Digest: qp-digest"));
+    assert!(stdout.contains("Direct compaction count: 2"));
+    assert!(stdout.contains("Compaction:"));
+    assert!(stdout.contains("Compacted notes:"));
+    assert!(stdout.contains("Source Note 1"));
+    assert!(stdout.contains("Source Note 2"));
+
+    // Test with depth parameter
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["compact", "show", "qp-digest", "--compaction-depth", "3"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("Nested compaction"));
+
+    // Test JSON format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "compact", "show", "qp-digest"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["digest_id"], "qp-digest");
+    assert_eq!(json["count"], 2);
+    assert!(json["compacts"].is_array());
+    let compacts = json["compacts"].as_array().unwrap();
+    assert_eq!(compacts.len(), 2);
+    assert!(compacts.contains(&serde_json::json!("qp-note1")));
+    assert!(compacts.contains(&serde_json::json!("qp-note2")));
+    assert!(json["compaction_pct"].is_string());
+
+    // Test Records format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "compact", "show", "qp-digest"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("H qipu=1 records=1 mode=compact.show"));
+    assert!(stdout.contains("digest=qp-digest"));
+    assert!(stdout.contains("count=2"));
+
+    // Test error for non-digest note
+    qipu()
+        .current_dir(dir.path())
+        .args(["compact", "show", "qp-note1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("does not compact any notes"));
+}
+
+#[test]
+fn test_compact_status() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create source and digest notes
+    let source_content = r#"---
+id: qp-source
+title: Source Note
+type: permanent
+---
+This is a source note."#;
+
+    let digest_content = r#"---
+id: qp-digest
+title: Digest Note
+type: permanent
+---
+This digest summarizes the source note."#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-source-source-note.md"),
+        source_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-digest-digest-note.md"),
+        digest_content,
+    )
+    .unwrap();
+
+    // Apply compaction
+    qipu()
+        .current_dir(dir.path())
+        .args(["compact", "apply", "qp-digest", "--note", "qp-source"])
+        .assert()
+        .success();
+
+    // Test compact status for source note (compacted by digest)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["compact", "status", "qp-source"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("Note: Source Note (qp-source)"));
+    assert!(stdout.contains("Source Note"));
+    assert!(stdout.contains("Compacted by: Digest Note"));
+    assert!(stdout.contains("qp-digest"));
+    assert!(stdout.contains("Compacts: (none)"));
+
+    // Test compact status for digest note (compacts source)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["compact", "status", "qp-digest"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("Note: Digest Note (qp-digest)"));
+    assert!(stdout.contains("Digest Note"));
+    assert!(stdout.contains("Compacted by: (none)"));
+    assert!(stdout.contains("Canonical: (self)"));
+    assert!(stdout.contains("Compacts 1 notes:"));
+    assert!(stdout.contains("Source Note (qp-source)"));
+
+    // Test JSON format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "compact", "status", "qp-digest"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["note_id"], "qp-digest");
+    assert_eq!(json["compactor"], serde_json::Value::Null);
+    assert_eq!(json["canonical"], "qp-digest");
+    assert!(json["compacts"].is_array());
+    let compacts = json["compacts"].as_array().unwrap();
+    assert_eq!(compacts.len(), 1);
+    assert_eq!(compacts[0], "qp-source");
+
+    // Test Records format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "compact", "status", "qp-source"])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    assert!(stdout.contains("H qipu=1 records=1 mode=compact.status"));
+    assert!(stdout.contains("note=qp-source"));
+    assert!(stdout.contains("compactor qp-digest"));
+}

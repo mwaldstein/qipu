@@ -306,13 +306,7 @@ fn test_search_limit() {
 
     for i in 0..5 {
         store
-            .create_note_with_content(
-                &format!("Test Note {}", i),
-                None,
-                &[],
-                "test content",
-                None,
-            )
+            .create_note_with_content(&format!("Test Note {}", i), None, &[], "test content", None)
             .unwrap();
     }
 

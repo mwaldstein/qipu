@@ -295,7 +295,6 @@ fn test_search_recency_boost() {
 }
 
 #[test]
-#[ignore = "FTS5 BM25 ranking not matching expected behavior - see IMPLEMENTATION_PLAN.md P3"]
 fn test_search_title_match_ranks_above_body_match() {
     // Test that title matches rank higher than body matches (2.0x boost vs 1.0x base)
     let dir = tempdir().unwrap();
@@ -433,7 +432,6 @@ fn test_search_title_match_ranks_above_body_match() {
 }
 
 #[test]
-#[ignore = "FTS5 BM25 ranking not matching expected behavior - see IMPLEMENTATION_PLAN.md P3"]
 fn test_search_exact_tag_match_ranks_above_body() {
     // Test that exact tag matches rank above partial matches in body text
     let dir = tempdir().unwrap();

@@ -5,8 +5,8 @@ mod notes;
 mod repair;
 mod schema;
 mod search;
-mod validate;
 mod traverse;
+mod validate;
 
 use crate::lib::error::{QipuError, Result};
 use rusqlite::Connection;
@@ -140,7 +140,6 @@ impl Database {
 
         Ok(())
     }
-
 }
 
 #[cfg(test)]

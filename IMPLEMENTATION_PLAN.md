@@ -613,8 +613,12 @@ Implemented schema version tracking:
   - Notes updated within 7 days get ~0.1 boost, decaying with age
   - Added to BM25 score (more positive = higher ranking)
   - Re-enabled test `test_search_recency_boost`
-- [ ] Fix title/tag boost to properly differentiate from body matches
-- Ignored tests (re-enable after above complete): `test_search_title_match_ranks_above_body_match`, `test_search_exact_tag_match_ranks_above_body`
+- [x] Fix title/tag boost to properly differentiate from body matches
+  - Implemented separate UNION ALL queries for title (5.0x boost), tags (8.0x boost), and body (0.0x boost)
+  - Tags rank higher than body matches; title matches rank higher than tags
+  - Used MAX(rank) to deduplicate results when note matches multiple ways
+  - All tests now pass: `test_search_title_match_ranks_above_body_match`, `test_search_exact_tag_match_ranks_above_body`
+  - **Learning**: FTS5 column-specific queries (e.g., `body:"term"`) don't apply porter stemming consistently, so use general query for body matches instead
 
 ### Load Command (`load --strategy overwrite`)
 - [ ] Fix overwrite strategy to delete existing file before writing new one

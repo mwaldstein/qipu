@@ -91,7 +91,11 @@ impl super::Database {
         Ok(())
     }
 
-    pub(super) fn insert_edges_internal(conn: &Connection, note: &Note, _store_root: &Path) -> Result<()> {
+    pub(super) fn insert_edges_internal(
+        conn: &Connection,
+        note: &Note,
+        _store_root: &Path,
+    ) -> Result<()> {
         use crate::lib::index::links;
         use std::collections::HashMap;
         use std::collections::HashSet;

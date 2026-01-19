@@ -18,9 +18,9 @@ impl super::Database {
     /// Perform full-text search using FTS5 with BM25 ranking
     ///
     /// Field weights for BM25:
-    /// - Title: 2.0x boost
-    /// - Body: 1.0x (baseline)
-    /// - Tags: 1.5x boost
+    /// - Title: 5.0x boost (via separate query)
+    /// - Body: 0.0x (baseline, no explicit boost)
+    /// - Tags: 8.0x boost (via separate query)
     #[allow(dead_code)]
     pub fn search(
         &self,
@@ -36,8 +36,28 @@ impl super::Database {
         // Wrap query in double quotes to treat it as a phrase search
         // This prevents FTS5 from interpreting hyphens as column references
         let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
+        let title_query = format!("title:{}", &fts_query);
+        let tags_query = format!("tags:{}", &fts_query);
 
         let limit_i64 = limit as i64;
+
+        // Build filter conditions for type and tag
+        let type_filter_str = type_filter.map(|t| t.to_string());
+        let tag_filter_str = tag_filter.map(|t| t.to_string());
+
+        let mut where_clause = String::new();
+        let mut filter_params: Vec<String> = Vec::new();
+
+        if let Some(ref tf) = type_filter_str {
+            where_clause.push_str(&format!(" AND n.type = '{}' ", tf));
+        }
+
+        if let Some(ref tg) = tag_filter_str {
+            where_clause.push_str(&format!(
+                " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = '{}') ",
+                tg
+            ));
+        }
 
         // Recency boost: decay factor for age in days
         // - Notes updated within 7 days get ~0.1 boost
@@ -47,35 +67,52 @@ impl super::Database {
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
-        let mut sql = String::from(
+        let mut sql = format!(
             r#"
-            SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
-                   bm25(notes_fts, 2.0, 1.0, 1.5) + (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
-            FROM notes_fts
-            JOIN notes n ON notes_fts.rowid = n.rowid
-            WHERE notes_fts MATCH ?
+            WITH ranked_results AS (
+              SELECT 
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 5.0 + 
+                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+              FROM notes_fts
+              JOIN notes n ON notes_fts.rowid = n.rowid
+              WHERE notes_fts MATCH ?1 {}
+              
+              UNION ALL
+              
+              SELECT 
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 8.0 + 
+                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+              FROM notes_fts
+              JOIN notes n ON notes_fts.rowid = n.rowid
+              WHERE notes_fts MATCH ?2 {}
+              
+              UNION ALL
+              
+              SELECT 
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 0.0 + 
+                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+              FROM notes_fts
+              JOIN notes n ON notes_fts.rowid = n.rowid
+              WHERE notes_fts MATCH ?3 {}
+            )
+            SELECT rowid, id, title, path, type, tags, MAX(rank) AS rank
+            FROM ranked_results
+            GROUP BY rowid
+            ORDER BY rank DESC
+            LIMIT ?4
         "#,
+            where_clause, where_clause, where_clause
         );
 
-        let type_filter_str = type_filter.map(|t| t.to_string());
-        let tag_filter_str = tag_filter.map(|t| t.to_string());
-
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(fts_query)];
-
-        if type_filter_str.is_some() {
-            sql.push_str(" AND n.type = ?");
-            params.push(Box::new(type_filter_str.unwrap()));
-        }
-
-        if tag_filter_str.is_some() {
-            sql.push_str(
-                " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = ?)",
-            );
-            params.push(Box::new(tag_filter_str.unwrap()));
-        }
-
-        sql.push_str(" ORDER BY rank LIMIT ?;");
-        params.push(Box::new(limit_i64));
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![
+            Box::new(title_query.clone()),
+            Box::new(tags_query.clone()),
+            Box::new(fts_query.clone()),
+            Box::new(limit_i64),
+        ];
 
         let mut stmt = self
             .conn

@@ -87,12 +87,12 @@ The goal is not binary pass/fail but measuring *how well* the LLM uses qipu. Key
 
 ##### 1. Efficiency Metrics (Transcript Analysis)
 Extract from raw transcript:
-- [ ] **Command count**: Total qipu commands executed
-- [ ] **Error count**: Commands that returned non-zero exit codes
-- [ ] **Retry count**: Same command executed multiple times (indicates confusion)
-- [ ] **Help invocations**: Count of `--help` or `help` subcommands
-- [ ] **First-try success rate**: % of commands that succeeded on first attempt
-- [ ] **Iteration ratio**: (total_commands / unique_successful_commands)
+- [x] **Command count**: Total qipu commands executed
+- [x] **Error count**: Commands that returned non-zero exit codes
+- [x] **Retry count**: Same command executed multiple times (indicates confusion)
+- [x] **Help invocations**: Count of `--help` or `help` subcommands
+- [x] **First-try success rate**: % of commands that succeeded on first attempt
+- [x] **Iteration ratio**: (total_commands / unique_successful_commands)
   - 1.0 = perfect, higher = more fumbling
 
 Implementation:

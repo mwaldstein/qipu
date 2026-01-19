@@ -37,29 +37,48 @@ pub struct StoreConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch: Option<String>,
 
-    /// Custom link type definitions
+    /// Graph configuration
     #[serde(default)]
-    pub links: LinkConfig,
+    pub graph: GraphConfig,
 }
 
-/// Configuration for link types and behaviors
+/// Configuration for graph traversal and link types
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct LinkConfig {
-    /// Custom link inversions (forward -> inverse)
+pub struct GraphConfig {
+    /// Custom link type definitions
     #[serde(default)]
-    pub inverses: std::collections::HashMap<String, String>,
+    pub types: std::collections::HashMap<String, LinkTypeConfig>,
+}
 
-    /// Custom link descriptions
+/// Configuration for a single link type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinkTypeConfig {
+    /// Inverse link type
     #[serde(default)]
-    pub descriptions: std::collections::HashMap<String, String>,
+    pub inverse: Option<String>,
+
+    /// Human-readable description
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
+impl Default for LinkTypeConfig {
+    fn default() -> Self {
+        LinkTypeConfig {
+            inverse: None,
+            description: None,
+        }
+    }
 }
 
 impl StoreConfig {
     /// Get the inverse of a link type, falling back to standard ontology or default pattern
     pub fn get_inverse(&self, link_type: &str) -> String {
         // 1. Check user-defined inverses
-        if let Some(inv) = self.links.inverses.get(link_type) {
-            return inv.clone();
+        if let Some(type_config) = self.graph.types.get(link_type) {
+            if let Some(ref inv) = type_config.inverse {
+                return inv.clone();
+            }
         }
 
         // 2. Check standard ontology
@@ -67,26 +86,7 @@ impl StoreConfig {
             .inverse()
             .to_string()
     }
-}
 
-fn default_version() -> u32 {
-    STORE_FORMAT_VERSION
-}
-
-impl Default for StoreConfig {
-    fn default() -> Self {
-        StoreConfig {
-            version: STORE_FORMAT_VERSION,
-            default_note_type: NoteType::default(),
-            id_scheme: IdScheme::default(),
-            editor: None,
-            branch: None,
-            links: LinkConfig::default(),
-        }
-    }
-}
-
-impl StoreConfig {
     /// Load configuration from a file
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)?;
@@ -106,6 +106,23 @@ impl StoreConfig {
     #[allow(dead_code)]
     pub fn with_defaults() -> Self {
         Self::default()
+    }
+}
+
+fn default_version() -> u32 {
+    STORE_FORMAT_VERSION
+}
+
+impl Default for StoreConfig {
+    fn default() -> Self {
+        StoreConfig {
+            version: STORE_FORMAT_VERSION,
+            default_note_type: NoteType::default(),
+            id_scheme: IdScheme::default(),
+            editor: None,
+            branch: None,
+            graph: GraphConfig::default(),
+        }
     }
 }
 

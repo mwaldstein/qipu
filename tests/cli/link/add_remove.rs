@@ -187,12 +187,13 @@ fn test_custom_link_inversion() {
 version = 1
 default_note_type = "fleeting"
 
-[links.inverses]
-recommends = "recommended-by"
-"recommended-by" = "recommends"
+[graph.types.recommends]
+inverse = "recommended-by"
+description = "This note recommends another note"
 
-[links.descriptions]
-recommends = "This note recommends another note"
+[graph.types."recommended-by"]
+inverse = "recommends"
+description = "This note is recommended by another note"
 "#;
     std::fs::write(config_path, config_content).unwrap();
 

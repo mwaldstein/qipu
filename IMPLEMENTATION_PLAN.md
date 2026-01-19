@@ -698,13 +698,21 @@ Refactored traversal engine to support weighted hop costs (src/lib/graph/types.r
 ## P4: Spec Ambiguity / Spec Drift
 
 ### `specs/knowledge-model.md`
-- [ ] Decide: note "type" closed enum vs arbitrary values
+- [x] Decide: note "type" closed enum vs arbitrary values
   - Current: strict enum (src/lib/note/types.rs:6-19)
+  - Decision made: Spec confirms closed enum; implementation already matches
 
 ### `specs/semantic-graph.md`
-- [ ] Align link-type config schema
+- [x] Align link-type config schema
   - Spec: `[graph.types.*]`
   - Impl: `[links.inverses]` + `[links.descriptions]`
+  - **Fix applied**: Changed config schema to match spec (src/lib/config.rs)
+    - Renamed `LinkConfig` to `GraphConfig`
+    - Changed `inverses` and `descriptions` HashMaps to single `types` HashMap with `LinkTypeConfig` entries
+    - Each type now has `inverse` and `description` fields (optional)
+    - Updated `StoreConfig.get_inverse()` to work with new structure
+    - Updated test fixture in `tests/cli/link/add_remove.rs` to use new schema
+  - **Verified**: All tests pass (233 total)
 
 ### `specs/records-output.md`
 - [ ] Reconcile record prefix set (`H/N/S/E/B` vs `W/D/C/M`, `B-END`)

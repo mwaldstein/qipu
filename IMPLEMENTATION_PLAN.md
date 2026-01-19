@@ -1,466 +1,88 @@
 # Qipu Implementation Plan
 
-## Status (Last Audited: 2026-01-19)
-- Test baseline: `cargo test` passes (376/376 tests)
+## Status
+- Test baseline: `cargo test` passes (403 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 
 ---
 
-## Remaining Work
+## Qipu Core (P2)
 
-### Quality Review (2026-01-19)
+### File Size Refactoring
+Large files to split for maintainability:
+- [ ] `src/commands/context/output.rs` (668 lines) → `json.rs`, `human.rs`, `records.rs`
+- [ ] `src/lib/graph/traversal.rs` (470 lines) → Extract BFS/Dijkstra modules
+- [ ] `src/commands/link/list.rs` (454 lines) → Extract output formatters
+- [ ] `src/commands/link/path.rs` (450 lines) → Extract output formatters
+- [ ] `src/lib/db/notes.rs` (432 lines) → Split CRUD operations
+- [ ] `src/commands/doctor/checks.rs` (402 lines) → Group by category
 
-#### File Size Refactoring (P2)
-Large files that should be split for maintainability:
-- [ ] `src/commands/context/output.rs` (668 lines) - Split into: `json.rs`, `human.rs`, `records.rs`
-- [ ] `src/lib/graph/traversal.rs` (470 lines) - Extract BFS/Dijkstra into separate modules
-- [ ] `src/commands/link/list.rs` (454 lines) - Extract output formatters
-- [ ] `src/commands/link/path.rs` (450 lines) - Extract output formatters
-- [ ] `src/lib/db/notes.rs` (432 lines) - Consider splitting CRUD operations
-- [ ] `src/commands/doctor/checks.rs` (402 lines) - Group checks by category
+### Structured Logging Gaps
+Commands missing tracing instrumentation:
+- [ ] `src/commands/capture.rs`, `create.rs`, `search.rs`
+- [ ] `src/commands/compact/*.rs` (7 files)
+- [ ] `src/commands/context/{budget,output,select,types}.rs`
+- [ ] `src/commands/workspace/{list,merge,new}.rs`
 
-#### Structured Logging Gaps (P2)
-Commands missing tracing instrumentation (39 files):
-- [ ] `src/commands/capture.rs` - Add timing span for capture operation
-- [ ] `src/commands/create.rs` - Add timing span for note creation
-- [ ] `src/commands/search.rs` - Add timing span for search execution
-- [ ] `src/commands/compact/*.rs` (7 files) - Add timing for compaction ops
-- [ ] `src/commands/context/{budget,output,select,types}.rs` - Add timing spans
-- [ ] `src/commands/workspace/{list,merge,new}.rs` - Add timing spans
-- [ ] Lower priority: doctor, dump, export, link, load submodules
-
-#### Test Coverage Gaps (P2)
-Command files with no unit tests (integration tests may exist):
-- [x] Add unit tests to `src/commands/search.rs` (350 lines, high-value)
-  - Added 13 unit tests covering: empty query, no results, type/tag filters, MOC exclusion, all output formats, compaction resolution, verbose/quiet modes
-- [x] Add unit tests to `src/commands/show.rs` (366 lines)
-  - Added 12 unit tests covering: show by ID/file path, nonexistent ID, all output formats (json/human/records), show with links, compaction resolution, verbose mode
-- [ ] Add unit tests to `src/commands/setup.rs` (378 lines)
+### Test Coverage Gaps
 - [ ] Add unit tests to `src/commands/list.rs` (231 lines)
-- [ ] Add CLI test file for workspace commands (`tests/cli/workspace.rs`)
-  - Existing `tests/workspace_merge_test.rs` covers merge only
-  - Missing: `new`, `list`, `delete` command tests
+- [ ] Add CLI tests for workspace commands (`new`, `list`, `delete`)
 
-#### eprintln! Remaining (P3)
-4 remaining `eprintln!` calls in main.rs are appropriate for fatal error output:
-- Lines 48, 59, 72, 74 - Pre-logging initialization errors and JSON error output
-- **Status: ACCEPTABLE** - These run before tracing is configured
+---
 
-### Low Priority (P3)
+## LLM Tool Test Harness (`crates/llm-tool-test`)
 
-#### Verbose Timing Keys
-- [x] Add timing spans for `load_indexes` and `execute_command` phases
-  - Added to all dispatch handlers (execute_command)
-  - Added to commands that build indexes (load_indexes): dump, export, link list/tree/path, show, context, inbox
-  - Files: `src/commands/dispatch/mod.rs`, `src/commands/dispatch/*.rs`, `src/commands/*/*.rs`
-  - Implementation: debug logs with elapsed time, similar to discover_store pattern
-
-#### eprintln! Cleanup
-- [x] Replace 16 remaining `eprintln!` calls with tracing
-  - Callsites in: main.rs, export/mod.rs, compact/apply.rs, workspace/delete.rs, dump/mod.rs, export/emit/outline.rs
-  - Replaced with tracing::info! for verbose warnings, tracing::warn! for errors
-  - Updated test expectation for workspace/delete warnings (now in stdout via tracing)
-
-#### Startup Validation
-- [x] Call `validate_consistency()` during DB open
-  - Method exists at `src/lib/db/validate.rs:104-166` but marked `#[allow(dead_code)]`
-  - File: `src/lib/db/mod.rs:69-83`
-  - Implementation: Removed `#[allow(dead_code)]` attribute, added validation call after rebuild check
-  - Validation runs when database has notes, logs warnings on inconsistencies
-
-#### LLM Tool Test Harness
-- [ ] Fix tool default (should be "amp", currently "opencode")
-  - File: `crates/llm-tool-test/src/cli.rs:23`
-- [ ] Add missing scenario schema fields (id, tags, docs.prime, setup, tool_matrix)
-- [ ] Add more test scenarios
-
-### LLM Tool Test Harness Deep Dive (2026-01-19)
-
-#### Architecture Summary
-- **Total**: 1,390 lines across 10 modules
-- **Purpose**: Automated LLM tool validation with caching, regression detection, LLM-as-judge
-- **Adapters**: amp (47 lines), opencode (25 lines) - both minimal stubs
-- **Fixtures**: 1 fixture (`qipu/`), 2 scenarios, 2 rubrics
-
-#### Evaluation Dimensions & Scoring Framework (P1)
-
-The goal is not binary pass/fail but measuring *how well* the LLM uses qipu. Key dimensions:
-
-##### 1. Efficiency Metrics (Transcript Analysis)
-Extract from raw transcript:
-- [x] **Command count**: Total qipu commands executed
-- [x] **Error count**: Commands that returned non-zero exit codes
-- [x] **Retry count**: Same command executed multiple times (indicates confusion)
-- [x] **Help invocations**: Count of `--help` or `help` subcommands
-- [x] **First-try success rate**: % of commands that succeeded on first attempt
-- [x] **Iteration ratio**: (total_commands / unique_successful_commands)
-  - 1.0 = perfect, higher = more fumbling
-
-Implementation:
-- [x] Add `TranscriptAnalyzer` struct to parse raw transcript
-  - File: `crates/llm-tool-test/src/transcript.rs`
-- [x] Extract command invocations via regex: `qipu <subcommand> ...`
-- [x] Track exit codes per command (requires adapter changes to capture)
-  - Modified `SessionRunner::run_command` to return `(String, i32)` for output + exit code
-  - Updated `ToolAdapter::run` trait to return `(String, i32)`
-  - Updated both adapters (opencode, amp) to propagate exit codes
-  - Added `CommandEvent` struct with `command` and `exit_code` fields
-  - Added `analyze_with_exit_codes()` method to `TranscriptAnalyzer` that parses transcript for exit codes
-  - Exit codes extracted from transcript by looking for patterns like "exit code: 1" or "exit status: 0"
-  - Falls back to heuristic error detection if exit codes not found
-  - Updated `compute_efficiency_metrics()` to use `analyze_with_exit_codes()`
-- [x] Add `EfficiencyMetrics` to `EvaluationMetrics`:
-  ```rust
-  pub struct EfficiencyMetrics {
-      pub total_commands: usize,
-      pub unique_commands: usize,
-      pub error_count: usize,
-      pub retry_count: usize,
-      pub help_invocations: usize,
-      pub first_try_success_rate: f64,
-      pub iteration_ratio: f64,
-  }
-  ```
-  - Added to `transcript.rs` as public struct
-  - Integrated into `EvaluationMetrics` in `evaluation.rs`
-  - Added to `EfficiencyMetricsRecord` in `results.rs`
-  - Included in result records in `main.rs`
-  - 6 unit tests added to `transcript.rs` (all passing)
-
-##### 2. Quality Metrics (Store Analysis)
-Automated analysis of the resulting store:
-- [x] **Note quality indicators**:
-  - Average title length (too short = vague, too long = unfocused)
-  - Body length distribution
-  - Tag usage (notes with 0 tags, avg tags per note)
-  - Type distribution (fleeting vs permanent vs literature)
-- [x] **Graph quality indicators**:
-  - Link density (links per note)
-  - Graph connectivity (orphan notes with no links)
-  - Link type diversity (using multiple link types vs just one)
-  - MOC coverage (% of notes reachable from a MOC)
-- [ ] **Semantic quality** (requires LLM judge):
-  - Relevance to task
-  - Coherence of note structure
-  - Appropriate granularity (not too broad, not too narrow)
-
-Implementation:
-- [x] Add `StoreAnalyzer` to compute metrics from `qipu export --format json`
-  - File: `crates/llm-tool-test/src/store_analysis.rs`
-- [x] Add `QualityMetrics` struct:
-  ```rust
-  pub struct QualityMetrics {
-      pub avg_title_length: f64,
-      pub avg_body_length: f64,
-      pub avg_tags_per_note: f64,
-      pub notes_without_tags: usize,
-      pub links_per_note: f64,
-      pub orphan_notes: usize,
-      pub link_type_diversity: usize,
-      pub type_distribution: HashMap<String, usize>,
-      pub total_notes: usize,
-      pub total_links: usize,
-  }
-  ```
-  - Added 5 unit tests (all passing)
-  - Integrated into evaluation module and result records
-  - All 42 tests passing
-
-##### 3. Cost/Speed Metrics
-- [ ] **Wall-clock duration**: Already captured as `duration_secs`
-- [ ] **Token usage**: Extract from tool output if available
-- [ ] **API cost**: Calculate from token usage × model pricing
-- [ ] **Commands per minute**: Throughput indicator
-
-##### 4. LLM Judge Dimensions
-Enhance rubrics to evaluate specific dimensions:
-- [ ] **Task completion**: Did it achieve the stated goal?
-- [ ] **Command fluency**: Correct syntax on first try?
-- [ ] **Knowledge structure**: Is the graph well-organized?
-- [ ] **Appropriate tooling**: Used the right commands for the job?
-- [ ] **Idiomatic usage**: Follows qipu best practices (tags, types, links)?
-
-Example enhanced rubric:
-```yaml
-criteria:
-  - id: task_completion
-    weight: 0.25
-    description: "Task goal was fully achieved"
-  - id: command_fluency
-    weight: 0.20
-    description: "Commands executed correctly without retries or help lookups"
-  - id: knowledge_structure
-    weight: 0.25
-    description: "Notes are well-linked with appropriate types and tags"
-  - id: idiomatic_usage
-    weight: 0.15
-    description: "Follows qipu conventions (MOCs, link types, verification)"
-  - id: efficiency
-    weight: 0.15
-    description: "Minimal commands needed to complete task"
-```
-
-##### 5. Composite Scores
-- [ ] Add weighted composite score combining automated + judge metrics
-- [ ] Define score thresholds for grading:
-  - **Excellent** (0.9+): First-try success, high quality output
-  - **Good** (0.7-0.9): Minor retries, solid output
-  - **Acceptable** (0.5-0.7): Multiple retries, basic output achieved
-  - **Poor** (<0.5): Many errors, incomplete or low-quality output
-
-##### 6. Human Review Integration (Asynchronous)
-Human review happens out-of-band after runs complete—runs are never paused:
-- [ ] Ensure all transcripts and artifacts are saved for later review
-- [ ] Add `review` subcommand to score past runs:
-  ```bash
-  llm-tool-test review <RUN_ID> \
-    --dimension clarity=0.8 \
-    --dimension insight_value=0.7 \
-    --notes "Good structure but missed key concept X"
-  ```
-- [ ] Store human scores in results record
-- [ ] Add `HumanReviewMetrics` struct:
-  ```rust
-  pub struct HumanReviewMetrics {
-      pub scores: HashMap<String, f64>,
-      pub notes: Option<String>,
-      pub reviewer: Option<String>,
-      pub reviewed_at: Option<DateTime<Utc>>,
-  }
-  ```
-- [ ] Add `list --pending-review` to find runs without human scores
-
-##### Implementation Priority
-1. Transcript analysis (efficiency metrics) - can derive from existing data
-2. Store analysis (quality metrics) - uses existing qipu export
-3. Enhanced rubrics - extends existing judge system
-4. Human review integration - new workflow
-5. Composite scoring - aggregation layer
-
-#### Critical Gaps (P1)
-
-##### Tool/Model Matrix Execution
-- [x] Add `--model` parameter to CLI for tool model selection
-  - File: `crates/llm-tool-test/src/cli.rs`
-- [x] Extend `ToolAdapter` trait to accept model parameter
-  ```rust
-  fn run(&self, scenario: &Scenario, cwd: &Path, model: Option<&str>) -> Result<String>;
-  ```
-  - File: `crates/llm-tool-test/src/adapter/mod.rs`
-- [x] Update adapters to pass model to underlying tools
-  - opencode: `opencode run --model <model> ...`
-  - amp: Determine if model selection is supported
-  - File: `crates/llm-tool-test/src/adapter/*.rs`
-- [x] Store model in results and include in cache key
-  - Updated `CacheKey::compute()` to accept model parameter
-  - ResultRecord now uses actual model value instead of "default"
-- [x] Add `--tools` and `--models` list parameters for matrix runs
-  ```bash
-  llm-tool-test run --scenario capture_basic.yaml \
-    --tools opencode,claude-code \
-    --models claude-sonnet-4-20250514,gpt-4o
-  ```
-  - Added CLI parameters to Run command in `cli.rs`
-  - Added `build_tool_matrix()` function to parse tools/models or use scenario-level tool_matrix
-  - Added `run_single_scenario()` function to handle individual runs
-  - Added `print_matrix_summary()` to display pass/fail grid
-  - Updated main.rs to execute matrix when --tools and --models provided
-  - All 355 tests passing
-- [x] Add scenario-level `tool_matrix` field for declarative matrix
-  ```yaml
-  tool_matrix:
-    - tool: opencode
-      models: [claude-sonnet-4-20250514, claude-3-5-haiku-20241022, gpt-4o]
-    - tool: claude-code
-      models: [opus, sonnet]
-    - tool: amp
-      models: [default]
-  ```
-  - File: `crates/llm-tool-test/src/scenario.rs`
-  - Added `ToolConfig` struct with `tool` and `models` fields
-  - Added `tool_matrix` optional field to `Scenario` struct with serde default
-  - Added 3 unit tests to verify YAML parsing with/without tool_matrix
-  - All existing tests pass
-- [x] Add claude-code adapter
-   - File: `crates/llm-tool-test/src/adapter/claude_code.rs`
-   - Created adapter module with `ClaudeCodeAdapter` struct
-   - Implemented `ToolAdapter` trait with `check_availability` and `run` methods
-   - Uses `claude run --model <model> --prompt-file prompt.txt` pattern
-   - Registered in `main.rs` match statement and exported in `adapter/mod.rs`
-   - Updated CLI help text to include claude-code
-   - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
-- [x] Add matrix summary report (pass/fail grid by tool×model)
-   - Already implemented in `print_matrix_summary()` function at main.rs:213-260
-   - Displays tool names as rows, model names as columns
-   - Shows Pass/Fail/Error outcome for each tool×model combination
-   - Called automatically after matrix runs
-
-##### Amp Adapter Implementation
-- [x] `adapter/amp.rs` uses hypothetical CLI: `amp run --context AGENTS.md --prompt-file prompt.txt`
-   - Verified actual Amp CLI syntax and updated adapter
-   - Implementation now uses correct `amp -x @prompt.txt` pattern
-   - `--model` parameter mapped to `--mode` (free, rush, smart)
-   - AGENTS.md context included in prompt if it exists
-   - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
-- [x] Add timeout handling for long-running LLM sessions
-   - Added `wait-timeout` dependency to Cargo.toml
-   - Added `--timeout-secs` CLI parameter (default: 300 seconds)
-   - Updated `ToolAdapter::run` trait to accept `timeout_secs: u64`
-   - Implemented timeout in `SessionRunner::run_command` using thread-based timeout with Arc<Mutex<Child>>
-   - Updated all adapters (opencode, amp, claude_code) to accept and pass timeout parameter
-   - Updated main.rs to pass timeout through execution chain
-   - All 375 tests passing
-   - Learned: portable-pty's Child trait doesn't support wait_timeout directly, needed manual thread-based implementation
-- [x] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
-   - Modified `ToolAdapter::run` trait to return `(String, i32, f64)` - output, exit code, and cost
-   - Added `ModelPricing` struct and `get_model_pricing()` function with pricing for:
-     - Claude models (Sonnet: $3/$15 per 1K input/output tokens, Haiku: $0.8/$4, Opus: $15/$75)
-     - GPT models (GPT-4o: $2.5/$10, GPT-4: $30/$60, GPT-3.5: $0.5/$1.5)
-     - Amp modes (smart: $3/$15, rush: $0.8/$4, free: $0/$0)
-   - Added `estimate_cost()` function that calculates cost from model name and character counts
-     - Token estimation: ~4 characters per token
-     - Returns 0.0 for unknown models
-   - Updated all adapters (opencode, amp, claude_code) to calculate and return cost
-   - Updated main.rs to use actual cost instead of 0.0
-   - Added cost to transcript events and result records
-   - Added 7 unit tests for cost estimation (all passing)
-   - All 364 tests passing (130 + 213 + 18 + 6 + 6 + 6 + 3)
-   - Files modified: adapter/mod.rs, adapter/opencode.rs, adapter/amp.rs, adapter/claude_code.rs, results.rs, main.rs
-
-##### Scenario Tiers
-- [x] Add `tier` field to scenario schema (0=smoke, 1=quick, 2=standard, 3=comprehensive)
-  - File: `crates/llm-tool-test/src/scenario.rs`
-- [x] Add `--tier` CLI flag to filter scenarios by tier
-  - Tier N runs all scenarios with tier <= N
-  - File: `crates/llm-tool-test/src/cli.rs`
+### Scenarios (P1)
 - [ ] Create tier 0 (smoke) scenario: single `qipu create` command
 - [ ] Create tier 1 (quick) scenarios: basic capture, simple linking
+- [ ] Add scenarios: `search_basic`, `context_retrieval`, `compaction_workflow`
+- [ ] Add `setup` step support (pre-populate store with seed notes)
 
-##### Scenario Coverage
-- [ ] Only 2 scenarios exist (`capture_basic`, `link_navigation`)
-  - Add: `search_basic`, `context_retrieval`, `compaction_workflow`
-  - Add: `multi_note_linking`, `inbox_processing`, `export_workflow`
-- [ ] Scenarios lack `setup` step (e.g., pre-populate store with seed notes)
-- [ ] No negative test scenarios (expected failures, error handling)
+### Gate Types (P1)
+Current: `MinNotes`, `MinLinks`, `SearchHit`
+- [ ] Add `NoteExists { id }` - verify specific note created
+- [ ] Add `LinkExists { from, to, link_type }` - verify specific link
+- [ ] Add `TagExists { tag }` - verify tag usage
+- [ ] Add `ContentContains { id, substring }` - verify note content
+- [ ] Add `CommandSucceeds { command }` - arbitrary qipu command
 
-##### Gate Types
-- [ ] Only 3 gate types: `MinNotes`, `MinLinks`, `SearchHit`
-  - Add: `NoteExists { id: String }` - verify specific note was created
-  - Add: `LinkExists { from, to, link_type }` - verify specific link
-  - Add: `TagExists { tag: String }` - verify tag usage
-  - Add: `ContentContains { id, substring }` - verify note content
-  - Add: `CommandSucceeds { command: Vec<String> }` - arbitrary qipu command
+### LLM Judge Enhancements (P2)
+- [ ] Add semantic quality evaluation (relevance, coherence, granularity)
+- [ ] Add weighted composite score combining automated + judge metrics
+- [ ] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
 
-#### Important Gaps (P2)
+### Human Review Integration (P2)
+- [ ] Add `review <RUN_ID> --dimension key=value --notes "..."` subcommand
+- [ ] Add `list --pending-review` to find unreviewed runs
+- [ ] Store human scores in results record
 
-##### Test Infrastructure (P1 - Required for Standalone Tool)
-Current state: 11 unit tests across 4 files; many modules untested.
+### Test Infrastructure (P2)
+- [ ] Add tests for command parsing from transcript
+- [ ] Add tests for `build_tool_matrix()` edge cases
+- [ ] Add mock adapter for offline testing
+- [ ] Add end-to-end test with mock adapter
+- [ ] Remove dead code: `ResultsDB::load_latest_by_scenario`
 
-**Unit Test Coverage Plan:**
+### File Refactoring (P3)
+- [ ] Extract `run_single_scenario` from `main.rs` into `run.rs`
+- [ ] Extract command handlers into `commands.rs`
+- [ ] Extract print functions into `output.rs`
 
-| Module | Lines | Tests | Priority | What to Test |
-|--------|-------|-------|----------|--------------|
-| `results.rs` | 282 | 0 | P1 | Cache key computation, result serialization/deserialization, DB operations |
-| `session.rs` | 106 | 0 | P1 | PTY session creation, command execution, timeout handling |
-| `cli.rs` | 78 | 0 | P2 | Argument parsing, matrix building, validation |
-| `fixture.rs` | 49 | 0 | P2 | Fixture loading, temp directory setup |
-| `adapter/*.rs` | 156 | 0 | P2 | Availability checks, command construction (mock shell) |
-| `main.rs` | 442 | 0 | P3 | Extract handlers into testable functions first |
-
-**Specific Test Tasks:**
-- [x] `results.rs`: Add tests for `CacheKey::compute()` with various inputs
-- [x] `results.rs`: Add tests for `ResultRecord` JSON round-trip
-- [x] `results.rs`: Add tests for `ResultsDB` CRUD operations (use temp file)
-- [x] `session.rs`: Add tests for `SessionRunner` timeout logic (mock child process)
-  - Added 9 unit tests covering: successful command within timeout, command exceeding timeout, zero timeout, short timeout, nonzero exit codes, true command success, multiple args, current directory execution, timeout message format
-  - All tests pass (51 total tests in llm-tool-test)
-- [ ] `session.rs`: Add tests for command parsing from transcript
-- [ ] `cli.rs`: Add tests for `build_tool_matrix()` with edge cases
-- [ ] `fixture.rs`: Add tests for fixture discovery and loading
-- [ ] `adapter/mod.rs`: Add mock adapter for offline testing
-- [ ] `adapter/*.rs`: Add tests for command string construction
-
-**Integration Test Plan:**
-- [ ] Create `tests/` directory in crate
-- [ ] Add end-to-end test with mock adapter running against fixture
-- [ ] Add regression test that loads cached results and verifies format
-
-**Dead Code:**
-- [ ] Dead code: `ResultsDB::load_latest_by_scenario` (line 94)
-
-##### Fixture Improvements
-- [ ] `qipu/AGENTS.md` is minimal - should match real AGENTS.md patterns
-- [ ] No pre-populated store fixture (for testing against existing data)
-- [ ] Rubrics only exist for capture_v1 and link_v1
-
-##### Session Runner
-- [ ] `session.rs` uses PTY but no timeout mechanism
-- [ ] No streaming output for long sessions
-- [ ] No way to interact mid-session (for multi-turn scenarios)
-
-##### Results & Reporting
-- [ ] No HTML/Markdown report generation
-- [ ] No CI integration (GitHub Actions workflow)
-- [ ] No aggregate statistics across runs
-
-#### File Size Refactoring (P2)
-
-Large files that should be split for maintainability:
-
-| File | Lines | Split Into |
-|------|-------|------------|
-| `main.rs` | 442 | `run.rs` (scenario execution), `commands.rs` (list/show/compare/clean handlers), `output.rs` (print_* functions) |
-| `evaluation.rs` | 382 | `gates.rs` (gate evaluation logic), `qipu_runner.rs` (run_qipu_json, count_notes, etc.) |
-| `results.rs` | 282 | `cache.rs` (CacheKey, Cache), `db.rs` (ResultsDB), `compare.rs` (RegressionReport) |
-| `transcript.rs` | 272 | OK for now, but consider splitting `TranscriptAnalyzer` if it grows |
-
-**Specific refactoring tasks:**
-- [ ] Extract `run_single_scenario` (130 lines) from `main.rs` into `run.rs`
-- [ ] Extract command handlers (`list`, `show`, `compare`, `clean`) into `commands.rs`
-- [ ] Extract `print_result_summary`, `print_regression_report`, `print_matrix_summary` into `output.rs`
-- [ ] Move `CacheKey` and `Cache` from `results.rs` into `cache.rs`
-- [ ] Move `ResultsDB` from `results.rs` into `db.rs`
-- [ ] Extract `run_qipu_json`, `count_notes`, `count_links`, `search_hit` from `evaluation.rs` into `qipu_runner.rs`
-
-#### Minor Gaps (P3)
-
-##### Code Quality
-- [ ] No tracing instrumentation anywhere in crate
-
-##### CLI Polish
-- [ ] `list` command shows runs, not scenarios - misleading
-- [ ] No `run --all` to run all scenarios
-- [ ] No `baseline set <run_id>` to mark a run as baseline
-
-#### Workspace Tests
-- [ ] Add `--dry-run` conflict report test
-- [ ] Add `--empty` flag test
+### CLI Polish (P3)
+- [ ] Rename `list` to show scenarios not runs
+- [ ] Add `run --all` to run all scenarios
+- [ ] Add `baseline set <run_id>` command
 
 ---
 
 ## Technology Reference
 
 ### Database
-- **SQLite** with `rusqlite` (bundled), WAL mode, FTS5 with porter tokenizer
-- Schema: notes, notes_fts, tags, edges, unresolved, index_meta tables
+- SQLite with `rusqlite` (bundled), WAL mode, FTS5 with porter tokenizer
+- Schema: notes, notes_fts, tags, edges, unresolved, index_meta
 - Location: `.qipu/qipu.db`
 
 ### Logging
-- **tracing** ecosystem with env-filter and json features
+- `tracing` ecosystem with env-filter and json features
 - Flags: `--verbose`, `--log-level`, `--log-json`
 - Env: `QIPU_LOG` override
-
----
-
-## Completed (Reference)
-
-Core features all implemented and tested:
-- SQLite FTS5 migration (ripgrep removed)
-- Search ranking with BM25, recency boost, field weighting
-- Graph traversal with semantic inversion, weighted costs
-- Pack dump/load with all conflict strategies
-- Export with MOC ordering, anchor rewriting, attachments
-- Context command with budget, transitive, backlinks, related
-- Compaction commands and global flags
-- Provenance fields and verification
-- Similarity with Porter stemming and stop words

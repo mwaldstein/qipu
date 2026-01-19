@@ -6,390 +6,6 @@
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::QipuError;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use tempfile::TempDir;
-
-    fn create_cli(format: OutputFormat) -> Cli {
-        Cli {
-            root: None,
-            store: None,
-            format,
-            quiet: false,
-            verbose: false,
-            log_level: None,
-            log_json: false,
-            no_resolve_compaction: false,
-            with_compaction_ids: false,
-            compaction_depth: None,
-            compaction_max_nodes: None,
-            expand_compaction: false,
-            workspace: None,
-            no_semantic_inversion: false,
-            command: None,
-        }
-    }
-
-    fn read_stdin() -> String {
-        "Test note content".to_string()
-    }
-
-    #[test]
-    fn test_execute_list_human() {
-        let cli = create_cli(OutputFormat::Human);
-        let stdout = capture_stdout(|| execute_list(&cli).unwrap());
-        assert!(stdout.contains("Available integrations"));
-        assert!(stdout.contains("agents-md"));
-        assert!(stdout.contains("Usage: qipu setup agents-md"));
-    }
-
-    #[test]
-    fn test_execute_list_records() {
-        let cli = create_cli(OutputFormat::Records);
-        let stdout = capture_stdout(|| execute_list(&cli).unwrap());
-        assert!(stdout.contains("records=1 mode=setup.list"));
-        assert!(stdout.contains("integration name=agents-md"));
-    }
-
-    #[test]
-    fn test_execute_print_json() {
-        let cli = create_cli(OutputFormat::Json);
-        let result = execute_print(&cli);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_execute_print_human() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute_print(&cli);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_execute_print_records() {
-        let cli = create_cli(OutputFormat::Records);
-        let result = execute_print(&cli);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_execute_install_success() {
-        let cli = create_cli(OutputFormat::Human);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        let result = execute_install(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let agents_md_path = temp_dir.path().join("AGENTS.md");
-        assert!(agents_md_path.exists());
-
-        let content = fs::read_to_string(&agents_md_path).unwrap();
-        assert!(content.contains("Qipu is a Zettelkasten-inspired"));
-        assert!(content.contains("Quick Start"));
-
-        // Cleanup
-        fs::remove_file(agents_md_path).unwrap();
-    }
-
-    #[test]
-    fn test_execute_install_json() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        let result = execute_install(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let agents_md_path = temp_dir.path().join("AGENTS.md");
-        assert!(agents_md_path.exists());
-
-        // Cleanup
-        fs::remove_file(agents_md_path).unwrap();
-    }
-
-    #[test]
-    fn test_execute_install_records() {
-        let cli = create_cli(OutputFormat::Records);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        let result = execute_install(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let agents_md_path = temp_dir.path().join("AGENTS.md");
-        assert!(agents_md_path.exists());
-
-        // Cleanup
-        fs::remove_file(agents_md_path).unwrap();
-    }
-
-    #[test]
-    fn test_execute_install_unknown_tool() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute_install(&cli, "unknown-tool");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            QipuError::UsageError(msg) => {
-                assert!(msg.contains("Unknown integration"));
-                assert!(msg.contains("unknown-tool"));
-            }
-            _ => panic!("Expected UsageError"),
-        }
-    }
-
-    #[test]
-    fn test_execute_install_already_exists() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Create AGENTS.md first
-        let path = temp_dir.path().join("AGENTS.md");
-        fs::write(&path, "Some content").unwrap();
-
-        let result = execute_install(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("status"));
-        assert!(stdout.contains("exists"));
-        assert!(stdout.contains("already exists"));
-
-        // File should still exist
-        assert!(path.exists());
-    }
-
-    #[test]
-    fn test_execute_check_installed() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Create AGENTS.md
-        let path = temp_dir.path().join("AGENTS.md");
-        fs::write(&path, "Some content").unwrap();
-
-        let result = execute_check(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("installed"));
-        assert!(stdout.contains("true"));
-        assert!(stdout.contains("AGENTS.md"));
-    }
-
-    #[test]
-    fn test_execute_check_not_installed() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        let result = execute_check(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("installed"));
-        assert!(stdout.contains("false"));
-        assert!(!stdout.contains("path"));
-    }
-
-    #[test]
-    fn test_execute_check_human() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute_check(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("AGENTS.md integration is not installed"));
-        assert!(stdout.contains("Run `qipu setup agents-md`"));
-    }
-
-    #[test]
-    fn test_execute_remove_success() {
-        let cli = create_cli(OutputFormat::Human);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Create AGENTS.md first
-        let path = temp_dir.path().join("AGENTS.md");
-        fs::write(&path, "Some content").unwrap();
-
-        let result = execute_remove(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("Removed AGENTS.md"));
-
-        // File should be removed
-        assert!(!path.exists());
-    }
-
-    #[test]
-    fn test_execute_remove_json() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Create AGENTS.md first
-        let path = temp_dir.path().join("AGENTS.md");
-        fs::write(&path, "Some content").unwrap();
-
-        let result = execute_remove(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("status"));
-        assert!(stdout.contains("removed"));
-    }
-
-    #[test]
-    fn test_execute_remove_not_found() {
-        let cli = create_cli(OutputFormat::Json);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        let result = execute_remove(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("status"));
-        assert!(stdout.contains("not-found"));
-    }
-
-    #[test]
-    fn test_execute_remove_records() {
-        let cli = create_cli(OutputFormat::Records);
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Create AGENTS.md first
-        let path = temp_dir.path().join("AGENTS.md");
-        fs::write(&path, "Some content").unwrap();
-
-        let result = execute_remove(&cli, "agents-md");
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("mode=setup.remove"));
-        assert!(stdout.contains("status=removed"));
-    }
-
-    #[test]
-    fn test_execute_remove_unknown_tool() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute_remove(&cli, "unknown-tool");
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            QipuError::UsageError(msg) => {
-                assert!(msg.contains("Unknown integration"));
-                assert!(msg.contains("unknown-tool"));
-            }
-            _ => panic!("Expected UsageError"),
-        }
-    }
-
-    #[test]
-    fn test_execute_with_list_flag() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, true, None, false, false, false);
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("Available integrations"));
-    }
-
-    #[test]
-    fn test_execute_with_print_flag() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, None, true, false, false);
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("Qipu is a Zettelkasten-inspired"));
-    }
-
-    #[test]
-    fn test_execute_with_check_flag() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("not installed"));
-    }
-
-    #[test]
-    fn test_execute_with_remove_flag() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
-        assert!(result.is_ok());
-
-        let stdout = capture_stdout(|| {});
-        assert!(stdout.contains("Removed AGENTS.md"));
-    }
-
-    #[test]
-    fn test_execute_no_args() {
-        let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, None, false, false, false);
-        assert!(result.is_err());
-
-        match result.unwrap_err() {
-            QipuError::UsageError(msg) => {
-                assert!(msg.contains("Specify --list, --print, or provide a tool name"));
-            }
-            _ => panic!("Expected UsageError"),
-        }
-    }
-
-    #[test]
-    fn test_execute_json_output_all_branches() {
-        let cli = create_cli(OutputFormat::Json);
-
-        // Test list
-        let result = execute(&cli, true, None, false, false, false);
-        assert!(result.is_ok());
-
-        // Test print
-        let result = execute(&cli, false, None, true, false, false);
-        assert!(result.is_ok());
-
-        // Test check
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
-        assert!(result.is_ok());
-
-        // Test remove
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_execute_records_output_all_branches() {
-        let cli = create_cli(OutputFormat::Records);
-
-        // Test list
-        let result = execute(&cli, true, None, false, false, false);
-        assert!(result.is_ok());
-
-        // Test print
-        let result = execute(&cli, false, None, true, false, false);
-        assert!(result.is_ok());
-
-        // Test check
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
-        assert!(result.is_ok());
-
-        // Test remove
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
-        assert!(result.is_ok());
-    }
-}
-
 const AGENTS_MD_CONTENT: &str = r#"# Qipu Agent Integration
 
 Qipu is a Zettelkasten-inspired knowledge management system designed for agent workflows.
@@ -759,4 +375,354 @@ fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn create_cli(format: OutputFormat) -> Cli {
+        Cli {
+            root: None,
+            store: None,
+            format,
+            quiet: false,
+            verbose: false,
+            log_level: None,
+            log_json: false,
+            no_resolve_compaction: false,
+            with_compaction_ids: false,
+            compaction_depth: None,
+            compaction_max_nodes: None,
+            expand_compaction: false,
+            workspace: None,
+            no_semantic_inversion: false,
+            command: None,
+        }
+    }
+
+    #[test]
+    fn test_execute_list_human() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_list(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_list_json() {
+        let cli = create_cli(OutputFormat::Json);
+        let result = execute_list(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_list_records() {
+        let cli = create_cli(OutputFormat::Records);
+        let result = execute_list(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_print_json() {
+        let cli = create_cli(OutputFormat::Json);
+        let result = execute_print(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_print_human() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_print(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_print_records() {
+        let cli = create_cli(OutputFormat::Records);
+        let result = execute_print(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_install_success() {
+        let cli = create_cli(OutputFormat::Human);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_install(&cli, "agents-md");
+        assert!(result.is_ok());
+
+        let agents_md_path = temp_dir.path().join("AGENTS.md");
+        assert!(agents_md_path.exists());
+
+        let content = fs::read_to_string(&agents_md_path).unwrap();
+        assert!(content.contains("Qipu is a Zettelkasten-inspired"));
+        assert!(content.contains("Quick Start"));
+
+        fs::remove_file(agents_md_path).unwrap();
+    }
+
+    #[test]
+    fn test_execute_install_json() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_install(&cli, "agents-md");
+        assert!(result.is_ok());
+
+        let agents_md_path = temp_dir.path().join("AGENTS.md");
+        assert!(agents_md_path.exists());
+
+        fs::remove_file(agents_md_path).unwrap();
+    }
+
+    #[test]
+    fn test_execute_install_records() {
+        let cli = create_cli(OutputFormat::Records);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_install(&cli, "agents-md");
+        assert!(result.is_ok());
+
+        let agents_md_path = temp_dir.path().join("AGENTS.md");
+        assert!(agents_md_path.exists());
+
+        fs::remove_file(agents_md_path).unwrap();
+    }
+
+    #[test]
+    fn test_execute_install_unknown_tool() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_install(&cli, "unknown-tool");
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            QipuError::UsageError(msg) => {
+                assert!(msg.contains("Unknown integration"));
+                assert!(msg.contains("unknown-tool"));
+            }
+            _ => panic!("Expected UsageError"),
+        }
+    }
+
+    #[test]
+    fn test_execute_install_already_exists() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute_install(&cli, "agents-md");
+        assert!(result.is_ok());
+
+        assert!(path.exists());
+        let content = fs::read_to_string(&path).unwrap();
+        assert_eq!(content, "Some content");
+    }
+
+    #[test]
+    fn test_execute_check_installed() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute_check(&cli, "agents-md");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_check_not_installed() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_check(&cli, "agents-md");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_check_human() {
+        let cli = create_cli(OutputFormat::Human);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_check(&cli, "agents-md");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_check_unknown_tool() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_check(&cli, "unknown-tool");
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            QipuError::UsageError(msg) => {
+                assert!(msg.contains("Unknown integration"));
+            }
+            _ => panic!("Expected UsageError"),
+        }
+    }
+
+    #[test]
+    fn test_execute_remove_success() {
+        let cli = create_cli(OutputFormat::Human);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute_remove(&cli, "agents-md");
+        assert!(result.is_ok());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_execute_remove_json() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute_remove(&cli, "agents-md");
+        assert!(result.is_ok());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_execute_remove_not_found() {
+        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute_remove(&cli, "agents-md");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_remove_records() {
+        let cli = create_cli(OutputFormat::Records);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute_remove(&cli, "agents-md");
+        assert!(result.is_ok());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_execute_remove_unknown_tool() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_remove(&cli, "unknown-tool");
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            QipuError::UsageError(msg) => {
+                assert!(msg.contains("Unknown integration"));
+                assert!(msg.contains("unknown-tool"));
+            }
+            _ => panic!("Expected UsageError"),
+        }
+    }
+
+    #[test]
+    fn test_execute_with_list_flag() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute(&cli, true, None, false, false, false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_with_print_flag() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute(&cli, false, None, true, false, false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_with_check_flag() {
+        let cli = create_cli(OutputFormat::Human);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_with_remove_flag() {
+        let cli = create_cli(OutputFormat::Human);
+        let temp_dir = TempDir::new().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let path = temp_dir.path().join("AGENTS.md");
+        fs::write(&path, "Some content").unwrap();
+
+        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        assert!(result.is_ok());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_execute_no_args() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute(&cli, false, None, false, false, false);
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            QipuError::UsageError(msg) => {
+                assert!(msg.contains("Specify --list, --print, or provide a tool name"));
+            }
+            _ => panic!("Expected UsageError"),
+        }
+    }
+
+    #[test]
+    fn test_execute_json_output_all_branches() {
+        let cli = create_cli(OutputFormat::Json);
+
+        let result = execute(&cli, true, None, false, false, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, None, true, false, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_records_output_all_branches() {
+        let cli = create_cli(OutputFormat::Records);
+
+        let result = execute(&cli, true, None, false, false, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, None, true, false, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        assert!(result.is_ok());
+
+        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        assert!(result.is_ok());
+    }
 }

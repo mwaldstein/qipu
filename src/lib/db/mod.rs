@@ -32,6 +32,31 @@ fn parse_tags(tags_str: &str) -> Vec<String> {
 }
 
 impl Database {
+    fn count_note_files(store_root: &Path) -> Result<usize> {
+        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use walkdir::WalkDir;
+
+        let mut count = 0;
+
+        for dir in [store_root.join(NOTES_DIR), store_root.join(MOCS_DIR)] {
+            if !dir.exists() {
+                continue;
+            }
+
+            for entry in WalkDir::new(&dir)
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                if entry.path().extension().is_some_and(|e| e == "md") {
+                    count += 1;
+                }
+            }
+        }
+
+        Ok(count)
+    }
+
     /// Open or create the database at the given store root
     pub fn open(store_root: &Path) -> Result<Self> {
         let db_path = store_root.join("qipu.db");
@@ -50,7 +75,25 @@ impl Database {
         create_schema(&conn)
             .map_err(|e| QipuError::Other(format!("failed to create database schema: {}", e)))?;
 
-        Ok(Database { conn })
+        let db = Database { conn };
+
+        let note_count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))
+            .unwrap_or(0);
+
+        if note_count == 0 {
+            let fs_count = Self::count_note_files(store_root)?;
+            if fs_count > 0 {
+                tracing::info!(
+                    "Database is empty but {} note(s) found on filesystem, rebuilding...",
+                    fs_count
+                );
+                db.rebuild(store_root)?;
+            }
+        }
+
+        Ok(db)
     }
 
     /// Rebuild the database from scratch by scanning all notes
@@ -1602,5 +1645,50 @@ mod tests {
         assert_eq!(reachable.len(), 2);
         assert!(reachable.iter().any(|id| id == note1_id));
         assert!(reachable.iter().any(|id| id == note2_id));
+    }
+
+    #[test]
+    fn test_startup_validation_rebuilds_if_empty_db_has_notes() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note 1", None, &["tag1".to_string()], None)
+            .unwrap();
+        store
+            .create_note("Test Note 2", None, &["tag2".to_string()], None)
+            .unwrap();
+
+        let db_path = store.root().join("qipu.db");
+
+        let _ = std::fs::remove_file(&db_path);
+
+        let db = Database::open(store.root()).unwrap();
+
+        let note_count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(note_count, 2);
+    }
+
+    #[test]
+    fn test_startup_validation_skips_rebuild_if_empty_db_no_notes() {
+        let dir = tempdir().unwrap();
+        Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db_path = dir.path().join(".qipu").join("qipu.db");
+
+        let _ = std::fs::remove_file(&db_path);
+
+        let db = Database::open(&dir.path().join(".qipu")).unwrap();
+
+        let note_count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(note_count, 0);
     }
 }

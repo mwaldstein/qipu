@@ -413,19 +413,20 @@ Updated comments to remove ripgrep references:
 
 ### Phase 5: Startup Validation
 
-#### 5.1: Check if `qipu.db` exists on startup
-File: `src/lib/db/mod.rs` in `Database::open()`
+#### 5.1: Check if `qipu.db` exists on startup ✅ COMPLETE
+File: `src/lib/db/mod.rs:36-77`
 
-Already partially implemented - schema is created if missing. Need to add:
-```rust
-// Check if tables are empty (fresh DB vs existing)
-let note_count: i64 = conn.query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))?;
-if note_count == 0 && store_has_notes(store_root) {
-    // DB is empty but store has notes - trigger rebuild
-    let db = Database { conn };
-    db.rebuild(store_root)?;
-}
-```
+Implemented startup validation logic:
+- Added `Database::count_note_files()` helper to count markdown files in `notes/` and `mocs/` directories
+- Modified `Database::open()` to check if DB is empty after schema creation
+- If DB is empty (note_count == 0) and filesystem has notes, automatically trigger rebuild
+- Added logging to inform user when rebuild is triggered
+
+**Added tests:**
+- `test_startup_validation_rebuilds_if_empty_db_has_notes()` - Verifies DB rebuilds when empty but has notes
+- `test_startup_validation_skips_rebuild_if_empty_db_no_notes()` - Verifies no rebuild when both empty
+
+**Verified**: All tests pass (91/194 - 3 pre-existing FTS5 ranking failures)
 
 #### 5.2: Quick consistency check
 File: `src/lib/db/mod.rs`

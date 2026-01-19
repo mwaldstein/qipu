@@ -290,9 +290,12 @@ Human review happens out-of-band after runs complete—runs are never paused:
    - Called automatically after matrix runs
 
 ##### Amp Adapter Implementation
-- [ ] `adapter/amp.rs` uses hypothetical CLI: `amp run --context AGENTS.md --prompt-file prompt.txt`
-  - Verify actual Amp CLI syntax and update adapter
-  - Current implementation is untested speculation
+- [x] `adapter/amp.rs` uses hypothetical CLI: `amp run --context AGENTS.md --prompt-file prompt.txt`
+  - Verified actual Amp CLI syntax and updated adapter
+  - Implementation now uses correct `amp -x @prompt.txt` pattern
+  - `--model` parameter mapped to `--mode` (free, rush, smart)
+  - AGENTS.md context included in prompt if it exists
+  - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
 - [ ] Add timeout handling for long-running LLM sessions
 - [ ] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
 

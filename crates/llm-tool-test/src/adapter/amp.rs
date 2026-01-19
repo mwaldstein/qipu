@@ -28,29 +28,30 @@ impl ToolAdapter for AmpAdapter {
     ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
-        // 1. Prepare prompt file
         let prompt_path = cwd.join("prompt.txt");
         fs::write(&prompt_path, &scenario.task.prompt)?;
 
-        // 2. Prepare context (AGENTS.md is already in the fixture/cwd)
-        // We assume AGENTS.md is the context.
+        let mut args = vec!["-x"];
 
-        // 3. Construct command
-        // Hypothesis: amp run --context AGENTS.md --prompt-file prompt.txt
-        // Or similar. Adjusting to a likely CLI pattern.
-        let mut args = vec![
-            "run",
-            "--context",
-            "AGENTS.md",
-            "--prompt-file",
-            "prompt.txt",
-        ];
         if let Some(model) = model {
-            args.push("--model");
+            args.push("--mode");
             args.push(model);
         }
 
-        // 4. Run command
+        let prompt_content = fs::read_to_string(&prompt_path)?;
+        let full_prompt = if cwd.join("AGENTS.md").exists() {
+            let agents_content = fs::read_to_string(cwd.join("AGENTS.md"))?;
+            format!("{}\n\n---\n\n{}", agents_content, prompt_content)
+        } else {
+            prompt_content
+        };
+
+        let prompt_arg_path = cwd.join("prompt_arg.txt");
+        fs::write(&prompt_arg_path, &full_prompt)?;
+
+        let prompt_arg = format!("@{}", prompt_arg_path.display());
+        args.push(&prompt_arg);
+
         runner.run_command("amp", &args, cwd)
     }
 }

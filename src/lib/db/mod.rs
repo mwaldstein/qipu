@@ -80,6 +80,8 @@ impl Database {
                 );
                 db.rebuild(store_root)?;
             }
+        } else {
+            db.validate_consistency(store_root)?;
         }
 
         Ok(db)

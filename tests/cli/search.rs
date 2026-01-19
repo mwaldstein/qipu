@@ -140,7 +140,7 @@ fn test_search_json_format() {
 
 #[test]
 fn test_search_title_only_match() {
-    // Regression test for title-only matches being missed by ripgrep
+    // Regression test for title-only matches being correctly indexed
     let dir = tempdir().unwrap();
 
     qipu()
@@ -531,14 +531,14 @@ fn test_search_title_only_match_with_body_matches() {
         .assert()
         .success();
 
-    // Create note 1: unique word ONLY in title (ripgrep won't find it)
+    // Create note 1: unique word ONLY in title
     qipu()
         .current_dir(dir.path())
         .args(["create", "Xylophone Musical"])
         .assert()
         .success();
 
-    // Create note 2: unique word in body only (ripgrep will find this)
+    // Create note 2: unique word in body only
     qipu()
         .current_dir(dir.path())
         .args(["create", "Generic Note"])
@@ -562,7 +562,7 @@ fn test_search_title_only_match_with_body_matches() {
             modified.push_str("\nThis note discusses instruments but avoids using the keyword.");
             fs::write(&note_path, modified).unwrap();
         } else if content.contains("title: Generic Note") {
-            // Generic Note: word "musical" in body (ripgrep will find this)
+            // Generic Note: word "musical" in body
             let mut modified = content.clone();
             modified.push_str("\nThis note contains information about musical instruments.");
             fs::write(&note_path, modified).unwrap();

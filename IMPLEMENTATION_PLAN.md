@@ -331,7 +331,7 @@ Replaced `store.list_notes()` + in-memory filtering with DB queries:
 - `test_compaction_annotations` verifies query selection works with hyphenated queries
 - All context selection methods (note, tag, moc, query) now use SQLite
 
-### Phase 4: Remove Legacy Components
+### Phase 4: Remove Legacy Components ✅ COMPLETE
 
 #### 4.1: Delete ripgrep integration ✅ COMPLETE
 File: `src/lib/index/search.rs`, `src/lib/index/mod.rs`, `tests/cli/search.rs`
@@ -372,38 +372,44 @@ Updated:
 - Database can provide note metadata including path, making index's `id_to_path` mapping redundant
 - SQLite-based lookups via `db().get_note_metadata()` are now the authoritative path source
 
-#### 4.3: Update `index --rebuild` command
+#### 4.3: Update `index --rebuild` command ✅ COMPLETE
 File: `src/commands/index.rs`
 
-Change from:
-```rust
-IndexBuilder::new(store).build()?.save(&cache_dir)?;
-```
+Both rebuild and non-rebuild paths call `store.db().rebuild(store.root())`.
 
-To:
-```rust
-store.db().rebuild(store.root())?;
-```
+#### 4.4: Add migration from `.cache/` ✅ COMPLETE
+File: `src/lib/store/mod.rs`
 
-#### 4.4: Add migration from `.cache/`
-File: `src/lib/store/mod.rs` or `src/lib/db/mod.rs`
-
-On startup (in `Store::open` or `Database::open`):
+Implemented in both `Store::open()` and `Store::open_unchecked()`:
 ```rust
-let cache_dir = store_root.join(".cache");
+let cache_dir = path.join(".cache");
 if cache_dir.exists() {
     tracing::info!("Migrating from JSON cache to SQLite...");
-    // DB rebuild happens automatically when qipu.db doesn't exist
-    // After successful rebuild, delete .cache/
+    db.rebuild(path)?;
     std::fs::remove_dir_all(&cache_dir)?;
     tracing::info!("Migration complete, deleted .cache/");
 }
 ```
 
-#### 4.5: Update tests referencing ripgrep
+**Testing**: Added `test_cache_migration_on_any_command()` in `tests/cli/init.rs` that:
+1. Creates a store with notes
+2. Adds a fake `.cache/` directory
+3. Runs a command that opens the store
+4. Verifies the `.cache/` directory was deleted
+5. Verifies the store still works correctly
+
+**Learning**: Migration needs to happen after database is opened but before any store operations. Both `open()` and `open_unchecked()` need the migration logic.
+
+#### 4.5: Update tests referencing ripgrep ✅ COMPLETE
 File: `tests/cli/search.rs`
 
-Test `test_search_title_only_match_included_with_ripgrep_results` will need renaming/updating since ripgrep no longer exists. The test validates title-only matches work - keep the test but update name/comments.
+Updated comments to remove ripgrep references:
+- Line 143: Changed "missed by ripgrep" to "correctly indexed"
+- Line 534: Removed "(ripgrep won't find it)"
+- Line 541: Removed "(ripgrep will find this)"
+- Line 565: Removed "(ripgrep will find this)"
+
+**Verified**: All search tests still pass. The test name `test_search_title_only_match_included_with_ripgrep_results` was already renamed to `test_search_title_only_match_with_body_matches` in a previous change.
 
 ### Phase 5: Startup Validation
 

@@ -218,6 +218,61 @@ fn test_init_without_stealth_no_gitignore_created() {
 }
 
 // ============================================================================
+// Cache migration tests (Phase 4.4)
+// ============================================================================
+
+#[test]
+fn test_cache_migration_on_any_command() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+    let store_path = dir.path().join(".qipu");
+
+    // Initialize a store
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    // Create a fake .cache/ directory (simulating old installation)
+    let cache_dir = store_path.join(".cache");
+    fs::create_dir_all(&cache_dir).unwrap();
+    fs::write(cache_dir.join("index.json"), "{}").unwrap();
+
+    // Verify cache exists
+    assert!(cache_dir.exists(), ".cache/ should exist before migration");
+
+    // Run any command that opens the store - this should trigger migration
+    qipu()
+        .current_dir(dir.path())
+        .args(["list"])
+        .assert()
+        .success();
+
+    // Verify cache was deleted
+    assert!(
+        !cache_dir.exists(),
+        ".cache/ should be deleted after migration"
+    );
+
+    // Verify store still works (notes are accessible)
+    qipu()
+        .current_dir(dir.path())
+        .args(["list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Test Note"));
+}
+
+// ============================================================================
 // Protected branch workflow tests (Phase 1.3)
 // ============================================================================
 

@@ -65,6 +65,14 @@ impl Store {
 
         let db = Database::open(path)?;
 
+        let cache_dir = path.join(".cache");
+        if cache_dir.exists() {
+            tracing::info!("Migrating from JSON cache to SQLite...");
+            db.rebuild(path)?;
+            std::fs::remove_dir_all(&cache_dir)?;
+            tracing::info!("Migration complete, deleted .cache/");
+        }
+
         Ok(Store {
             root: path.to_path_buf(),
             config,
@@ -89,6 +97,14 @@ impl Store {
         };
 
         let db = Database::open(path)?;
+
+        let cache_dir = path.join(".cache");
+        if cache_dir.exists() {
+            tracing::info!("Migrating from JSON cache to SQLite...");
+            db.rebuild(path)?;
+            std::fs::remove_dir_all(&cache_dir)?;
+            tracing::info!("Migration complete, deleted .cache/");
+        }
 
         Ok(Store {
             root: path.to_path_buf(),

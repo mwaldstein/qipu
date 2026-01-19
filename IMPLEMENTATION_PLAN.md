@@ -36,7 +36,7 @@ Commands missing tracing instrumentation:
 - [x] Create tier 0 (smoke) scenario: single `qipu create` command
 - [x] Create tier 1 (quick) scenarios: basic capture, simple linking
 - [x] Add scenarios: `search_basic`, `context_retrieval`, `compaction_workflow`
-- [ ] Add `setup` step support (pre-populate store with seed notes)
+- [x] Add `setup` step support (pre-populate store with seed notes)
 
 ### Gate Types (P1)
 Current: `MinNotes`, `MinLinks`, `SearchHit`

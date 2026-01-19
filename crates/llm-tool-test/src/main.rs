@@ -121,6 +121,34 @@ fn run_single_scenario(
         env.setup_fixture(&s.fixture)?;
         println!("Environment created at: {:?}", env.root);
 
+        if let Some(setup_steps) = &s.setup {
+            println!("Running {} setup step(s)...", setup_steps.len());
+            let runner = session::SessionRunner::new();
+            for (i, step) in setup_steps.iter().enumerate() {
+                let args: Vec<&str> = step.args.iter().map(|s| s.as_str()).collect();
+                println!(
+                    "  Step {}/{}: {} {}",
+                    i + 1,
+                    setup_steps.len(),
+                    step.command,
+                    args.join(" ")
+                );
+                let (output, exit_code) =
+                    runner.run_command(&step.command, &args, &env.root, timeout_secs)?;
+                if exit_code != 0 {
+                    anyhow::bail!(
+                        "Setup step {}/{} failed: {} exited with code {}. Output: {}",
+                        i + 1,
+                        setup_steps.len(),
+                        step.command,
+                        exit_code,
+                        output
+                    );
+                }
+            }
+            println!("Setup complete.");
+        }
+
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
         let (output, exit_code, cost) = adapter.run(s, &env.root, Some(model), timeout_secs)?;
@@ -342,36 +370,28 @@ fn main() -> anyhow::Result<()> {
         Commands::List { tags: _, tier } => {
             let mut scenarios = Vec::new();
 
-            let scenario_dir = std::path::PathBuf::from("fixtures");
-            if scenario_dir.exists() {
-                let entries = match std::fs::read_dir(&scenario_dir) {
-                    Ok(entries) => entries,
-                    Err(e) => {
-                        anyhow::bail!("Cannot read scenario directory: {}", e);
-                    }
-                };
-
-                for entry in entries {
-                    if let Ok(entry) = entry {
+            fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<(String, usize, String)>) {
+                if let Ok(entries) = std::fs::read_dir(dir) {
+                    for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_file() {
-                            if let Some(name) = path.file_stem() {
-                                let yaml_path = scenario_dir.join(name).with_extension("yaml");
-                                if yaml_path.exists() {
-                                    if let Ok(s) = scenario::load(&yaml_path) {
-                                        if s.tier <= *tier {
-                                            scenarios.push((
-                                                name.to_string_lossy().to_string(),
-                                                s.tier,
-                                                s.description,
-                                            ));
-                                        }
+                            if let Some(ext) = path.extension() {
+                                if ext == "yaml" {
+                                    if let Ok(s) = scenario::load(&path) {
+                                        scenarios.push((s.name.clone(), s.tier, s.description));
                                     }
                                 }
                             }
+                        } else if path.is_dir() {
+                            find_scenarios(&path, scenarios);
                         }
                     }
                 }
+            }
+
+            let fixtures_dir = std::path::PathBuf::from("fixtures");
+            if fixtures_dir.exists() {
+                find_scenarios(&fixtures_dir, &mut scenarios);
             }
 
             scenarios.sort_by(|a, b| a.1.cmp(&b.1));
@@ -384,7 +404,7 @@ fn main() -> anyhow::Result<()> {
                 _ => "unknown",
             };
             println!("Available scenarios (tier {}):", tier_label);
-            for (name, tier, description) in &scenarios {
+            for (name, _tier, description) in &scenarios {
                 println!("  [{}] {} - {}", tier_label, name, description);
             }
         }

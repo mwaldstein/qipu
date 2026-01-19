@@ -351,6 +351,7 @@ mod tests {
             },
             tier: 0,
             tool_matrix: None,
+            setup: None,
         };
 
         let metrics = evaluate(&scenario_fail, &env_root).unwrap();
@@ -379,6 +380,7 @@ mod tests {
             },
             tier: 0,
             tool_matrix: None,
+            setup: None,
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -399,6 +401,7 @@ mod tests {
             },
             tier: 0,
             tool_matrix: None,
+            setup: None,
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -418,6 +421,7 @@ mod tests {
             },
             tier: 0,
             tool_matrix: None,
+            setup: None,
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);

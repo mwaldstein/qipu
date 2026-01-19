@@ -12,6 +12,15 @@ pub struct Scenario {
     pub tier: usize,
     #[serde(default)]
     pub tool_matrix: Option<Vec<ToolConfig>>,
+    #[serde(default)]
+    pub setup: Option<Vec<SetupStep>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetupStep {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
 }
 
 fn default_tier() -> usize {
@@ -175,5 +184,75 @@ evaluation:
         let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(scenario.name, "test");
         assert_eq!(scenario.tier, 0);
+    }
+
+    #[test]
+    fn test_load_scenario_with_setup() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+setup:
+  - command: "qipu"
+    args: ["init"]
+  - command: "echo"
+    args: ["setup complete"]
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert!(scenario.setup.is_some());
+        let setup = scenario.setup.unwrap();
+        assert_eq!(setup.len(), 2);
+        assert_eq!(setup[0].command, "qipu");
+        assert_eq!(setup[0].args, vec!["init"]);
+        assert_eq!(setup[1].command, "echo");
+        assert_eq!(setup[1].args, vec!["setup complete"]);
+    }
+
+    #[test]
+    fn test_load_scenario_without_setup() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert!(scenario.setup.is_none());
+    }
+
+    #[test]
+    fn test_setup_step_with_no_args() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+setup:
+  - command: "pwd"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert!(scenario.setup.is_some());
+        let setup = scenario.setup.unwrap();
+        assert_eq!(setup.len(), 1);
+        assert_eq!(setup[0].command, "pwd");
+        assert!(setup[0].args.is_empty());
     }
 }

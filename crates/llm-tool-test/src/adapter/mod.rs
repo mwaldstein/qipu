@@ -10,5 +10,10 @@ pub trait ToolAdapter {
 
     /// Run the tool with the given scenario in the specified working directory.
     /// Returns the tool output and exit code.
-    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<(String, i32)>;
+    fn run(
+        &self,
+        scenario: &Scenario,
+        cwd: &Path,
+        model: Option<&str>,
+    ) -> anyhow::Result<(String, i32)>;
 }

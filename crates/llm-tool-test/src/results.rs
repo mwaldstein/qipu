@@ -123,11 +123,18 @@ pub struct CacheKey {
     pub scenario_hash: String,
     pub prompt_hash: String,
     pub tool: String,
+    pub model: String,
     pub qipu_version: String,
 }
 
 impl CacheKey {
-    pub fn compute(scenario_yaml: &str, prompt: &str, tool: &str, qipu_version: &str) -> Self {
+    pub fn compute(
+        scenario_yaml: &str,
+        prompt: &str,
+        tool: &str,
+        model: &str,
+        qipu_version: &str,
+    ) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(scenario_yaml.as_bytes());
         let scenario_hash = format!("{:x}", hasher.finalize());
@@ -140,14 +147,15 @@ impl CacheKey {
             scenario_hash,
             prompt_hash,
             tool: tool.to_string(),
+            model: model.to_string(),
             qipu_version: qipu_version.to_string(),
         }
     }
 
     pub fn as_string(&self) -> String {
         format!(
-            "{}_{}_{}_{}",
-            self.scenario_hash, self.prompt_hash, self.tool, self.qipu_version
+            "{}_{}_{}_{}_{}",
+            self.scenario_hash, self.prompt_hash, self.tool, self.model, self.qipu_version
         )
     }
 }

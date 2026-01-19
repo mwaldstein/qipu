@@ -20,7 +20,12 @@ impl ToolAdapter for AmpAdapter {
         }
     }
 
-    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<(String, i32)> {
+    fn run(
+        &self,
+        scenario: &Scenario,
+        cwd: &Path,
+        model: Option<&str>,
+    ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
         // 1. Prepare prompt file
@@ -33,13 +38,17 @@ impl ToolAdapter for AmpAdapter {
         // 3. Construct command
         // Hypothesis: amp run --context AGENTS.md --prompt-file prompt.txt
         // Or similar. Adjusting to a likely CLI pattern.
-        let args = [
+        let mut args = vec![
             "run",
             "--context",
             "AGENTS.md",
             "--prompt-file",
             "prompt.txt",
         ];
+        if let Some(model) = model {
+            args.push("--model");
+            args.push(model);
+        }
 
         // 4. Run command
         runner.run_command("amp", &args, cwd)

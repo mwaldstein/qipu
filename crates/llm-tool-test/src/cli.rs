@@ -23,6 +23,10 @@ pub enum Commands {
         #[arg(long, default_value = "opencode")]
         tool: String,
 
+        /// Model to use with the tool (e.g., claude-sonnet-4-20250514, gpt-4o)
+        #[arg(long)]
+        model: Option<String>,
+
         /// Maximum cost in USD
         #[arg(long)]
         max_usd: Option<f64>,

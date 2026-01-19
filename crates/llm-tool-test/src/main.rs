@@ -30,6 +30,7 @@ fn main() -> anyhow::Result<()> {
             scenario,
             tags: _,
             tool,
+            model,
             max_usd: _,
             dry_run,
             no_cache,
@@ -46,7 +47,9 @@ fn main() -> anyhow::Result<()> {
                 let prompt = s.task.prompt.clone();
 
                 let qipu_version = results::get_qipu_version()?;
-                let cache_key = CacheKey::compute(&scenario_yaml, &prompt, tool, &qipu_version);
+                let model = model.as_deref().unwrap_or("default");
+                let cache_key =
+                    CacheKey::compute(&scenario_yaml, &prompt, tool, model, &qipu_version);
 
                 if !no_cache {
                     if let Some(cached) = cache.get(&cache_key) {
@@ -76,7 +79,7 @@ fn main() -> anyhow::Result<()> {
 
                     let start_time = Instant::now();
                     println!("Running tool '{}'...", tool);
-                    let (output, exit_code) = adapter.run(&s, &env.root)?;
+                    let (output, exit_code) = adapter.run(&s, &env.root, Some(model))?;
                     let duration = start_time.elapsed();
 
                     let transcript_dir = env.root.join("artifacts");
@@ -110,7 +113,7 @@ fn main() -> anyhow::Result<()> {
                         scenario_id: s.name.clone(),
                         scenario_hash: cache_key.scenario_hash.clone(),
                         tool: tool.clone(),
-                        model: "default".to_string(),
+                        model: model.to_string(),
                         qipu_commit: qipu_version.clone(),
                         timestamp: Utc::now(),
                         duration_secs: duration.as_secs_f64(),

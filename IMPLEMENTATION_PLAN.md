@@ -234,17 +234,20 @@ Human review happens out-of-band after runs complete—runs are never paused:
 #### Critical Gaps (P1)
 
 ##### Tool/Model Matrix Execution
-- [ ] Add `--model` parameter to CLI for tool model selection
+- [x] Add `--model` parameter to CLI for tool model selection
   - File: `crates/llm-tool-test/src/cli.rs`
-- [ ] Extend `ToolAdapter` trait to accept model parameter
+- [x] Extend `ToolAdapter` trait to accept model parameter
   ```rust
   fn run(&self, scenario: &Scenario, cwd: &Path, model: Option<&str>) -> Result<String>;
   ```
   - File: `crates/llm-tool-test/src/adapter/mod.rs`
-- [ ] Update adapters to pass model to underlying tools
+- [x] Update adapters to pass model to underlying tools
   - opencode: `opencode run --model <model> ...`
   - amp: Determine if model selection is supported
   - File: `crates/llm-tool-test/src/adapter/*.rs`
+- [x] Store model in results and include in cache key
+  - Updated `CacheKey::compute()` to accept model parameter
+  - ResultRecord now uses actual model value instead of "default"
 - [ ] Add `--tools` and `--models` list parameters for matrix runs
   ```bash
   llm-tool-test run --scenario capture_basic.yaml \
@@ -264,8 +267,6 @@ Human review happens out-of-band after runs complete—runs are never paused:
   - File: `crates/llm-tool-test/src/scenario.rs`
 - [ ] Add claude-code adapter
   - File: `crates/llm-tool-test/src/adapter/claude_code.rs`
-- [ ] Store model in results and include in cache key
-  - Currently hardcoded: `model: "default".to_string()` at `main.rs:112`
 - [ ] Add matrix summary report (pass/fail grid by tool×model)
 
 ##### Amp Adapter Implementation

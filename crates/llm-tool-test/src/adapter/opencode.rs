@@ -14,11 +14,21 @@ impl ToolAdapter for OpenCodeAdapter {
         }
     }
 
-    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<(String, i32)> {
+    fn run(
+        &self,
+        scenario: &Scenario,
+        cwd: &Path,
+        model: Option<&str>,
+    ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
         // Use 'opencode run' for non-interactive execution if possible.
-        let args = ["run", &scenario.task.prompt];
+        let mut args = vec!["run"];
+        if let Some(model) = model {
+            args.push("--model");
+            args.push(model);
+        }
+        args.push(&scenario.task.prompt);
 
         runner.run_command("opencode", &args, cwd)
     }

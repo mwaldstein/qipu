@@ -607,6 +607,20 @@ Implemented schema version tracking:
 
 ## P3: Unimplemented Optional / Future
 
+### Search Ranking (FTS5 BM25)
+- [x] Implement recency boost in search ranking (newer notes rank higher)
+  - Added recency boost formula: `0.1 / (1 + age_days / 7)`
+  - Notes updated within 7 days get ~0.1 boost, decaying with age
+  - Added to BM25 score (more positive = higher ranking)
+  - Re-enabled test `test_search_recency_boost`
+- [ ] Fix title/tag boost to properly differentiate from body matches
+- Ignored tests (re-enable after above complete): `test_search_title_match_ranks_above_body_match`, `test_search_exact_tag_match_ranks_above_body`
+
+### Load Command (`load --strategy overwrite`)
+- [ ] Fix overwrite strategy to delete existing file before writing new one
+- [ ] Sync DB after load operations (notes written to disk not reflected in DB)
+- Ignored test (re-enable after above complete): `test_load_strategy_overwrite`
+
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) - no stemming code exists
 - [ ] "Related notes" similarity expansion in `context` command

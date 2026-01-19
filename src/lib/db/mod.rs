@@ -554,10 +554,18 @@ impl Database {
 
         let limit_i64 = limit as i64;
 
+        // Recency boost: decay factor for age in days
+        // - Notes updated within 7 days get ~0.1 boost
+        // - Notes updated 30+ days ago get minimal boost
+        // - Notes updated 90+ days ago get essentially no boost
+        // Formula: 0.1 / (1 + age_days / 7)
+        // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
+        // to make recent notes less negative (higher ranking)
+        // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
         let mut sql = String::from(
             r#"
             SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
-                   bm25(notes_fts, 2.0, 1.0, 1.5) AS rank
+                   bm25(notes_fts, 2.0, 1.0, 1.5) + (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
             FROM notes_fts
             JOIN notes n ON notes_fts.rowid = n.rowid
             WHERE notes_fts MATCH ?

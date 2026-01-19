@@ -24,11 +24,18 @@ pub fn execute(
     inline_only: bool,
     max_chars: Option<usize>,
 ) -> Result<()> {
-    // Resolve the note ID
+    use std::time::Instant;
+    let start = Instant::now();
+
+    // Resolve note ID
     let note_id = resolve_note_id(store, id_or_path)?;
 
-    // Load or build the index
+    // Load or build of index
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     let all_notes = store.list_notes()?;
 

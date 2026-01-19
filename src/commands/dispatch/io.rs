@@ -46,7 +46,11 @@ pub(super) fn handle_export(
             with_attachments,
             link_mode,
         },
-    )
+    )?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -103,7 +107,11 @@ pub(super) fn handle_dump(
             include_attachments: !no_attachments,
             output: resolved_output,
         },
-    )
+    )?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_load(
@@ -117,5 +125,9 @@ pub(super) fn handle_load(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::load::execute(cli, &store, pack_file, strategy)
+    commands::load::execute(cli, &store, pack_file, strategy)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }

@@ -12,11 +12,18 @@ use super::{resolve_note_id, TreeLink, TreeOptions, TreeResult};
 
 /// Execute the link tree command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) -> Result<()> {
-    // Resolve the note ID
+    use std::time::Instant;
+    let start = Instant::now();
+
+    // Resolve note ID
     let note_id = resolve_note_id(store, id_or_path)?;
 
     // Load or build the index
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     let all_notes = store.list_notes()?;
 

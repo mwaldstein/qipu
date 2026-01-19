@@ -43,13 +43,25 @@ pub(super) fn handle_link(
                 *typed_only,
                 *inline_only,
                 *max_chars,
-            )
+            )?;
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "execute_command");
+            }
+            Ok(())
         }
         LinkCommands::Add { from, to, r#type } => {
-            commands::link::add::execute(cli, &store, from, to, r#type.clone())
+            commands::link::add::execute(cli, &store, from, to, r#type.clone())?;
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "execute_command");
+            }
+            Ok(())
         }
         LinkCommands::Remove { from, to, r#type } => {
-            commands::link::remove::execute(cli, &store, from, to, r#type.clone())
+            commands::link::remove::execute(cli, &store, from, to, r#type.clone())?;
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "execute_command");
+            }
+            Ok(())
         }
         LinkCommands::Tree {
             id_or_path,
@@ -82,7 +94,11 @@ pub(super) fn handle_link(
                 max_chars: *max_chars,
                 semantic_inversion: true,
             };
-            commands::link::tree::execute(cli, &store, id_or_path, opts)
+            commands::link::tree::execute(cli, &store, id_or_path, opts)?;
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "execute_command");
+            }
+            Ok(())
         }
         LinkCommands::Path {
             from,
@@ -113,7 +129,11 @@ pub(super) fn handle_link(
                 max_chars: *max_chars,
                 semantic_inversion: true,
             };
-            commands::link::path::execute(cli, &store, from, to, opts)
+            commands::link::path::execute(cli, &store, from, to, opts)?;
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "execute_command");
+            }
+            Ok(())
         }
     }
 }

@@ -205,10 +205,16 @@ fn execute_show_links(
     compaction_ctx: Option<&CompactionContext>,
     all_notes: &[Note],
 ) -> Result<()> {
+    use std::time::Instant;
+    let start = Instant::now();
     let note_id = note.id().to_string();
 
     // Load or build the index to get backlinks
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     let equivalence_map = if let Some(ctx) = compaction_ctx {
         Some(ctx.build_equivalence_map(all_notes)?)

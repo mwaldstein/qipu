@@ -83,8 +83,15 @@ pub struct ExportOptions<'a> {
 
 /// Execute the export command
 pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
+    use std::time::Instant;
+    let start = Instant::now();
+
     // Build or load index for searching
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     // Build compaction context for resolved view + annotations
     let all_notes = store.list_notes()?;

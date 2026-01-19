@@ -37,7 +37,11 @@ pub(super) fn handle_create(
         args.generated_by.clone(),
         args.prompt_hash.clone(),
         args.verified,
-    )
+    )?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_list(
@@ -61,7 +65,11 @@ pub(super) fn handle_list(
         })
         .transpose()?;
 
-    commands::list::execute(cli, &store, tag, note_type, since_dt)
+    commands::list::execute(cli, &store, tag, note_type, since_dt)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_show(
@@ -75,7 +83,11 @@ pub(super) fn handle_show(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::show::execute(cli, &store, id_or_path, links)
+    commands::show::execute(cli, &store, id_or_path, links)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_inbox(
@@ -115,6 +127,9 @@ pub(super) fn handle_inbox(
     // Filter out notes linked from MOCs if requested
     if exclude_linked {
         let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+        if cli.verbose {
+            debug!(elapsed = ?start.elapsed(), "load_indexes");
+        }
         let mut linked_from_mocs = std::collections::HashSet::new();
         for edge in &index.edges {
             if let Some(source_meta) = index.get_metadata(&edge.from) {
@@ -126,7 +141,11 @@ pub(super) fn handle_inbox(
         inbox_notes.retain(|n| !linked_from_mocs.contains(n.id()));
     }
 
-    output_inbox_notes(cli, &store, &inbox_notes)
+    output_inbox_notes(cli, &store, &inbox_notes)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 fn output_inbox_notes(
@@ -224,7 +243,11 @@ pub(super) fn handle_capture(
         prompt_hash,
         verified,
         id,
-    )
+    )?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_verify(
@@ -238,7 +261,11 @@ pub(super) fn handle_verify(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::verify::execute(cli, &store, id_or_path, status)
+    commands::verify::execute(cli, &store, id_or_path, status)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_search(
@@ -254,7 +281,11 @@ pub(super) fn handle_search(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs)
+    commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -296,7 +327,11 @@ pub(super) fn handle_context(
             related_threshold: related,
             backlinks,
         },
-    )
+    )?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_merge(
@@ -311,5 +346,9 @@ pub(super) fn handle_merge(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::merge::execute(cli, &store, id1, id2, dry_run)
+    commands::merge::execute(cli, &store, id1, id2, dry_run)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }

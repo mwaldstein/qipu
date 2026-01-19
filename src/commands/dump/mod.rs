@@ -28,8 +28,15 @@ pub use model::{DumpOptions, PackAttachment, PackLink};
 
 /// Execute the dump command
 pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
+    use std::time::Instant;
+    let start = Instant::now();
+
     // Build index for searching and traversal
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     // Collect notes based on selection criteria and graph traversal
     let selected_notes = collect_notes_with_traversal(store, &index, &options)?;

@@ -136,7 +136,14 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     // Similarity-based expansion
     if let Some(threshold) = options.related_threshold {
+        use std::time::Instant;
+        let start = Instant::now();
         let index = IndexBuilder::new(store).build()?;
+
+        if cli.verbose {
+            tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+        }
+
         let engine = SimilarityEngine::new(&index);
 
         // Collect linked IDs to exclude them

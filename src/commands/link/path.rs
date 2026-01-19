@@ -18,12 +18,19 @@ pub fn execute(
     to_id: &str,
     opts: TreeOptions,
 ) -> Result<()> {
+    use std::time::Instant;
+    let start = Instant::now();
+
     // Resolve note IDs
     let from_resolved = resolve_note_id(store, from_id)?;
     let to_resolved = resolve_note_id(store, to_id)?;
 
     // Load or build the index
     let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
 
     let all_notes = store.list_notes()?;
 

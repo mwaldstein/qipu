@@ -44,6 +44,9 @@ pub(super) fn handle_doctor(
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::doctor::execute(cli, &store, fix, duplicates, threshold)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
     Ok(())
 }
 
@@ -60,7 +63,11 @@ pub(super) fn handle_sync(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::sync::execute(cli, &store, validate, fix, commit, push)
+    commands::sync::execute(cli, &store, validate, fix, commit, push)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_index(cli: &Cli, root: &PathBuf, rebuild: bool, start: Instant) -> Result<()> {
@@ -68,7 +75,11 @@ pub(super) fn handle_index(cli: &Cli, root: &PathBuf, rebuild: bool, start: Inst
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::index::execute(cli, &store, rebuild)
+    commands::index::execute(cli, &store, rebuild)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }
 
 pub(super) fn handle_prime(cli: &Cli, root: &PathBuf, start: Instant) -> Result<()> {
@@ -76,5 +87,9 @@ pub(super) fn handle_prime(cli: &Cli, root: &PathBuf, start: Instant) -> Result<
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::prime::execute(cli, &store)
+    commands::prime::execute(cli, &store)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
 }

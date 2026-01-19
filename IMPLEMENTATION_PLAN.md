@@ -11,9 +11,11 @@
 ### Low Priority (P3)
 
 #### Verbose Timing Keys
-- [ ] Add timing spans for `load_indexes` and `execute_command` phases
-  - Currently only `discover_store` instrumented
-  - Files: `src/main.rs`, `src/commands/dispatch/mod.rs`
+- [x] Add timing spans for `load_indexes` and `execute_command` phases
+  - Added to all dispatch handlers (execute_command)
+  - Added to commands that build indexes (load_indexes): dump, export, link list/tree/path, show, context, inbox
+  - Files: `src/commands/dispatch/mod.rs`, `src/commands/dispatch/*.rs`, `src/commands/*/*.rs`
+  - Implementation: debug logs with elapsed time, similar to discover_store pattern
 
 #### eprintln! Cleanup  
 - [ ] Replace 16 remaining `eprintln!` calls with tracing

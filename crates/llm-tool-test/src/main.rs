@@ -6,6 +6,7 @@ mod judge;
 mod results;
 mod scenario;
 mod session;
+mod store_analysis;
 mod transcript;
 
 use adapter::{
@@ -16,7 +17,7 @@ use clap::Parser;
 use cli::{Cli, Commands};
 use results::{
     Cache, CacheKey, EfficiencyMetricsRecord, EvaluationMetricsRecord, GateResultRecord,
-    RegressionReport, ResultRecord, ResultsDB,
+    QualityMetricsRecord, RegressionReport, ResultRecord, ResultsDB,
 };
 use scenario::ToolConfig;
 use std::collections::HashMap;
@@ -185,6 +186,18 @@ fn run_single_scenario(
                     help_invocations: metrics.efficiency.help_invocations,
                     first_try_success_rate: metrics.efficiency.first_try_success_rate,
                     iteration_ratio: metrics.efficiency.iteration_ratio,
+                },
+                quality: QualityMetricsRecord {
+                    avg_title_length: metrics.quality.avg_title_length,
+                    avg_body_length: metrics.quality.avg_body_length,
+                    avg_tags_per_note: metrics.quality.avg_tags_per_note,
+                    notes_without_tags: metrics.quality.notes_without_tags,
+                    links_per_note: metrics.quality.links_per_note,
+                    orphan_notes: metrics.quality.orphan_notes,
+                    link_type_diversity: metrics.quality.link_type_diversity,
+                    type_distribution: metrics.quality.type_distribution,
+                    total_notes: metrics.quality.total_notes,
+                    total_links: metrics.quality.total_links,
                 },
             },
             judge_score: metrics.judge_score,

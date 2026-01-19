@@ -1,5 +1,6 @@
 use crate::judge::{load_rubric, run_judge, JudgeResponse};
 use crate::scenario::{Gate, Scenario};
+use crate::store_analysis::{QualityMetrics, StoreAnalyzer};
 use crate::transcript::EfficiencyMetrics;
 use crate::transcript::TranscriptAnalyzer;
 use anyhow::{Context, Result};
@@ -17,6 +18,7 @@ pub struct EvaluationMetrics {
     pub judge_score: Option<f64>,
     pub judge_response: Option<JudgeResponse>,
     pub efficiency: EfficiencyMetrics,
+    pub quality: QualityMetrics,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -118,6 +120,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     }
 
     let efficiency = compute_efficiency_metrics(env_root)?;
+    let quality = compute_quality_metrics(env_root)?;
     let metrics = EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
@@ -127,6 +130,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         judge_score,
         judge_response,
         efficiency,
+        quality,
     };
 
     Ok(metrics)
@@ -238,6 +242,41 @@ fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
             help_invocations: 0,
             first_try_success_rate: 0.0,
             iteration_ratio: 0.0,
+        }),
+    }
+}
+
+fn compute_quality_metrics(env_root: &Path) -> Result<QualityMetrics> {
+    match run_qipu_json(&["export"], env_root) {
+        Ok(json) => {
+            let export_json = serde_json::to_string(&json).unwrap_or_else(|_| "{}".to_string());
+            match StoreAnalyzer::analyze(&export_json) {
+                Ok(metrics) => Ok(metrics),
+                Err(_) => Ok(QualityMetrics {
+                    avg_title_length: 0.0,
+                    avg_body_length: 0.0,
+                    avg_tags_per_note: 0.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 0,
+                    link_type_diversity: 0,
+                    type_distribution: std::collections::HashMap::new(),
+                    total_notes: 0,
+                    total_links: 0,
+                }),
+            }
+        }
+        Err(_) => Ok(QualityMetrics {
+            avg_title_length: 0.0,
+            avg_body_length: 0.0,
+            avg_tags_per_note: 0.0,
+            notes_without_tags: 0,
+            links_per_note: 0.0,
+            orphan_notes: 0,
+            link_type_diversity: 0,
+            type_distribution: std::collections::HashMap::new(),
+            total_notes: 0,
+            total_links: 0,
         }),
     }
 }

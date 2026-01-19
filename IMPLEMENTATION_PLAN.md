@@ -129,12 +129,12 @@ Implementation:
 
 ##### 2. Quality Metrics (Store Analysis)
 Automated analysis of the resulting store:
-- [ ] **Note quality indicators**:
+- [x] **Note quality indicators**:
   - Average title length (too short = vague, too long = unfocused)
   - Body length distribution
   - Tag usage (notes with 0 tags, avg tags per note)
   - Type distribution (fleeting vs permanent vs literature)
-- [ ] **Graph quality indicators**:
+- [x] **Graph quality indicators**:
   - Link density (links per note)
   - Graph connectivity (orphan notes with no links)
   - Link type diversity (using multiple link types vs just one)
@@ -145,9 +145,9 @@ Automated analysis of the resulting store:
   - Appropriate granularity (not too broad, not too narrow)
 
 Implementation:
-- [ ] Add `StoreAnalyzer` to compute metrics from `qipu export --format json`
+- [x] Add `StoreAnalyzer` to compute metrics from `qipu export --format json`
   - File: `crates/llm-tool-test/src/store_analysis.rs`
-- [ ] Add `QualityMetrics` struct:
+- [x] Add `QualityMetrics` struct:
   ```rust
   pub struct QualityMetrics {
       pub avg_title_length: f64,
@@ -158,8 +158,13 @@ Implementation:
       pub orphan_notes: usize,
       pub link_type_diversity: usize,
       pub type_distribution: HashMap<String, usize>,
+      pub total_notes: usize,
+      pub total_links: usize,
   }
   ```
+  - Added 5 unit tests (all passing)
+  - Integrated into evaluation module and result records
+  - All 42 tests passing
 
 ##### 3. Cost/Speed Metrics
 - [ ] **Wall-clock duration**: Already captured as `duration_secs`

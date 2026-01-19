@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -34,6 +35,7 @@ pub struct EvaluationMetricsRecord {
     pub link_count: usize,
     pub details: Vec<GateResultRecord>,
     pub efficiency: EfficiencyMetricsRecord,
+    pub quality: QualityMetricsRecord,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +47,20 @@ pub struct EfficiencyMetricsRecord {
     pub help_invocations: usize,
     pub first_try_success_rate: f64,
     pub iteration_ratio: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityMetricsRecord {
+    pub avg_title_length: f64,
+    pub avg_body_length: f64,
+    pub avg_tags_per_note: f64,
+    pub notes_without_tags: usize,
+    pub links_per_note: f64,
+    pub orphan_notes: usize,
+    pub link_type_diversity: usize,
+    pub type_distribution: HashMap<String, usize>,
+    pub total_notes: usize,
+    pub total_links: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -586,6 +602,18 @@ mod tests {
                     first_try_success_rate: 1.0,
                     iteration_ratio: 1.5,
                 },
+                quality: QualityMetricsRecord {
+                    avg_title_length: 10.0,
+                    avg_body_length: 50.0,
+                    avg_tags_per_note: 2.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 1,
+                    link_type_diversity: 0,
+                    type_distribution: HashMap::new(),
+                    total_notes: 1,
+                    total_links: 0,
+                },
             },
             judge_score: Some(0.9),
             outcome: "PASS".to_string(),
@@ -647,6 +675,18 @@ mod tests {
                     help_invocations: 0,
                     first_try_success_rate: 1.0,
                     iteration_ratio: 1.5,
+                },
+                quality: QualityMetricsRecord {
+                    avg_title_length: 10.0,
+                    avg_body_length: 50.0,
+                    avg_tags_per_note: 2.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 1,
+                    link_type_diversity: 0,
+                    type_distribution: HashMap::new(),
+                    total_notes: 1,
+                    total_links: 0,
                 },
             },
             judge_score: None,
@@ -843,6 +883,18 @@ mod tests {
                     help_invocations: 0,
                     first_try_success_rate: 1.0,
                     iteration_ratio: 1.5,
+                },
+                quality: QualityMetricsRecord {
+                    avg_title_length: 10.0,
+                    avg_body_length: 50.0,
+                    avg_tags_per_note: 2.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 1,
+                    link_type_diversity: 0,
+                    type_distribution: HashMap::new(),
+                    total_notes: 1,
+                    total_links: 0,
                 },
             },
             judge_score: Some(0.9),

@@ -130,7 +130,7 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     Ok(())
 }
 
-fn write_note_preserving_updated(note: &Note) -> Result<()> {
+fn write_note_preserving_updated(store: &Store, note: &Note) -> Result<()> {
     let path = note
         .path
         .as_ref()
@@ -148,6 +148,9 @@ fn write_note_preserving_updated(note: &Note) -> Result<()> {
 
     if should_write {
         std::fs::write(path, new_content)?;
+
+        // Update database after file write to maintain consistency
+        store.db().insert_note(note)?;
     }
 
     Ok(())
@@ -209,19 +212,29 @@ fn load_notes(
             path: None,
         };
 
-        // Determine target directory and filename
+        // Determine target directory
         let target_dir = match note_type {
             NoteType::Moc => store.mocs_dir(),
             _ => store.notes_dir(),
         };
 
-        // Use a deterministic filename based on ID and title
-        let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
-        let file_path = target_dir.join(&file_name);
-        note.path = Some(file_path);
-
         // Handle conflicts based on strategy
         let should_load = if existing_ids.contains(note.id()) {
+            // For overwrite strategy, get the existing note's path to overwrite it in place
+            if matches!(strategy, LoadStrategy::Overwrite) {
+                if let Ok(existing_note) = store.get_note(&note.id()) {
+                    if let Some(existing_path) = existing_note.path {
+                        note.path = Some(existing_path);
+                    }
+                }
+            }
+
+            // Determine target directory and filename if not already set
+            if note.path.is_none() {
+                let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
+                note.path = Some(target_dir.join(&file_name));
+            }
+
             match strategy {
                 LoadStrategy::Skip => {
                     tracing::debug!(
@@ -237,6 +250,18 @@ fn load_notes(
                         id = %note.id(),
                         "Overwriting existing note"
                     );
+                    // Delete the old file first to ensure clean overwrite
+                    if let Some(path) = &note.path {
+                        if path.exists() {
+                            std::fs::remove_file(path).map_err(|e| {
+                                QipuError::Other(format!(
+                                    "failed to delete existing file {}: {}",
+                                    path.display(),
+                                    e
+                                ))
+                            })?;
+                        }
+                    }
                     true
                 }
                 LoadStrategy::MergeLinks => {
@@ -267,12 +292,15 @@ fn load_notes(
                 }
             }
         } else {
+            // New note - determine filename
+            let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
+            note.path = Some(target_dir.join(&file_name));
             true
         };
 
         if should_load {
             // Save note without overwriting pack timestamps
-            write_note_preserving_updated(&note)?;
+            write_note_preserving_updated(store, &note)?;
             loaded_count += 1;
             loaded_ids.insert(note.id().to_string());
         }
@@ -341,7 +369,7 @@ fn load_links(
                 }
             }
 
-            write_note_preserving_updated(&source_note)?;
+            write_note_preserving_updated(store, &source_note)?;
         }
     }
 

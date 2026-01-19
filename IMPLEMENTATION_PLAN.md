@@ -620,10 +620,20 @@ Implemented schema version tracking:
   - All tests now pass: `test_search_title_match_ranks_above_body_match`, `test_search_exact_tag_match_ranks_above_body`
   - **Learning**: FTS5 column-specific queries (e.g., `body:"term"`) don't apply porter stemming consistently, so use general query for body matches instead
 
-### Load Command (`load --strategy overwrite`)
-- [ ] Fix overwrite strategy to delete existing file before writing new one
-- [ ] Sync DB after load operations (notes written to disk not reflected in DB)
-- Ignored test (re-enable after above complete): `test_load_strategy_overwrite`
+### Load Command (`load --strategy overwrite`) ✅ COMPLETE
+- [x] Fix overwrite strategy to delete existing file before writing new one
+- [x] Sync DB after load operations (notes written to disk not reflected in DB)
+- File: `src/commands/load/mod.rs`
+- Changes made:
+  - Modified `load_notes()` to get existing note's path when using overwrite strategy
+  - Added file deletion before writing new content in overwrite mode
+  - Modified `write_note_preserving_updated()` to accept `store` parameter and call `store.db().insert_note()` after writing file
+  - Updated all callers of `write_note_preserving_updated()` to pass `store` parameter
+  - Removed `#[ignore]` attribute from `test_load_strategy_overwrite` test
+
+**Learning**: The overwrite strategy needs to reuse the existing note's path to ensure the database points to the correct file. Simply creating a new filename based on the new title would result in multiple files for the same note ID.
+
+**Verified with test**: `test_load_strategy_overwrite` in `tests/pack_tests.rs` confirms that overwrite strategy now correctly updates the note content and database.
 
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) - no stemming code exists

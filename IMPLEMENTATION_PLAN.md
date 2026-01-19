@@ -275,8 +275,14 @@ Human review happens out-of-band after runs complete—runs are never paused:
   - Added `tool_matrix` optional field to `Scenario` struct with serde default
   - Added 3 unit tests to verify YAML parsing with/without tool_matrix
   - All existing tests pass
-- [ ] Add claude-code adapter
-  - File: `crates/llm-tool-test/src/adapter/claude_code.rs`
+- [x] Add claude-code adapter
+   - File: `crates/llm-tool-test/src/adapter/claude_code.rs`
+   - Created adapter module with `ClaudeCodeAdapter` struct
+   - Implemented `ToolAdapter` trait with `check_availability` and `run` methods
+   - Uses `claude run --model <model> --prompt-file prompt.txt` pattern
+   - Registered in `main.rs` match statement and exported in `adapter/mod.rs`
+   - Updated CLI help text to include claude-code
+   - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
 - [ ] Add matrix summary report (pass/fail grid by tool×model)
 
 ##### Amp Adapter Implementation

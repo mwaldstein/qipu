@@ -8,7 +8,9 @@ mod scenario;
 mod session;
 mod transcript;
 
-use adapter::{amp::AmpAdapter, opencode::OpenCodeAdapter, ToolAdapter};
+use adapter::{
+    amp::AmpAdapter, claude_code::ClaudeCodeAdapter, opencode::OpenCodeAdapter, ToolAdapter,
+};
 use chrono::Utc;
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -101,6 +103,7 @@ fn run_single_scenario(
 
     let adapter: Box<dyn ToolAdapter> = match tool {
         "amp" => Box::new(AmpAdapter),
+        "claude-code" => Box::new(ClaudeCodeAdapter),
         "opencode" => Box::new(OpenCodeAdapter),
         _ => anyhow::bail!("Unknown tool: {}", tool),
     };

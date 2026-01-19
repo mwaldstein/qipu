@@ -19,7 +19,7 @@ pub enum Commands {
         #[arg(long)]
         tags: Vec<String>,
 
-        /// Tool to test (e.g., amp, opencode)
+        /// Tool to test (e.g., amp, claude-code, opencode)
         #[arg(long, default_value = "opencode")]
         tool: String,
 

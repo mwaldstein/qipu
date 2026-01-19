@@ -248,12 +248,18 @@ Human review happens out-of-band after runs complete—runs are never paused:
 - [x] Store model in results and include in cache key
   - Updated `CacheKey::compute()` to accept model parameter
   - ResultRecord now uses actual model value instead of "default"
-- [ ] Add `--tools` and `--models` list parameters for matrix runs
+- [x] Add `--tools` and `--models` list parameters for matrix runs
   ```bash
   llm-tool-test run --scenario capture_basic.yaml \
     --tools opencode,claude-code \
     --models claude-sonnet-4-20250514,gpt-4o
   ```
+  - Added CLI parameters to Run command in `cli.rs`
+  - Added `build_tool_matrix()` function to parse tools/models or use scenario-level tool_matrix
+  - Added `run_single_scenario()` function to handle individual runs
+  - Added `print_matrix_summary()` to display pass/fail grid
+  - Updated main.rs to execute matrix when --tools and --models provided
+  - All 355 tests passing
 - [x] Add scenario-level `tool_matrix` field for declarative matrix
   ```yaml
   tool_matrix:

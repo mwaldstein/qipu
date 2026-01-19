@@ -27,6 +27,14 @@ pub enum Commands {
         #[arg(long)]
         model: Option<String>,
 
+        /// Multiple tools for matrix run (comma-separated, e.g., opencode,amp)
+        #[arg(long)]
+        tools: Option<String>,
+
+        /// Multiple models for matrix run (comma-separated, e.g., claude-sonnet-4-20250514,gpt-4o)
+        #[arg(long)]
+        models: Option<String>,
+
         /// Maximum cost in USD
         #[arg(long)]
         max_usd: Option<f64>,

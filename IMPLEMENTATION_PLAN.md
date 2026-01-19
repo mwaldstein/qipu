@@ -641,6 +641,22 @@ Implemented schema version tracking:
 
 **Verified with test**: `test_load_strategy_overwrite` in `tests/pack_tests.rs` confirms that overwrite strategy now correctly updates the note content and database.
 
+### Load Command (`load --strategy merge-links`) ✅ COMPLETE (2026-01-19)
+- [x] Fix merge-links strategy to preserve target note content
+- File: `src/commands/load/mod.rs`, `tests/pack_tests.rs`
+- Changes made:
+  - Modified MergeLinks branch in `load_notes()` to return false (skip writing pack note)
+  - Added special handling to add existing note IDs to `loaded_ids` even when not writing pack note
+  - This allows `load_links()` to process links for existing notes while preserving their content
+  - Added `test_load_strategy_merge_links_preserves_content()` to verify target content (title, tags) is preserved
+  - Removed unused `TypedLink` import
+
+**Learning**: Per spec (specs/pack.md:82-85), merge-links should "Keep target *content* (title/body). Union the `links` arrays (add new typed links from incoming)." The previous implementation was overwriting target content with pack content instead of preserving it.
+
+**Verified with tests**:
+- `test_load_strategy_merge_links` - verifies links are added from pack
+- `test_load_strategy_merge_links_preserves_content` - verifies target content (title, tags) is preserved and links are added
+
 ### `specs/similarity-ranking.md`
 - [x] Optional stemming (Porter) - no stemming code exists
   - Added `rust-stemmers` dependency (v1.2.0) with Porter algorithm for English

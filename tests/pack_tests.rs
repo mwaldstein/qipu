@@ -446,3 +446,116 @@ fn test_load_strategy_merge_links() {
         predicate::str::contains(linked_id.as_str()).eval(&String::from_utf8_lossy(&output.stdout))
     );
 }
+
+#[test]
+fn test_load_strategy_merge_links_preserves_content() {
+    let dir1 = tempdir().unwrap();
+    let store1_path = dir1.path();
+    let dir2 = tempdir().unwrap();
+    let store2_path = dir2.path();
+    let pack_file = dir1.path().join("test.pack.json");
+
+    // Use unique IDs with timestamp to avoid any parallel test interference
+    let unique_suffix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let target_id = format!("qp-{}", unique_suffix);
+    let linked_id = format!("qp-{}", unique_suffix + 1);
+
+    // 1. Initialize store 1 and create notes with links
+    let mut cmd = qipu();
+    cmd.arg("init")
+        .env("QIPU_STORE", store1_path)
+        .assert()
+        .success();
+
+    let mut cmd = qipu();
+    cmd.arg("create")
+        .arg("Target Note")
+        .arg("--id")
+        .arg(&target_id)
+        .env("QIPU_STORE", store1_path)
+        .assert()
+        .success();
+
+    let mut cmd = qipu();
+    cmd.arg("create")
+        .arg("Linked Note")
+        .arg("--id")
+        .arg(&linked_id)
+        .env("QIPU_STORE", store1_path)
+        .assert()
+        .success();
+
+    let mut cmd = qipu();
+    cmd.arg("link")
+        .arg("add")
+        .arg(&target_id)
+        .arg(&linked_id)
+        .arg("--type")
+        .arg("related")
+        .env("QIPU_STORE", store1_path)
+        .assert()
+        .success();
+
+    // 2. Pack the notes
+    let mut cmd = qipu();
+    cmd.arg("dump")
+        .arg("--output")
+        .arg(&pack_file)
+        .arg("--format")
+        .arg("json")
+        .env("QIPU_STORE", store1_path)
+        .assert()
+        .success();
+
+    // 3. Initialize store 2 and create a target note with DIFFERENT content
+    let mut cmd = qipu();
+    cmd.arg("init")
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    // Create target note in store2 with same ID but different title and tags
+    let mut cmd = qipu();
+    cmd.arg("create")
+        .arg("Different Title")
+        .arg("--id")
+        .arg(&target_id)
+        .arg("--tag")
+        .arg("store2-tag")
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    // 4. Load with merge-links strategy
+    let mut cmd = qipu();
+    cmd.arg("load")
+        .arg(&pack_file)
+        .arg("--strategy")
+        .arg("merge-links")
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    // 5. Verify the target note's ORIGINAL content is preserved
+    let output = qipu()
+        .arg("show")
+        .arg(&target_id)
+        .env("QIPU_STORE", store2_path)
+        .output()
+        .unwrap();
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+
+    // Title should be from store2 (original), not from pack
+    assert!(predicate::str::contains("Different Title").eval(&output_str));
+    assert!(!predicate::str::contains("Target Note").eval(&output_str));
+
+    // Tag from store2 should be preserved
+    assert!(predicate::str::contains("store2-tag").eval(&output_str));
+
+    // Link from pack should be added
+    assert!(predicate::str::contains(linked_id.as_str()).eval(&output_str));
+}

@@ -17,7 +17,7 @@ use base64::{engine::general_purpose, Engine as _};
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::config::STORE_FORMAT_VERSION;
 use crate::lib::error::{QipuError, Result};
-use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source, TypedLink};
+use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source};
 use crate::lib::store::Store;
 use model::{PackAttachment, PackLink, PackNote};
 
@@ -265,30 +265,14 @@ fn load_notes(
                     true
                 }
                 LoadStrategy::MergeLinks => {
-                    // Merge links from existing note into pack note
-                    if let Ok(existing_note) = store.get_note(note.id()) {
-                        // Union of links, deduplicating by (id, link_type)
-                        let existing_links = &existing_note.frontmatter.links;
-                        let pack_links: Vec<TypedLink> = note
-                            .frontmatter
-                            .links
-                            .iter()
-                            .filter(|l| {
-                                !existing_links
-                                    .iter()
-                                    .any(|el| el.id == l.id && el.link_type == l.link_type)
-                            })
-                            .cloned()
-                            .collect();
-                        note.frontmatter.links.extend(pack_links);
-
-                        tracing::debug!(
-                            title = %note.title(),
-                            id = %note.id(),
-                            "Merging links for note"
-                        );
-                    }
-                    true
+                    // Keep existing note content, only add links from pack
+                    // Return false to skip writing pack note content, but note will still be added to loaded_ids
+                    tracing::debug!(
+                        title = %note.title(),
+                        id = %note.id(),
+                        "Keeping existing note content, will merge links from pack"
+                    );
+                    false
                 }
             }
         } else {
@@ -302,6 +286,9 @@ fn load_notes(
             // Save note without overwriting pack timestamps
             write_note_preserving_updated(store, &note)?;
             loaded_count += 1;
+            loaded_ids.insert(note.id().to_string());
+        } else if matches!(strategy, LoadStrategy::MergeLinks) && existing_ids.contains(note.id()) {
+            // For merge-links, add existing note to loaded_ids so links will be processed
             loaded_ids.insert(note.id().to_string());
         }
     }

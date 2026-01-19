@@ -58,10 +58,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                     .ok_or_else(|| QipuError::NoteNotFound {
                         id: resolved_id.clone(),
                     })?;
-            selected_notes.push(SelectedNote {
-                note: *note,
-                via: None,
-            });
+            selected_notes.push(SelectedNote { note, via: None });
         }
 
         Ok(())
@@ -75,7 +72,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     // Selection by tag
     if let Some(tag_name) = options.tag {
-        let notes_with_tag = store.db().list_notes(None, Some(&tag_name), None)?;
+        let notes_with_tag = store.db().list_notes(None, Some(tag_name), None)?;
         for note in &notes_with_tag {
             let resolved_id = resolve_id(&note.id)?;
             insert_selected(resolved_id, None)?;
@@ -132,10 +129,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                         .ok_or_else(|| QipuError::NoteNotFound {
                             id: resolved_id.clone(),
                         })?;
-                selected_notes.push(SelectedNote {
-                    note: *note,
-                    via: None,
-                });
+                selected_notes.push(SelectedNote { note, via: None });
             }
         }
     }
@@ -191,7 +185,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                             id: resolved_id.clone(),
                         })?;
                 selected_notes.push(SelectedNote {
-                    note: *note,
+                    note,
                     via: Some(related_id.clone()),
                 });
             }

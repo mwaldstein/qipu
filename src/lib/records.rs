@@ -1,5 +1,4 @@
 /// Utilities for records output format
-
 /// Escape double quotes in a string for records format.
 /// Replaces `"` with `\"` to allow safe embedding in quoted fields.
 pub fn escape_quotes(s: &str) -> String {

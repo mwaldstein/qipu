@@ -192,7 +192,7 @@ mod tests {
         // Stats
         index.total_docs = 2;
         index.total_len = 6;
-        for term in vec!["apple", "banana", "cherry", "date"] {
+        for term in ["apple", "banana", "cherry", "date"] {
             let df = if term == "apple" || term == "banana" {
                 2
             } else {

@@ -7,6 +7,7 @@ use crate::lib::records::escape_quotes;
 use std::collections::HashMap;
 
 /// Output in JSON format
+#[allow(clippy::too_many_arguments)]
 pub fn output_json(
     cli: &Cli,
     store_path: &str,
@@ -59,7 +60,8 @@ pub fn output_json(
     }
 }
 
-/// Build JSON output for the given notes
+/// Build JSON output for given notes
+#[allow(clippy::too_many_arguments)]
 fn build_json_output(
     cli: &Cli,
     store_path: &str,
@@ -194,6 +196,7 @@ fn build_json_output(
 }
 
 /// Output in human-readable markdown format
+#[allow(clippy::too_many_arguments)]
 pub fn output_human(
     cli: &Cli,
     store_path: &str,
@@ -245,6 +248,7 @@ pub fn output_human(
 }
 
 /// Build human-readable markdown output for the given notes
+#[allow(clippy::too_many_arguments)]
 fn build_human_output(
     cli: &Cli,
     store_path: &str,
@@ -604,7 +608,7 @@ pub fn output_records(
 
         if let Some(line) = safety_line {
             let line_len = line.len() + 1;
-            if budget.map_or(true, |max| used + line_len <= max) {
+            if budget.is_none_or(|max| used + line_len <= max) {
                 used += line_len;
                 include_safety = true;
             } else {
@@ -615,7 +619,7 @@ pub fn output_records(
         let mut count = 0;
         for block in blocks {
             let block_len: usize = block.iter().map(|line| line.len() + 1).sum();
-            if budget.map_or(true, |max| used + block_len <= max) {
+            if budget.is_none_or(|max| used + block_len <= max) {
                 used += block_len;
                 count += 1;
             } else {

@@ -21,7 +21,6 @@ impl super::Database {
     /// - Title: 5.0x boost (via separate query)
     /// - Body: 0.0x (baseline, no explicit boost)
     /// - Tags: 8.0x boost (via separate query)
-    #[allow(dead_code)]
     pub fn search(
         &self,
         query: &str,
@@ -46,7 +45,6 @@ impl super::Database {
         let tag_filter_str = tag_filter.map(|t| t.to_string());
 
         let mut where_clause = String::new();
-        let mut filter_params: Vec<String> = Vec::new();
 
         if let Some(ref tf) = type_filter_str {
             where_clause.push_str(&format!(" AND n.type = '{}' ", tf));
@@ -67,7 +65,7 @@ impl super::Database {
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
-        let mut sql = format!(
+        let sql = format!(
             r#"
             WITH ranked_results AS (
               SELECT 
@@ -107,7 +105,7 @@ impl super::Database {
             where_clause, where_clause, where_clause
         );
 
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![
+        let params: Vec<Box<dyn rusqlite::ToSql>> = vec![
             Box::new(title_query.clone()),
             Box::new(tags_query.clone()),
             Box::new(fts_query.clone()),

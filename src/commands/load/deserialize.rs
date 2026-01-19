@@ -1,3 +1,5 @@
+#![allow(clippy::manual_strip)]
+
 use super::model::{PackAttachment, PackData, PackHeader, PackLink, PackNote, PackSource};
 use crate::lib::error::{QipuError, Result};
 use base64::{engine::general_purpose, Engine as _};
@@ -81,7 +83,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                 created: header_data
                     .get("created")
                     .and_then(|s| s.parse().ok())
-                    .unwrap_or_else(|| chrono::Utc::now()),
+                    .unwrap_or_else(chrono::Utc::now),
                 store_path: header_data.get("store").unwrap_or(&"").to_string(),
                 notes_count: header_data
                     .get("notes")

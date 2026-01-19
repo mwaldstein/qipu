@@ -11,6 +11,7 @@ pub struct HopCost(f32);
 impl HopCost {
     pub const DEFAULT: HopCost = HopCost(1.0);
 
+    #[allow(dead_code)]
     pub fn new(cost: f32) -> Self {
         HopCost(cost)
     }
@@ -47,10 +48,8 @@ impl From<u32> for HopCost {
 /// Get the hop cost for a given link type
 /// Returns 1.0 for all types in v1, but designed for future
 /// per-link-type cost configuration
-pub fn get_link_type_cost(link_type: &str) -> HopCost {
-    match link_type {
-        _ => HopCost::DEFAULT,
-    }
+pub fn get_link_type_cost(_link_type: &str) -> HopCost {
+    HopCost::DEFAULT
 }
 
 #[cfg(test)]

@@ -251,6 +251,7 @@ pub fn execute(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn output_list_records(
     entries: &[LinkEntry],
     store: &Store,
@@ -407,7 +408,7 @@ fn select_lines(header_len: usize, budget: Option<usize>, lines: &[String]) -> (
     let mut count = 0;
     for line in lines {
         let line_len = line.len() + 1;
-        if budget.map_or(true, |max| used + line_len <= max) {
+        if budget.is_none_or(|max| used + line_len <= max) {
             used += line_len;
             count += 1;
         } else {

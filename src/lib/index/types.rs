@@ -104,6 +104,7 @@ pub struct SearchResult {
 #[derive(Debug, Clone, Default)]
 pub struct Index {
     /// Index format version
+    #[allow(dead_code)]
     pub version: u32,
     /// Metadata index: id -> note metadata
     pub metadata: HashMap<String, NoteMetadata>,

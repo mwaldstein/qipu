@@ -85,7 +85,7 @@ fn output_tree_json(
     let mut json_result = serde_json::to_value(result)?;
     // Add compacted IDs if --with-compaction-ids is set
     if cli.with_compaction_ids {
-        if let Some(ref ctx) = compaction_ctx {
+        if let Some(ctx) = compaction_ctx {
             if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut()) {
                 for note in notes {
                     if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
@@ -255,7 +255,6 @@ fn output_tree_human(
 }
 
 /// Output tree in records format
-
 fn output_tree_records(
     result: &TreeResult,
     store: &Store,
@@ -342,7 +341,7 @@ fn output_tree_records(
         let mut count = 0;
         for line in lines {
             let line_len = line.len() + 1;
-            if budget.map_or(true, |max| used + line_len <= max) {
+            if budget.is_none_or(|max| used + line_len <= max) {
                 used += line_len;
                 count += 1;
             } else {

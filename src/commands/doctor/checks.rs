@@ -189,6 +189,7 @@ pub fn check_broken_links(store: &Store, result: &mut DoctorResult) {
 }
 
 /// Check for orphaned notes (notes with no incoming links)
+#[allow(dead_code)]
 pub fn check_orphaned_notes(store: &Store, result: &mut DoctorResult) {
     let db = store.db();
 

@@ -91,7 +91,7 @@ impl CompactionContext {
     }
 
     /// Build note map from notes for efficient lookups
-    pub fn build_note_map<'a>(all_notes: &'a [Note]) -> HashMap<&'a str, &'a Note> {
+    pub fn build_note_map(all_notes: &[Note]) -> HashMap<&str, &Note> {
         all_notes
             .iter()
             .map(|note| (note.frontmatter.id.as_str(), note))

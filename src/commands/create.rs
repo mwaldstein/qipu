@@ -16,6 +16,7 @@ use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Execute the create command
+#[allow(clippy::too_many_arguments)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

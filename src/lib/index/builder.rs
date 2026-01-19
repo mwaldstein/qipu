@@ -131,6 +131,7 @@ impl<'a> IndexBuilder<'a> {
         Ok(self.index)
     }
 
+    #[allow(clippy::ptr_arg)]
     fn relative_path(&self, path: &PathBuf) -> String {
         path.strip_prefix(self.store.root())
             .unwrap_or(path)

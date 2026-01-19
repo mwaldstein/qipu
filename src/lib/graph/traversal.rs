@@ -353,10 +353,8 @@ pub fn bfs_find_path(
                         if filter_edge(&virtual_edge, opts) {
                             neighbors.push((virtual_edge.to.clone(), virtual_edge));
                         }
-                    } else {
-                        if filter_edge(&edge, opts) {
-                            neighbors.push((edge.from.clone(), edge));
-                        }
+                    } else if filter_edge(&edge, opts) {
+                        neighbors.push((edge.from.clone(), edge));
                     }
                 }
             }

@@ -1,9 +1,11 @@
 # Qipu Implementation Plan
 
-## Status (Last Audited: 2026-01-18)
-- Test baseline: `cargo test` passes (2026-01-18, 206/209 - 3 pre-existing FTS5 ranking failures; 8 new tests added).
+## Status (Last Audited: 2026-01-19)
+- Test baseline: `cargo test` passes (2026-01-19, 213/213 - all tests pass).
+- Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes (2026-01-19).
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
-- All P1 correctness bugs completed (2026-01-18).
+- All P1, P2, P3, P4 items completed (2026-01-19).
+- All clippy warnings fixed (2026-01-19).
 
 ## Technology Choices
 

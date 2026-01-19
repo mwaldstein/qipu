@@ -310,7 +310,6 @@ fn output_path_human(cli: &Cli, result: &PathResult, compaction_ctx: Option<&Com
 }
 
 /// Output path in records format
-
 fn output_path_records(
     result: &PathResult,
     store: &Store,
@@ -402,7 +401,7 @@ fn output_path_records(
         let mut count = 0;
         for line in lines {
             let line_len = line.len() + 1;
-            if budget.map_or(true, |max| used + line_len <= max) {
+            if budget.is_none_or(|max| used + line_len <= max) {
                 used += line_len;
                 count += 1;
             } else {

@@ -1,5 +1,7 @@
 //! Command dispatch logic for qipu
 
+#![allow(clippy::ptr_arg)]
+
 use std::env;
 use std::path::PathBuf;
 use std::time::Instant;

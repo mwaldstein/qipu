@@ -13,15 +13,12 @@ pub use types::{Edge, Index, LinkSource, SearchResult};
 
 #[cfg(test)]
 mod tests {
-    use super::types::{NoteMetadata, INDEX_VERSION};
+    use super::types::INDEX_VERSION;
     use super::*;
     use crate::lib::note::{Note, NoteFrontmatter};
-    use crate::lib::store::{InitOptions, Store};
+
     use std::collections::HashSet;
     use std::path::PathBuf;
-    use std::thread::sleep;
-    use std::time::Duration;
-    use tempfile::tempdir;
 
     fn make_note(id: &str, title: &str, body: &str) -> Note {
         let fm = NoteFrontmatter::new(id.to_string(), title.to_string());

@@ -222,7 +222,7 @@ fn load_notes(
         let should_load = if existing_ids.contains(note.id()) {
             // For overwrite strategy, get the existing note's path to overwrite it in place
             if matches!(strategy, LoadStrategy::Overwrite) {
-                if let Ok(existing_note) = store.get_note(&note.id()) {
+                if let Ok(existing_note) = store.get_note(note.id()) {
                     if let Some(existing_path) = existing_note.path {
                         note.path = Some(existing_path);
                     }
@@ -266,7 +266,7 @@ fn load_notes(
                 }
                 LoadStrategy::MergeLinks => {
                     // Merge links from existing note into pack note
-                    if let Ok(existing_note) = store.get_note(&note.id()) {
+                    if let Ok(existing_note) = store.get_note(note.id()) {
                         // Union of links, deduplicating by (id, link_type)
                         let existing_links = &existing_note.frontmatter.links;
                         let pack_links: Vec<TypedLink> = note
@@ -341,12 +341,7 @@ fn load_links(
                     // Check if link already exists to avoid duplicates
                     let link_exists = source_note.frontmatter.links.iter().any(|l| {
                         l.id == pack_link.to.as_str()
-                            && l.link_type.to_string()
-                                == pack_link
-                                    .link_type
-                                    .as_ref()
-                                    .map(|s| s.as_str())
-                                    .unwrap_or("")
+                            && l.link_type == pack_link.link_type.as_deref().unwrap_or("")
                     });
 
                     if !link_exists {

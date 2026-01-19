@@ -54,6 +54,7 @@ pub fn tokenize_with_stemming(text: &str, stem: bool) -> Vec<String> {
 }
 
 /// Calculate BM25 score for a piece of text against a set of query terms
+#[allow(dead_code)]
 pub fn calculate_bm25(
     query_terms: &[String],
     text: &str,

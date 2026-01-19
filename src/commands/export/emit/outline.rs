@@ -9,6 +9,7 @@ use crate::lib::note::Note;
 use crate::lib::store::Store;
 use std::collections::{HashMap, HashSet};
 
+#[allow(clippy::too_many_arguments)]
 pub fn export_outline(
     notes: &[Note],
     store: &Store,

@@ -144,7 +144,7 @@ pub fn serialize_pack_records(
         if let Some(verified) = note.frontmatter.verified {
             output.push_str(&format!(" verified={}", verified));
         }
-        output.push_str("\n");
+        output.push('\n');
 
         // Note content line (base64 encoded for safe transport)
         if !note.body.is_empty() {

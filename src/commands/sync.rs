@@ -48,11 +48,9 @@ pub fn execute(
 
             let result = (|| -> Result<()> {
                 // Commit if requested and there are changes
-                if commit {
-                    if git::has_changes(repo_root)? {
-                        git::add(repo_root, ".")?;
-                        git::commit(repo_root, "qipu sync: update notes and indexes")?;
-                    }
+                if commit && git::has_changes(repo_root)? {
+                    git::add(repo_root, ".")?;
+                    git::commit(repo_root, "qipu sync: update notes and indexes")?;
                 }
 
                 // Push if requested

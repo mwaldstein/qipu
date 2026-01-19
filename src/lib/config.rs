@@ -51,7 +51,7 @@ pub struct GraphConfig {
 }
 
 /// Configuration for a single link type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LinkTypeConfig {
     /// Inverse link type
     #[serde(default)]
@@ -60,15 +60,6 @@ pub struct LinkTypeConfig {
     /// Human-readable description
     #[serde(default)]
     pub description: Option<String>,
-}
-
-impl Default for LinkTypeConfig {
-    fn default() -> Self {
-        LinkTypeConfig {
-            inverse: None,
-            description: None,
-        }
-    }
 }
 
 impl StoreConfig {

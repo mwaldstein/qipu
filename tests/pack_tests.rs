@@ -51,7 +51,7 @@ fn test_pack_unpack_json_roundtrip() {
     // Find the note file and inject high-fidelity fields
     for entry in walkdir::WalkDir::new(store1_path) {
         let entry = entry.unwrap();
-        if entry.file_type().is_file() && entry.path().extension().map_or(false, |e| e == "md") {
+        if entry.file_type().is_file() && entry.path().extension().is_some_and(|e| e == "md") {
             let content = fs::read_to_string(entry.path()).unwrap();
             if content.contains(&note_id) {
                 let updated_content = content.replace(
@@ -144,7 +144,7 @@ fn test_pack_unpack_records_roundtrip() {
     // Injected fields
     for entry in walkdir::WalkDir::new(store1_path) {
         let entry = entry.unwrap();
-        if entry.file_type().is_file() && entry.path().extension().map_or(false, |e| e == "md") {
+        if entry.file_type().is_file() && entry.path().extension().is_some_and(|e| e == "md") {
             let content = fs::read_to_string(entry.path()).unwrap();
             if content.contains(&note_id) {
                 let updated_content = content.replace(

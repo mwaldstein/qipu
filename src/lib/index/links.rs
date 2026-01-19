@@ -1,3 +1,5 @@
+#![allow(clippy::unnecessary_unwrap)]
+
 use super::types::{Edge, LinkSource};
 use crate::lib::note::Note;
 use regex::Regex;

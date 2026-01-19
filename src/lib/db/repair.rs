@@ -7,6 +7,7 @@ impl super::Database {
     ///
     /// Finds files changed since the last sync timestamp, re-parses and updates
     /// those entries, and removes entries for deleted files.
+    #[allow(dead_code)]
     pub fn incremental_repair(&self, store_root: &Path) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};

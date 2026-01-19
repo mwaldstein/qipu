@@ -57,6 +57,7 @@ impl Store {
     }
 
     /// Get a note by ID using an index for fast path lookup
+    #[allow(dead_code)]
     pub fn get_note_with_index(&self, id: &str, _index: &crate::lib::index::Index) -> Result<Note> {
         self.get_note_internal(id)
     }

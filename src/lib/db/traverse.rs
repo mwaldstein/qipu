@@ -4,6 +4,7 @@ use rusqlite::params;
 
 impl super::Database {
     /// Perform graph traversal using recursive CTE
+    #[allow(dead_code)]
     pub fn traverse(
         &self,
         start_id: &str,

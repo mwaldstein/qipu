@@ -1,5 +1,7 @@
 //! Handlers for I/O commands (export, dump, load)
 
+#![allow(clippy::ptr_arg)]
+
 use std::path::PathBuf;
 use std::time::Instant;
 

@@ -7,6 +7,8 @@
 //! - Include attachments by default, `--no-attachments` flag
 //! - Output: stdout by default, or `--output <path>` for file
 
+#![allow(clippy::single_match)]
+
 pub mod model;
 pub mod serialize;
 

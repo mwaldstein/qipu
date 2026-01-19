@@ -6,6 +6,7 @@ use crate::lib::store::Store;
 use std::env;
 use std::path::PathBuf;
 
+#[allow(clippy::too_many_arguments)]
 pub fn execute(
     cli: &Cli,
     name: &str,

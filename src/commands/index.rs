@@ -4,6 +4,8 @@
 //! - `qipu index` - build/refresh indexes
 //! - `qipu index --rebuild` - drop and regenerate
 //!
+#![allow(clippy::if_same_then_else)]
+
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
 use crate::lib::store::Store;

@@ -1,5 +1,4 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
-use predicates;
 use tempfile::tempdir;
 
 fn qipu() -> Command {
@@ -174,21 +173,21 @@ fn test_workspace_delete_protection() {
     // 2. Create a workspace
     qipu()
         .current_dir(root)
-        .args(&["workspace", "new", "test_ws"])
+        .args(["workspace", "new", "test_ws"])
         .assert()
         .success();
 
     // 3. Add a note to the workspace (unmerged change)
     qipu()
         .current_dir(root)
-        .args(&["create", "My Note", "--workspace", "test_ws"])
+        .args(["create", "My Note", "--workspace", "test_ws"])
         .assert()
         .success();
 
     // 4. Try to delete without --force (should fail with the fix)
     qipu()
         .current_dir(root)
-        .args(&["workspace", "delete", "test_ws"])
+        .args(["workspace", "delete", "test_ws"])
         .assert()
         .failure()
         .stderr(predicates::str::contains("unmerged changes"));
@@ -196,7 +195,7 @@ fn test_workspace_delete_protection() {
     // 5. Try to delete WITH --force (should succeed)
     qipu()
         .current_dir(root)
-        .args(&["workspace", "delete", "test_ws", "--force"])
+        .args(["workspace", "delete", "test_ws", "--force"])
         .assert()
         .success();
 

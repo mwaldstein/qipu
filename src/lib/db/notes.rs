@@ -209,6 +209,7 @@ impl super::Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn delete_note(&self, note_id: &str) -> Result<()> {
         self.conn
             .execute(
@@ -293,6 +294,7 @@ impl super::Database {
         Ok(())
     }
 
+    #[allow(clippy::unnecessary_unwrap)]
     pub fn list_notes(
         &self,
         type_filter: Option<NoteType>,

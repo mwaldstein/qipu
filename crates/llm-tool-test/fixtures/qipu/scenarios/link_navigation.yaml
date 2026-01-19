@@ -1,6 +1,7 @@
 name: link_navigation
 description: "Link navigation scenario"
 fixture: qipu
+tier: 1
 task:
   prompt: "Create two notes: one about 'Cats' and one about 'Dogs'. Then link 'Cats' to 'Dogs' with type 'related'."
 evaluation:

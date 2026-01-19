@@ -520,9 +520,9 @@ fn test_search_exact_tag_match_ranks_above_body() {
 }
 
 #[test]
-fn test_search_title_only_match_included_with_ripgrep_results() {
-    // Regression test: ensure title-only matches are found even when ripgrep
-    // returns other results (so we don't fall back to embedded search)
+fn test_search_title_only_match_with_body_matches() {
+    // Regression test: ensure title-only matches are found alongside body matches
+    // when using SQLite FTS5 search
     let dir = tempdir().unwrap();
 
     qipu()
@@ -577,8 +577,8 @@ fn test_search_title_only_match_included_with_ripgrep_results() {
         .success();
 
     // Search for "musical" which appears in:
-    // - Xylophone Musical title (ripgrep won't find it if it's only in frontmatter)
-    // - Generic Note body (ripgrep WILL find this)
+    // - Xylophone Musical title (FTS5 will find it via title field)
+    // - Generic Note body (FTS5 will find it via body field)
     // Both should appear in results
     let output = qipu()
         .current_dir(dir.path())

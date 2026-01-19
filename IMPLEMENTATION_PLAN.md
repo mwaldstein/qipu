@@ -333,17 +333,22 @@ Replaced `store.list_notes()` + in-memory filtering with DB queries:
 
 ### Phase 4: Remove Legacy Components
 
-#### 4.1: Delete ripgrep integration
-File: `src/lib/index/search.rs`
+#### 4.1: Delete ripgrep integration ✅ COMPLETE
+File: `src/lib/index/search.rs`, `src/lib/index/mod.rs`, `tests/cli/search.rs`
 
-Delete entirely:
-- Lines 13-48: `RipgrepMatch`, `RipgrepBeginData`, `RipgrepEndData`, `RipgrepMatchData`, `RipgrepText` structs
-- Lines 80-87: `is_ripgrep_available()` function
-- Lines 101-301: `search_with_ripgrep()` function
-- Lines 303-429: `search_embedded()` function (replaced by DB search)
-- Lines 431-450: `search()` function wrapper
+Deleted entirely:
+- `src/lib/index/search.rs` - Complete file deletion
+- Removed `pub mod search;` and `pub use search::search;` from `src/lib/index/mod.rs`
+- Updated imports in `src/commands/dump/mod.rs` and `src/commands/export/plan.rs`:
+  - Removed `search` import from `crate::lib::index`
+  - Changed `search(store, index, query, None, None)` to `store.db().search(query, None, None, 200)`
+- Updated test name in `tests/cli/search.rs`:
+  - Renamed `test_search_title_only_match_included_with_ripgrep_results` to `test_search_title_only_match_with_body_matches`
+  - Updated comments to remove ripgrep references
 
-After removal, `src/lib/index/search.rs` should only contain utility functions if any are still needed, or can be deleted entirely.
+**Verified**: All tests pass (189/192). 3 ranking tests fail as documented in Phase 3.1 - these are pre-existing FTS5 ranking issues, not caused by ripgrep removal.
+
+**Learning**: The `search()` function from the old index module was replaced by SQLite FTS5 search via `store.db().search()`. The new signature requires a `limit` parameter (set to 200 based on old code).
 
 #### 4.2: Delete JSON cache code
 Files to modify:

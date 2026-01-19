@@ -9,11 +9,9 @@
 pub mod builder;
 pub mod cache;
 pub mod links;
-pub mod search;
 pub mod types;
 
 pub use builder::IndexBuilder;
-pub use search::search;
 pub use types::{Edge, Index, LinkSource, SearchResult};
 
 #[cfg(test)]

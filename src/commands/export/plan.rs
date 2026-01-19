@@ -1,7 +1,7 @@
 use super::ExportOptions;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
-use crate::lib::index::{search, Index};
+use crate::lib::index::Index;
 use crate::lib::note::Note;
 use crate::lib::store::Store;
 use std::collections::HashSet;
@@ -51,7 +51,7 @@ pub fn collect_notes(
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = search(store, index, q, None, None)?;
+        let results = store.db().search(q, None, None, 200)?;
         for result in results {
             if seen_ids.insert(result.id.clone()) {
                 if let Ok(note) = store.get_note(&result.id) {

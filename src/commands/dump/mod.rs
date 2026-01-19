@@ -18,7 +18,7 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::graph::{Direction, TreeOptions};
-use crate::lib::index::{search, Index, IndexBuilder};
+use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::note::Note;
 use crate::lib::store::Store;
 
@@ -131,7 +131,7 @@ fn collect_notes_with_traversal(
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = search(store, index, q, None, None)?;
+        let results = store.db().search(q, None, None, 200)?;
         for result in results {
             add_note_internal(store, &mut selected_notes, &mut seen_ids, &result.id)?;
         }

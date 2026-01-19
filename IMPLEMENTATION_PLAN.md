@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 ## Status (Last Audited: 2026-01-19)
-- Test baseline: `cargo test` passes (351/351 tests)
+- Test baseline: `cargo test` passes (376/376 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 
 ---
@@ -33,7 +33,8 @@ Commands missing tracing instrumentation (39 files):
 Command files with no unit tests (integration tests may exist):
 - [x] Add unit tests to `src/commands/search.rs` (350 lines, high-value)
   - Added 13 unit tests covering: empty query, no results, type/tag filters, MOC exclusion, all output formats, compaction resolution, verbose/quiet modes
-- [ ] Add unit tests to `src/commands/show.rs` (366 lines)
+- [x] Add unit tests to `src/commands/show.rs` (366 lines)
+  - Added 12 unit tests covering: show by ID/file path, nonexistent ID, all output formats (json/human/records), show with links, compaction resolution, verbose mode
 - [ ] Add unit tests to `src/commands/setup.rs` (378 lines)
 - [ ] Add unit tests to `src/commands/list.rs` (231 lines)
 - [ ] Add CLI test file for workspace commands (`tests/cli/workspace.rs`)

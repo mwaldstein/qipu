@@ -40,3 +40,4 @@ Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
 - **IMPLEMENTATION_PLAN.md**: Status, progress, blockers, learnings (clean completed items periodically)
 - **AGENTS.md**: Commands only; timeless operational facts
 - **Specs wrong?**: Update `specs/*.md` directly
+- **If no changes required:** COMPLETE

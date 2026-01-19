@@ -25,6 +25,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`pack.md`](pack.md) | Pack | Single-file dump/load for sharing raw knowledge |
 | [`workspaces.md`](workspaces.md) | Workspaces | Temporary and secondary stores for agent tasks |
 | [`structured-logging.md`](structured-logging.md) | Infrastructure | Structured logging framework with tracing support |
+| [`operational-database.md`](operational-database.md) | Database | SQLite as operational layer, FTS5, schema |
+| [`telemetry.md`](telemetry.md) | Telemetry | DRAFT - usage analytics (not implemented) |
 
 ## Status Tracking
 
@@ -32,27 +34,29 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-18*
+*Last audited: 2026-01-19*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | `--root` behavior untested (`src/cli/mod.rs:29-33`); verbose timing keys incomplete (`src/main.rs:64-66`) |
-| `knowledge-model.md` | ✅ | ⚠️ | ✅ | Note type is a closed enum (`src/lib/note/types.rs:6-19`); tag aliases not implemented |
-| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Markdown links only resolved if `qp-...` appears (`src/lib/index/links.rs:57-107`); `qipu.db` not implemented |
-| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Some post-parse arg errors exit 1 not 2 (`src/commands/dispatch.rs:300-306`); `load --format records` header diverges (`src/commands/load/mod.rs:113-136`) |
-| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | SQLite FTS5 not yet implemented (currently uses ripgrep/embedded search); see `operational-database.md` for migration plan |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Custom type config schema differs from spec (`src/lib/config.rs:40-69`); "prefer typed links under budget" not implemented in context (`src/commands/context/select.rs:14-32`) |
-| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | "(seen)" refs not rendered; `max_hops` doesn't set `truncated=true` (`src/lib/graph/traversal.rs:87-90`); type filters + direction=in/both missing tests |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Stop words + stemming missing; similarity uses BM25-weighted vectors with `tf=1` (`src/lib/similarity/mod.rs:33-37`) |
-| `records-output.md` | ✅ | ⚠️ | ✅ | Schema drift: extra prefixes (`W/D/C/M`) + `B-END`; header field ordering differs across commands (`src/commands/context/output.rs:445-449`) |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Human/JSON budgeting can violate `--max-chars` due to summary estimate vs full body output (`src/commands/context/budget.rs:97-103`); JSON lacks safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness exists but many spec features missing; tool default mismatch (`crates/llm-tool-test/src/cli.rs:22-25`); rubric schema mismatch (`crates/llm-tool-test/src/judge.rs:5-17`) |
-| `provenance.md` | ✅ | ⚠️ | ⚠️ | `create/capture/context --format json` omit provenance fields (`src/commands/create.rs:52-63`, `src/commands/context/output.rs:18-42`) |
-| `export.md` | ✅ | ⚠️ | ⚠️ | MOC bundle ordering not honored (`src/commands/export/mod.rs:101-103`); anchor rewriting likely broken (`src/commands/export/emit/links.rs:16-18`); attachments copied without link rewrite (`src/commands/export/mod.rs:164-167`) |
-| `compaction.md` | ✅ | ⚠️ | ⚠️ | JSON outputs omit compaction truncation flag (`src/commands/list.rs:88-97`); `--expand-compaction` drops truncation reporting (`src/commands/context/output.rs:72-110`) |
-| `pack.md` | ✅ | ❌ | ⚠️ | `merge-links` semantics wrong (`src/commands/load/mod.rs:198`); dump filters inverted (`src/commands/dump/mod.rs:36-41`); pack encoding depends on `--format` (`src/commands/dump/mod.rs:52-62`) |
-| `workspaces.md` | ✅ | ⚠️ | ⚠️ | `--dry-run` lacks conflict report (`src/commands/workspace/merge.rs:82-84`); `--empty` ignored (`src/commands/workspace/new.rs:13-14`); overwrite can leave duplicate note files (`src/commands/workspace/merge.rs:89-107`) |
-| `structured-logging.md` | ✅ | ⚠️ | ❌ | Tracing init + flags exist, but no span/event instrumentation; still many `eprintln!` callsites |
+| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; `--root` tested; verbose timing has `discover_store` key |
+| `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields implemented; tag aliases optional/not implemented |
+| `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter fields; `qipu.db` implemented |
+| `cli-interface.md` | ✅ | ✅ | ✅ | All commands implemented with correct exit codes |
+| `indexing-search.md` | ✅ | ✅ | ✅ | SQLite FTS5 complete; ripgrep removed; BM25 ranking |
+| `semantic-graph.md` | ✅ | ✅ | ✅ | Config schema aligned; semantic inversion works; virtual edges |
+| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; "(seen)" in human output; truncation flags |
+| `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; cosine similarity; Porter stemming; stop words; duplicate detection |
+| `records-output.md` | ✅ | ✅ | ✅ | All prefixes documented (H/N/S/E/B/W/D/C/M/L/A + B-END) |
+| `llm-context.md` | ✅ | ✅ | ✅ | Budget enforcement; --transitive; --backlinks; --related; safety banner |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, some scenario fields |
+| `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
+| `export.md` | ✅ | ✅ | ✅ | MOC ordering; anchor rewriting; attachment link rewriting |
+| `compaction.md` | ✅ | ✅ | ✅ | All commands; all flags; truncation indicators |
+| `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run/--empty |
+| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing init works; tests pass; 16 eprintln! remain |
+| `operational-database.md` | ✅ | ✅ | ✅ | SQLite complete; FTS5; schema version; incremental repair |
+| `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
 
@@ -60,30 +64,22 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 - ⚠️ Partial / Has gaps
 - ❌ Not implemented / No coverage
 
-## Detailed Gap Summary
+## Remaining Gaps
 
-### P1: Correctness Issues
-- **pack.md**: `load --strategy merge-links` and dump `--typed-only/--inline-only` filtering do not match spec (`src/commands/load/mod.rs:198`, `src/commands/dump/mod.rs:36-41`)
-- **workspaces.md**: `workspace merge --dry-run` lacks conflict report and prints success-like message (`src/commands/workspace/merge.rs:82-84`)
-- **export.md**: anchor link rewriting likely broken (rewrites to `#note-<id>` without emitting anchors) (`src/commands/export/emit/links.rs:16-18`)
-- **llm-context.md**: budgeting can be violated due to summary estimates while output emits full bodies (`src/commands/context/budget.rs:97-103`)
-- **indexing-search.md**: SQLite FTS5 not yet implemented; ripgrep/embedded search still in use (see `operational-database.md`)
-- **cli-interface.md**: some invalid-arg errors return exit code 1 instead of 2 (`src/commands/dispatch.rs:300-306`)
+### P3: Optional / Low Priority
 
-### P2: Missing Test Coverage
-- `cli-tool.md`: `--root` behavior
-- `graph-traversal.md`: type filters, typed-only/inline-only, direction=in/both
-- `provenance.md`: `prompt_hash` via CLI create/capture
-- `export.md`: MOC bundle ordering, anchor existence, attachment link validity
-- `structured-logging.md`: runtime logging behaviors
+| Spec | Gap | Notes |
+| --- | --- | --- |
+| `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented; `load_indexes`/`execute_command` missing |
+| `structured-logging.md` | eprintln! cleanup | 16 callsites remain; should use tracing |
+| `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
+| `llm-user-validation.md` | Scenario schema | Missing id, tags, docs.prime, setup, etc. |
+| `workspaces.md` | Test coverage | Need --dry-run and --empty tests |
+| `operational-database.md` | validate_consistency() | Method exists but not called on startup |
 
-### P1.5: SQLite Operational Database
-- `operational-database.md`: SQLite as performance layer, JSON remains source of truth
+### Not Applicable
 
-### P3: Future/Optional Items
-- Stemming (similarity-ranking)
-- Backlinks-in-context (llm-context)
-
-### P4: Spec ambiguity / drift
-- semantic-graph custom type config schema differs from spec
-- records-output has extra record prefixes + `B-END` terminator
+| Spec | Reason |
+| --- | --- |
+| `telemetry.md` | DRAFT spec explicitly prohibits implementation |
+| `knowledge-model.md` tag aliases | Marked as optional in spec |

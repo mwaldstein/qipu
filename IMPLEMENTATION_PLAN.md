@@ -539,10 +539,18 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
     * Canonical note detection
 
 #### `specs/structured-logging.md`
-- [ ] Add tests for `--log-level`, `--log-json`, `QIPU_LOG` behavior
+- [x] Add tests for `--log-level`, `--log-json`, `QIPU_LOG` behavior
   - Test: Verify `--log-json` produces JSON output, `--log-level debug` shows debug messages
   - Test: Verify `QIPU_LOG=trace` overrides CLI flags
   - File: `tests/cli/logging.rs` (new)
+  - Added `tests/cli/logging.rs` with 6 tests:
+    * `test_log_level_debug_shows_debug_messages` - Verifies debug level shows debug messages
+    * `test_log_level_warn_hides_debug_messages` - Verifies warn level hides debug messages
+    * `test_verbose_shows_debug_messages` - Verifies --verbose flag shows debug messages
+    * `test_log_json_produces_valid_json` - Verifies --log-json produces valid JSON output
+    * `test_qipu_log_env_overrides_cli_flags` - Verifies QIPU_LOG env overrides CLI flags
+    * `test_qipu_log_env_without_target` - Verifies QIPU_LOG=debug works without target
+  - All tests pass (6/6)
 
 #### `specs/llm-context.md`
 - [ ] Add test for `--max-chars` / `--max-tokens` budget enforcement

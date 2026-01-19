@@ -349,6 +349,7 @@ mod tests {
                 gates: vec![Gate::MinNotes { count: 1 }],
                 judge: None,
             },
+            tier: 0,
             tool_matrix: None,
         };
 
@@ -376,6 +377,7 @@ mod tests {
                 gates: vec![Gate::MinNotes { count: 2 }],
                 judge: None,
             },
+            tier: 0,
             tool_matrix: None,
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
@@ -395,6 +397,7 @@ mod tests {
                 }],
                 judge: None,
             },
+            tier: 0,
             tool_matrix: None,
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
@@ -413,6 +416,7 @@ mod tests {
                 }],
                 judge: None,
             },
+            tier: 0,
             tool_matrix: None,
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();

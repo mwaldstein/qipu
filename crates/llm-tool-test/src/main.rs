@@ -287,6 +287,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Run {
             scenario,
             tags: _,
+            tier,
             tool,
             model,
             tools,
@@ -338,14 +339,53 @@ fn main() -> anyhow::Result<()> {
                 println!("No scenario specified. Use --scenario <path>");
             }
         }
-        Commands::List { tags: _ } => {
-            let records = results_db.load_all()?;
-            println!("Recent runs: {}", records.len());
-            for record in records.iter().rev().take(10) {
-                println!(
-                    "  {} - {} ({}) - {}",
-                    record.id, record.scenario_id, record.tool, record.outcome
-                );
+        Commands::List { tags: _, tier } => {
+            let mut scenarios = Vec::new();
+
+            let scenario_dir = std::path::PathBuf::from("fixtures");
+            if scenario_dir.exists() {
+                let entries = match std::fs::read_dir(&scenario_dir) {
+                    Ok(entries) => entries,
+                    Err(e) => {
+                        anyhow::bail!("Cannot read scenario directory: {}", e);
+                    }
+                };
+
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if path.is_file() {
+                            if let Some(name) = path.file_stem() {
+                                let yaml_path = scenario_dir.join(name).with_extension("yaml");
+                                if yaml_path.exists() {
+                                    if let Ok(s) = scenario::load(&yaml_path) {
+                                        if s.tier <= *tier {
+                                            scenarios.push((
+                                                name.to_string_lossy().to_string(),
+                                                s.tier,
+                                                s.description,
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            scenarios.sort_by(|a, b| a.1.cmp(&b.1));
+
+            let tier_label = match *tier {
+                0 => "smoke",
+                1 => "quick",
+                2 => "standard",
+                3 => "comprehensive",
+                _ => "unknown",
+            };
+            println!("Available scenarios (tier {}):", tier_label);
+            for (name, tier, description) in &scenarios {
+                println!("  [{}] {} - {}", tier_label, name, description);
             }
         }
         Commands::Show { name } => {

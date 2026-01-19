@@ -328,9 +328,9 @@ Human review happens out-of-band after runs complete—runs are never paused:
    - Files modified: adapter/mod.rs, adapter/opencode.rs, adapter/amp.rs, adapter/claude_code.rs, results.rs, main.rs
 
 ##### Scenario Tiers
-- [ ] Add `tier` field to scenario schema (0=smoke, 1=quick, 2=standard, 3=comprehensive)
+- [x] Add `tier` field to scenario schema (0=smoke, 1=quick, 2=standard, 3=comprehensive)
   - File: `crates/llm-tool-test/src/scenario.rs`
-- [ ] Add `--tier` CLI flag to filter scenarios by tier
+- [x] Add `--tier` CLI flag to filter scenarios by tier
   - Tier N runs all scenarios with tier <= N
   - File: `crates/llm-tool-test/src/cli.rs`
 - [ ] Create tier 0 (smoke) scenario: single `qipu create` command

@@ -19,6 +19,10 @@ pub enum Commands {
         #[arg(long)]
         tags: Vec<String>,
 
+        /// Filter scenarios by tier (0=smoke, 1=quick, 2=standard, 3=comprehensive)
+        #[arg(long, default_value = "0")]
+        tier: usize,
+
         /// Tool to test (e.g., amp, claude-code, opencode)
         #[arg(long, default_value = "opencode")]
         tool: String,
@@ -60,6 +64,10 @@ pub enum Commands {
         /// Filter by tags
         #[arg(long)]
         tags: Vec<String>,
+
+        /// Filter scenarios by tier (0=smoke, 1=quick, 2=standard, 3=comprehensive)
+        #[arg(long, default_value = "0")]
+        tier: usize,
     },
     /// Show details of a scenario
     Show {

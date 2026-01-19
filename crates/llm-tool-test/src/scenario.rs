@@ -8,8 +8,14 @@ pub struct Scenario {
     pub fixture: String,
     pub task: Task,
     pub evaluation: Evaluation,
+    #[serde(default = "default_tier")]
+    pub tier: usize,
     #[serde(default)]
     pub tool_matrix: Option<Vec<ToolConfig>>,
+}
+
+fn default_tier() -> usize {
+    0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,5 +137,43 @@ tool_matrix:
         assert!(matrix[0].models.is_empty());
         assert_eq!(matrix[1].tool, "amp");
         assert!(matrix[1].models.is_empty());
+    }
+
+    #[test]
+    fn test_load_scenario_with_tier() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+tier: 1
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.tier, 1);
+        assert!(scenario.tool_matrix.is_none());
+    }
+
+    #[test]
+    fn test_default_tier() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.tier, 0);
     }
 }

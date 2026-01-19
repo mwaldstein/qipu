@@ -25,7 +25,7 @@ Commands missing tracing instrumentation:
 - [ ] `src/commands/workspace/{list,merge,new}.rs`
 
 ### Test Coverage Gaps
-- [ ] Add unit tests to `src/commands/list.rs` (231 lines)
+- [x] Add unit tests to `src/commands/list.rs` (231 lines)
 - [ ] Add CLI tests for workspace commands (`new`, `list`, `delete`)
 
 ---

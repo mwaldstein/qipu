@@ -478,9 +478,12 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
 ### Remaining
 
 #### `specs/provenance.md`
-- [ ] Add CLI test for `--prompt-hash` via `create` or `capture`
+- [x] Add CLI test for `--prompt-hash` via `create` or `capture`
   - Test: Create note with `--prompt-hash`, verify it appears in frontmatter
-  - File: `tests/cli/capture.rs`
+  - File: `tests/cli/create.rs`
+  - Added `test_create_prompt_hash_in_frontmatter()` which creates a note with `--prompt-hash` flag
+  - Verifies the markdown file contains `prompt_hash: <value>` in frontmatter
+  - Used `fs::read_dir()` to find the created file and read its content
 
 #### `specs/export.md`
 - [ ] Add test validating anchor rewriting produces existing target anchor

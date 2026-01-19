@@ -1,5 +1,6 @@
 use crate::cli::support::qipu;
 use predicates::prelude::*;
+use std::fs;
 use tempfile::tempdir;
 
 // ============================================================================
@@ -80,7 +81,7 @@ fn test_create_json_format() {
 }
 
 #[test]
-fn test_new_alias() {
+fn test_create_prompt_hash_in_frontmatter() {
     let dir = tempdir().unwrap();
 
     qipu()
@@ -89,13 +90,33 @@ fn test_new_alias() {
         .assert()
         .success();
 
-    // 'new' should work like 'create'
+    // Create note with --prompt-hash
     qipu()
         .current_dir(dir.path())
-        .args(["new", "Alias Test"])
+        .args([
+            "create",
+            "--prompt-hash",
+            "test-hash-123",
+            "Frontmatter Test",
+        ])
         .assert()
-        .success()
-        .stdout(predicate::str::starts_with("qp-"));
+        .success();
+
+    // Find and read the markdown file
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note_files: Vec<_> = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(note_files.len(), 1);
+    let note_path = note_files[0].path();
+    let content = fs::read_to_string(&note_path).unwrap();
+
+    // Verify prompt_hash appears in frontmatter
+    assert!(
+        content.contains("prompt_hash: test-hash-123"),
+        "frontmatter should contain prompt_hash"
+    );
 }
 
 #[test]

@@ -33,6 +33,18 @@ pub struct EvaluationMetricsRecord {
     pub note_count: usize,
     pub link_count: usize,
     pub details: Vec<GateResultRecord>,
+    pub efficiency: EfficiencyMetricsRecord,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EfficiencyMetricsRecord {
+    pub total_commands: usize,
+    pub unique_commands: usize,
+    pub error_count: usize,
+    pub retry_count: usize,
+    pub help_invocations: usize,
+    pub first_try_success_rate: f64,
+    pub iteration_ratio: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

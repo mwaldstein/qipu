@@ -13,8 +13,8 @@ use chrono::Utc;
 use clap::Parser;
 use cli::{Cli, Commands};
 use results::{
-    Cache, CacheKey, EvaluationMetricsRecord, GateResultRecord, RegressionReport, ResultRecord,
-    ResultsDB,
+    Cache, CacheKey, EfficiencyMetricsRecord, EvaluationMetricsRecord, GateResultRecord,
+    RegressionReport, ResultRecord, ResultsDB,
 };
 use std::time::Instant;
 
@@ -129,6 +129,15 @@ fn main() -> anyhow::Result<()> {
                                     message: d.message,
                                 })
                                 .collect(),
+                            efficiency: EfficiencyMetricsRecord {
+                                total_commands: metrics.efficiency.total_commands,
+                                unique_commands: metrics.efficiency.unique_commands,
+                                error_count: metrics.efficiency.error_count,
+                                retry_count: metrics.efficiency.retry_count,
+                                help_invocations: metrics.efficiency.help_invocations,
+                                first_try_success_rate: metrics.efficiency.first_try_success_rate,
+                                iteration_ratio: metrics.efficiency.iteration_ratio,
+                            },
                         },
                         judge_score: metrics.judge_score,
                         outcome,
@@ -227,6 +236,19 @@ fn print_result_summary(record: &ResultRecord) {
     println!("Notes: {}", record.metrics.note_count);
     println!("Links: {}", record.metrics.link_count);
     println!("Duration: {:.2}s", record.duration_secs);
+    println!(
+        "Commands: {} ({} unique, {} errors, {} help, {} retries)",
+        record.metrics.efficiency.total_commands,
+        record.metrics.efficiency.unique_commands,
+        record.metrics.efficiency.error_count,
+        record.metrics.efficiency.help_invocations,
+        record.metrics.efficiency.retry_count
+    );
+    println!(
+        "First-try success: {:.0}%, iteration ratio: {:.2}",
+        record.metrics.efficiency.first_try_success_rate * 100.0,
+        record.metrics.efficiency.iteration_ratio
+    );
     if let Some(score) = record.judge_score {
         println!("Judge Score: {:.2}", score);
     }

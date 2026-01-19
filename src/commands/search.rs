@@ -603,5 +603,4 @@ mod tests {
             "Search with multiple results should succeed"
         );
     }
-
 }

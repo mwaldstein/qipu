@@ -869,6 +869,7 @@ dependencies = [
  "clap",
  "hex",
  "portable-pty",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

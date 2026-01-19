@@ -96,11 +96,11 @@ Extract from raw transcript:
   - 1.0 = perfect, higher = more fumbling
 
 Implementation:
-- [ ] Add `TranscriptAnalyzer` struct to parse raw transcript
+- [x] Add `TranscriptAnalyzer` struct to parse raw transcript
   - File: `crates/llm-tool-test/src/transcript.rs`
-- [ ] Extract command invocations via regex: `qipu <subcommand> ...`
+- [x] Extract command invocations via regex: `qipu <subcommand> ...`
 - [ ] Track exit codes per command (requires adapter changes to capture)
-- [ ] Add `EfficiencyMetrics` to `EvaluationMetrics`:
+- [x] Add `EfficiencyMetrics` to `EvaluationMetrics`:
   ```rust
   pub struct EfficiencyMetrics {
       pub total_commands: usize,
@@ -112,6 +112,11 @@ Implementation:
       pub iteration_ratio: f64,
   }
   ```
+  - Added to `transcript.rs` as public struct
+  - Integrated into `EvaluationMetrics` in `evaluation.rs`
+  - Added to `EfficiencyMetricsRecord` in `results.rs`
+  - Included in result records in `main.rs`
+  - 6 unit tests added to `transcript.rs` (all passing)
 
 ##### 2. Quality Metrics (Store Analysis)
 Automated analysis of the resulting store:

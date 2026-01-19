@@ -1,5 +1,7 @@
 use crate::judge::{load_rubric, run_judge, JudgeResponse};
 use crate::scenario::{Gate, Scenario};
+use crate::transcript::EfficiencyMetrics;
+use crate::transcript::TranscriptAnalyzer;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -14,6 +16,7 @@ pub struct EvaluationMetrics {
     pub details: Vec<GateResult>,
     pub judge_score: Option<f64>,
     pub judge_response: Option<JudgeResponse>,
+    pub efficiency: EfficiencyMetrics,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -114,6 +117,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         }
     }
 
+    let efficiency = compute_efficiency_metrics(env_root)?;
     let metrics = EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
@@ -122,6 +126,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         details,
         judge_score,
         judge_response,
+        efficiency,
     };
 
     Ok(metrics)
@@ -218,6 +223,22 @@ fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
         Ok(!arr.is_empty())
     } else {
         Ok(false)
+    }
+}
+
+fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
+    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    match std::fs::read_to_string(&transcript_path) {
+        Ok(content) => Ok(TranscriptAnalyzer::analyze(&content)),
+        Err(_) => Ok(EfficiencyMetrics {
+            total_commands: 0,
+            unique_commands: 0,
+            error_count: 0,
+            retry_count: 0,
+            help_invocations: 0,
+            first_try_success_rate: 0.0,
+            iteration_ratio: 0.0,
+        }),
     }
 }
 

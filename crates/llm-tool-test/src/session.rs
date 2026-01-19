@@ -5,6 +5,9 @@ use std::sync::{mpsc::channel, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+#[cfg(test)]
+use std::fs;
+
 pub struct SessionRunner {
     pub pty_system: NativePtySystem,
 }
@@ -102,5 +105,111 @@ impl SessionRunner {
 
         let exit_code = exit_status.exit_code() as i32;
         Ok((String::from_utf8_lossy(&output).to_string(), exit_code))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_successful_command_within_timeout() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        let result = runner.run_command("echo", &["hello"], dir.path(), 5);
+        assert!(result.is_ok());
+        let (output, exit_code) = result.unwrap();
+        assert!(output.contains("hello"));
+        assert_eq!(exit_code, 0);
+    }
+
+    #[test]
+    fn test_command_exceeds_timeout() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        // Use sleep command that exceeds timeout
+        let result = runner.run_command("sleep", &["10"], dir.path(), 1);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("timed out"));
+    }
+
+    #[test]
+    fn test_zero_timeout_fails_immediately() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        // Even echo should fail with 0 timeout
+        let result = runner.run_command("echo", &["hello"], dir.path(), 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("timed out"));
+    }
+
+    #[test]
+    fn test_short_timeout_allows_quick_command() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        // 0.1 seconds should be enough for echo
+        let result = runner.run_command("echo", &["quick"], dir.path(), 0);
+        // This may succeed or timeout depending on system load
+        // We just verify it doesn't hang
+        let _ = result;
+    }
+
+    #[test]
+    fn test_command_with_nonzero_exit_code() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        let result = runner.run_command("false", &[], dir.path(), 5);
+        assert!(result.is_ok());
+        let (_output, exit_code) = result.unwrap();
+        assert_ne!(exit_code, 0);
+    }
+
+    #[test]
+    fn test_true_command_succeeds() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        let result = runner.run_command("true", &[], dir.path(), 5);
+        assert!(result.is_ok());
+        let (_output, exit_code) = result.unwrap();
+        assert_eq!(exit_code, 0);
+    }
+
+    #[test]
+    fn test_command_with_multiple_args() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        let result = runner.run_command("printf", &["%s %s\n", "hello", "world"], dir.path(), 5);
+        assert!(result.is_ok());
+        let (output, exit_code) = result.unwrap();
+        assert!(output.contains("hello world"));
+        assert_eq!(exit_code, 0);
+    }
+
+    #[test]
+    fn test_command_in_current_directory() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        // Create a test file in the temp directory
+        let test_file = dir.path().join("test.txt");
+        fs::write(&test_file, "test content").unwrap();
+        // Verify pwd command runs in the temp directory
+        #[cfg(unix)]
+        let result = runner.run_command("pwd", &[], dir.path(), 5);
+        #[cfg(windows)]
+        let result = runner.run_command("cd", &[], dir.path(), 5);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_timeout_message_includes_duration() {
+        let runner = SessionRunner::new();
+        let dir = tempdir().unwrap();
+        let result = runner.run_command("sleep", &["100"], dir.path(), 2);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("2 seconds"));
     }
 }

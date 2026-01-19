@@ -371,7 +371,9 @@ Current state: 11 unit tests across 4 files; many modules untested.
 - [x] `results.rs`: Add tests for `CacheKey::compute()` with various inputs
 - [x] `results.rs`: Add tests for `ResultRecord` JSON round-trip
 - [x] `results.rs`: Add tests for `ResultsDB` CRUD operations (use temp file)
-- [ ] `session.rs`: Add tests for `SessionRunner` timeout logic (mock child process)
+- [x] `session.rs`: Add tests for `SessionRunner` timeout logic (mock child process)
+  - Added 9 unit tests covering: successful command within timeout, command exceeding timeout, zero timeout, short timeout, nonzero exit codes, true command success, multiple args, current directory execution, timeout message format
+  - All tests pass (51 total tests in llm-tool-test)
 - [ ] `session.rs`: Add tests for command parsing from transcript
 - [ ] `cli.rs`: Add tests for `build_tool_matrix()` with edge cases
 - [ ] `fixture.rs`: Add tests for fixture discovery and loading

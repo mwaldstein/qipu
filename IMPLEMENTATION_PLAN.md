@@ -42,7 +42,7 @@ Commands missing tracing instrumentation:
 Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`
 - [x] Add `NoteExists { id }` - verify specific note created
 - [x] Add `LinkExists { from, to, link_type }` - verify specific link
-- [ ] Add `TagExists { tag }` - verify tag usage
+- [x] Add `TagExists { tag }` - verify tag usage
 - [ ] Add `ContentContains { id, substring }` - verify note content
 - [ ] Add `CommandSucceeds { command }` - arbitrary qipu command
 

@@ -86,6 +86,14 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     ),
                 }
             }
+            Gate::TagExists { tag } => {
+                let exists = tag_exists(tag, env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "TagExists".to_string(),
+                    passed: exists,
+                    message: format!("Tag '{}' exists: {}", tag, exists),
+                }
+            }
         };
 
         if result.passed {
@@ -278,6 +286,29 @@ fn link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> Result
                     let typ = link.get("type").and_then(|v| v.as_str());
                     if id == Some(to) && typ == Some(link_type) {
                         return Ok(true);
+                    }
+                }
+            }
+            Ok(false)
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+fn tag_exists(tag: &str, env_root: &Path) -> Result<bool> {
+    let json = run_qipu_json(&["list"], env_root);
+    match json {
+        Ok(value) => {
+            if let Some(arr) = value.as_array() {
+                for note in arr {
+                    if let Some(tags) = note.get("tags").and_then(|v| v.as_array()) {
+                        for t in tags {
+                            if let Some(tag_str) = t.as_str() {
+                                if tag_str == tag {
+                                    return Ok(true);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -616,6 +647,61 @@ mod tests {
             setup: None,
         };
         let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+
+        // 11. TagExists - should fail with non-existent tag
+        let tag_scenario_fail = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::TagExists {
+                    tag: "nonexistent".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&tag_scenario_fail, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+
+        // 12. TagExists should pass with existing tag - create a note with tag
+        let qipu = get_qipu_path();
+        let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
+        let output = Command::new(qipu_abs)
+            .args(["create", "Important note", "--tag", "important"])
+            .current_dir(&env_root)
+            .output()
+            .expect("failed to run qipu create");
+        assert!(
+            output.status.success(),
+            "Create failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let tag_scenario_pass = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::TagExists {
+                    tag: "important".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
     }
 }

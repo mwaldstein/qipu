@@ -73,6 +73,9 @@ pub enum Gate {
         to: String,
         link_type: String,
     },
+    TagExists {
+        tag: String,
+    },
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -321,6 +324,28 @@ evaluation:
                 assert_eq!(link_type, "related");
             }
             _ => panic!("Expected LinkExists gate"),
+        }
+    }
+
+    #[test]
+    fn test_tag_exists_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: tag_exists
+      tag: "important"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::TagExists { tag } => assert_eq!(tag, "important"),
+            _ => panic!("Expected TagExists gate"),
         }
     }
 }

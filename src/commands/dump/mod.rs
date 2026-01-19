@@ -156,7 +156,7 @@ fn collect_notes_with_traversal(
 
         let traversal_options = TreeOptions {
             direction: options.direction,
-            max_hops: options.max_hops,
+            max_hops: crate::lib::graph::HopCost::from(options.max_hops),
             type_include: options.type_include.clone(),
             type_exclude: Vec::new(),
             typed_only: options.typed_only,
@@ -262,13 +262,13 @@ fn perform_simple_traversal(
     use std::collections::{HashSet, VecDeque};
 
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
+    let mut queue: VecDeque<(String, crate::lib::graph::HopCost)> = VecDeque::new();
 
-    queue.push_back((root.to_string(), 0));
+    queue.push_back((root.to_string(), crate::lib::graph::HopCost::from(0)));
     visited.insert(root.to_string());
 
-    while let Some((current_id, hop)) = queue.pop_front() {
-        if hop >= opts.max_hops {
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
+        if accumulated_cost.value() >= opts.max_hops.value() {
             continue;
         }
 
@@ -309,9 +309,10 @@ fn perform_simple_traversal(
 
                 if !visited.contains(neighbor_id) {
                     visited.insert(neighbor_id.clone());
-                    queue.push_back((neighbor_id.clone(), hop + 1));
+                    let edge_cost = crate::lib::graph::get_link_type_cost(edge.link_type.as_str());
+                    queue.push_back((neighbor_id.clone(), accumulated_cost + edge_cost));
 
-                    // Add the note if not already in selection
+                    // Add note if not already in selection
                     if !seen_ids.contains(neighbor_id) {
                         match store.get_note(neighbor_id) {
                             Ok(note) => {

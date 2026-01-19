@@ -44,7 +44,7 @@ pub fn bfs_traverse(
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<TreeResult> {
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
+    let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
     let mut notes: Vec<TreeNote> = Vec::new();
     let mut links: Vec<TreeLink> = Vec::new();
     let mut spanning_tree: Vec<SpanningTreeEntry> = Vec::new();
@@ -53,7 +53,7 @@ pub fn bfs_traverse(
     let mut truncation_reason: Option<String> = None;
 
     // Initialize with root
-    queue.push_back((root.to_string(), 0));
+    queue.push_back((root.to_string(), HopCost::from(0)));
     visited.insert(root.to_string());
 
     // Add root note
@@ -67,7 +67,7 @@ pub fn bfs_traverse(
         });
     }
 
-    while let Some((current_id, hop)) = queue.pop_front() {
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
         // Check max_nodes limit
         if let Some(max) = opts.max_nodes {
             if visited.len() >= max {
@@ -86,8 +86,8 @@ pub fn bfs_traverse(
             }
         }
 
-        // Don't expand beyond max_hops
-        if hop >= opts.max_hops {
+        // Don't expand beyond max_hops (use accumulated cost)
+        if accumulated_cost.value() >= opts.max_hops.value() {
             // Check if there are any neighbors that would have been expanded
             // If so, mark as truncated
             let source_ids = equivalence_map
@@ -236,11 +236,15 @@ pub fn bfs_traverse(
 
                 visited.insert(canonical_neighbor.clone());
 
+                // Calculate new accumulated cost for this edge
+                let edge_cost = get_link_type_cost(edge.link_type.as_str());
+                let new_cost = accumulated_cost + edge_cost;
+
                 // Add to spanning tree (first discovery, use canonical IDs)
                 spanning_tree.push(SpanningTreeEntry {
                     from: current_id.clone(),
                     to: canonical_neighbor.clone(),
-                    hop: hop + 1,
+                    hop: new_cost.as_u32_for_display(),
                     link_type: edge.link_type.to_string(),
                 });
 
@@ -256,7 +260,7 @@ pub fn bfs_traverse(
                 }
 
                 // Queue for further expansion (use canonical ID)
-                queue.push_back((canonical_neighbor, hop + 1));
+                queue.push_back((canonical_neighbor, new_cost));
             }
         }
     }
@@ -283,7 +287,7 @@ pub fn bfs_traverse(
             Direction::In => "in".to_string(),
             Direction::Both => "both".to_string(),
         },
-        max_hops: opts.max_hops,
+        max_hops: opts.max_hops.as_u32_for_display(),
         truncated,
         truncation_reason,
         notes,
@@ -303,24 +307,24 @@ pub fn bfs_find_path(
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
+    let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
     let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
 
     // Initialize
-    queue.push_back((from.to_string(), 0));
+    queue.push_back((from.to_string(), HopCost::from(0)));
     visited.insert(from.to_string());
 
     let mut found = false;
 
-    while let Some((current_id, hop)) = queue.pop_front() {
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
         // Check if we found the target
         if current_id == to {
             found = true;
             break;
         }
 
-        // Don't expand beyond max_hops
-        if hop >= opts.max_hops {
+        // Don't expand beyond max_hops (use accumulated cost)
+        if accumulated_cost.value() >= opts.max_hops.value() {
             continue;
         }
 
@@ -396,7 +400,10 @@ pub fn bfs_find_path(
                     canonical_neighbor.clone(),
                     (current_id.clone(), canonical_edge),
                 );
-                queue.push_back((canonical_neighbor, hop + 1));
+                // Calculate new accumulated cost
+                let edge_cost = get_link_type_cost(edge.link_type.as_str());
+                let new_cost = accumulated_cost + edge_cost;
+                queue.push_back((canonical_neighbor, new_cost));
             }
         }
     }

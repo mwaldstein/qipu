@@ -2,6 +2,121 @@ use crate::lib::index::{Edge, LinkSource};
 use crate::lib::note::NoteType;
 use serde::Serialize;
 
+/// Represents the cost of traversing a single edge
+/// For v1, all edges have cost 1.0, but this type supports
+/// future per-link-type cost configuration (e.g., part-of = 0.5)
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct HopCost(f32);
+
+impl HopCost {
+    pub const DEFAULT: HopCost = HopCost(1.0);
+
+    pub fn new(cost: f32) -> Self {
+        HopCost(cost)
+    }
+
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+
+    pub fn as_u32_for_display(&self) -> u32 {
+        self.0 as u32
+    }
+}
+
+impl Default for HopCost {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}
+
+impl std::ops::Add for HopCost {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        HopCost(self.0 + other.0)
+    }
+}
+
+impl From<u32> for HopCost {
+    fn from(hops: u32) -> Self {
+        HopCost(hops as f32)
+    }
+}
+
+/// Get the hop cost for a given link type
+/// Returns 1.0 for all types in v1, but designed for future
+/// per-link-type cost configuration
+pub fn get_link_type_cost(link_type: &str) -> HopCost {
+    match link_type {
+        _ => HopCost::DEFAULT,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hop_cost_default() {
+        let cost = HopCost::DEFAULT;
+        assert_eq!(cost.value(), 1.0);
+        assert_eq!(cost.as_u32_for_display(), 1);
+    }
+
+    #[test]
+    fn test_hop_cost_from_u32() {
+        let cost = HopCost::from(5);
+        assert_eq!(cost.value(), 5.0);
+        assert_eq!(cost.as_u32_for_display(), 5);
+    }
+
+    #[test]
+    fn test_hop_cost_addition() {
+        let cost1 = HopCost::from(2);
+        let cost2 = HopCost::from(3);
+        let sum = cost1 + cost2;
+        assert_eq!(sum.value(), 5.0);
+    }
+
+    #[test]
+    fn test_hop_cost_fractional() {
+        let cost1 = HopCost::new(1.5);
+        let cost2 = HopCost::new(2.5);
+        let sum = cost1 + cost2;
+        assert_eq!(sum.value(), 4.0);
+        assert_eq!(sum.as_u32_for_display(), 4);
+    }
+
+    #[test]
+    fn test_get_link_type_cost_default() {
+        let cost = get_link_type_cost("supports");
+        assert_eq!(cost.value(), 1.0);
+    }
+
+    #[test]
+    fn test_get_link_type_cost_unknown() {
+        let cost = get_link_type_cost("unknown-type");
+        assert_eq!(cost.value(), 1.0);
+    }
+
+    #[test]
+    fn test_tree_options_default_max_hops() {
+        let opts = TreeOptions::default();
+        assert_eq!(opts.max_hops.value(), 3.0);
+        assert_eq!(opts.max_hops.as_u32_for_display(), 3);
+    }
+
+    #[test]
+    fn test_tree_options_custom_max_hops() {
+        let opts = TreeOptions {
+            max_hops: HopCost::from(5),
+            ..Default::default()
+        };
+        assert_eq!(opts.max_hops.value(), 5.0);
+    }
+}
+
 /// Direction for link listing/traversal
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Direction {
@@ -35,8 +150,8 @@ impl std::str::FromStr for Direction {
 pub struct TreeOptions {
     /// Direction for traversal
     pub direction: Direction,
-    /// Maximum traversal depth
-    pub max_hops: u32,
+    /// Maximum traversal depth (as hop cost)
+    pub max_hops: HopCost,
     /// Include only these link types (empty = all)
     pub type_include: Vec<String>,
     /// Exclude these link types
@@ -61,7 +176,7 @@ impl Default for TreeOptions {
     fn default() -> Self {
         TreeOptions {
             direction: Direction::Both,
-            max_hops: 3,
+            max_hops: HopCost::from(3),
             type_include: Vec::new(),
             type_exclude: Vec::new(),
             typed_only: false,

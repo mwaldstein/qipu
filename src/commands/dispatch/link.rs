@@ -71,7 +71,7 @@ pub(super) fn handle_link(
                 })?;
             let opts = crate::lib::graph::TreeOptions {
                 direction: dir,
-                max_hops: *max_hops,
+                max_hops: crate::lib::graph::HopCost::from(*max_hops),
                 type_include: r#type.clone(),
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,
@@ -102,7 +102,7 @@ pub(super) fn handle_link(
                 })?;
             let opts = crate::lib::graph::TreeOptions {
                 direction: dir,
-                max_hops: *max_hops,
+                max_hops: crate::lib::graph::HopCost::from(*max_hops),
                 type_include: r#type.clone(),
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,

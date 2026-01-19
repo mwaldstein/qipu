@@ -132,16 +132,16 @@ fn bfs_find_path(
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
+    let mut queue: VecDeque<(String, crate::lib::graph::HopCost)> = VecDeque::new();
     let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
 
     // Initialize
-    queue.push_back((from.to_string(), 0));
+    queue.push_back((from.to_string(), crate::lib::graph::HopCost::from(0)));
     visited.insert(from.to_string());
 
     let mut found = false;
 
-    while let Some((current_id, hop)) = queue.pop_front() {
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
         // Check if we found the target
         if current_id == to {
             found = true;
@@ -149,7 +149,7 @@ fn bfs_find_path(
         }
 
         // Don't expand beyond max_hops
-        if hop >= opts.max_hops {
+        if accumulated_cost.value() >= opts.max_hops.value() {
             continue;
         }
 
@@ -194,7 +194,8 @@ fn bfs_find_path(
                     canonical_neighbor.clone(),
                     (current_id.clone(), canonical_edge),
                 );
-                queue.push_back((canonical_neighbor, hop + 1));
+                let edge_cost = crate::lib::graph::get_link_type_cost(edge.link_type.as_str());
+                queue.push_back((canonical_neighbor, accumulated_cost + edge_cost));
             }
         }
     }

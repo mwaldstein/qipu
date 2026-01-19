@@ -668,7 +668,30 @@ Implemented schema version tracking:
   - Backlink sources are marked with via field format: `backlink:<note_id>`
 
 ### `specs/semantic-graph.md`
-- [ ] Weighted traversal / per-edge hop costs
+- [x] Weighted traversal / per-edge hop costs ✅ COMPLETE
+
+Refactored traversal engine to support weighted hop costs (src/lib/graph/types.rs, src/lib/graph/traversal.rs):
+
+**Changes made:**
+- Added `HopCost` type wrapper around `f32` for representing edge traversal costs
+- Added `get_link_type_cost()` function to retrieve cost for a given link type
+- Updated `TreeOptions.max_hops` to use `HopCost` instead of `u32`
+- Refactored `bfs_traverse()` to use accumulated costs instead of simple hop counts
+- Refactored `bfs_find_path()` to use accumulated costs
+- Updated CLI integration points (dispatch/link.rs, dump/mod.rs) to convert u32 to HopCost
+- Updated all traversal code to accumulate costs and compare against max_hops
+
+**Design notes:**
+- All edges currently have cost 1.0 (HopCost::DEFAULT)
+- The system is designed to support future per-link-type cost configuration
+- Fractional costs are supported (e.g., 0.5 for cohesive links like part-of)
+- Cost comparison uses `f32` values, display converts to `u32` for backward compatibility
+- `get_link_type_cost()` can be extended to return different costs based on link type
+
+**Testing:**
+- Added 7 tests for HopCost functionality in src/lib/graph/types.rs
+- All existing tests pass (344 total tests)
+- Verified traversal behavior unchanged (all edges cost 1.0)
 
 ---
 

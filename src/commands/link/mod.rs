@@ -237,7 +237,7 @@ mod tests {
     fn test_tree_options_default() {
         let opts = TreeOptions::default();
         assert_eq!(opts.direction, Direction::Both);
-        assert_eq!(opts.max_hops, 3);
+        assert_eq!(opts.max_hops.as_u32_for_display(), 3);
         assert!(opts.type_include.is_empty());
         assert!(opts.type_exclude.is_empty());
         assert!(!opts.typed_only);

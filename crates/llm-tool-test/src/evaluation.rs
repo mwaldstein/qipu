@@ -63,6 +63,14 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     message: format!("Query '{}' found: {}", query, hit),
                 }
             }
+            Gate::NoteExists { id } => {
+                let exists = note_exists(id, env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "NoteExists".to_string(),
+                    passed: exists,
+                    message: format!("Note '{}' exists: {}", id, exists),
+                }
+            }
         };
 
         if result.passed {
@@ -227,6 +235,21 @@ fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
         Ok(!arr.is_empty())
     } else {
         Ok(false)
+    }
+}
+
+fn note_exists(id: &str, env_root: &Path) -> Result<bool> {
+    let json = run_qipu_json(&["show", id], env_root);
+    match json {
+        Ok(value) => {
+            // If we get a valid JSON response with an "id" field, the note exists
+            if value.get("id").is_some() {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+        Err(_) => Ok(false),
     }
 }
 
@@ -424,6 +447,56 @@ mod tests {
             setup: None,
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+
+        // 6. NoteExists - get the first note ID from list
+        let json = run_qipu_json(&["list"], &env_root).unwrap();
+        let first_note_id = json
+            .get(0)
+            .and_then(|v| v.get("id"))
+            .and_then(|v| v.as_str())
+            .expect("No notes found");
+
+        // 7. NoteExists should pass with existing ID
+        let scenario_note_exists = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::NoteExists {
+                    id: first_note_id.to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&scenario_note_exists, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+
+        // 8. NoteExists should fail with non-existent ID
+        let scenario_note_exists_fail = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::NoteExists {
+                    id: "qp-nonexistent".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
     }
 }

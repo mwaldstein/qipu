@@ -59,6 +59,7 @@ pub enum Gate {
     MinNotes { count: usize },
     MinLinks { count: usize },
     SearchHit { query: String },
+    NoteExists { id: String },
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -254,5 +255,27 @@ setup:
         assert_eq!(setup.len(), 1);
         assert_eq!(setup[0].command, "pwd");
         assert!(setup[0].args.is_empty());
+    }
+
+    #[test]
+    fn test_note_exists_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: note_exists
+      id: "qp-1234"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::NoteExists { id } => assert_eq!(id, "qp-1234"),
+            _ => panic!("Expected NoteExists gate"),
+        }
     }
 }

@@ -39,8 +39,8 @@ Commands missing tracing instrumentation:
 - [x] Add `setup` step support (pre-populate store with seed notes)
 
 ### Gate Types (P1)
-Current: `MinNotes`, `MinLinks`, `SearchHit`
-- [ ] Add `NoteExists { id }` - verify specific note created
+Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`
+- [x] Add `NoteExists { id }` - verify specific note created
 - [ ] Add `LinkExists { from, to, link_type }` - verify specific link
 - [ ] Add `TagExists { tag }` - verify tag usage
 - [ ] Add `ContentContains { id, substring }` - verify note content

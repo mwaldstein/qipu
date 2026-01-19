@@ -43,7 +43,7 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {
-            eprintln!("warning: no notes selected for dump");
+            tracing::info!("no notes selected for dump");
         }
         return Ok(());
     }
@@ -72,12 +72,12 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
             .map_err(|e| QipuError::Other(format!("failed to write to pack file: {}", e)))?;
 
         if cli.verbose && !cli.quiet {
-            eprintln!(
-                "dumped {} notes, {} links, {} attachments to {}",
-                selected_notes.len(),
-                links.len(),
-                attachments.len(),
-                output_path.display()
+            tracing::info!(
+                notes = selected_notes.len(),
+                links = links.len(),
+                attachments = attachments.len(),
+                path = %output_path.display(),
+                "dumped notes"
             );
         }
     } else {

@@ -97,9 +97,9 @@ pub fn execute(
     let ctx = CompactionContext::build(&all_notes)?;
     let errors = ctx.validate(&all_notes);
     if !errors.is_empty() {
-        eprintln!("Compaction validation errors:");
+        tracing::warn!("Compaction validation errors:");
         for err in &errors {
-            eprintln!("  - {}", err);
+            tracing::warn!("  - {}", err);
         }
         return Err(crate::lib::error::QipuError::Other(
             "compaction invariants violated".to_string(),

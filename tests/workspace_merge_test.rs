@@ -190,7 +190,7 @@ fn test_workspace_delete_protection() {
         .args(["workspace", "delete", "test_ws"])
         .assert()
         .failure()
-        .stderr(predicates::str::contains("unmerged changes"));
+        .stdout(predicates::str::contains("unmerged changes"));
 
     // 5. Try to delete WITH --force (should succeed)
     qipu()

@@ -28,9 +28,9 @@ pub fn execute(cli: &Cli, name: &str, force: bool) -> Result<()> {
         if let Ok(workspace_store) = Store::open(&workspace_path) {
             let changes = check_unmerged_changes(&workspace_store, &primary_store)?;
             if !changes.is_empty() {
-                eprintln!("Workspace '{}' has unmerged changes:", name);
+                tracing::warn!("Workspace '{}' has unmerged changes:", name);
                 for change in changes {
-                    eprintln!("  - {}", change);
+                    tracing::warn!("  - {}", change);
                 }
                 return Err(crate::lib::error::QipuError::Other(
                     "Use --force to delete anyway".to_string(),

@@ -17,9 +17,11 @@
   - Files: `src/commands/dispatch/mod.rs`, `src/commands/dispatch/*.rs`, `src/commands/*/*.rs`
   - Implementation: debug logs with elapsed time, similar to discover_store pattern
 
-#### eprintln! Cleanup  
-- [ ] Replace 16 remaining `eprintln!` calls with tracing
+#### eprintln! Cleanup
+- [x] Replace 16 remaining `eprintln!` calls with tracing
   - Callsites in: main.rs, export/mod.rs, compact/apply.rs, workspace/delete.rs, dump/mod.rs, export/emit/outline.rs
+  - Replaced with tracing::info! for verbose warnings, tracing::warn! for errors
+  - Updated test expectation for workspace/delete warnings (now in stdout via tracing)
 
 #### Startup Validation
 - [ ] Call `validate_consistency()` during DB open

@@ -113,7 +113,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {
-            eprintln!("warning: no notes selected for export");
+            tracing::info!("no notes selected for export");
         }
         return Ok(());
     }
@@ -178,7 +178,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
             rewrite_attachment_links(&output_content)
         } else {
             if cli.verbose && !cli.quiet {
-                eprintln!("warning: --with-attachments ignored when exporting to stdout");
+                tracing::info!("--with-attachments ignored when exporting to stdout");
             }
             output_content
         }
@@ -194,10 +194,10 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
             .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
 
         if cli.verbose && !cli.quiet {
-            eprintln!(
-                "exported {} notes to {}",
-                selected_notes.len(),
-                output_path.display()
+            tracing::info!(
+                count = selected_notes.len(),
+                path = %output_path.display(),
+                "exported notes"
             );
         }
     } else {
@@ -244,21 +244,17 @@ fn copy_attachments(
                     fs::copy(&source_path, &target_path)?;
                     copied_count += 1;
                 } else if cli.verbose && !cli.quiet {
-                    eprintln!(
-                        "warning: attachment not found: {} (referenced in {})",
-                        filename,
-                        note.id()
-                    );
+                    tracing::info!(filename, note_id = note.id(), "attachment not found");
                 }
             }
         }
     }
 
     if cli.verbose && !cli.quiet && copied_count > 0 {
-        eprintln!(
-            "copied {} attachments to {}",
-            copied_count,
-            target_dir.display()
+        tracing::info!(
+            count = copied_count,
+            target = %target_dir.display(),
+            "copied attachments"
         );
     }
 

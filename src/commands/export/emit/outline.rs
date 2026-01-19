@@ -23,7 +23,7 @@ pub fn export_outline(
     // If no MOC provided, fall back to bundle mode with warning
     let Some(moc_id) = options.moc_id else {
         if cli.verbose && !cli.quiet {
-            eprintln!("warning: outline mode requires --moc flag, falling back to bundle mode");
+            tracing::info!("outline mode requires --moc flag, falling back to bundle mode");
         }
         return export_bundle(notes, store, options, cli, compaction_ctx, all_notes);
     };

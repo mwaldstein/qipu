@@ -99,7 +99,15 @@ Implementation:
 - [x] Add `TranscriptAnalyzer` struct to parse raw transcript
   - File: `crates/llm-tool-test/src/transcript.rs`
 - [x] Extract command invocations via regex: `qipu <subcommand> ...`
-- [ ] Track exit codes per command (requires adapter changes to capture)
+- [x] Track exit codes per command (requires adapter changes to capture)
+  - Modified `SessionRunner::run_command` to return `(String, i32)` for output + exit code
+  - Updated `ToolAdapter::run` trait to return `(String, i32)`
+  - Updated both adapters (opencode, amp) to propagate exit codes
+  - Added `CommandEvent` struct with `command` and `exit_code` fields
+  - Added `analyze_with_exit_codes()` method to `TranscriptAnalyzer` that parses transcript for exit codes
+  - Exit codes extracted from transcript by looking for patterns like "exit code: 1" or "exit status: 0"
+  - Falls back to heuristic error detection if exit codes not found
+  - Updated `compute_efficiency_metrics()` to use `analyze_with_exit_codes()`
 - [x] Add `EfficiencyMetrics` to `EvaluationMetrics`:
   ```rust
   pub struct EfficiencyMetrics {

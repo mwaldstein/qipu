@@ -15,7 +15,12 @@ impl SessionRunner {
         }
     }
 
-    pub fn run_command(&self, cmd: &str, args: &[&str], cwd: &Path) -> anyhow::Result<String> {
+    pub fn run_command(
+        &self,
+        cmd: &str,
+        args: &[&str],
+        cwd: &Path,
+    ) -> anyhow::Result<(String, i32)> {
         let pair = self.pty_system.openpty(PtySize {
             rows: 24,
             cols: 80,
@@ -48,9 +53,10 @@ impl SessionRunner {
             let _ = tx.send(output);
         });
 
-        child.wait()?;
+        let exit_status = child.wait()?;
         let output = rx.recv()?;
 
-        Ok(String::from_utf8_lossy(&output).to_string())
+        let exit_code = exit_status.exit_code() as i32;
+        Ok((String::from_utf8_lossy(&output).to_string(), exit_code))
     }
 }

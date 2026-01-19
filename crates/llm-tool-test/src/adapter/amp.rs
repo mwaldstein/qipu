@@ -20,7 +20,7 @@ impl ToolAdapter for AmpAdapter {
         }
     }
 
-    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<String> {
+    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
         // 1. Prepare prompt file

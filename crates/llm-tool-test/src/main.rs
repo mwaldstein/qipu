@@ -76,7 +76,7 @@ fn main() -> anyhow::Result<()> {
 
                     let start_time = Instant::now();
                     println!("Running tool '{}'...", tool);
-                    let output = adapter.run(&s, &env.root)?;
+                    let (output, exit_code) = adapter.run(&s, &env.root)?;
                     let duration = start_time.elapsed();
 
                     let transcript_dir = env.root.join("artifacts");
@@ -86,7 +86,8 @@ fn main() -> anyhow::Result<()> {
                     writer.append_event(&serde_json::json!({
                         "type": "execution",
                         "tool": tool,
-                        "output": output
+                        "output": output,
+                        "exit_code": exit_code
                     }))?;
 
                     println!("Running evaluation...");

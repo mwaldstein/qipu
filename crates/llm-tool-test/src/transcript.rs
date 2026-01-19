@@ -29,6 +29,22 @@ impl TranscriptWriter {
         writeln!(file, "{}", serde_json::to_string(event)?)?;
         Ok(())
     }
+
+    pub fn read_events(&self) -> anyhow::Result<Vec<serde_json::Value>> {
+        let path = self.base_dir.join("events.jsonl");
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let content = fs::read_to_string(&path)?;
+        let mut events = Vec::new();
+        for line in content.lines() {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(line) {
+                events.push(value);
+            }
+        }
+        Ok(events)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,25 +58,51 @@ pub struct EfficiencyMetrics {
     pub iteration_ratio: f64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CommandEvent {
+    pub command: String,
+    pub exit_code: Option<i32>,
+}
+
 pub struct TranscriptAnalyzer;
 
 impl TranscriptAnalyzer {
     pub fn analyze(transcript: &str) -> EfficiencyMetrics {
+        Self::analyze_with_events(transcript, None)
+    }
+
+    pub fn analyze_with_exit_codes(transcript: &str) -> EfficiencyMetrics {
+        let commands = Self::extract_commands_with_exit_codes(transcript);
+        Self::analyze_with_events(transcript, Some(commands))
+    }
+
+    pub fn analyze_with_events(
+        transcript: &str,
+        events: Option<Vec<CommandEvent>>,
+    ) -> EfficiencyMetrics {
         let command_regex = Regex::new(r"qipu\s+(\S+)").unwrap();
         let lines: Vec<&str> = transcript.lines().collect();
 
         let mut commands: Vec<(String, bool)> = Vec::new();
 
-        for (i, line) in lines.iter().enumerate() {
-            if let Some(caps) = command_regex.captures(line) {
-                let subcommand = caps[1].to_string();
-                let is_help = subcommand == "--help" || line.contains("--help");
-                let is_error = !is_help && i + 1 < lines.len() && Self::is_error_line(lines[i + 1]);
+        if let Some(command_events) = events {
+            for event in command_events {
+                let is_error = event.exit_code.map(|code| code != 0).unwrap_or(false);
+                commands.push((event.command, is_error));
+            }
+        } else {
+            for (i, line) in lines.iter().enumerate() {
+                if let Some(caps) = command_regex.captures(line) {
+                    let subcommand = caps[1].to_string();
+                    let is_help = subcommand == "--help" || line.contains("--help");
+                    let is_error =
+                        !is_help && i + 1 < lines.len() && Self::is_error_line(lines[i + 1]);
 
-                if is_help {
-                    commands.push(("help".to_string(), false));
-                } else {
-                    commands.push((subcommand, is_error));
+                    if is_help {
+                        commands.push(("help".to_string(), false));
+                    } else {
+                        commands.push((subcommand, is_error));
+                    }
                 }
             }
         }
@@ -114,6 +156,46 @@ impl TranscriptAnalyzer {
             || line_lower.contains("failed")
             || line_lower.contains("exit code")
             || line_lower.contains("non-zero")
+    }
+
+    fn extract_commands_with_exit_codes(transcript: &str) -> Vec<CommandEvent> {
+        let command_regex = Regex::new(r"qipu\s+(\S+)").unwrap();
+        let exit_code_regex = Regex::new(r"(?i)exit\s+(?:code|status):?\s*(\d+)").unwrap();
+
+        let lines: Vec<&str> = transcript.lines().collect();
+        let mut commands = Vec::new();
+
+        for (i, line) in lines.iter().enumerate() {
+            if let Some(caps) = command_regex.captures(line) {
+                let subcommand = caps[1].to_string();
+                let is_help = subcommand == "--help" || line.contains("--help");
+
+                if is_help {
+                    commands.push(CommandEvent {
+                        command: "help".to_string(),
+                        exit_code: Some(0),
+                    });
+                } else {
+                    let next_lines: Vec<&str> = lines[i + 1..].iter().take(20).cloned().collect();
+                    let joined = next_lines.join("\n");
+
+                    let exit_code = if let Some(exit_caps) = exit_code_regex.captures(&joined) {
+                        exit_caps[1].parse().unwrap_or(-1)
+                    } else if Self::is_error_line(&joined) {
+                        1
+                    } else {
+                        0
+                    };
+
+                    commands.push(CommandEvent {
+                        command: subcommand,
+                        exit_code: Some(exit_code),
+                    });
+                }
+            }
+        }
+
+        commands
     }
 }
 

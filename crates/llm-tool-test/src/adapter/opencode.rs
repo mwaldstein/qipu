@@ -14,7 +14,7 @@ impl ToolAdapter for OpenCodeAdapter {
         }
     }
 
-    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<String> {
+    fn run(&self, scenario: &Scenario, cwd: &Path) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
         // Use 'opencode run' for non-interactive execution if possible.

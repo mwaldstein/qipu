@@ -229,7 +229,7 @@ fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
 fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
     match std::fs::read_to_string(&transcript_path) {
-        Ok(content) => Ok(TranscriptAnalyzer::analyze(&content)),
+        Ok(content) => Ok(TranscriptAnalyzer::analyze_with_exit_codes(&content)),
         Err(_) => Ok(EfficiencyMetrics {
             total_commands: 0,
             unique_commands: 0,

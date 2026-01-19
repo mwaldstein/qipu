@@ -19,7 +19,7 @@ use crate::lib::db::Database;
 use crate::lib::error::{QipuError, Result};
 pub use config::InitOptions;
 use paths::{
-    ATTACHMENTS_DIR, CACHE_DIR, CONFIG_FILE, DEFAULT_STORE_DIR, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR,
+    ATTACHMENTS_DIR, CONFIG_FILE, DEFAULT_STORE_DIR, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR,
     VISIBLE_STORE_DIR,
 };
 
@@ -149,7 +149,6 @@ impl Store {
         fs::create_dir_all(store_root.join(MOCS_DIR))?;
         fs::create_dir_all(store_root.join(ATTACHMENTS_DIR))?;
         fs::create_dir_all(store_root.join(TEMPLATES_DIR))?;
-        fs::create_dir_all(store_root.join(CACHE_DIR))?;
 
         // Create default config if missing (avoid rewriting on subsequent init)
         let config_path = store_root.join(CONFIG_FILE);

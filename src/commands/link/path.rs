@@ -23,7 +23,7 @@ pub fn execute(
     let to_resolved = resolve_note_id(store, to_id)?;
 
     // Load or build the index
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
+    let index = IndexBuilder::new(store).build()?;
 
     let all_notes = store.list_notes()?;
 

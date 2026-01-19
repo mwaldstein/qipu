@@ -172,10 +172,6 @@ fn test_init_stealth_creates_store_internal_gitignore() {
         store_gitignore_content.contains("qipu.db"),
         "Store .gitignore should contain qipu.db"
     );
-    assert!(
-        store_gitignore_content.contains(".cache/"),
-        "Store .gitignore should contain .cache/"
-    );
 }
 
 #[test]

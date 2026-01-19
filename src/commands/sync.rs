@@ -21,13 +21,7 @@ pub fn execute(
     push: bool,
 ) -> Result<()> {
     // Step 1: Update indexes silently
-    let builder = IndexBuilder::new(store);
-    let builder = builder.load_existing()?;
-    let index = builder.build()?;
-
-    // Save index to cache
-    let cache_dir = store.root().join(".cache");
-    index.save(&cache_dir)?;
+    let index = IndexBuilder::new(store).build()?;
 
     let notes_indexed = index.metadata.len();
     let tags_indexed = index.tags.len();

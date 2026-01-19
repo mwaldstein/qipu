@@ -51,8 +51,7 @@ pub fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> 
     }
 
     // Also rebuild indexes to ensure consistency
-    let index = IndexBuilder::new(store).rebuild().build()?;
-    index.save(&store.root().join(".cache"))?;
+    let _index = IndexBuilder::new(store).build()?;
 
     Ok(fixed)
 }

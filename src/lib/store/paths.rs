@@ -12,7 +12,6 @@ pub const NOTES_DIR: &str = "notes";
 pub const MOCS_DIR: &str = "mocs";
 pub const ATTACHMENTS_DIR: &str = "attachments";
 pub const TEMPLATES_DIR: &str = "templates";
-pub const CACHE_DIR: &str = ".cache";
 
 /// Configuration filename
 pub const CONFIG_FILE: &str = "config.toml";

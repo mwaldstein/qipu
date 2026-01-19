@@ -2,12 +2,9 @@
 //!
 //! Per spec (specs/indexing-search.md):
 //! - Derived indexes: metadata, tags, backlinks, graph
-//! - Cache location: `.qipu/.cache/*.json`
-//! - Incremental indexing with mtime/hash tracking
 //! - Link extraction from wiki links, markdown links, and typed frontmatter links
 
 pub mod builder;
-pub mod cache;
 pub mod links;
 pub mod types;
 
@@ -114,97 +111,6 @@ mod tests {
 
         assert_eq!(edges.len(), 1);
         assert!(unresolved.contains("qp-missing"));
-    }
-
-    #[test]
-    fn test_incremental_index_updates_tags() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
-        let initial_tags = vec!["alpha".to_string()];
-
-        let mut note = store
-            .create_note("Tagged Note", None, &initial_tags, None)
-            .unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-        index.save(&store.root().join(".cache")).unwrap();
-
-        sleep(Duration::from_secs(3));
-        note.frontmatter.tags = vec!["beta".to_string()];
-        store.save_note(&mut note).unwrap();
-
-        let index = IndexBuilder::new(&store)
-            .load_existing()
-            .unwrap()
-            .build()
-            .unwrap();
-
-        assert!(index.tags.get("alpha").map_or(true, |ids| ids.is_empty()));
-        assert!(index
-            .tags
-            .get("beta")
-            .map_or(false, |ids| ids.iter().any(|id| id == note.id())));
-    }
-
-    #[test]
-    fn test_index_cache_roundtrip() {
-        let dir = tempdir().unwrap();
-        let cache_dir = dir.path().join(".cache");
-
-        let mut index = Index::new();
-        index.metadata.insert(
-            "qp-a1".to_string(),
-            NoteMetadata {
-                id: "qp-a1".to_string(),
-                title: "Cached Note".to_string(),
-                note_type: crate::lib::note::NoteType::Fleeting,
-                tags: vec!["alpha".to_string()],
-                path: "notes/qp-a1.md".to_string(),
-                created: None,
-                updated: None,
-            },
-        );
-        index
-            .tags
-            .insert("alpha".to_string(), vec!["qp-a1".to_string()]);
-        index.edges.push(Edge {
-            from: "qp-a1".to_string(),
-            to: "qp-b2".to_string(),
-            link_type: crate::lib::note::LinkType::from("related"),
-            source: LinkSource::Inline,
-        });
-        index.unresolved.insert("qp-missing".to_string());
-        index.files.insert(
-            PathBuf::from("notes/qp-a1.md"),
-            types::FileEntry {
-                mtime: 123,
-                note_id: "qp-a1".to_string(),
-            },
-        );
-        index
-            .id_to_path
-            .insert("qp-a1".to_string(), PathBuf::from("notes/qp-a1.md"));
-
-        index.save(&cache_dir).unwrap();
-
-        let loaded = Index::load(&cache_dir).unwrap();
-        let loaded_meta = loaded.metadata.get("qp-a1").unwrap();
-
-        assert_eq!(loaded.version, INDEX_VERSION);
-        assert_eq!(loaded.metadata.len(), 1);
-        assert_eq!(loaded_meta.title, "Cached Note");
-        assert_eq!(loaded_meta.tags, vec!["alpha".to_string()]);
-        assert_eq!(
-            loaded.tags.get("alpha").unwrap(),
-            &vec!["qp-a1".to_string()]
-        );
-        assert_eq!(loaded.edges.len(), 1);
-        assert!(loaded.unresolved.contains("qp-missing"));
-        assert_eq!(loaded.files.len(), 1);
-        assert_eq!(
-            loaded.id_to_path.get("qp-a1").unwrap(),
-            &PathBuf::from("notes/qp-a1.md")
-        );
     }
 
     #[test]

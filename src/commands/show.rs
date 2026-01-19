@@ -208,7 +208,7 @@ fn execute_show_links(
     let note_id = note.id().to_string();
 
     // Load or build the index to get backlinks
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
+    let index = IndexBuilder::new(store).build()?;
 
     let equivalence_map = if let Some(ctx) = compaction_ctx {
         Some(ctx.build_equivalence_map(all_notes)?)

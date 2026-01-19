@@ -2,7 +2,6 @@ use crate::lib::note::{LinkType, NoteType};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 
 /// Link source - where the link was defined
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,17 +71,7 @@ pub struct NoteMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created: Option<DateTime<Utc>>,
     /// Last update timestamp
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub updated: Option<DateTime<Utc>>,
-}
-
-/// File metadata for incremental indexing
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct FileEntry {
-    /// File modification time
-    pub(crate) mtime: u64,
-    /// Note ID in this file
-    pub(crate) note_id: String,
 }
 
 /// Search results
@@ -112,7 +101,7 @@ pub struct SearchResult {
 }
 
 /// The complete index structure
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct Index {
     /// Index format version
     pub version: u32,
@@ -124,28 +113,16 @@ pub struct Index {
     pub edges: Vec<Edge>,
     /// Unresolved links (links to non-existent IDs)
     pub unresolved: HashSet<String>,
-    /// File tracking for incremental updates
-    #[serde(default)]
-    pub(crate) files: HashMap<PathBuf, FileEntry>,
-    /// Reverse mapping: note_id -> file_path (for fast lookup)
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub(crate) id_to_path: HashMap<String, PathBuf>,
-
-    /// Total number of documents (for BM25)
-    #[serde(default)]
+    /// Total number of documents (for BM25/similarity)
     pub total_docs: usize,
-    /// Total number of terms across all documents (for BM25)
-    #[serde(default)]
+    /// Total number of terms across all documents (for BM25/similarity)
     pub total_len: usize,
-    /// Document lengths: note_id -> word count (for BM25)
-    #[serde(default)]
+    /// Document lengths: note_id -> word count (for BM25/similarity)
     pub doc_lengths: HashMap<String, usize>,
-    /// Term document frequency: term -> number of documents containing it (for BM25)
-    #[serde(default)]
+    /// Term document frequency: term -> number of documents containing it (for BM25/similarity)
     pub term_df: HashMap<String, usize>,
     /// Term frequencies in each note with field weighting applied (for TF-IDF similarity)
     /// Maps note_id -> (term -> weighted_frequency)
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub(crate) note_terms: HashMap<String, HashMap<String, f64>>,
 }
 
@@ -161,19 +138,12 @@ impl Index {
             tags: HashMap::new(),
             edges: Vec::new(),
             unresolved: HashSet::new(),
-            files: HashMap::new(),
-            id_to_path: HashMap::new(),
             total_docs: 0,
             total_len: 0,
             doc_lengths: HashMap::new(),
             term_df: HashMap::new(),
             note_terms: HashMap::new(),
         }
-    }
-
-    /// Get file path for a note ID (for fast lookup)
-    pub fn get_note_path(&self, note_id: &str) -> Option<&PathBuf> {
-        self.id_to_path.get(note_id)
     }
 
     /// Get metadata for a note by ID

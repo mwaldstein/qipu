@@ -28,9 +28,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
     let ctx = CompactionContext::build(&all_notes)?;
 
     // Build index for edge analysis
-    let index = crate::lib::index::IndexBuilder::new(&store)
-        .load_existing()?
-        .build()?;
+    let index = crate::lib::index::IndexBuilder::new(&store).build()?;
 
     // Get direct compacted notes
     let direct_compacts = ctx

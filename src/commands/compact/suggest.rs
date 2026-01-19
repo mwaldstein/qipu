@@ -22,9 +22,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
     };
 
     // Build index for graph analysis
-    let index = crate::lib::index::IndexBuilder::new(&store)
-        .load_existing()?
-        .build()?;
+    let index = crate::lib::index::IndexBuilder::new(&store).build()?;
 
     // Find compaction candidates
     let all_notes = store.list_notes()?;

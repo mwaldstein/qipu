@@ -84,7 +84,7 @@ pub struct ExportOptions<'a> {
 /// Execute the export command
 pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     // Build or load index for searching
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
+    let index = IndexBuilder::new(store).build()?;
 
     // Build compaction context for resolved view + annotations
     let all_notes = store.list_notes()?;

@@ -350,15 +350,27 @@ Deleted entirely:
 
 **Learning**: The `search()` function from the old index module was replaced by SQLite FTS5 search via `store.db().search()`. The new signature requires a `limit` parameter (set to 200 based on old code).
 
-#### 4.2: Delete JSON cache code
-Files to modify:
-- `src/lib/index/mod.rs` - Remove `Index::load()`, `Index::save()`
-- `src/lib/index/builder.rs` - Delete file entirely or gut JSON-building logic
-- `src/lib/index/types.rs` - Keep `SearchResult`, `Edge`, `NoteMetadata`; remove JSON-specific fields
+#### 4.2: Delete JSON cache code ✅ COMPLETE
 
-Delete:
-- Any code creating `.cache/` directory
-- `Index` struct JSON serialization (serde derives if only for caching)
+Deleted:
+- `src/lib/index/cache.rs` - Complete file deletion
+- `src/lib/index/builder.rs` - Removed `load_existing()`, `rebuild()`, `file_changed()`, and incremental update logic
+- `src/lib/index/types.rs` - Removed `files`, `id_to_path`, and `FileEntry` struct; removed serde derives from `Index` struct
+- Cache directory creation from `src/lib/store/io.rs`
+- `CACHE_DIR` constant from `src/lib/store/paths.rs`
+- `.cache/` from gitignore requirements in `src/lib/store/io.rs`
+
+Updated:
+- All command files to remove `.load_existing()` calls and just use `.build()` directly
+- `src/lib/store/query.rs` to use database instead of index for path lookups
+- Test `test_init_stealth_creates_store_internal_gitignore` to not expect `.cache/` in gitignore
+
+**Learning**:
+- `IndexBuilder` still needed for building in-memory index (used by similarity engine and graph operations)
+- Fields like `note_terms`, `doc_lengths`, `term_df` are still needed for TF-IDF similarity calculations
+- `Edge`, `NoteMetadata`, `LinkSource` still need serde derives for JSON output in records and other features
+- Database can provide note metadata including path, making index's `id_to_path` mapping redundant
+- SQLite-based lookups via `db().get_note_metadata()` are now the authoritative path source
 
 #### 4.3: Update `index --rebuild` command
 File: `src/commands/index.rs`

@@ -53,36 +53,22 @@ impl Store {
 
     /// Get a note by ID
     pub fn get_note(&self, id: &str) -> Result<Note> {
-        self.get_note_internal(id, None)
+        self.get_note_internal(id)
     }
 
     /// Get a note by ID using an index for fast path lookup
-    pub fn get_note_with_index(&self, id: &str, index: &crate::lib::index::Index) -> Result<Note> {
-        // Try fast lookup using index first
-        if let Some(path) = index.get_note_path(id) {
-            if path.exists() {
-                let content = fs::read_to_string(path)?;
-                return Note::parse(&content, Some(path.clone()));
-            }
-        }
-
-        // Fallback to directory traversal
-        self.get_note_internal(id, Some(index))
+    pub fn get_note_with_index(&self, id: &str, _index: &crate::lib::index::Index) -> Result<Note> {
+        self.get_note_internal(id)
     }
 
     /// Internal note lookup implementation
-    pub(super) fn get_note_internal(
-        &self,
-        id: &str,
-        index: Option<&crate::lib::index::Index>,
-    ) -> Result<Note> {
-        // If we have an index, try to use its path information
-        if let Some(idx) = index {
-            if let Some(path) = idx.get_note_path(id) {
-                if path.exists() {
-                    let content = fs::read_to_string(path)?;
-                    return Note::parse(&content, Some(path.clone()));
-                }
+    pub(super) fn get_note_internal(&self, id: &str) -> Result<Note> {
+        // Try using database metadata for path lookup
+        if let Ok(Some(meta)) = self.db().get_note_metadata(id) {
+            let path = self.root().join(&meta.path);
+            if path.exists() {
+                let content = fs::read_to_string(&path)?;
+                return Note::parse(&content, Some(path));
             }
         }
 

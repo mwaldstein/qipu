@@ -26,8 +26,8 @@ pub use model::{DumpOptions, PackAttachment, PackLink};
 
 /// Execute the dump command
 pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
-    // Build or load index for searching and traversal
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
+    // Build index for searching and traversal
+    let index = IndexBuilder::new(store).build()?;
 
     // Collect notes based on selection criteria and graph traversal
     let selected_notes = collect_notes_with_traversal(store, &index, &options)?;

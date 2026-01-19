@@ -1,7 +1,5 @@
 use super::notes::default_template;
-use super::paths::{
-    ATTACHMENTS_DIR, CACHE_DIR, GITIGNORE_FILE, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR,
-};
+use super::paths::{ATTACHMENTS_DIR, GITIGNORE_FILE, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::NoteType;
 use std::fs;
@@ -22,12 +20,6 @@ pub(crate) fn validate_store_layout(store_root: &Path) -> Result<()> {
         }
     }
 
-    // Derived; safe to recreate.
-    let cache_dir = store_root.join(CACHE_DIR);
-    if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir)?;
-    }
-
     if !missing.is_empty() {
         return Err(QipuError::InvalidStore {
             reason: format!(
@@ -43,10 +35,10 @@ pub(crate) fn validate_store_layout(store_root: &Path) -> Result<()> {
 
 pub(crate) fn ensure_store_gitignore(store_root: &Path) -> Result<()> {
     let path = store_root.join(GITIGNORE_FILE);
-    let required = ["qipu.db", ".cache/"];
+    let required = ["qipu.db"];
 
     if !path.exists() {
-        fs::write(&path, format!("{}\n{}\n", required[0], required[1]))?;
+        fs::write(&path, format!("{}\n", required[0]))?;
         return Ok(());
     }
 

@@ -28,7 +28,7 @@ pub fn execute(
     let note_id = resolve_note_id(store, id_or_path)?;
 
     // Load or build the index
-    let index = IndexBuilder::new(store).load_existing()?.build()?;
+    let index = IndexBuilder::new(store).build()?;
 
     let all_notes = store.list_notes()?;
 

@@ -554,10 +554,18 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
   - All tests pass (6/6)
 
 #### `specs/llm-context.md`
-- [ ] Add test for `--max-chars` / `--max-tokens` budget enforcement
-  - File: `tests/cli/context.rs`
-- [ ] Add test for `--transitive` nested MOC traversal
-  - File: `tests/cli/context.rs`
+- [x] Add test for `--max-chars` / `--max-tokens` budget enforcement
+  - File: `tests/cli/context/budget.rs`
+  - Tests: `test_context_max_chars`, `test_context_budget_exact`, `test_context_max_tokens`, `test_context_max_tokens_and_chars`
+  - All tests verify budget enforcement across human, json, and records formats
+- [x] Add test for `--transitive` nested MOC traversal
+  - File: `tests/cli/context/basic.rs`
+  - Added `test_context_transitive_moc_traversal()` which creates:
+    - MOC A linking to MOC B and Note 1
+    - MOC B linking to Note 2 and Note 3
+  - Verifies without `--transitive`: only MOC A, MOC B, Note 1 are included
+  - Verifies with `--transitive`: all 5 notes are included (MOC A, MOC B, Note 1, Note 2, Note 3)
+  - Uses JSON format to parse and verify note IDs
 - [ ] Add test for records safety banner (`W ...` line)
   - File: `tests/cli/context.rs`
 

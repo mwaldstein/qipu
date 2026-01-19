@@ -209,6 +209,168 @@ fn test_context_by_moc() {
 }
 
 #[test]
+fn test_context_transitive_moc_traversal() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create MOC A (top-level MOC)
+    let moc_a_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Top Level MOC", "--type", "moc"])
+        .output()
+        .unwrap();
+    let moc_a_id = String::from_utf8_lossy(&moc_a_output.stdout)
+        .trim()
+        .to_string();
+
+    // Create MOC B (nested MOC)
+    let moc_b_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Nested MOC", "--type", "moc"])
+        .output()
+        .unwrap();
+    let moc_b_id = String::from_utf8_lossy(&moc_b_output.stdout)
+        .trim()
+        .to_string();
+
+    // Create regular notes
+    let note1_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note One"])
+        .output()
+        .unwrap();
+    let note1_id = String::from_utf8_lossy(&note1_output.stdout)
+        .trim()
+        .to_string();
+
+    let note2_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note Two"])
+        .output()
+        .unwrap();
+    let note2_id = String::from_utf8_lossy(&note2_output.stdout)
+        .trim()
+        .to_string();
+
+    let note3_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note Three"])
+        .output()
+        .unwrap();
+    let note3_id = String::from_utf8_lossy(&note3_output.stdout)
+        .trim()
+        .to_string();
+
+    // Link structure:
+    // MOC A -> MOC B, Note 1
+    // MOC B -> Note 2, Note 3
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &moc_a_id, &moc_b_id, "--type", "child"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &moc_a_id, &note1_id, "--type", "includes"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &moc_b_id, &note2_id, "--type", "includes"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &moc_b_id, &note3_id, "--type", "includes"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test without --transitive: should include MOC A, MOC B, Note 1
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["context", "--moc", &moc_a_id, "--format", "json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let note_ids: Vec<&str> = json["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap())
+        .collect();
+
+    assert_eq!(
+        note_ids.len(),
+        3,
+        "Without --transitive should include 3 notes"
+    );
+    assert!(note_ids.contains(&moc_a_id.as_str()));
+    assert!(note_ids.contains(&moc_b_id.as_str()));
+    assert!(note_ids.contains(&note1_id.as_str()));
+    assert!(
+        !note_ids.contains(&note2_id.as_str()),
+        "Note 2 should not be included without --transitive"
+    );
+    assert!(
+        !note_ids.contains(&note3_id.as_str()),
+        "Note 3 should not be included without --transitive"
+    );
+
+    // Test with --transitive: should include MOC A, MOC B, Note 1, Note 2, Note 3
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--moc",
+            &moc_a_id,
+            "--transitive",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let note_ids: Vec<&str> = json["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap())
+        .collect();
+
+    assert_eq!(
+        note_ids.len(),
+        5,
+        "With --transitive should include all 5 notes"
+    );
+    assert!(note_ids.contains(&moc_a_id.as_str()));
+    assert!(note_ids.contains(&moc_b_id.as_str()));
+    assert!(note_ids.contains(&note1_id.as_str()));
+    assert!(note_ids.contains(&note2_id.as_str()));
+    assert!(note_ids.contains(&note3_id.as_str()));
+}
+
+#[test]
 fn test_context_missing_store() {
     let dir = tempdir().unwrap();
 

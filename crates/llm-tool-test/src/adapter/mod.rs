@@ -10,12 +10,12 @@ pub trait ToolAdapter {
     fn check_availability(&self) -> anyhow::Result<()>;
 
     /// Run the tool with the given scenario in the specified working directory.
-    /// Returns the tool output and exit code.
+    /// Returns the tool output, exit code, and estimated cost in USD.
     fn run(
         &self,
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32)>;
+    ) -> anyhow::Result<(String, i32, f64)>;
 }

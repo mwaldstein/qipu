@@ -1,4 +1,5 @@
 use super::ToolAdapter;
+use crate::results::estimate_cost;
 use crate::scenario::Scenario;
 use crate::session::SessionRunner;
 use std::fs;
@@ -21,7 +22,7 @@ impl ToolAdapter for ClaudeCodeAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32)> {
+    ) -> anyhow::Result<(String, i32, f64)> {
         let runner = SessionRunner::new();
 
         let mut args = vec!["run"];
@@ -36,6 +37,13 @@ impl ToolAdapter for ClaudeCodeAdapter {
         args.push("--prompt-file");
         args.push("prompt.txt");
 
-        runner.run_command("claude", &args, cwd, timeout_secs)
+        let input_chars = scenario.task.prompt.len();
+        let model_name = model.unwrap_or("default");
+
+        let (output, exit_code) = runner.run_command("claude", &args, cwd, timeout_secs)?;
+        let output_chars = output.len();
+        let cost = estimate_cost(model_name, input_chars, output_chars);
+
+        Ok((output, exit_code, cost))
     }
 }

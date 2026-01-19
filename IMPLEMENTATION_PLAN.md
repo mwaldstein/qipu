@@ -291,21 +291,35 @@ Human review happens out-of-band after runs complete—runs are never paused:
 
 ##### Amp Adapter Implementation
 - [x] `adapter/amp.rs` uses hypothetical CLI: `amp run --context AGENTS.md --prompt-file prompt.txt`
-  - Verified actual Amp CLI syntax and updated adapter
-  - Implementation now uses correct `amp -x @prompt.txt` pattern
-  - `--model` parameter mapped to `--mode` (free, rush, smart)
-  - AGENTS.md context included in prompt if it exists
-  - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
+   - Verified actual Amp CLI syntax and updated adapter
+   - Implementation now uses correct `amp -x @prompt.txt` pattern
+   - `--model` parameter mapped to `--mode` (free, rush, smart)
+   - AGENTS.md context included in prompt if it exists
+   - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
 - [x] Add timeout handling for long-running LLM sessions
-  - Added `wait-timeout` dependency to Cargo.toml
-  - Added `--timeout-secs` CLI parameter (default: 300 seconds)
-  - Updated `ToolAdapter::run` trait to accept `timeout_secs: u64`
-  - Implemented timeout in `SessionRunner::run_command` using thread-based timeout with Arc<Mutex<Child>>
-  - Updated all adapters (opencode, amp, claude_code) to accept and pass timeout parameter
-  - Updated main.rs to pass timeout through execution chain
-  - All 375 tests passing
-  - Learned: portable-pty's Child trait doesn't support wait_timeout directly, needed manual thread-based implementation
-- [ ] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
+   - Added `wait-timeout` dependency to Cargo.toml
+   - Added `--timeout-secs` CLI parameter (default: 300 seconds)
+   - Updated `ToolAdapter::run` trait to accept `timeout_secs: u64`
+   - Implemented timeout in `SessionRunner::run_command` using thread-based timeout with Arc<Mutex<Child>>
+   - Updated all adapters (opencode, amp, claude_code) to accept and pass timeout parameter
+   - Updated main.rs to pass timeout through execution chain
+   - All 375 tests passing
+   - Learned: portable-pty's Child trait doesn't support wait_timeout directly, needed manual thread-based implementation
+- [x] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
+   - Modified `ToolAdapter::run` trait to return `(String, i32, f64)` - output, exit code, and cost
+   - Added `ModelPricing` struct and `get_model_pricing()` function with pricing for:
+     - Claude models (Sonnet: $3/$15 per 1K input/output tokens, Haiku: $0.8/$4, Opus: $15/$75)
+     - GPT models (GPT-4o: $2.5/$10, GPT-4: $30/$60, GPT-3.5: $0.5/$1.5)
+     - Amp modes (smart: $3/$15, rush: $0.8/$4, free: $0/$0)
+   - Added `estimate_cost()` function that calculates cost from model name and character counts
+     - Token estimation: ~4 characters per token
+     - Returns 0.0 for unknown models
+   - Updated all adapters (opencode, amp, claude_code) to calculate and return cost
+   - Updated main.rs to use actual cost instead of 0.0
+   - Added cost to transcript events and result records
+   - Added 7 unit tests for cost estimation (all passing)
+   - All 364 tests passing (130 + 213 + 18 + 6 + 6 + 6 + 3)
+   - Files modified: adapter/mod.rs, adapter/opencode.rs, adapter/amp.rs, adapter/claude_code.rs, results.rs, main.rs
 
 ##### Scenario Tiers
 - [ ] Add `tier` field to scenario schema (0=smoke, 1=quick, 2=standard, 3=comprehensive)

@@ -122,7 +122,7 @@ fn run_single_scenario(
 
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
-        let (output, exit_code) = adapter.run(s, &env.root, Some(model), timeout_secs)?;
+        let (output, exit_code, cost) = adapter.run(s, &env.root, Some(model), timeout_secs)?;
         let duration = start_time.elapsed();
 
         let transcript_dir = env.root.join("artifacts");
@@ -133,7 +133,8 @@ fn run_single_scenario(
             "type": "execution",
             "tool": tool,
             "output": output,
-            "exit_code": exit_code
+            "exit_code": exit_code,
+            "cost_usd": cost
         }))?;
 
         println!("Running evaluation...");
@@ -160,7 +161,7 @@ fn run_single_scenario(
             qipu_commit: qipu_version.clone(),
             timestamp: Utc::now(),
             duration_secs: duration.as_secs_f64(),
-            cost_usd: 0.0,
+            cost_usd: cost,
             gates_passed: metrics.gates_passed >= metrics.gates_total,
             metrics: EvaluationMetricsRecord {
                 gates_passed: metrics.gates_passed,

@@ -8,6 +8,15 @@ pub struct Scenario {
     pub fixture: String,
     pub task: Task,
     pub evaluation: Evaluation,
+    #[serde(default)]
+    pub tool_matrix: Option<Vec<ToolConfig>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolConfig {
+    pub tool: String,
+    #[serde(default)]
+    pub models: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,4 +50,86 @@ pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
     let content = std::fs::read_to_string(path)?;
     let scenario: Scenario = serde_yaml::from_str(&content)?;
     Ok(scenario)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_scenario_without_tool_matrix() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert!(scenario.tool_matrix.is_none());
+    }
+
+    #[test]
+    fn test_load_scenario_with_tool_matrix() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+tool_matrix:
+  - tool: opencode
+    models: [claude-sonnet-4-20250514, gpt-4o]
+  - tool: amp
+    models: [default]
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert!(scenario.tool_matrix.is_some());
+
+        let matrix = scenario.tool_matrix.unwrap();
+        assert_eq!(matrix.len(), 2);
+        assert_eq!(matrix[0].tool, "opencode");
+        assert_eq!(matrix[0].models, vec!["claude-sonnet-4-20250514", "gpt-4o"]);
+        assert_eq!(matrix[1].tool, "amp");
+        assert_eq!(matrix[1].models, vec!["default"]);
+    }
+
+    #[test]
+    fn test_load_scenario_with_empty_models() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+tool_matrix:
+  - tool: opencode
+    models: []
+  - tool: amp
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert!(scenario.tool_matrix.is_some());
+
+        let matrix = scenario.tool_matrix.unwrap();
+        assert_eq!(matrix.len(), 2);
+        assert_eq!(matrix[0].tool, "opencode");
+        assert!(matrix[0].models.is_empty());
+        assert_eq!(matrix[1].tool, "amp");
+        assert!(matrix[1].models.is_empty());
+    }
 }

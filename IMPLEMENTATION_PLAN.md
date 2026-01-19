@@ -254,7 +254,7 @@ Human review happens out-of-band after runs complete—runs are never paused:
     --tools opencode,claude-code \
     --models claude-sonnet-4-20250514,gpt-4o
   ```
-- [ ] Add scenario-level `tool_matrix` field for declarative matrix
+- [x] Add scenario-level `tool_matrix` field for declarative matrix
   ```yaml
   tool_matrix:
     - tool: opencode
@@ -265,6 +265,10 @@ Human review happens out-of-band after runs complete—runs are never paused:
       models: [default]
   ```
   - File: `crates/llm-tool-test/src/scenario.rs`
+  - Added `ToolConfig` struct with `tool` and `models` fields
+  - Added `tool_matrix` optional field to `Scenario` struct with serde default
+  - Added 3 unit tests to verify YAML parsing with/without tool_matrix
+  - All existing tests pass
 - [ ] Add claude-code adapter
   - File: `crates/llm-tool-test/src/adapter/claude_code.rs`
 - [ ] Add matrix summary report (pass/fail grid by tool×model)

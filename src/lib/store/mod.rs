@@ -42,6 +42,7 @@ impl Store {
     }
 
     /// Open an existing store at the given path
+    #[tracing::instrument(skip(path), fields(path = %path.display()))]
     pub fn open(path: &Path) -> Result<Self> {
         if !path.is_dir() {
             return Err(QipuError::StoreNotFound {
@@ -81,6 +82,7 @@ impl Store {
     }
 
     /// Open a store without validation.
+    #[tracing::instrument(skip(path), fields(path = %path.display()))]
     pub fn open_unchecked(path: &Path) -> Result<Self> {
         if !path.is_dir() {
             return Err(QipuError::StoreNotFound {

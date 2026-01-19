@@ -32,7 +32,7 @@ Current instrumentation:
 - `src/lib/store/query.rs` - parse failures
 
 **Remaining instrumentation (low priority):**
-- Add spans to `Store::open()`, `Database::rebuild()`
+- [x] Add spans to `Store::open()`, `Database::rebuild()` (2026-01-19)
 - Add timing spans to graph traversal operations
 - Add structured context to error chains
 

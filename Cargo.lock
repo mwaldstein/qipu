@@ -1165,6 +1165,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-appender",
+ "tracing-attributes",
  "tracing-subscriber",
  "ulid",
  "walkdir",

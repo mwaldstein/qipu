@@ -87,6 +87,7 @@ impl Database {
 
     /// Rebuild the database from scratch by scanning all notes
     #[allow(dead_code)]
+    #[tracing::instrument(skip(self, store_root), fields(store_root = %store_root.display()))]
     pub fn rebuild(&self, store_root: &Path) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};

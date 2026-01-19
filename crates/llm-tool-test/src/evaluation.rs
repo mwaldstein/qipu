@@ -102,6 +102,14 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     message: format!("Note '{}' contains '{}': {}", id, substring, contains),
                 }
             }
+            Gate::CommandSucceeds { command } => {
+                let succeeds = command_succeeds(command, env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "CommandSucceeds".to_string(),
+                    passed: succeeds,
+                    message: format!("Command '{}' succeeded: {}", command, succeeds),
+                }
+            }
         };
 
         if result.passed {
@@ -337,6 +345,23 @@ fn content_contains(id: &str, substring: &str, env_root: &Path) -> Result<bool> 
         }
         Err(_) => Ok(false),
     }
+}
+
+fn command_succeeds(command: &str, env_root: &Path) -> Result<bool> {
+    let qipu = get_qipu_path();
+    let qipu_abs = std::fs::canonicalize(&qipu)
+        .with_context(|| format!("Could not find qipu binary at {}", qipu))?;
+
+    // Split the command string into parts (simple shell-like parsing)
+    let parts: Vec<&str> = command.split_whitespace().collect();
+
+    let output = Command::new(qipu_abs)
+        .args(&parts)
+        .current_dir(env_root)
+        .output()
+        .with_context(|| format!("Failed to execute qipu {}", command))?;
+
+    Ok(output.status.success())
 }
 
 fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
@@ -767,6 +792,48 @@ mod tests {
             setup: None,
         };
         let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+
+        // 15. CommandSucceeds - should pass with successful command
+        let command_scenario_pass = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::CommandSucceeds {
+                    command: "list".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&command_scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+
+        // 16. CommandSucceeds - should fail with failing command
+        let command_scenario_fail = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::CommandSucceeds {
+                    command: "show qp-nonexistent".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
     }
 }

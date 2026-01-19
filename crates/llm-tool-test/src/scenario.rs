@@ -80,6 +80,9 @@ pub enum Gate {
         id: String,
         substring: String,
     },
+    CommandSucceeds {
+        command: String,
+    },
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -376,6 +379,28 @@ evaluation:
                 assert_eq!(substring, "important keyword");
             }
             _ => panic!("Expected ContentContains gate"),
+        }
+    }
+
+    #[test]
+    fn test_command_succeeds_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: command_succeeds
+      command: "list"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::CommandSucceeds { command } => assert_eq!(command, "list"),
+            _ => panic!("Expected CommandSucceeds gate"),
         }
     }
 }

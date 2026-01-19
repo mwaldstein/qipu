@@ -1,0 +1,14 @@
+name: search_basic
+description: "Basic search functionality test"
+fixture: qipu
+tier: 1
+task:
+  prompt: "Create three notes: one about 'Machine Learning' with content about supervised learning, one about 'Neural Networks' with content about deep learning, and one about 'Data Science' with content about data analysis. Then use qipu search to find the note about 'Neural Networks'."
+evaluation:
+  gates:
+    - type: min_notes
+      count: 3
+    - type: search_hit
+      query: "Neural Networks"
+    - type: search_hit
+      query: "Machine Learning"

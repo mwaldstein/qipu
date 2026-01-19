@@ -1,0 +1,14 @@
+name: context_retrieval
+description: "Context retrieval for LLM integration"
+fixture: qipu
+tier: 1
+task:
+  prompt: "Create three notes about programming concepts: one titled 'Rust Ownership' with tags #rust #ownership, one titled 'Async Programming' with tags #rust #async, and one titled 'Error Handling' with tags #rust #errors. Then use qipu context with the tag #rust to retrieve all three notes."
+evaluation:
+  gates:
+    - type: min_notes
+      count: 3
+    - type: search_hit
+      query: "Rust Ownership"
+    - type: search_hit
+      query: "Async Programming"

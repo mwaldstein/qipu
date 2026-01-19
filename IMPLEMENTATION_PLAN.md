@@ -33,7 +33,7 @@ Current instrumentation:
 
 **Remaining instrumentation (low priority):**
 - [x] Add spans to `Store::open()`, `Database::rebuild()` (2026-01-19)
-- Add timing spans to graph traversal operations
+- [x] Add timing spans to graph traversal operations (2026-01-19)
 - Add structured context to error chains
 
 ## P1: SQLite Migration & Ripgrep Removal (PRIORITY)

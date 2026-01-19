@@ -35,6 +35,7 @@ impl GraphProvider for Index {
 }
 
 /// Perform BFS traversal from a root node
+#[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(root = %root, direction = ?opts.direction, max_hops = %opts.max_hops.value(), max_nodes, max_edges, max_fanout))]
 pub fn bfs_traverse(
     provider: &dyn GraphProvider,
     store: &Store,
@@ -297,6 +298,7 @@ pub fn bfs_traverse(
 }
 
 /// Find path between two nodes using BFS
+#[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(from = %from, to = %to, direction = ?opts.direction, max_hops = %opts.max_hops.value()))]
 pub fn bfs_find_path(
     provider: &dyn GraphProvider,
     store: &Store,

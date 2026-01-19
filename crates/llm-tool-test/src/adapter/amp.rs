@@ -11,7 +11,7 @@ impl ToolAdapter for AmpAdapter {
         let runner = SessionRunner::new();
         // Check if 'amp' is in PATH by running 'amp --version' or similar.
         // Using 'which' or just trying to run it.
-        match runner.run_command("amp", &["--version"], Path::new(".")) {
+        match runner.run_command("amp", &["--version"], Path::new("."), 10) {
             Ok(_) => Ok(()),
             Err(e) => Err(anyhow::anyhow!(
                 "Amp tool not found or failed to run: {}",
@@ -25,6 +25,7 @@ impl ToolAdapter for AmpAdapter {
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
+        timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
@@ -52,6 +53,6 @@ impl ToolAdapter for AmpAdapter {
         let prompt_arg = format!("@{}", prompt_arg_path.display());
         args.push(&prompt_arg);
 
-        runner.run_command("amp", &args, cwd)
+        runner.run_command("amp", &args, cwd, timeout_secs)
     }
 }

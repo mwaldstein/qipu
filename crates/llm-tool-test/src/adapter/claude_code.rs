@@ -9,7 +9,7 @@ pub struct ClaudeCodeAdapter;
 impl ToolAdapter for ClaudeCodeAdapter {
     fn check_availability(&self) -> anyhow::Result<()> {
         let runner = SessionRunner::new();
-        match runner.run_command("claude", &["--version"], Path::new(".")) {
+        match runner.run_command("claude", &["--version"], Path::new("."), 10) {
             Ok(_) => Ok(()),
             Err(e) => Err(anyhow::anyhow!("Claude Code tool not found: {}", e)),
         }
@@ -20,6 +20,7 @@ impl ToolAdapter for ClaudeCodeAdapter {
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
+        timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
@@ -35,6 +36,6 @@ impl ToolAdapter for ClaudeCodeAdapter {
         args.push("--prompt-file");
         args.push("prompt.txt");
 
-        runner.run_command("claude", &args, cwd)
+        runner.run_command("claude", &args, cwd, timeout_secs)
     }
 }

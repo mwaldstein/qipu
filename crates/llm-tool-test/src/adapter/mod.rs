@@ -16,5 +16,6 @@ pub trait ToolAdapter {
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
+        timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)>;
 }

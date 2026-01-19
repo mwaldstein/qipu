@@ -8,7 +8,7 @@ pub struct OpenCodeAdapter;
 impl ToolAdapter for OpenCodeAdapter {
     fn check_availability(&self) -> anyhow::Result<()> {
         let runner = SessionRunner::new();
-        match runner.run_command("opencode", &["--version"], Path::new(".")) {
+        match runner.run_command("opencode", &["--version"], Path::new("."), 10) {
             Ok(_) => Ok(()),
             Err(e) => Err(anyhow::anyhow!("OpenCode tool not found: {}", e)),
         }
@@ -19,6 +19,7 @@ impl ToolAdapter for OpenCodeAdapter {
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
+        timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)> {
         let runner = SessionRunner::new();
 
@@ -30,6 +31,6 @@ impl ToolAdapter for OpenCodeAdapter {
         }
         args.push(&scenario.task.prompt);
 
-        runner.run_command("opencode", &args, cwd)
+        runner.run_command("opencode", &args, cwd, timeout_secs)
     }
 }

@@ -83,6 +83,7 @@ fn run_single_scenario(
     model: &str,
     dry_run: bool,
     no_cache: bool,
+    timeout_secs: u64,
     _base_dir: &std::path::Path,
     results_db: &ResultsDB,
     cache: &Cache,
@@ -121,7 +122,7 @@ fn run_single_scenario(
 
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
-        let (output, exit_code) = adapter.run(s, &env.root, Some(model))?;
+        let (output, exit_code) = adapter.run(s, &env.root, Some(model), timeout_secs)?;
         let duration = start_time.elapsed();
 
         let transcript_dir = env.root.join("artifacts");
@@ -280,6 +281,7 @@ fn main() -> anyhow::Result<()> {
             dry_run,
             no_cache,
             judge_model,
+            timeout_secs,
         } => {
             if let Some(model) = judge_model {
                 std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
@@ -306,6 +308,7 @@ fn main() -> anyhow::Result<()> {
                         &config.model,
                         *dry_run,
                         *no_cache,
+                        *timeout_secs,
                         &base_dir,
                         &results_db,
                         &cache,

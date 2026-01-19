@@ -296,7 +296,15 @@ Human review happens out-of-band after runs complete—runs are never paused:
   - `--model` parameter mapped to `--mode` (free, rush, smart)
   - AGENTS.md context included in prompt if it exists
   - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
-- [ ] Add timeout handling for long-running LLM sessions
+- [x] Add timeout handling for long-running LLM sessions
+  - Added `wait-timeout` dependency to Cargo.toml
+  - Added `--timeout-secs` CLI parameter (default: 300 seconds)
+  - Updated `ToolAdapter::run` trait to accept `timeout_secs: u64`
+  - Implemented timeout in `SessionRunner::run_command` using thread-based timeout with Arc<Mutex<Child>>
+  - Updated all adapters (opencode, amp, claude_code) to accept and pass timeout parameter
+  - Updated main.rs to pass timeout through execution chain
+  - All 375 tests passing
+  - Learned: portable-pty's Child trait doesn't support wait_timeout directly, needed manual thread-based implementation
 - [ ] Add cost tracking (currently hardcoded to 0.0 in `main.rs:116`)
 
 ##### Scenario Tiers

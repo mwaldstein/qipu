@@ -80,8 +80,10 @@ impl super::Database {
                         )
                         .map_err(|e| {
                             QipuError::Other(format!(
-                                "failed to insert unresolved ref {}: {}",
-                                unresolved_ref, e
+                                "failed to insert unresolved ref '{}' for note {}: {}",
+                                unresolved_ref,
+                                note.id(),
+                                e
                             ))
                         })?;
                 }

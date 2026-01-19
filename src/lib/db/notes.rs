@@ -203,7 +203,14 @@ impl super::Database {
                 "INSERT OR REPLACE INTO tags (note_id, tag) VALUES (?1, ?2)",
                 params![note.id(), tag],
             )
-            .map_err(|e| QipuError::Other(format!("failed to insert tag {}: {}", tag, e)))?;
+            .map_err(|e| {
+                QipuError::Other(format!(
+                    "failed to insert tag '{}' for note {}: {}",
+                    tag,
+                    note.id(),
+                    e
+                ))
+            })?;
         }
 
         Ok(())

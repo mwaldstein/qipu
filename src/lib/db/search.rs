@@ -112,18 +112,23 @@ impl super::Database {
             Box::new(limit_i64),
         ];
 
-        let mut stmt = self
-            .conn
-            .prepare(&sql)
-            .map_err(|e| QipuError::Other(format!("failed to prepare search query: {}", e)))?;
+        let mut stmt = self.conn.prepare(&sql).map_err(|e| {
+            QipuError::Other(format!(
+                "failed to prepare search query for '{}': {}",
+                query, e
+            ))
+        })?;
 
         let mut results = Vec::new();
 
         let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
-        let mut rows = stmt
-            .query(param_refs.as_slice())
-            .map_err(|e| QipuError::Other(format!("failed to execute search query: {}", e)))?;
+        let mut rows = stmt.query(param_refs.as_slice()).map_err(|e| {
+            QipuError::Other(format!(
+                "failed to execute search query for '{}': {}",
+                query, e
+            ))
+        })?;
 
         while let Some(row) = rows
             .next()

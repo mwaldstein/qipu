@@ -34,7 +34,11 @@ Current instrumentation:
 **Remaining instrumentation (low priority):**
 - [x] Add spans to `Store::open()`, `Database::rebuild()` (2026-01-19)
 - [x] Add timing spans to graph traversal operations (2026-01-19)
-- Add structured context to error chains
+- [x] Add structured context to error chains (2026-01-19)
+  - Enhanced tag insertion errors to include both tag value and note ID (src/lib/db/notes.rs)
+  - Enhanced unresolved reference errors to include source note ID (src/lib/db/edges.rs)
+  - Enhanced search query errors to include the query string (src/lib/db/search.rs)
+  - Learning: Error messages should include all relevant identifiers (IDs, paths, values) to aid debugging without needing to trace through the code
 
 ## P1: SQLite Migration & Ripgrep Removal (PRIORITY)
 

@@ -1069,6 +1069,73 @@ impl Database {
 
         Ok(orphaned)
     }
+
+    /// Quick consistency check between database and filesystem
+    ///
+    /// Returns true if database is consistent with filesystem, false otherwise
+    pub fn validate_consistency(&self, store_root: &Path) -> Result<bool> {
+        let db_count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to count notes in DB: {}", e)))?;
+
+        let fs_count = Self::count_note_files(store_root)?;
+
+        if db_count != fs_count as i64 {
+            tracing::warn!(
+                "Consistency check failed: DB has {} notes, filesystem has {}",
+                db_count,
+                fs_count
+            );
+            return Ok(false);
+        }
+
+        let mut stmt = self
+            .conn
+            .prepare("SELECT path, mtime FROM notes ORDER BY RANDOM() LIMIT 5")
+            .map_err(|e| QipuError::Other(format!("failed to prepare mtime query: {}", e)))?;
+
+        let mut rows = stmt
+            .query([])
+            .map_err(|e| QipuError::Other(format!("failed to query mtime samples: {}", e)))?;
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read mtime sample: {}", e)))?
+        {
+            let path_str: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?;
+            let db_mtime: i64 = row
+                .get(1)
+                .map_err(|e| QipuError::Other(format!("failed to get mtime: {}", e)))?;
+
+            let path = Path::new(&path_str);
+            if !path.exists() {
+                tracing::warn!("Consistency check failed: file {} missing", path_str);
+                return Ok(false);
+            }
+
+            let fs_mtime = std::fs::metadata(path)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+
+            if db_mtime != fs_mtime {
+                tracing::warn!(
+                    "Consistency check failed: file {} mtime mismatch (DB: {}, FS: {})",
+                    path_str,
+                    db_mtime,
+                    fs_mtime
+                );
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
 }
 
 #[cfg(test)]
@@ -1690,5 +1757,128 @@ mod tests {
             .unwrap();
 
         assert_eq!(note_count, 0);
+    }
+
+    #[test]
+    fn test_validate_consistency_matching_state() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["tag".to_string()], None)
+            .unwrap();
+
+        let db = store.db();
+        assert!(db.validate_consistency(store.root()).unwrap());
+    }
+
+    #[test]
+    fn test_validate_consistency_count_mismatch() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["tag".to_string()], None)
+            .unwrap();
+
+        let db = store.db();
+
+        let db_count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |row| row.get(0))
+            .unwrap();
+
+        db.conn
+            .execute(
+                "INSERT INTO notes (id, title, type, path, mtime) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["qp-fake-id", "Fake Note", "Fleeting", "/fake/path.md", 0],
+            )
+            .unwrap();
+
+        let new_db_count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(new_db_count, db_count + 1);
+
+        assert!(!db.validate_consistency(store.root()).unwrap());
+    }
+
+    #[test]
+    fn test_validate_consistency_missing_file() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["tag".to_string()], None)
+            .unwrap();
+
+        let db = store.db();
+
+        let mut stmt = db.conn.prepare("SELECT path FROM notes").unwrap();
+        let mut rows = stmt.query([]).unwrap();
+        let row = rows.next().unwrap().unwrap();
+        let path_str: String = row.get(0).unwrap();
+        let path = std::path::PathBuf::from(path_str);
+
+        std::fs::remove_file(&path).unwrap();
+
+        assert!(!db.validate_consistency(store.root()).unwrap());
+    }
+
+    #[test]
+    fn test_validate_consistency_mtime_mismatch() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        store
+            .create_note("Test Note", None, &["tag".to_string()], None)
+            .unwrap();
+
+        let db = store.db();
+
+        let mut stmt = db.conn.prepare("SELECT id FROM notes").unwrap();
+        let mut rows = stmt.query([]).unwrap();
+        let row = rows.next().unwrap().unwrap();
+        let note_id: String = row.get(0).unwrap();
+
+        db.conn
+            .execute(
+                "UPDATE notes SET mtime = ?1 WHERE id = ?2",
+                params![999, note_id],
+            )
+            .unwrap();
+
+        assert!(!db.validate_consistency(store.root()).unwrap());
+    }
+
+    #[test]
+    fn test_validate_consistency_empty_database() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db = store.db();
+        assert!(db.validate_consistency(store.root()).unwrap());
+    }
+
+    #[test]
+    fn test_validate_consistency_samples_multiple_notes() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        for i in 0..10 {
+            store
+                .create_note(
+                    &format!("Test Note {}", i),
+                    None,
+                    &["tag".to_string()],
+                    None,
+                )
+                .unwrap();
+        }
+
+        let db = store.db();
+        assert!(db.validate_consistency(store.root()).unwrap());
     }
 }

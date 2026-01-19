@@ -240,3 +240,102 @@ fn test_export_bundle_preserves_moc_order() {
         .stdout(predicate::str::contains("Body B\n\n---\n\n## Note: Note C"))
         .stdout(predicate::str::contains("Body C\n\n---\n\n## Note: Note A"));
 }
+
+#[test]
+fn test_export_anchor_links_point_to_existing_anchors() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(
+        &note_b_path,
+        "---\nid: qp-bbbb\ntitle: Note B\n---\nSee [[qp-aaaa]] and [[qp-cccc]]",
+    )
+    .unwrap();
+
+    let note_c_path = dir.path().join(".qipu/notes/qp-cccc-note-c.md");
+    fs::write(
+        &note_c_path,
+        "---\nid: qp-cccc\ntitle: Note C\n---\nBody C with link to [[qp-bbbb]]",
+    )
+    .unwrap();
+
+    let result = qipu()
+        .current_dir(dir.path())
+        .args([
+            "export",
+            "--note",
+            "qp-aaaa",
+            "--note",
+            "qp-bbbb",
+            "--note",
+            "qp-cccc",
+            "--link-mode",
+            "anchors",
+        ])
+        .assert()
+        .success();
+
+    let output = String::from_utf8_lossy(&result.get_output().stdout);
+
+    let mut anchor_ids: Vec<String> = Vec::new();
+    for line in output.lines() {
+        if line.contains("<a id=") && line.contains("note-") {
+            let anchor_start = line.find("id=\"").unwrap();
+            let id_start = anchor_start + 4;
+            if let Some(id_end) = line[id_start..].find('"') {
+                let anchor_id = &line[id_start..id_start + id_end];
+                anchor_ids.push(anchor_id.to_string());
+            }
+        }
+    }
+
+    assert_eq!(
+        anchor_ids.len(),
+        3,
+        "Should have 3 anchors for 3 notes, found: {:?}",
+        anchor_ids
+    );
+
+    let mut anchor_links: Vec<String> = Vec::new();
+    for line in output.lines() {
+        if line.contains("](#note-") {
+            let rest = &line[line.find("](#note-").unwrap()..];
+            let start = rest.find("(#note-").unwrap();
+            let end = rest[start..].find(')').unwrap();
+            let link_target = &rest[start + 2..start + end];
+            anchor_links.push(link_target.to_string());
+
+            let remaining = &rest[start + end + 1..];
+            if remaining.contains("](#note-") {
+                let start2 = remaining.find("(#note-").unwrap();
+                let end2 = remaining[start2..].find(')').unwrap();
+                let link_target2 = &remaining[start2 + 2..start2 + end2];
+                anchor_links.push(link_target2.to_string());
+            }
+        }
+    }
+
+    assert_eq!(
+        anchor_links.len(),
+        3,
+        "Should have 3 rewritten links, found: {:?}",
+        anchor_links
+    );
+
+    for link_target in &anchor_links {
+        assert!(
+            anchor_ids.contains(link_target),
+            "Link points to {} but anchor doesn't exist. Anchors: {:?}",
+            link_target,
+            anchor_ids
+        );
+    }
+}

@@ -503,9 +503,13 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
   - Used `fs::read_dir()` to find the created file and read its content
 
 #### `specs/export.md`
-- [ ] Add test validating anchor rewriting produces existing target anchor
+- [x] Add test validating anchor rewriting produces existing target anchor
   - Test: Export bundle with internal links, verify `#note-<id>` anchors exist
   - File: `tests/cli/export.rs`
+  - Added `test_export_anchor_links_point_to_existing_anchors()` which creates notes with links and verifies:
+    1. All notes have anchors generated in the output
+    2. All internal links are rewritten to anchor format
+    3. Every rewritten link points to an existing anchor in the output
 - [ ] Add test validating `--with-attachments` link rewriting
   - Test: Export with attachments, verify `./attachments/` links resolve
   - File: `tests/cli/export.rs`

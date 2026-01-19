@@ -129,6 +129,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             transitive,
             with_body,
             safety_banner,
+            related,
         }) => notes::handle_context(
             cli,
             &root,
@@ -142,6 +143,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             *transitive,
             *with_body,
             *safety_banner,
+            *related,
             start,
         ),
 

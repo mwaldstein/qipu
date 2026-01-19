@@ -637,7 +637,14 @@ Implemented schema version tracking:
 
 ### `specs/similarity-ranking.md`
 - [ ] Optional stemming (Porter) - no stemming code exists
-- [ ] "Related notes" similarity expansion in `context` command
+- [x] "Related notes" similarity expansion in `context` command
+  - Added `--related <threshold>` flag to context command (CLI and ContextOptions)
+  - When threshold is set, builds Index and uses SimilarityEngine to find similar notes
+  - Excludes: already selected notes, directly linked notes (both inbound and outbound)
+  - Adds similar notes to selection, sorted by similarity score
+  - Marks notes added via similarity with via field (format: `similarity:<score>`)
+  - Test: `test_context_related_expansion` verifies functionality
+  - Per spec: threshold > 0.0-1.0, excludes linked notes to avoid redundancy
 
 ### `specs/llm-context.md`
 - [ ] Backlinks-in-context (described as future)

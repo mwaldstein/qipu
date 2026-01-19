@@ -12,6 +12,7 @@ pub struct ContextOptions<'a> {
     pub transitive: bool,
     pub with_body: bool,
     pub safety_banner: bool,
+    pub related_threshold: Option<f64>,
 }
 
 pub struct SelectedNote<'a> {

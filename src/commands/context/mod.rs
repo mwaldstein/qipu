@@ -17,6 +17,8 @@ use std::collections::{HashMap, HashSet};
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
+use crate::lib::index::IndexBuilder;
+use crate::lib::similarity::SimilarityEngine;
 use crate::lib::store::Store;
 
 pub use types::ContextOptions;
@@ -100,6 +102,64 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 None
             };
             insert_selected(resolved_id, via_source)?;
+        }
+    }
+
+    // Similarity-based expansion
+    if let Some(threshold) = options.related_threshold {
+        let index = IndexBuilder::new(store).build()?;
+        let engine = SimilarityEngine::new(&index);
+
+        // Collect linked IDs to exclude them
+        let mut linked_ids: HashSet<String> = HashSet::new();
+        for selected_note in &selected_notes {
+            let note_id = selected_note.note.id();
+            let outbound_edges = index.get_outbound_edges(note_id);
+            for edge in outbound_edges {
+                linked_ids.insert(edge.to.clone());
+            }
+            let inbound_edges = index.get_inbound_edges(note_id);
+            for edge in inbound_edges {
+                linked_ids.insert(edge.from.clone());
+            }
+        }
+
+        // Find similar notes and collect them first
+        let mut similar_notes: Vec<(String, f64)> = Vec::new();
+        for selected_note in &selected_notes {
+            let note_id = selected_note.note.id();
+            let related = engine.find_similar(note_id, 100, threshold);
+            for sim in related {
+                // Exclude: already selected, directly linked
+                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                    similar_notes.push((sim.id, sim.score));
+                }
+            }
+        }
+
+        // Add similar notes to selection, sorted by similarity score
+        similar_notes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        for (related_id, score) in similar_notes {
+            if seen_ids.contains(&related_id) {
+                continue;
+            }
+            let resolved_id = resolve_id(&related_id)?;
+            // Mark as added via similarity
+            via_map
+                .entry(resolved_id.clone())
+                .or_insert_with(|| format!("similarity:{:.2}", score));
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note: *note,
+                    via: Some(related_id.clone()),
+                });
+            }
         }
     }
 

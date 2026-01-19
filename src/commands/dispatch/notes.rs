@@ -271,6 +271,7 @@ pub(super) fn handle_context(
     transitive: bool,
     with_body: bool,
     safety_banner: bool,
+    related: Option<f64>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -291,6 +292,7 @@ pub(super) fn handle_context(
             transitive,
             with_body,
             safety_banner,
+            related_threshold: related,
         },
     )
 }

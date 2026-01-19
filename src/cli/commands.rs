@@ -245,6 +245,10 @@ pub enum Commands {
         /// Include safety banner for LLM prompt injection prevention
         #[arg(long)]
         safety_banner: bool,
+
+        /// Add related notes using similarity expansion (threshold: 0.0-1.0)
+        #[arg(long)]
+        related: Option<f64>,
     },
 
     /// Export notes to a single document

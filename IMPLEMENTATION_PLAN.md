@@ -715,7 +715,12 @@ Refactored traversal engine to support weighted hop costs (src/lib/graph/types.r
   - **Verified**: All tests pass (233 total)
 
 ### `specs/records-output.md`
-- [ ] Reconcile record prefix set (`H/N/S/E/B` vs `W/D/C/M`, `B-END`)
+- [x] Reconcile record prefix set (`H/N/S/E/B` vs `W/D/C/M`, `B-END`)
+  - Updated spec to document all record prefixes in use
+  - Added comprehensive reference table for all prefixes
+  - Separated core prefixes (used across all modes) from extended prefixes (mode-specific)
+  - Added dump/pack mode prefixes for serialization
+  - Updated examples to show actual prefixes used in implementation (B-END, W)
 
 ### `specs/graph-traversal.md` + `specs/semantic-graph.md`
 - [ ] Clarify: semantic inversion in traversal vs presentation-only

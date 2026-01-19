@@ -283,7 +283,11 @@ Human review happens out-of-band after runs complete—runs are never paused:
    - Registered in `main.rs` match statement and exported in `adapter/mod.rs`
    - Updated CLI help text to include claude-code
    - All 375 tests passing (130 + 213 + 11 + 6 + 6 + 6 + 3)
-- [ ] Add matrix summary report (pass/fail grid by tool×model)
+- [x] Add matrix summary report (pass/fail grid by tool×model)
+   - Already implemented in `print_matrix_summary()` function at main.rs:213-260
+   - Displays tool names as rows, model names as columns
+   - Shows Pass/Fail/Error outcome for each tool×model combination
+   - Called automatically after matrix runs
 
 ##### Amp Adapter Implementation
 - [ ] `adapter/amp.rs` uses hypothetical CLI: `amp run --context AGENTS.md --prompt-file prompt.txt`

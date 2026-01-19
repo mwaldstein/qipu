@@ -566,8 +566,15 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
   - Verifies without `--transitive`: only MOC A, MOC B, Note 1 are included
   - Verifies with `--transitive`: all 5 notes are included (MOC A, MOC B, Note 1, Note 2, Note 3)
   - Uses JSON format to parse and verify note IDs
-- [ ] Add test for records safety banner (`W ...` line)
-  - File: `tests/cli/context.rs`
+- [x] Add test for records safety banner (`W ...` line)
+  - File: `tests/cli/context/formats.rs`
+  - Added `test_context_records_safety_banner()` which verifies:
+    - When `--safety-banner` is used with `--format records`, the "W" line appears with correct message
+    - Verifies header, note metadata, title, and safety banner are all present
+  - Added `test_context_records_without_safety_banner()` which verifies:
+    - When `--safety-banner` is NOT used, the "W" line does NOT appear
+    - Verifies header, note metadata, and title are present without safety banner
+  - All tests pass (2/2)
 
 #### `specs/pack.md`
 - [ ] Add tests for dump traversal filters affecting reachability

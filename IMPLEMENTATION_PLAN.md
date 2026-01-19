@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 ## Status (Last Audited: 2026-01-18)
-- Test baseline: `cargo test` passes (2026-01-18, 202/205 - 3 pre-existing FTS5 ranking failures; 4 new incremental_repair tests added).
+- Test baseline: `cargo test` passes (2026-01-18, 206/209 - 3 pre-existing FTS5 ranking failures; 8 new tests added).
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
 - All P1 correctness bugs completed (2026-01-18).
 
@@ -473,28 +473,34 @@ Implemented `Database::incremental_repair()` method:
 - All 4 new tests pass
 - All existing tests still pass (202/205 - 3 pre-existing FTS5 ranking failures)
 
-#### 5.4: Handle schema version mismatch
-File: `src/lib/db/schema.rs`
+#### 5.4: Handle schema version mismatch ✅ COMPLETE
+File: `src/lib/db/schema.rs`, `src/lib/db/mod.rs`
 
-Add version tracking:
-```rust
-const SCHEMA_VERSION: i32 = 1;
+Implemented schema version tracking:
+- Added `CURRENT_SCHEMA_VERSION` constant (version 1)
+- Added `get_schema_version()` and `set_schema_version()` functions
+- Updated `create_schema()` to check existing version on startup
+- Handles four cases:
+  - No version: Fresh install, creates tables and sets version
+  - Outdated version (v < current): Returns error with `doctor --fix` suggestion
+  - Current version: No action needed
+  - Future version (v > current): Returns error with update suggestion
+- Added `force_set_schema_version()` for testing
 
-pub fn create_schema(conn: &Connection) -> Result<()> {
-    // Check existing version
-    let current_version: Option<i32> = conn.query_row(
-        "SELECT value FROM index_meta WHERE key = 'schema_version'",
-        [], |r| r.get(0)
-    ).ok();
-    
-    match current_version {
-        None => { /* Fresh install - create tables */ }
-        Some(v) if v < SCHEMA_VERSION => { /* Migration needed */ }
-        Some(v) if v == SCHEMA_VERSION => { /* Up to date */ }
-        Some(v) => { /* Future version - error or rebuild */ }
-    }
-}
-```
+**Testing (4/4):**
+- `test_schema_version_set_on_fresh_install` - Verifies version is set on fresh DB
+- `test_schema_version_matches_current` - Verifies version matches expected
+- `test_schema_version_outdated_fails` - Verifies outdated version fails with helpful message
+- `test_schema_version_future_fails` - Verifies future version fails with update suggestion
+
+**Learning:**
+- Version tracking is critical for database migrations
+- Error messages should guide users to solutions (`doctor --fix`, `update qipu`)
+- Atomic global version variable allows testing with different versions
+
+**Verified with tests:**
+- All 4 new tests pass (4/4)
+- All existing tests still pass (202/205 - 3 pre-existing FTS5 ranking failures)
 
 ---
 

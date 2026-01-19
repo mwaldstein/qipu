@@ -1,6 +1,19 @@
 //! SQLite database schema for qipu
 
 use rusqlite::{Connection, Result};
+use std::sync::atomic::{AtomicI32, Ordering};
+
+pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+
+static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
+
+pub fn set_schema_version(version: i32) {
+    GLOBAL_SCHEMA_VERSION.store(version, Ordering::SeqCst);
+}
+
+pub fn get_schema_version() -> i32 {
+    GLOBAL_SCHEMA_VERSION.load(Ordering::SeqCst)
+}
 
 const SCHEMA_SQL: &str = r#"
 -- Note metadata (mirrors frontmatter)
@@ -57,6 +70,52 @@ CREATE TABLE IF NOT EXISTS index_meta (
 "#;
 
 pub fn create_schema(conn: &Connection) -> Result<()> {
-    conn.execute_batch(SCHEMA_SQL)?;
+    let current_version: Option<i32> = conn
+        .query_row(
+            "SELECT value FROM index_meta WHERE key = 'schema_version'",
+            [],
+            |r| r.get::<_, String>(0).map(|s| s.parse().unwrap_or(0)),
+        )
+        .ok();
+
+    let target_version = get_schema_version();
+
+    match current_version {
+        None => {
+            conn.execute_batch(SCHEMA_SQL)?;
+            conn.execute(
+                "INSERT INTO index_meta (key, value) VALUES ('schema_version', ?1)",
+                [&target_version.to_string()],
+            )?;
+        }
+        Some(v) if v < target_version => {
+            return Err(rusqlite::Error::ToSqlConversionFailure(
+                format!(
+                    "Database schema version {} is outdated. Current version: {}. Run 'qipu doctor --fix' or manually rebuild the database.",
+                    v, target_version
+                )
+                .into(),
+            ));
+        }
+        Some(v) if v == target_version => {}
+        Some(v) => {
+            return Err(rusqlite::Error::ToSqlConversionFailure(
+                format!(
+                    "Database schema version {} is newer than expected {}. This qipu version may be outdated. Please update qipu.",
+                    v, target_version
+                )
+                .into(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+pub fn force_set_schema_version(conn: &Connection, version: i32) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO index_meta (key, value) VALUES ('schema_version', ?1)",
+        [&version.to_string()],
+    )?;
     Ok(())
 }

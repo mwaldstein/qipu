@@ -218,10 +218,10 @@ impl Database {
         Ok(())
     }
 
-    fn insert_edges_internal(conn: &Connection, note: &Note, store_root: &Path) -> Result<()> {
+    fn insert_edges_internal(conn: &Connection, note: &Note, _store_root: &Path) -> Result<()> {
         use crate::lib::index::links;
-        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
-        use std::collections::{HashMap, HashSet};
+        use std::collections::HashMap;
+        use std::collections::HashSet;
 
         let mut unresolved = HashSet::new();
         let path_to_id = HashMap::new();
@@ -2081,7 +2081,7 @@ mod tests {
         note.body = "Updated content".to_string();
         store.save_note(&mut note).unwrap();
 
-        let before_sync = chrono::Utc::now().timestamp();
+        let _before_sync = chrono::Utc::now().timestamp();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         db.incremental_repair(store.root()).unwrap();
@@ -2115,7 +2115,7 @@ mod tests {
         let note1 = store
             .create_note("Note 1", None, &["tag1".to_string()], None)
             .unwrap();
-        let note2 = store
+        let _note2 = store
             .create_note("Note 2", None, &["tag2".to_string()], None)
             .unwrap();
 
@@ -2190,5 +2190,75 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM notes", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_schema_version_set_on_fresh_install() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db = store.db();
+
+        let version: String = db
+            .conn
+            .query_row(
+                "SELECT value FROM index_meta WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, "1");
+    }
+
+    #[test]
+    fn test_schema_version_matches_current() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db = store.db();
+
+        let version: i32 = db
+            .conn
+            .query_row(
+                "SELECT value FROM index_meta WHERE key = 'schema_version'",
+                [],
+                |row| row.get::<_, String>(0).map(|s| s.parse().unwrap_or(0)),
+            )
+            .unwrap();
+        assert_eq!(version, crate::lib::db::schema::get_schema_version());
+    }
+
+    #[test]
+    fn test_schema_version_outdated_fails() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db = store.db();
+
+        crate::lib::db::schema::force_set_schema_version(&db.conn, 0).unwrap();
+
+        let result = Database::open(store.root());
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("outdated"));
+        assert!(err_msg.contains("0"));
+        assert!(err_msg.contains("doctor --fix"));
+    }
+
+    #[test]
+    fn test_schema_version_future_fails() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+        let db = store.db();
+
+        crate::lib::db::schema::force_set_schema_version(&db.conn, 999).unwrap();
+
+        let result = Database::open(store.root());
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("newer"));
+        assert!(err_msg.contains("999"));
+        assert!(err_msg.contains("update qipu"));
     }
 }

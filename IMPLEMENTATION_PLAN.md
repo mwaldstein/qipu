@@ -657,7 +657,15 @@ Implemented schema version tracking:
   - Per spec: threshold > 0.0-1.0, excludes linked notes to avoid redundancy
 
 ### `specs/llm-context.md`
-- [ ] Backlinks-in-context (described as future)
+- [x] Backlinks-in-context (described as future)
+  - Added `--backlinks` flag to `qipu context` command
+  - Updated CLI to support the flag (src/cli/commands.rs)
+  - Updated ContextOptions to include backlinks field (src/commands/context/types.rs)
+  - Updated handle_context to pass the flag (src/commands/dispatch/notes.rs)
+  - Implemented backlink selection logic in context command (src/commands/context/mod.rs)
+  - Added test `test_context_backlinks` to verify functionality (tests/cli/context/basic.rs)
+  - When `--backlinks` is used, all notes that link to the selected notes are included in the context
+  - Backlink sources are marked with via field format: `backlink:<note_id>`
 
 ### `specs/semantic-graph.md`
 - [ ] Weighted traversal / per-edge hop costs

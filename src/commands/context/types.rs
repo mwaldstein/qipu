@@ -13,6 +13,7 @@ pub struct ContextOptions<'a> {
     pub with_body: bool,
     pub safety_banner: bool,
     pub related_threshold: Option<f64>,
+    pub backlinks: bool,
 }
 
 pub struct SelectedNote<'a> {

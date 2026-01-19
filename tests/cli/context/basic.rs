@@ -563,3 +563,100 @@ fn test_context_related_expansion() {
         assert!(note["id"].is_string());
     }
 }
+
+#[test]
+fn test_context_backlinks() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes
+    let note1_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Source Note"])
+        .output()
+        .unwrap();
+    let note1_id = String::from_utf8_lossy(&note1_output.stdout)
+        .trim()
+        .to_string();
+
+    let note2_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Target Note"])
+        .output()
+        .unwrap();
+    let note2_id = String::from_utf8_lossy(&note2_output.stdout)
+        .trim()
+        .to_string();
+
+    // Create a link from note1 to note2
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &note1_id, &note2_id, "--type", "related"])
+        .assert()
+        .success();
+
+    // Rebuild index to update database
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test context with --backlinks: selecting note2 should include note1 (backlink)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--note",
+            &note2_id,
+            "--backlinks",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    // Should include both notes
+    assert_eq!(
+        notes.len(),
+        2,
+        "Should include selected note and backlink source"
+    );
+
+    let note_ids: Vec<&str> = notes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+
+    assert!(note_ids.contains(&note1_id.as_str()));
+    assert!(note_ids.contains(&note2_id.as_str()));
+
+    // Test without --backlinks: should only include selected note
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["context", "--note", &note2_id, "--format", "json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Without --backlinks should only include selected note"
+    );
+
+    assert_eq!(notes[0]["id"].as_str().unwrap(), note2_id);
+}

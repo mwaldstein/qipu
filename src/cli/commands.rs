@@ -249,6 +249,10 @@ pub enum Commands {
         /// Add related notes using similarity expansion (threshold: 0.0-1.0)
         #[arg(long)]
         related: Option<f64>,
+
+        /// Include backlinks for selected notes
+        #[arg(long)]
+        backlinks: bool,
     },
 
     /// Export notes to a single document

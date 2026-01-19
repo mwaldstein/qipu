@@ -130,6 +130,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             with_body,
             safety_banner,
             related,
+            backlinks,
         }) => notes::handle_context(
             cli,
             &root,
@@ -144,6 +145,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             *with_body,
             *safety_banner,
             *related,
+            *backlinks,
             start,
         ),
 

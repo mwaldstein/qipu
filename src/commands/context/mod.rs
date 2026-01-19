@@ -105,6 +105,41 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
     }
 
+    // Backlink expansion
+    if options.backlinks {
+        let mut backlink_notes: Vec<(String, String)> = Vec::new();
+
+        for selected_note in &selected_notes {
+            let note_id = selected_note.note.id();
+            let backlinks = store.db().get_backlinks(note_id)?;
+
+            for backlink in backlinks {
+                if !seen_ids.contains(&backlink.from) {
+                    backlink_notes.push((backlink.from, note_id.to_string()));
+                }
+            }
+        }
+
+        for (backlink_id, source_id) in backlink_notes {
+            let resolved_id = resolve_id(&backlink_id)?;
+            via_map
+                .entry(resolved_id.clone())
+                .or_insert_with(|| format!("backlink:{}", source_id));
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note: *note,
+                    via: None,
+                });
+            }
+        }
+    }
+
     // Similarity-based expansion
     if let Some(threshold) = options.related_threshold {
         let index = IndexBuilder::new(store).build()?;

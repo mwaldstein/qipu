@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 ## Status (Last Audited: 2026-01-18)
-- Test baseline: `cargo test` passes (2026-01-18, 202/205 - 3 pre-existing FTS5 ranking failures).
+- Test baseline: `cargo test` passes (2026-01-18, 202/205 - 3 pre-existing FTS5 ranking failures; 4 new incremental_repair tests added).
 - Trust hierarchy: this plan is derived from code + tests; specs/docs are treated as hypotheses.
 - All P1 correctness bugs completed (2026-01-18).
 
@@ -447,17 +447,31 @@ Implemented `Database::validate_consistency()` method:
 
 All tests pass.
 
-#### 5.3: Incremental repair
-File: `src/lib/db/mod.rs`
+#### 5.3: Incremental repair ✅ COMPLETE
+File: `src/lib/db/mod.rs:1113-1277`
 
-```rust
-pub fn incremental_repair(&self, store_root: &Path) -> Result<()> {
-    // Find files changed since last sync
-    // Re-parse and update changed entries
-    // Remove entries for deleted files
-    ...
-}
-```
+Implemented `Database::incremental_repair()` method:
+- Reads `last_sync` timestamp from `index_meta` table
+- Scans filesystem for markdown files modified since `last_sync`
+- Re-parses and updates changed notes in database
+- Removes database entries for deleted files
+- Updates `last_sync` timestamp in `index_meta`
+- Returns count of updated and deleted notes in log message
+
+**Testing (4/4):**
+- `test_incremental_repair_updates_changed_notes()` - Verifies notes are re-parsed when modified
+- `test_incremental_repair_removes_deleted_notes()` - Verifies deleted files are removed from DB
+- `test_incremental_repair_updates_last_sync()` - Verifies last_sync timestamp is updated
+- `test_incremental_repair_handles_empty_database()` - Verifies graceful handling of empty DB
+
+**Learning:**
+- Used `std::collections::HashSet` to track existing filesystem paths for efficient deletion detection
+- Must drop `stmt` before `tx.commit()` to avoid borrow checker issues
+- Use `std::thread::sleep()` to ensure timestamp differences in tests
+
+**Verified with tests:**
+- All 4 new tests pass
+- All existing tests still pass (202/205 - 3 pre-existing FTS5 ranking failures)
 
 #### 5.4: Handle schema version mismatch
 File: `src/lib/db/schema.rs`

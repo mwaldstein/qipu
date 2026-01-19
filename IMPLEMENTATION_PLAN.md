@@ -723,10 +723,21 @@ Refactored traversal engine to support weighted hop costs (src/lib/graph/types.r
   - Updated examples to show actual prefixes used in implementation (B-END, W)
 
 ### `specs/graph-traversal.md` + `specs/semantic-graph.md`
-- [ ] Clarify: semantic inversion in traversal vs presentation-only
+- [x] Clarify: semantic inversion in traversal vs presentation-only
+  - Updated `specs/graph-traversal.md` to clarify that semantic inversion affects **both traversal behavior AND presentation**
+  - Virtual edges are created during traversal and influence which nodes are reachable via BFS expansion
+  - Type filtering applies to inverted types when semantic inversion is enabled
+  - Added detailed explanation in `specs/semantic-graph.md` section 2 about virtual edges affecting traversal
+  - Updated to show that virtual edges are first-class in traversal, not just presentation
+  - All tests pass (350 total tests)
 
 ### `specs/export.md`
-- [ ] Clarify anchor rewriting behavior (explicit vs heading IDs)
+- [x] Clarify anchor rewriting behavior (explicit vs heading IDs)
+  - Updated `specs/export.md` to specify that anchors use explicit IDs in format `#note-<note-id>`
+  - Added details about HTML anchor element: `<a id="note-qp-xxx"></a>` placed before note headers
+  - Clarified that anchor format is explicit (not derived from heading text) for deterministic linking
+  - Verified implementation matches spec: `src/commands/export/emit/bundle.rs:31-37` emits anchors
+  - All tests pass (350 total tests)
 
 ---
 

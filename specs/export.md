@@ -41,6 +41,13 @@ Options:
 
 Keep defaults conservative to avoid rewriting user content unexpectedly.
 
+### Anchor rewriting details
+When using anchor mode, note links are rewritten to explicit section anchors:
+- Each note gets an HTML anchor element: `<a id="note-<note-id>"></a>` (placed before the note header)
+- Links to notes are rewritten to point to these anchors: `#note-<note-id>`
+- Anchor format is explicit (`#note-qp-xxx`), not derived from heading text
+- This ensures deterministic linking regardless of note title changes
+
 ## Attachments
 - Optionally copy attachments into an export folder.
 - Provide a "no attachments" mode (default) for lightweight exports.

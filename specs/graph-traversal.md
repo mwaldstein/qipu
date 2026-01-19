@@ -67,18 +67,23 @@ Supported values:
 Default: `both`.
 
 #### Semantic inversion for inbound edges
-By default, when traversing inbound edges (direction `in` or `both`), qipu applies **semantic inversion** to present backlinks as natural forward relationships from the perspective of the current note.
+By default, when traversing inbound edges (direction `in` or `both`), qipu applies **semantic inversion** to transform backlinks into virtual forward edges.
+
+**Important**: Semantic inversion affects **both traversal behavior and presentation**. It creates virtual edges that are followed during traversal AND displayed with inverted types.
 
 When semantic inversion is enabled:
-- If Note A has a link `A -> B` with type `supports`, when traversing from B, the edge appears as `B -> A` with type `supported-by` (the inverse type)
-- The inverted edge is marked with `source=virtual` to distinguish it from edges explicitly stored in note frontmatter
+- If Note A has a link `A -> B` with type `supports`, when traversing from B, a **virtual edge** `B -> A` is created with type `supported-by` (the inverse type)
+- The virtual edge is marked with `source=virtual` to distinguish it from edges explicitly stored in note frontmatter
+- This virtual edge is what gets followed during BFS traversal, affecting which nodes are reachable
+- Type filtering applies to the inverted type when semantic inversion is enabled (e.g., `--type supported-by` matches the virtual edge)
 - This matches the behavior described in `specs/semantic-graph.md` section 2
 
 This is the **default behavior** for all traversal commands (`link tree`, `link path`, `link list`).
 
-To disable semantic inversion and see raw backlink directions:
+To disable semantic inversion and use raw backlinks:
 - Use the global flag `--no-semantic-inversion`
-- With this flag, inbound edges are presented as-is (e.g., `A -> B` with type `supports` appears when listing B's inbound links, showing the source note A linked to B)
+- With this flag, inbound edges are traversed as-is (e.g., `A -> B` with type `supports` when listing B's inbound links, showing the source note A linked to B)
+- Type filtering applies to the original stored type (not the inverse) when semantic inversion is disabled
 
 ### Edge inclusion
 Traversal includes, by default:

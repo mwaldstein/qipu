@@ -45,11 +45,22 @@ In a raw graph, edges are directional. If Note A has `links: [{ to: B, type: sup
 Qipu traversal treats **inverse relationships as first-class virtual edges**.
 
 ### The Rule
-When traversing from Note B, if the index finds a link `A -> B` of type `T`, the traverser presents a virtual edge `B -> A` of type `Inverse(T)`.
+When traversing from Note B, if the index finds a link `A -> B` of type `T`, the traverser creates a virtual edge `B -> A` of type `Inverse(T)`.
 
 *   **Raw Data**: Note A: `type: supports`, target: Note B.
-*   **Traversal View at B**:
-    *   Edge to A: `type: supported-by` (virtual).
+*   **Traversal at B**:
+    *   Creates virtual edge: `B -> A` with `type: supported-by`
+    *   This virtual edge is what gets followed during BFS traversal
+    *   The virtual edge is marked with `source=virtual`
+*   **Presentation**:
+    *   Shows: `B --supported-by--> A (virtual)`
+    *   Type filtering applies to the inverted type (`supported-by`)
+
+### Implementation Notes
+*   **Virtual edges affect traversal**: The virtual edge is created during traversal and influences which nodes are reachable via BFS expansion
+*   **Virtual edges affect presentation**: The inverted type and virtual marker are displayed in output
+*   **Type filtering**: When semantic inversion is enabled, type filters apply to inverted types. When disabled, filters apply to original stored types.
+*   **Disable with flag**: Use `--no-semantic-inversion` to traverse raw backlinks without virtual inversion
 
 ### Benefits
 *   **Cognitive Load**: The consumer (human or LLM) doesn't need to manually check "incoming" vs "outgoing" lists and mentally reverse verbs.

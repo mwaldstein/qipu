@@ -71,6 +71,21 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     message: format!("Note '{}' exists: {}", id, exists),
                 }
             }
+            Gate::LinkExists {
+                from,
+                to,
+                link_type,
+            } => {
+                let exists = link_exists(from, to, link_type, env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "LinkExists".to_string(),
+                    passed: exists,
+                    message: format!(
+                        "Link {} --[{}]--> {} exists: {}",
+                        from, link_type, to, exists
+                    ),
+                }
+            }
         };
 
         if result.passed {
@@ -248,6 +263,25 @@ fn note_exists(id: &str, env_root: &Path) -> Result<bool> {
             } else {
                 Ok(false)
             }
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+fn link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> Result<bool> {
+    let json = run_qipu_json(&["link", "list", from], env_root);
+    match json {
+        Ok(value) => {
+            if let Some(arr) = value.as_array() {
+                for link in arr {
+                    let id = link.get("id").and_then(|v| v.as_str());
+                    let typ = link.get("type").and_then(|v| v.as_str());
+                    if id == Some(to) && typ == Some(link_type) {
+                        return Ok(true);
+                    }
+                }
+            }
+            Ok(false)
         }
         Err(_) => Ok(false),
     }
@@ -498,5 +532,90 @@ mod tests {
         };
         let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
+
+        // 9. LinkExists - should fail with non-existent link
+        let link_scenario_fail = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::LinkExists {
+                    from: first_note_id.to_string(),
+                    to: "qp-nonexistent".to_string(),
+                    link_type: "related".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&link_scenario_fail, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+
+        // 10. LinkExists should pass with existing link - first create second note
+        create_note_with_stdin(&env_root, "Second note for link test");
+        let json = run_qipu_json(&["list"], &env_root).unwrap();
+        // Find the note that's different from first_note_id
+        let second_note_id = json
+            .as_array()
+            .and_then(|arr| {
+                arr.iter().find_map(|v| {
+                    let id = v.get("id").and_then(|v| v.as_str());
+                    if id != Some(first_note_id) {
+                        id
+                    } else {
+                        None
+                    }
+                })
+            })
+            .expect("Second note not found");
+
+        // Now create a link
+        let qipu = get_qipu_path();
+        let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
+        let output = Command::new(qipu_abs)
+            .args([
+                "link",
+                "add",
+                first_note_id,
+                second_note_id,
+                "--type",
+                "related",
+            ])
+            .current_dir(&env_root)
+            .output()
+            .expect("failed to run qipu link add");
+        assert!(
+            output.status.success(),
+            "Link add failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        // Test LinkExists with the new link
+        let link_scenario_pass = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::LinkExists {
+                    from: first_note_id.to_string(),
+                    to: second_note_id.to_string(),
+                    link_type: "related".to_string(),
+                }],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+        };
+        let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
     }
 }

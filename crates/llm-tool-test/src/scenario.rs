@@ -56,10 +56,23 @@ pub struct JudgeConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Gate {
-    MinNotes { count: usize },
-    MinLinks { count: usize },
-    SearchHit { query: String },
-    NoteExists { id: String },
+    MinNotes {
+        count: usize,
+    },
+    MinLinks {
+        count: usize,
+    },
+    SearchHit {
+        query: String,
+    },
+    NoteExists {
+        id: String,
+    },
+    LinkExists {
+        from: String,
+        to: String,
+        link_type: String,
+    },
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -276,6 +289,38 @@ evaluation:
         match &scenario.evaluation.gates[0] {
             Gate::NoteExists { id } => assert_eq!(id, "qp-1234"),
             _ => panic!("Expected NoteExists gate"),
+        }
+    }
+
+    #[test]
+    fn test_link_exists_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: link_exists
+      from: "qp-1234"
+      to: "qp-5678"
+      link_type: "related"
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::LinkExists {
+                from,
+                to,
+                link_type,
+            } => {
+                assert_eq!(from, "qp-1234");
+                assert_eq!(to, "qp-5678");
+                assert_eq!(link_type, "related");
+            }
+            _ => panic!("Expected LinkExists gate"),
         }
     }
 }

@@ -3,6 +3,7 @@ mod compact;
 mod context;
 mod create;
 mod doctor;
+mod dump;
 mod export;
 mod inbox;
 mod index;

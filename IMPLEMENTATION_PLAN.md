@@ -591,8 +591,17 @@ Implemented schema version tracking:
   - All tests pass (2/2)
 
 #### `specs/pack.md`
-- [ ] Add tests for dump traversal filters affecting reachability
-  - File: `tests/cli/dump.rs`
+- [x] Add tests for dump traversal filters affecting reachability
+   - File: `tests/cli/dump.rs`
+   - Added 6 comprehensive tests:
+     * `test_dump_max_hops_limits_traversal_depth` - Verifies max-hops limits traversal depth
+     * `test_dump_direction_filters_traversal` - Verifies direction filters work correctly
+     * `test_dump_type_filter_affects_reachability` - Verifies type filter affects which notes are reached
+     * `test_dump_typed_only_excludes_inline_links` - Verifies typed-only filter works
+     * `test_dump_inline_only_excludes_typed_links` - Verifies inline-only filter works
+     * `test_dump_without_filters_includes_all_reachable_notes` - Verifies all notes included without filters
+   - All tests verify filter behavior by dumping notes and loading into separate store
+   - Tests confirm that traversal filters correctly affect reachability
 
 ---
 

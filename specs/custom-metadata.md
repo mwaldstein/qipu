@@ -126,6 +126,57 @@ qipu custom set qp-a1b2 priority 1
 qipu custom set qp-a1b2 tags '["imported", "v2"]'  # JSON for complex values
 ```
 
+#### Type Detection
+
+Since qipu doesn't enforce schemas for custom metadata, the CLI automatically detects value types using YAML/JSON parsing:
+
+**Automatic type detection:**
+```bash
+# Numbers (integers and floats)
+qipu custom set qp-a1b2 priority 1           # → int: 1
+qipu custom set qp-a1b2 score 3.14           # → float: 3.14
+qipu custom set qp-a1b2 count -5             # → int: -5
+
+# Booleans
+qipu custom set qp-a1b2 active true          # → bool: true
+qipu custom set qp-a1b2 reviewed false       # → bool: false
+
+# Strings (unquoted for simple strings)
+qipu custom set qp-a1b2 alignment disagree   # → string: "disagree"
+qipu custom set qp-a1b2 status in-progress   # → string: "in-progress"
+
+# Null
+qipu custom set qp-a1b2 reviewer null        # → null
+```
+
+**Complex types via YAML/JSON:**
+```bash
+# Arrays
+qipu custom set qp-a1b2 tags '[1, 2, 3]'              # → array: [1, 2, 3]
+qipu custom set qp-a1b2 labels '["imported", "v2"]'   # → array: ["imported", "v2"]
+
+# Objects
+qipu custom set qp-a1b2 metadata '{"version": 2, "source": "import"}'  # → object
+
+# Mixed arrays
+qipu custom set qp-a1b2 mixed '[1, "two", true]'      # → array: [1, "two", true]
+```
+
+**Forcing string type when ambiguous:**
+
+When you need to store a value as a string that would otherwise be parsed as a different type, use YAML/JSON string quoting:
+
+```bash
+# Force "1" to be stored as string "1" instead of int 1
+qipu custom set qp-a1b2 code '"001"'         # → string: "001"
+qipu custom set qp-a1b2 flag '"true"'        # → string: "true"
+qipu custom set qp-a1b2 value '"null"'       # → string: "null"
+
+# The outer quotes are for the shell, inner quotes force YAML string parsing
+```
+
+**Implementation note:** Values are parsed using `serde_yaml::from_str()`. If parsing fails or produces a string, the value is stored as a string. This provides intuitive behavior for most use cases while allowing explicit type control when needed.
+
 ### Reading Custom Fields
 
 ```bash

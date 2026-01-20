@@ -310,9 +310,23 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Custom Metadata (`specs/custom-metadata.md`)
 - [ ] Implement custom frontmatter, DB storage, and CLI/filter/output support.
-  - `src/lib/note/frontmatter.rs:7-54`
-  - `src/lib/db/schema.rs:19-60`
-  - `src/commands/doctor/mod.rs:170-323`
+  - Add `custom: HashMap<String, serde_yaml::Value>` field to NoteFrontmatter (`src/lib/note/frontmatter.rs:7-54`)
+  - Add `custom_json TEXT DEFAULT '{}'` column to notes table (`src/lib/db/schema.rs:19-60`)
+  - Implement CLI commands with type detection:
+    - `qipu custom set <id> <key> <value>` - Parse value using `serde_yaml::from_str()` for automatic type detection
+    - `qipu custom get <id> <key>` - Display single field value
+    - `qipu custom show <id>` - Display all custom fields for a note
+    - `qipu custom unset <id> <key>` - Remove a custom field
+    - Mark commands with `#[command(hide = true)]` per spec
+  - Add filtering support:
+    - `qipu list --custom key=value` - Filter by custom field value
+    - `qipu context --custom key=value` - Context selection with custom filters
+  - Add context output support:
+    - `qipu context --custom` flag to include custom fields in output (opt-in)
+    - Format output for markdown, JSON, and records formats
+  - Add doctor validation (`src/commands/doctor/mod.rs:170-323`):
+    - Validate custom block is a valid YAML mapping
+    - Warn on very large custom blocks (>10KB)
 
 ### Distribution (`specs/distribution.md`)
 - [ ] Add release automation and install scripts (GitHub releases + installers).
@@ -377,21 +391,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ---
 
-## Completed (Verified 2026-01-20)
+## Notes
 
-### Workspaces
-- [x] `--empty` flag in `workspace new` verified and tested.
-
-### Structured Logging
-- [x] `src/commands/capture.rs` - Verified `tracing::debug!` usage.
-- [x] `src/commands/compact/*.rs` - Verified.
-- [x] `src/commands/context/*.rs` - Verified.
-- [x] `src/commands/workspace/*.rs` - Verified.
-- [x] `eprintln!` cleanup (reduced from 16 to 4 acceptable calls in `main.rs`).
-
-### File Size Refactoring
-- [x] `src/commands/context/output.rs` split -> `json.rs`, `human.rs`, `records.rs`.
-- [x] `src/lib/graph/traversal.rs` split -> `bfs.rs`.
-- [x] `src/commands/link/list.rs` extracted output formatters.
-- [x] `src/lib/db/notes.rs` split CRUD operations.
-- [x] `src/commands/doctor/checks.rs` split by category.
+- Audit Date: 2026-01-20
+- Recent completions include workspaces `--empty` flag, structured logging verification, and file size refactoring
+- Documentation additions: `docs/building-on-qipu.md` and type detection spec in `specs/custom-metadata.md`

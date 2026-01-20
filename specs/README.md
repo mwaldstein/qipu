@@ -63,7 +63,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
 | `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run |
 | `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; unused `tracing-appender` dependency |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair trigger missing; ranking boost mismatch |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair result ignored; ranking boost mismatch |
 | `value-model.md` | ✅ | ✅ | ✅ | Data model, CLI, weighted traversal, and tests implemented |
 | `distribution.md` | ⚠️ | ❌ | ❌ | Early draft; no implementation or scripts |
 | `custom-metadata.md` | ✅ | ❌ | ❌ | Not implemented; missing `custom` field in frontmatter/CLI |

@@ -14,11 +14,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Operational Database
 - [ ] Startup repair trigger missing
-  - `src/lib/db/mod.rs`: `Database::open` calls `validate_consistency` but ignores the result.
+  - `src/lib/db/mod.rs:84`: `Database::open` calls `validate_consistency` but ignores the result.
   - Spec: "On startup, qipu validates consistency and repairs if needed".
 - [ ] FTS5 ranking scoring mismatch
   - `src/lib/db/search.rs`: Uses additive boosting (+5.0, +8.0).
   - Spec: Requires multiplicative boosting (2.0x, 1.5x).
+  - Note: Current tests pass because +5.0 is sufficient to outrank body matches, masking the deviation.
 
 ### LLM Tool Test Harness
 - [ ] Fix default tool mismatch in `llm-user-validation.md` (spec says "amp", code uses "opencode")
@@ -28,6 +29,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### Compaction
 - [ ] Truncation indicators in CLI
   - `src/commands/compact/show.rs`: recursive display lacks bounds check and truncation indicators in header output.
+  - Logic for `max_nodes` exists in `src/lib/compaction/expansion.rs` but is unused by the command.
   - Spec: Requires bounded expansion and indicators.
 
 ---

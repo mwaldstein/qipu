@@ -72,7 +72,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### CLI Polish (P3)
 - [x] Rename `list` to show scenarios not runs - completed 2026-01-20
-- [ ] Add `run --all` to run all scenarios
+- [x] Add `run --all` to run all scenarios - completed 2026-01-20
 - [ ] Add `baseline set <run_id>` command
 
 ---

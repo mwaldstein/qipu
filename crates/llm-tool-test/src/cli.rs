@@ -15,6 +15,10 @@ pub enum Commands {
         #[arg(long, short)]
         scenario: Option<String>,
 
+        /// Run all scenarios
+        #[arg(long)]
+        all: bool,
+
         /// Filter scenarios by tags
         #[arg(long)]
         tags: Vec<String>,

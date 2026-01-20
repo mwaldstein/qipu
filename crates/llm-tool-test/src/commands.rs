@@ -22,12 +22,13 @@ pub fn handle_run(
 ) -> anyhow::Result<()> {
     let Commands::Run {
         scenario,
+        all,
         tags: _,
         tier: _,
         tool,
         model,
         tools,
-        models,
+        models: _,
         max_usd: _,
         dry_run,
         no_cache,
@@ -42,7 +43,70 @@ pub fn handle_run(
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }
 
-    if let Some(path) = scenario {
+    if *all {
+        let mut scenarios = Vec::new();
+        fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<std::path::PathBuf>) {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        if let Some(ext) = path.extension() {
+                            if ext == "yaml" {
+                                scenarios.push(path);
+                            }
+                        }
+                    } else if path.is_dir() {
+                        find_scenarios(&path, scenarios);
+                    }
+                }
+            }
+        }
+        let fixtures_dir = std::path::PathBuf::from("fixtures");
+        if fixtures_dir.exists() {
+            find_scenarios(&fixtures_dir, &mut scenarios);
+        }
+
+        if scenarios.is_empty() {
+            println!("No scenarios found in fixtures/");
+            return Ok(());
+        }
+
+        println!("Running {} scenarios", scenarios.len());
+
+        let mut all_results = Vec::new();
+        for scenario_path in scenarios {
+            let s = crate::scenario::load(&scenario_path)?;
+            println!("\n=== Scenario: {} ===", s.name);
+
+            let matrix = build_tool_matrix(tools, model, tool, model, &s.tool_matrix);
+
+            for config in &matrix {
+                println!("Running: {} / {}", config.tool, config.model);
+                let result = run::run_single_scenario(
+                    &s,
+                    &config.tool,
+                    &config.model,
+                    *dry_run,
+                    *no_cache,
+                    *timeout_secs,
+                    base_dir,
+                    results_db,
+                    cache,
+                );
+                all_results.push((config.clone(), result));
+            }
+        }
+
+        if all_results.len() > 1 {
+            println!("\n=== Summary ===");
+            for (config, result) in all_results {
+                match result {
+                    Ok(_) => println!("✓ {} / {}", config.tool, config.model),
+                    Err(e) => println!("✗ {} / {} - {}", config.tool, config.model, e),
+                }
+            }
+        }
+    } else if let Some(path) = scenario {
         let s = crate::scenario::load(path)?;
         println!("Loaded scenario: {}", s.name);
 
@@ -76,7 +140,7 @@ pub fn handle_run(
             crate::output::print_matrix_summary(&results);
         }
     } else {
-        println!("No scenario specified. Use --scenario <path>");
+        println!("No scenario specified. Use --scenario <path> or --all");
     }
 
     Ok(())

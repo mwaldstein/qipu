@@ -115,7 +115,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
   - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
 - [x] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs` - completed 2026-01-20
-- [ ] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs`
+- [x] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs` - completed 2026-01-20
   - New function `dijkstra_traverse()` using `BinaryHeap` instead of `VecDeque`
   - Order by accumulated cost (min-heap)
   - Default behavior: weighted (Dijkstra)

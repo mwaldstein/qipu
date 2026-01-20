@@ -49,7 +49,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 ### LLM Judge Enhancements (P2)
 - [x] Add semantic quality evaluation (relevance, coherence, granularity)
 - [x] Add weighted composite score combining automated + judge metrics
-- [ ] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
+- [x] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
 
 ### Human Review Integration (P2)
 - [ ] Add `review <RUN_ID> --dimension key=value --notes "..."` subcommand

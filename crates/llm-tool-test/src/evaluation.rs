@@ -5,8 +5,42 @@ use crate::transcript::EfficiencyMetrics;
 use crate::transcript::TranscriptAnalyzer;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::path::Path;
 use std::process::Command;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScoreTier {
+    Excellent,
+    Good,
+    Acceptable,
+    Poor,
+}
+
+impl ScoreTier {
+    pub fn from_score(score: f64) -> Self {
+        if score >= 0.9 {
+            ScoreTier::Excellent
+        } else if score >= 0.7 {
+            ScoreTier::Good
+        } else if score >= 0.5 {
+            ScoreTier::Acceptable
+        } else {
+            ScoreTier::Poor
+        }
+    }
+}
+
+impl fmt::Display for ScoreTier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ScoreTier::Excellent => write!(f, "Excellent"),
+            ScoreTier::Good => write!(f, "Good"),
+            ScoreTier::Acceptable => write!(f, "Acceptable"),
+            ScoreTier::Poor => write!(f, "Poor"),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EvaluationMetrics {
@@ -1017,5 +1051,51 @@ mod tests {
 
         assert!(composite <= 1.0);
         assert!(composite >= 0.0);
+    }
+
+    #[test]
+    fn test_score_tier_excellent() {
+        assert_eq!(ScoreTier::from_score(0.95), ScoreTier::Excellent);
+        assert_eq!(ScoreTier::from_score(0.90), ScoreTier::Excellent);
+        assert_eq!(ScoreTier::from_score(1.00), ScoreTier::Excellent);
+    }
+
+    #[test]
+    fn test_score_tier_good() {
+        assert_eq!(ScoreTier::from_score(0.85), ScoreTier::Good);
+        assert_eq!(ScoreTier::from_score(0.75), ScoreTier::Good);
+        assert_eq!(ScoreTier::from_score(0.70), ScoreTier::Good);
+    }
+
+    #[test]
+    fn test_score_tier_acceptable() {
+        assert_eq!(ScoreTier::from_score(0.65), ScoreTier::Acceptable);
+        assert_eq!(ScoreTier::from_score(0.55), ScoreTier::Acceptable);
+        assert_eq!(ScoreTier::from_score(0.50), ScoreTier::Acceptable);
+    }
+
+    #[test]
+    fn test_score_tier_poor() {
+        assert_eq!(ScoreTier::from_score(0.45), ScoreTier::Poor);
+        assert_eq!(ScoreTier::from_score(0.25), ScoreTier::Poor);
+        assert_eq!(ScoreTier::from_score(0.00), ScoreTier::Poor);
+    }
+
+    #[test]
+    fn test_score_tier_boundary_cases() {
+        assert_eq!(ScoreTier::from_score(0.8999), ScoreTier::Good);
+        assert_eq!(ScoreTier::from_score(0.9000), ScoreTier::Excellent);
+        assert_eq!(ScoreTier::from_score(0.6999), ScoreTier::Acceptable);
+        assert_eq!(ScoreTier::from_score(0.7000), ScoreTier::Good);
+        assert_eq!(ScoreTier::from_score(0.4999), ScoreTier::Poor);
+        assert_eq!(ScoreTier::from_score(0.5000), ScoreTier::Acceptable);
+    }
+
+    #[test]
+    fn test_score_tier_display() {
+        assert_eq!(format!("{}", ScoreTier::Excellent), "Excellent");
+        assert_eq!(format!("{}", ScoreTier::Good), "Good");
+        assert_eq!(format!("{}", ScoreTier::Acceptable), "Acceptable");
+        assert_eq!(format!("{}", ScoreTier::Poor), "Poor");
     }
 }

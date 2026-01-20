@@ -15,6 +15,7 @@ use adapter::{
 use chrono::Utc;
 use clap::Parser;
 use cli::{Cli, Commands};
+use evaluation::ScoreTier;
 use results::{
     Cache, CacheKey, EfficiencyMetricsRecord, EvaluationMetricsRecord, GateResultRecord,
     QualityMetricsRecord, RegressionReport, ResultRecord, ResultsDB,
@@ -427,8 +428,14 @@ fn main() -> anyhow::Result<()> {
                     println!("Notes: {}", r.metrics.note_count);
                     println!("Links: {}", r.metrics.link_count);
                     if let Some(score) = r.judge_score {
-                        println!("Judge Score: {:.2}", score);
+                        let tier = ScoreTier::from_score(score);
+                        println!("Judge Score: {:.2} ({})", score, tier);
                     }
+                    let composite_tier = ScoreTier::from_score(r.metrics.composite_score);
+                    println!(
+                        "Composite Score: {:.2} ({})",
+                        r.metrics.composite_score, composite_tier
+                    );
                     println!("Transcript: {}", r.transcript_path);
                 }
                 None => println!("Run not found: {}", name),
@@ -486,8 +493,14 @@ fn print_result_summary(record: &ResultRecord) {
         record.metrics.efficiency.iteration_ratio
     );
     if let Some(score) = record.judge_score {
-        println!("Judge Score: {:.2}", score);
+        let tier = ScoreTier::from_score(score);
+        println!("Judge Score: {:.2} ({})", score, tier);
     }
+    let composite_tier = ScoreTier::from_score(record.metrics.composite_score);
+    println!(
+        "Composite Score: {:.2} ({})",
+        record.metrics.composite_score, composite_tier
+    );
 }
 
 fn print_regression_report(report: &RegressionReport) {

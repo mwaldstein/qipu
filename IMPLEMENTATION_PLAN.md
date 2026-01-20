@@ -11,18 +11,23 @@
 
 ### value-model.md
 
-- [ ] `link tree` and `link path` use BFS instead of Dijkstra (weighted traversal)
+- [ ] `link tree` calls `bfs_traverse()` instead of `dijkstra_traverse()` by default
   - Spec (line 95-103): "By default, traversal commands use **weighted traversal**"
-  - Current: `src/commands/link/tree.rs:61` calls `bfs_traverse()` (unweighted)
-  - Current: `src/commands/link/path.rs:75` calls `bfs_find_path()` (unweighted)
-  - Should call: `dijkstra_traverse()` / equivalent weighted path function
-  - Impact: Value-based edge costs are not applied in default mode
+  - Current: `src/commands/link/tree.rs:61` always calls `bfs_traverse()`
+  - Should call: `dijkstra_traverse()` when `ignore_value=false` (the default)
+  - Impact: Value-based edge costs are not applied; all edges treated as cost 1.0
+
+- [ ] `link path` respects `ignore_value` but CLI doesn't expose the flag
+  - `bfs_find_path()` at `src/lib/graph/bfs.rs:746` correctly switches between weighted/unweighted
+  - But `src/commands/dispatch/link.rs:147` hardcodes `ignore_value: false`
+  - No `--ignore-value` flag in `src/cli/link.rs:110-149`
 
 ### semantic-graph.md
 
 - [ ] Context budget doesn't prefer typed links over `related`
   - Spec (line 82-83): "When generating `qipu context`, strongly prefer typed links (especially `part-of` and `supports`) over generic `related`"
-  - Location: `src/commands/context/budget.rs`
+  - Location: `src/commands/context/mod.rs:264-281`
+  - Current: Notes sorted by verified, created, id - no link type awareness
   - Gap: Budget handling doesn't differentiate link types
 
 ---
@@ -37,7 +42,7 @@
 
 - [ ] Test `workspace merge --strategy overwrite`
   - Implementation: `src/commands/workspace/merge.rs:74-79`
-  - Gap: Strategy not explicitly tested (only merge-links tested)
+  - Gap: Strategy not explicitly tested
 
 - [ ] Test `workspace merge --strategy skip` (default)
   - Implementation: `src/commands/workspace/merge.rs:90`
@@ -54,11 +59,11 @@
   - Gap: No CLI test
 
 - [ ] Test `--tag` selection for export
-  - Implementation: `src/commands/export/plan.rs:31-40`
+  - Implementation: `src/commands/export/plan.rs:32-40`
   - Gap: No CLI test in `tests/cli/export.rs`
 
 - [ ] Test `--query` selection for export
-  - Implementation: `src/commands/export/plan.rs:52-62`
+  - Implementation: `src/commands/export/plan.rs:53-62`
   - Gap: No CLI test
 
 - [ ] Test `--link-mode markdown` wiki-to-markdown conversion
@@ -83,28 +88,21 @@
   - Implementation: `src/commands/dump/mod.rs:54-59`
   - Gap: No CLI test
 
-- [ ] Test attachment roundtrip (dump/load with actual files)
-  - Gap: No test with real attachment files
-
 ### compaction.md
 
 - [ ] Test `qipu compact guide` command
-  - Implementation: `src/commands/compact/guide.rs:1-81`
-  - Gap: No dedicated test in `tests/cli/compact/commands.rs`
+  - Implementation: `src/commands/compact/guide.rs:9-81`
+  - Gap: No dedicated test in `tests/cli/compact/`
+
+- [ ] Test `compact apply` invariant rejection (cycles, self-compact)
+  - Implementation: `src/lib/compaction/validation.rs:17-40`
+  - Gap: No CLI tests for error cases
 
 ### value-model.md
 
-- [ ] Test `qipu value set` validation (score > 100 rejection)
-  - Implementation: `src/commands/dispatch/mod.rs:320-343`
-  - Gap: No dedicated validation test
-
-- [ ] Test `qipu value show` output format ("(default)" annotation)
-  - Implementation: `src/commands/dispatch/mod.rs:346-365`
-  - Gap: No dedicated format test
-
-- [ ] Test doctor validation for notes with invalid value
-  - Implementation: `src/commands/doctor/content.rs:130-149`
-  - Gap: No CLI test in `tests/cli/doctor.rs`
+- [ ] Test `qipu search --sort value`
+  - Implementation: `src/cli/commands.rs:140-142`
+  - Gap: No CLI test in `tests/cli/search.rs`
 
 ### structured-logging.md
 
@@ -125,6 +123,10 @@
   - Infrastructure exists: `src/lib/graph/types.rs:238-239` (`ignore_value` in TreeOptions)
   - Gap: No CLI flag exposed in `src/cli/link.rs`
 
+- [ ] Switch `link tree` to call `dijkstra_traverse()` by default
+  - Location: `src/commands/link/tree.rs:61`
+  - Change: `if tree_opts.ignore_value { bfs_traverse() } else { dijkstra_traverse() }`
+
 ### structured-logging.md
 
 - [ ] Add `#[tracing::instrument]` to `IndexBuilder::build()`
@@ -144,6 +146,7 @@
 - [ ] Add `tags` field to scenario schema
   - Spec: Mentions `tags: [capture, links, retrieval]`
   - Location: `crates/llm-tool-test/src/scenario.rs`
+  - Note: CLI has `--tags` flag but filtering not wired
 
 - [ ] Add `docs.prime` and `docs.help_commands` to scenario schema
   - Spec: Should include `qipu prime` output in context
@@ -312,6 +315,7 @@
 - [x] CLI: `qipu value set/show`, `--min-value` filter on list/search/context/link tree/link path
 - [x] Weighted traversal infrastructure: Dijkstra algorithm, edge cost formula, HopCost type
 - [x] Doctor validation for value range (0-100)
+- [x] `bfs_find_path()` respects `ignore_value` flag for weighted/unweighted mode
 
 ### LLM Tool Test Harness (crates/llm-tool-test)
 - [x] Scenarios: tier 0/1 scenarios, setup step support

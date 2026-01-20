@@ -45,20 +45,20 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter; stealth mode |
 | `cli-interface.md` | ✅ | ✅ | ✅ | All 16+ commands with correct exit codes |
 | `indexing-search.md` | ✅ | ✅ | ✅ | FTS5; BM25; backlinks; incremental repair |
-| `semantic-graph.md` | ✅ | ⚠️ | ✅ | Missing: context link type preference |
+| `semantic-graph.md` | ✅ | ⚠️ | ✅ | P1: context budget ignores link type preference |
 | `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; truncation |
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; TF-IDF; duplicate detection |
-| `records-output.md` | ✅ | ✅ | ⚠️ | All prefixes; missing: export records test |
+| `records-output.md` | ✅ | ✅ | ✅ | All prefixes implemented |
 | `llm-context.md` | ✅ | ✅ | ✅ | Budget; transitive; backlinks; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags, docs.prime, report |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags, docs.prime, report cmd |
 | `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; verify command; context priority |
 | `export.md` | ✅ | ✅ | ⚠️ | Core complete; missing: bibliography, tag, query tests |
 | `compaction.md` | ✅ | ✅ | ⚠️ | All commands; missing: guide command test |
-| `pack.md` | ✅ | ✅ | ⚠️ | All strategies; missing: selector tests |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge works; missing: strategy tests |
+| `pack.md` | ✅ | ✅ | ⚠️ | All strategies; missing: --tag/--moc/--query tests |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge works; missing: strategy/dry-run tests |
 | `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing works; missing: some instrumentation |
 | `operational-database.md` | ✅ | ✅ | ✅ | SQLite; FTS5; schema; incremental repair |
-| `value-model.md` | ✅ | ⚠️ | ⚠️ | P1: tree/path use BFS not Dijkstra; missing: --ignore-value |
+| `value-model.md` | ✅ | ⚠️ | ⚠️ | P1: tree uses BFS not Dijkstra; missing: --ignore-value |
 | `distribution.md` | ✅ | ⚠️ | ⚠️ | Cargo.toml ready; missing: release workflow, aarch64, installers |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
@@ -74,18 +74,18 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Issue | Reference |
 | --- | --- | --- |
-| `value-model.md` | `link tree`/`link path` use BFS instead of weighted Dijkstra | `src/commands/link/tree.rs:61`, `src/commands/link/path.rs:75` |
-| `semantic-graph.md` | Context budget doesn't prefer typed links over `related` | `src/commands/context/budget.rs` |
+| `value-model.md` | `link tree` calls `bfs_traverse()` instead of `dijkstra_traverse()` | `src/commands/link/tree.rs:61` |
+| `semantic-graph.md` | Context budget doesn't prefer typed links over `related` | `src/commands/context/mod.rs:264-281` |
 
 ### P2: Missing Test Coverage
 
 | Spec | Gap | Reference |
 | --- | --- | --- |
-| `workspaces.md` | --dry-run, strategy tests | `tests/cli/workspace.rs` |
+| `workspaces.md` | --dry-run, --strategy tests | `tests/cli/workspace.rs` |
 | `export.md` | bibliography, --tag, --query, --link-mode markdown | `tests/cli/export.rs` |
-| `pack.md` | --tag, --moc, --query, --no-attachments | `tests/cli/pack.rs` |
-| `compaction.md` | guide command test | `tests/cli/compact/commands.rs` |
-| `value-model.md` | value set/show validation, doctor check | `tests/cli/` |
+| `pack.md` | --tag, --moc, --query, --no-attachments | `tests/cli/dump.rs` |
+| `compaction.md` | guide command test | `tests/cli/compact/` |
+| `value-model.md` | search --sort value test | `tests/cli/search.rs` |
 
 ### P3: Optional / Low Priority
 

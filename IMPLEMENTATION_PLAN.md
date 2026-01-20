@@ -68,7 +68,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 ### File Refactoring (P3)
 - [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
 - [x] Extract command handlers into `commands.rs` - completed 2026-01-20
-- [ ] Extract print functions into `output.rs`
+- [x] Extract print functions into `output.rs` - completed 2026-01-20
 
 ### CLI Polish (P3)
 - [ ] Rename `list` to show scenarios not runs
@@ -341,3 +341,16 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Fixed type mismatches (String vs PathBuf, usize vs u8, u64 vs Option<u64>)
 - All 123 tests pass, 4 pre-existing warnings unrelated to changes
 - Reduced `main.rs` complexity by separating command logic from CLI parsing
+
+### Output Functions Extraction (completed 2026-01-20)
+- Created new module `crates/llm-tool-test/src/output.rs` with 3 print functions:
+  - `print_matrix_summary()`: Displays matrix run results in table format
+  - `print_result_summary()`: Displays detailed metrics for a single run
+  - `print_regression_report()`: Displays comparison between current and baseline runs
+- Moved `ToolModelConfig` struct from `main.rs` to `output.rs` since it's only used by output-related functionality
+- Updated `main.rs` to remove print function implementations and import from `output` module
+- Updated `commands.rs` to call `output::print_matrix_summary()` and `output::print_regression_report()`
+- Updated `run.rs` to call `output::print_result_summary()` and `output::print_regression_report()`
+- Removed unused imports from `main.rs` (`ScoreTier`, `ResultRecord`, `RegressionReport`, `HashMap`)
+- All 123 tests pass, 2 pre-existing warnings unrelated to changes
+- Improved code organization by separating output formatting logic from business logic

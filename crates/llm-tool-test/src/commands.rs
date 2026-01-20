@@ -1,4 +1,5 @@
 use crate::evaluation::ScoreTier;
+use crate::output;
 use crate::results::{Cache, ResultsDB};
 use crate::run;
 use crate::scenario::{load, ToolConfig};
@@ -55,7 +56,7 @@ pub fn handle_run_command(
         }
 
         if matrix.len() > 1 {
-            crate::print_matrix_summary(&results);
+            output::print_matrix_summary(&results);
         }
     } else {
         println!("No scenario specified. Use --scenario <path>");
@@ -180,7 +181,7 @@ pub fn handle_compare_command(run_ids: &[String], results_db: &ResultsDB) -> any
     match (r1, r2) {
         (Some(run1), Some(run2)) => {
             let report = crate::results::compare_runs(&run1, &run2);
-            crate::print_regression_report(&report);
+            output::print_regression_report(&report);
         }
         _ => anyhow::bail!("One or both runs not found"),
     }

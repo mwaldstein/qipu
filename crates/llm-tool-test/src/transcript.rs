@@ -269,4 +269,160 @@ mod tests {
         assert_eq!(metrics.retry_count, 3);
         assert_eq!(metrics.iteration_ratio, 2.5);
     }
+
+    #[test]
+    fn test_extract_commands_basic() {
+        let transcript = "qipu create --title 'Test'\nqipu list\nqipu link --from a --to b";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].command, "list");
+        assert_eq!(commands[1].exit_code, Some(0));
+        assert_eq!(commands[2].command, "link");
+        assert_eq!(commands[2].exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_extract_commands_with_explicit_exit_code() {
+        let transcript = "qipu create --title 'Test'\nExit Code: 0\nqipu invalid\nExit status: 1";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 2);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].command, "invalid");
+        assert_eq!(commands[1].exit_code, Some(1));
+    }
+
+    #[test]
+    fn test_extract_commands_with_implicit_error() {
+        let transcript =
+            "qipu create --title 'Test'\nError: something failed\nqipu create --title 'Test'";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 2);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[0].exit_code, Some(1));
+        assert_eq!(commands[1].command, "create");
+        assert_eq!(commands[1].exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_extract_commands_help_detection() {
+        let transcript = "qipu --help\nqipu create --help\nqipu list";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].command, "help");
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].command, "help");
+        assert_eq!(commands[1].exit_code, Some(0));
+        assert_eq!(commands[2].command, "list");
+        assert_eq!(commands[2].exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_extract_commands_various_exit_code_formats() {
+        let transcript =
+            "qipu create\nexit code: 0\nqipu delete\nExit Status: 127\nqipu search\nexit code 255";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].exit_code, Some(127));
+        assert_eq!(commands[2].exit_code, Some(255));
+    }
+
+    #[test]
+    fn test_extract_commands_empty_transcript() {
+        let transcript = "";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 0);
+    }
+
+    #[test]
+    fn test_extract_commands_no_matching_commands() {
+        let transcript = "Some random text\nWithout commands\nJust output";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 0);
+    }
+
+    #[test]
+    fn test_extract_commands_mixed_with_output() {
+        let transcript = "Starting session...\nqipu create --title 'Test'\nNote created successfully\nqipu list\nList output\nDone";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 2);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[1].command, "list");
+    }
+
+    #[test]
+    fn test_extract_commands_case_insensitive_exit() {
+        let transcript =
+            "qipu create\nEXIT CODE: 0\nqipu delete\nexit code: 1\nqipu search\nExit Code: 2";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].exit_code, Some(1));
+        assert_eq!(commands[2].exit_code, Some(2));
+    }
+
+    #[test]
+    fn test_extract_commands_with_multiple_errors_keywords() {
+        let transcript =
+            "qipu create\nERROR: invalid input\nqipu delete\nFailed: not found\nqipu search";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].exit_code, Some(1));
+        assert_eq!(commands[1].exit_code, Some(1));
+        assert_eq!(commands[2].exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_extract_commands_nonzero_exit_code() {
+        let transcript = "qipu create\nExit code: 130";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[0].exit_code, Some(130));
+    }
+
+    #[test]
+    fn test_extract_commands_large_exit_code() {
+        let transcript = "qipu create\nExit code: 255";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[0].exit_code, Some(255));
+    }
+
+    #[test]
+    fn test_extract_commands_exit_code_takes_precedence() {
+        let transcript = "qipu create\nExit code: 0\nqipu delete\nError: failed\nExit code: 1";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 2);
+        assert_eq!(commands[0].exit_code, Some(0));
+        assert_eq!(commands[1].exit_code, Some(1));
+    }
+
+    #[test]
+    fn test_extract_commands_subcommand_with_flags() {
+        let transcript = "qipu create --title 'Test' --tag work\nqipu list --format json\nqipu link --from a --to b --type reference";
+        let commands = TranscriptAnalyzer::extract_commands_with_exit_codes(transcript);
+
+        assert_eq!(commands.len(), 3);
+        assert_eq!(commands[0].command, "create");
+        assert_eq!(commands[1].command, "list");
+        assert_eq!(commands[2].command, "link");
+    }
 }

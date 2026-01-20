@@ -57,7 +57,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [ ] Store human scores in results record
 
 ### Test Infrastructure (P2)
-- [ ] Add tests for command parsing from transcript
+- [x] Add tests for command parsing from transcript
 - [ ] Add tests for `build_tool_matrix()` edge cases
 - [ ] Add mock adapter for offline testing
 - [ ] Add end-to-end test with mock adapter

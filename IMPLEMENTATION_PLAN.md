@@ -68,7 +68,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 ### File Refactoring (P3)
 - [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
 - [x] Extract command handlers into `commands.rs` - completed 2026-01-20
-- [ ] Extract print functions into `output.rs`
+- [x] Extract print functions into `output.rs` - completed 2026-01-20
 
 ### CLI Polish (P3)
 - [ ] Rename `list` to show scenarios not runs

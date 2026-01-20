@@ -4,6 +4,7 @@ mod commands;
 mod evaluation;
 mod fixture;
 mod judge;
+mod output;
 mod results;
 mod run;
 mod scenario;

@@ -325,6 +325,53 @@ pub fn bfs_find_path(
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
+    // Check min_value filter for from and to notes before initializing
+    let from_passes_filter = if let Some(meta) = provider.get_metadata(from) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !from_passes_filter {
+        return Ok(PathResult {
+            from: from.to_string(),
+            to: to.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            found: false,
+            notes: vec![],
+            links: vec![],
+            path_length: 0,
+        });
+    }
+
+    let to_passes_filter = if let Some(meta) = provider.get_metadata(to) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !to_passes_filter {
+        return Ok(PathResult {
+            from: from.to_string(),
+            to: to.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            found: false,
+            notes: vec![],
+            links: vec![],
+            path_length: 0,
+        });
+    }
+
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
     let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
@@ -403,6 +450,23 @@ pub fn bfs_find_path(
             } else {
                 neighbor_id.clone()
             };
+
+            // Check min_value filter before processing neighbor
+            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
+                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
+                    let value = meta.value.unwrap_or(50);
+                    opts.min_value.is_none_or(|min| value >= min)
+                } else {
+                    false
+                }
+            } else {
+                true
+            };
+
+            // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
+            if !neighbor_passes_filter {
+                continue;
+            }
 
             if !visited.contains(&canonical_neighbor) {
                 visited.insert(canonical_neighbor.clone());

@@ -614,3 +614,280 @@ fn test_link_path_direction_both() {
         .stdout(predicate::str::contains("Node A"))
         .stdout(predicate::str::contains("Path length: 1 hop"));
 }
+
+#[test]
+fn test_link_path_min_value_filter_excludes_from_note() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Set Node A to low value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_a, "10"])
+        .assert()
+        .success();
+
+    // Path should not be found because from note has low value
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_b, "--min-value", "50"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No path found"));
+}
+
+#[test]
+fn test_link_path_min_value_filter_excludes_to_note() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Set Node B to low value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_b, "10"])
+        .assert()
+        .success();
+
+    // Path should not be found because to note has low value
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_b, "--min-value", "50"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No path found"));
+}
+
+#[test]
+fn test_link_path_min_value_filter_excludes_intermediate_note() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create A -> B -> C
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Set Node B to low value (intermediate note)
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_b, "10"])
+        .assert()
+        .success();
+
+    // Path should not be found because intermediate note has low value
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_c, "--min-value", "50"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No path found"));
+}
+
+#[test]
+fn test_link_path_min_value_filter_all_match() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Set both nodes to high value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_a, "80"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_b, "90"])
+        .assert()
+        .success();
+
+    // Path should be found because both nodes pass the threshold
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_b, "--min-value", "50"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Node A"))
+        .stdout(predicate::str::contains("Node B"))
+        .stdout(predicate::str::contains("Path length: 1 hop"));
+}
+
+#[test]
+fn test_link_path_min_value_filter_with_defaults() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Notes with default value (None, treated as 50) should pass threshold of 50
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_b, "--min-value", "50"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Node A"))
+        .stdout(predicate::str::contains("Node B"))
+        .stdout(predicate::str::contains("Path length: 1 hop"));
+}

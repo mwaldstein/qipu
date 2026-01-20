@@ -1,6 +1,7 @@
 use super::LinkEntry;
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
+use crate::lib::graph::PathResult;
 
 /// Output in human-readable format
 pub fn output_human(
@@ -53,4 +54,56 @@ pub fn output_human(
             }
         }
     }
+}
+
+/// Output path in human-readable format
+pub fn output_path_human(
+    cli: &Cli,
+    result: &PathResult,
+    compaction_ctx: Option<&CompactionContext>,
+) {
+    if !result.found {
+        if !cli.quiet {
+            println!("No path found from {} to {}", result.from, result.to);
+        }
+        return;
+    }
+
+    // Print path: node -> node -> node
+    for (i, note) in result.notes.iter().enumerate() {
+        if i > 0 {
+            // Print edge info
+            if let Some(link) = result.links.get(i - 1) {
+                println!("  |");
+                println!("  | [{}] ({})", link.link_type, link.source);
+                println!("  v");
+            }
+        }
+        println!("{} \"{}\"", note.id, note.title);
+
+        // Show compacted IDs if --with-compaction-ids is set
+        if cli.with_compaction_ids {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&note.id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((ids, truncated)) =
+                        ctx.get_compacted_ids(&note.id, depth, cli.compaction_max_nodes)
+                    {
+                        let ids_str = ids.join(", ");
+                        let suffix = if truncated {
+                            let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                            format!(" (truncated, showing {} of {})", max, compacts_count)
+                        } else {
+                            String::new()
+                        };
+                        println!("  Compacted: {}{}", ids_str, suffix);
+                    }
+                }
+            }
+        }
+    }
+
+    println!();
+    println!("Path length: {} hop(s)", result.path_length);
 }

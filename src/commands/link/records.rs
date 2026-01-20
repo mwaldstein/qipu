@@ -1,6 +1,7 @@
-use super::{Direction, LinkEntry};
+use super::{Direction, LinkEntry, TreeOptions};
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
+use crate::lib::graph::PathResult;
 use crate::lib::index::Index;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
@@ -195,6 +196,118 @@ fn output_with_truncation(header_base: &str, lines: &[String], max_chars: Option
         "false"
     };
     println!("{}{}", header_base, truncated_str);
+
+    for line in lines.iter().take(line_count) {
+        println!("{}", line);
+    }
+}
+
+/// Output path in records format
+#[allow(clippy::too_many_arguments)]
+pub fn output_path_records(
+    result: &PathResult,
+    store: &Store,
+    opts: &TreeOptions,
+    cli: &Cli,
+    compaction_ctx: Option<&CompactionContext>,
+) {
+    let budget = opts.max_chars;
+    let mut lines = Vec::new();
+
+    if result.found {
+        for note in &result.notes {
+            let tags_csv = if note.tags.is_empty() {
+                "-".to_string()
+            } else {
+                note.tags.join(",")
+            };
+            lines.push(format!(
+                "N {} {} \"{}\" tags={}",
+                note.id,
+                note.note_type,
+                escape_quotes(&note.title),
+                tags_csv
+            ));
+
+            if cli.with_compaction_ids {
+                if let Some(ctx) = compaction_ctx {
+                    let compacts_count = ctx.get_compacts_count(&note.id);
+                    if compacts_count > 0 {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, truncated)) =
+                            ctx.get_compacted_ids(&note.id, depth, cli.compaction_max_nodes)
+                        {
+                            for id in &ids {
+                                lines.push(format!("D compacted {} from={}", id, note.id));
+                            }
+                            if truncated {
+                                lines.push(format!(
+                                    "D compacted_truncated max={} total={}",
+                                    cli.compaction_max_nodes.unwrap_or(ids.len()),
+                                    compacts_count
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Ok(full_note) = store.get_note(&note.id) {
+                let summary = full_note.summary();
+                if !summary.is_empty() {
+                    let summary_text = summary.lines().next().unwrap_or("").trim();
+                    if !summary_text.is_empty() {
+                        lines.push(format!("S {} {}", note.id, summary_text));
+                    }
+                }
+            }
+        }
+
+        for link in &result.links {
+            lines.push(format!(
+                "E {} {} {} {}",
+                link.from, link.link_type, link.to, link.source
+            ));
+        }
+    }
+
+    let found_str = if result.found { "true" } else { "false" };
+    let header_base = format!(
+        "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={} truncated=",
+        store.root().display(),
+        result.from,
+        result.to,
+        result.direction,
+        found_str,
+        result.path_length
+    );
+    let header_len_false = header_base.len() + "false".len() + 1;
+    let header_len_true = header_base.len() + "true".len() + 1;
+
+    let (budget_truncated, line_count, truncated) = if result.found {
+        let (budget_flag, count) = select_lines(header_len_false, budget, &lines);
+        if !budget_flag && count == lines.len() {
+            (false, count, false)
+        } else {
+            let (budget_flag, count) = select_lines(header_len_true, budget, &lines);
+            (budget_flag, count, true)
+        }
+    } else {
+        let (budget_flag, count) = select_lines(header_len_false, budget, &lines);
+        if !budget_flag {
+            (false, count, false)
+        } else {
+            let (budget_flag, count) = select_lines(header_len_true, budget, &lines);
+            (budget_flag, count, true)
+        }
+    };
+
+    let truncated_value = if truncated || budget_truncated {
+        "true"
+    } else {
+        "false"
+    };
+    println!("{}{}", header_base, truncated_value);
 
     for line in lines.iter().take(line_count) {
         println!("{}", line);

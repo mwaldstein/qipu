@@ -339,6 +339,53 @@ pub fn handle_review(command: &Commands, results_db: &ResultsDB) -> anyhow::Resu
     Ok(())
 }
 
+pub fn handle_baseline(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
+    use crate::cli::BaselineAction;
+
+    let Commands::Baseline { action } = command else {
+        return Err(anyhow::anyhow!("Expected Baseline command"));
+    };
+
+    match action {
+        BaselineAction::Set { run_id } => {
+            let record = results_db
+                .load_by_id(run_id)?
+                .ok_or_else(|| anyhow::anyhow!("Run not found: {}", run_id))?;
+
+            results_db.set_baseline(&record.scenario_id, &record.tool, run_id)?;
+            println!(
+                "Baseline set: {} for scenario '{}' with tool '{}'",
+                run_id, record.scenario_id, record.tool
+            );
+        }
+        BaselineAction::Show { scenario, tool } => {
+            match results_db.get_baseline(scenario, tool)? {
+                Some(run_id) => {
+                    let record = results_db.load_by_id(&run_id)?;
+                    match record {
+                        Some(r) => {
+                            println!(
+                                "Baseline for {} / {}: {} ({})",
+                                scenario,
+                                tool,
+                                run_id,
+                                r.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+                            );
+                        }
+                        None => println!("Baseline record not found: {}", run_id),
+                    }
+                }
+                None => println!("No baseline set for {} / {}", scenario, tool),
+            }
+        }
+        BaselineAction::Unset { scenario, tool } => {
+            results_db.unset_baseline(scenario, tool)?;
+            println!("Baseline removed for {} / {}", scenario, tool);
+        }
+    }
+    Ok(())
+}
+
 fn build_tool_matrix(
     cli_tools: &Option<String>,
     cli_models: &Option<String>,

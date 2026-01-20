@@ -46,6 +46,9 @@ fn main() -> anyhow::Result<()> {
         cli::Commands::Review { .. } => {
             commands::handle_review(&cli.command, &results_db)?;
         }
+        cli::Commands::Baseline { .. } => {
+            commands::handle_baseline(&cli.command, &results_db)?;
+        }
     }
     Ok(())
 }

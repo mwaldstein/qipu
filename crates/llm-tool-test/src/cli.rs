@@ -107,6 +107,34 @@ pub enum Commands {
         #[arg(long)]
         notes: Option<String>,
     },
+    /// Manage baseline runs
+    Baseline {
+        #[command(subcommand)]
+        action: BaselineAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum BaselineAction {
+    /// Set a run as the baseline for its scenario/tool
+    Set {
+        /// Run ID to set as baseline
+        run_id: String,
+    },
+    /// Show the current baseline for a scenario/tool
+    Show {
+        /// Scenario name
+        scenario: String,
+        /// Tool name
+        tool: String,
+    },
+    /// Remove baseline designation
+    Unset {
+        /// Scenario name
+        scenario: String,
+        /// Tool name
+        tool: String,
+    },
 }
 
 fn parse_key_value(s: &str) -> Result<(String, f64), String> {
@@ -193,5 +221,48 @@ mod tests {
         let result = parse_key_value("first_try=0.8").unwrap();
         assert_eq!(result.0, "first_try");
         assert_eq!(result.1, 0.8);
+    }
+
+    #[test]
+    fn test_parse_baseline_set() {
+        let cli = Cli::try_parse_from(["test", "baseline", "set", "run-123"]).unwrap();
+        match &cli.command {
+            Commands::Baseline {
+                action: BaselineAction::Set { run_id },
+            } => {
+                assert_eq!(run_id, "run-123");
+            }
+            _ => panic!("Expected Baseline::Set command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_baseline_show() {
+        let cli =
+            Cli::try_parse_from(["test", "baseline", "show", "scenario-a", "opencode"]).unwrap();
+        match &cli.command {
+            Commands::Baseline {
+                action: BaselineAction::Show { scenario, tool },
+            } => {
+                assert_eq!(scenario, "scenario-a");
+                assert_eq!(tool, "opencode");
+            }
+            _ => panic!("Expected Baseline::Show command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_baseline_unset() {
+        let cli =
+            Cli::try_parse_from(["test", "baseline", "unset", "scenario-a", "opencode"]).unwrap();
+        match &cli.command {
+            Commands::Baseline {
+                action: BaselineAction::Unset { scenario, tool },
+            } => {
+                assert_eq!(scenario, "scenario-a");
+                assert_eq!(tool, "opencode");
+            }
+            _ => panic!("Expected Baseline::Unset command"),
+        }
     }
 }

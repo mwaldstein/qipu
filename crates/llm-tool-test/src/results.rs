@@ -82,6 +82,7 @@ pub struct HumanReviewRecord {
 
 pub struct ResultsDB {
     results_path: PathBuf,
+    baselines_path: PathBuf,
 }
 
 impl ResultsDB {
@@ -90,6 +91,7 @@ impl ResultsDB {
         std::fs::create_dir_all(&results_dir).ok();
         Self {
             results_path: results_dir.join("results.jsonl"),
+            baselines_path: results_dir.join("baselines.json"),
         }
     }
 
@@ -178,6 +180,53 @@ impl ResultsDB {
             .into_iter()
             .filter(|r| r.human_review.is_none())
             .collect())
+    }
+
+    fn load_baselines(&self) -> Result<HashMap<String, String>> {
+        if !self.baselines_path.exists() {
+            return Ok(HashMap::new());
+        }
+
+        let content = std::fs::read_to_string(&self.baselines_path)
+            .context("Failed to read baselines.json")?;
+        serde_json::from_str(&content).context("Failed to parse baselines.json")
+    }
+
+    fn save_baselines(&self, baselines: &HashMap<String, String>) -> Result<()> {
+        let temp_path = self.baselines_path.with_extension(".tmp");
+        let content = serde_json::to_string_pretty(baselines)?;
+
+        std::fs::write(&temp_path, content).context("Failed to write baselines.json.tmp")?;
+        std::fs::rename(&temp_path, &self.baselines_path)
+            .context("Failed to replace baselines.json")?;
+
+        Ok(())
+    }
+
+    fn baseline_key(scenario_id: &str, tool: &str) -> String {
+        format!("{}:{}", scenario_id, tool)
+    }
+
+    pub fn set_baseline(&self, scenario_id: &str, tool: &str, run_id: &str) -> Result<()> {
+        let mut baselines = self.load_baselines()?;
+        let key = Self::baseline_key(scenario_id, tool);
+        baselines.insert(key, run_id.to_string());
+        self.save_baselines(&baselines)?;
+        Ok(())
+    }
+
+    pub fn get_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<String>> {
+        let baselines = self.load_baselines()?;
+        let key = Self::baseline_key(scenario_id, tool);
+        Ok(baselines.get(&key).cloned())
+    }
+
+    pub fn unset_baseline(&self, scenario_id: &str, tool: &str) -> Result<()> {
+        let mut baselines = self.load_baselines()?;
+        let key = Self::baseline_key(scenario_id, tool);
+        baselines.remove(&key);
+        self.save_baselines(&baselines)?;
+        Ok(())
     }
 }
 
@@ -1011,6 +1060,111 @@ mod tests {
         let pending_ids: Vec<_> = pending.iter().map(|r| r.id.clone()).collect();
         assert!(pending_ids.contains(&"run-1".to_string()));
         assert!(pending_ids.contains(&"run-3".to_string()));
+    }
+
+    #[test]
+    fn test_results_db_set_and_get_baseline() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        db.append(&record).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+
+        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
+        assert_eq!(baseline, Some("run-1".to_string()));
+
+        let no_baseline = db.get_baseline("scenario-b", "opencode").unwrap();
+        assert_eq!(no_baseline, None);
+    }
+
+    #[test]
+    fn test_results_db_unset_baseline() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        db.append(&record).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+
+        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
+        assert_eq!(baseline, Some("run-1".to_string()));
+
+        db.unset_baseline("scenario-a", "opencode").unwrap();
+
+        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
+        assert_eq!(baseline, None);
+    }
+
+    #[test]
+    fn test_results_db_baseline_persistence() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let db1 = ResultsDB::new(temp_dir.path());
+        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        db1.append(&record1).unwrap();
+        db1.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+
+        let db2 = ResultsDB::new(temp_dir.path());
+        let baseline = db2.get_baseline("scenario-a", "opencode").unwrap();
+        assert_eq!(baseline, Some("run-1".to_string()));
+    }
+
+    #[test]
+    fn test_results_db_baseline_multiple_scenario_tool_combinations() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        let record2 = create_test_record_with_tool("run-2", "scenario-a", "amp");
+        let record3 = create_test_record_with_tool("run-3", "scenario-b", "opencode");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+        db.append(&record3).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        db.set_baseline("scenario-a", "amp", "run-2").unwrap();
+        db.set_baseline("scenario-b", "opencode", "run-3").unwrap();
+
+        assert_eq!(
+            db.get_baseline("scenario-a", "opencode").unwrap(),
+            Some("run-1".to_string())
+        );
+        assert_eq!(
+            db.get_baseline("scenario-a", "amp").unwrap(),
+            Some("run-2".to_string())
+        );
+        assert_eq!(
+            db.get_baseline("scenario-b", "opencode").unwrap(),
+            Some("run-3".to_string())
+        );
+    }
+
+    #[test]
+    fn test_results_db_baseline_overwrites_existing() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        let record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        assert_eq!(
+            db.get_baseline("scenario-a", "opencode").unwrap(),
+            Some("run-1".to_string())
+        );
+
+        db.set_baseline("scenario-a", "opencode", "run-2").unwrap();
+        assert_eq!(
+            db.get_baseline("scenario-a", "opencode").unwrap(),
+            Some("run-2".to_string())
+        );
     }
 
     #[test]

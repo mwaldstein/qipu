@@ -171,8 +171,14 @@ pub fn run_single_scenario(
         results_db.append(&record)?;
         cache.put(&cache_key, &record)?;
 
-        if let Some(baseline) = results_db.load_baseline(&s.name, tool)? {
-            let report = crate::results::compare_runs(&record, &baseline);
+        let baseline = if let Some(baseline_run_id) = results_db.get_baseline(&s.name, tool)? {
+            results_db.load_by_id(&baseline_run_id)?
+        } else {
+            results_db.load_baseline(&s.name, tool)?
+        };
+
+        if let Some(baseline_record) = baseline {
+            let report = crate::results::compare_runs(&record, &baseline_record);
             crate::print_regression_report(&report);
         }
 

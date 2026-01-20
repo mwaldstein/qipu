@@ -14,7 +14,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Operational Database
 - [ ] Startup repair trigger missing
-  - `src/lib/db/mod.rs:84`: `Database::open` calls `validate_consistency` but ignores the result.
+  - `src/lib/db/mod.rs:84`: `Database::open` calls `validate_consistency` but propagates the error instead of triggering repair.
   - Spec: "On startup, qipu validates consistency and repairs if needed".
 - [ ] FTS5 ranking scoring mismatch
   - `src/lib/db/search.rs`: Uses additive boosting (+5.0, +8.0).
@@ -28,7 +28,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Compaction
 - [ ] Truncation indicators in CLI
-  - `src/commands/compact/show.rs`: recursive display lacks bounds check and truncation indicators in header output.
+  - `src/commands/compact/show.rs`: recursive display `show_nested_compaction` lacks visual truncation indicators and bounds checking logic is implicit.
   - Logic for `max_nodes` exists in `src/lib/compaction/expansion.rs` but is unused by the command.
   - Spec: Requires bounded expansion and indicators.
 
@@ -64,7 +64,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Structured Logging
 - [ ] Remove or use `tracing-appender`
-  - `Cargo.toml`: Dependency present but unused in code.
+  - `Cargo.toml`: Dependency present but unused in code (`src/lib/logging.rs` only uses `tracing-subscriber`).
   - Spec: Does not explicitly mandate file logging, but dependency suggests intent.
 
 ---
@@ -91,7 +91,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Value Model (`specs/value-model.md`)
 - [x] Data Model: `value` in `NoteFrontmatter`, schema v2, index support
-- [x] CLI: `qipu value` command, `--min-value` filters in list/search/context/link
+- [x] CLI: `qipu value` command (in `src/commands/dispatch/mod.rs`), `--min-value` filters in list/search/context/link
 - [x] Traversal: `get_edge_cost`, `dijkstra_traverse`, `--ignore-value`
 - [x] Integration: `doctor` range check, weighted traversal tests
 
@@ -108,4 +108,4 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Infrastructure: `commands.rs` extraction
 
 ### Operational Database
-- [x] Consistency check on startup: `db.validate_consistency()` called in `src/lib/db/mod.rs:84`
+- [x] Consistency check on startup: `db.validate_consistency()` called in `src/lib/db/mod.rs:84` (though repair behavior needs fixing)

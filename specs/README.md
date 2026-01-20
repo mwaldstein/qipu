@@ -46,7 +46,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; `--root` tested; verbose timing has `discover_store` key |
+| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; `--root` tested; timing instrumented |
 | `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields implemented; tag aliases optional/not implemented |
 | `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter fields; `qipu.db` implemented |
 | `cli-interface.md` | ✅ | ✅ | ✅ | All commands implemented with correct exit codes |
@@ -94,7 +94,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `workspaces.md` | Test coverage | Need --dry-run tests |
 | `custom-metadata.md` | All | Feature not implemented |
 | `distribution.md` | All | Scripts and workflows missing |
-| `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented |
+| `structured-logging.md` | Clean up | `tracing-appender` dependency unused |
 
 ### Not Applicable
 

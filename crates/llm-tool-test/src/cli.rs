@@ -105,6 +105,33 @@ pub enum Commands {
         #[arg(long)]
         notes: Option<String>,
     },
+    /// Manage baselines
+    Baseline {
+        #[command(subcommand)]
+        action: BaselineAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum BaselineAction {
+    /// Set a specific run as baseline for a scenario
+    Set {
+        /// Run ID to use as baseline
+        #[arg(required = true)]
+        run_id: String,
+    },
+    /// Clear the baseline for a scenario
+    Clear {
+        /// Scenario ID
+        #[arg(required = true)]
+        scenario_id: String,
+
+        /// Tool name
+        #[arg(required = true)]
+        tool: String,
+    },
+    /// List all configured baselines
+    List,
 }
 
 fn parse_key_value(s: &str) -> Result<(String, f64), String> {

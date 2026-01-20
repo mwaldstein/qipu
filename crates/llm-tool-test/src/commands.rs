@@ -254,6 +254,47 @@ pub fn handle_review_command(
     Ok(())
 }
 
+pub fn handle_baseline_set_command(run_id: &str, results_db: &ResultsDB) -> anyhow::Result<()> {
+    let record = results_db.load_by_id(run_id)?;
+    match record {
+        Some(r) => {
+            results_db.set_baseline(&r.scenario_id, &r.tool, run_id)?;
+            println!(
+                "Baseline set: {} for scenario '{}' with tool '{}'",
+                run_id, r.scenario_id, r.tool
+            );
+        }
+        None => anyhow::bail!("Run not found: {}", run_id),
+    }
+    Ok(())
+}
+
+pub fn handle_baseline_clear_command(
+    scenario_id: &str,
+    tool: &str,
+    results_db: &ResultsDB,
+) -> anyhow::Result<()> {
+    results_db.clear_baseline(scenario_id, tool)?;
+    println!(
+        "Baseline cleared for scenario '{}' with tool '{}'",
+        scenario_id, tool
+    );
+    Ok(())
+}
+
+pub fn handle_baseline_list_command(results_db: &ResultsDB) -> anyhow::Result<()> {
+    let baselines = results_db.list_baselines()?;
+    if baselines.is_empty() {
+        println!("No baselines configured");
+    } else {
+        println!("Configured baselines ({}):", baselines.len());
+        for (key, run_id) in baselines {
+            println!("  {} -> {}", key, run_id);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

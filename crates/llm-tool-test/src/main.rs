@@ -13,7 +13,7 @@ mod store_analysis;
 mod transcript;
 
 use clap::Parser;
-use cli::{Cli, Commands};
+use cli::{BaselineAction, Cli, Commands};
 use results::{Cache, ResultsDB};
 use scenario::ToolConfig;
 use std::iter::Iterator;
@@ -149,6 +149,17 @@ fn main() -> anyhow::Result<()> {
         } => {
             commands::handle_review_command(run_id, dimension, notes, &results_db)?;
         }
+        Commands::Baseline { action } => match action {
+            BaselineAction::Set { run_id } => {
+                commands::handle_baseline_set_command(run_id, &results_db)?;
+            }
+            BaselineAction::Clear { scenario_id, tool } => {
+                commands::handle_baseline_clear_command(scenario_id, tool, &results_db)?;
+            }
+            BaselineAction::List => {
+                commands::handle_baseline_list_command(&results_db)?;
+            }
+        },
     }
     Ok(())
 }

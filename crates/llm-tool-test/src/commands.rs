@@ -82,28 +82,10 @@ pub fn handle_run(
     Ok(())
 }
 
-pub fn handle_list(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    let Commands::List {
-        tags: _,
-        tier,
-        pending_review,
-    } = command
-    else {
-        return Err(anyhow::anyhow!("Expected List command"));
+pub fn handle_scenarios(command: &Commands) -> anyhow::Result<()> {
+    let Commands::Scenarios { tags: _, tier } = command else {
+        return Err(anyhow::anyhow!("Expected Scenarios command"));
     };
-
-    if *pending_review {
-        let pending = results_db.load_pending_review()?;
-        if pending.is_empty() {
-            println!("No runs pending review");
-        } else {
-            println!("Runs pending review ({}):", pending.len());
-            for r in pending {
-                println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
-            }
-        }
-        return Ok(());
-    }
 
     let mut scenarios = Vec::new();
 
@@ -143,6 +125,39 @@ pub fn handle_list(command: &Commands, results_db: &ResultsDB) -> anyhow::Result
     println!("Available scenarios (tier {}):", tier_label);
     for (name, _tier, description) in &scenarios {
         println!("  [{}] {} - {}", tier_label, name, description);
+    }
+
+    Ok(())
+}
+
+pub fn handle_list(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
+    let Commands::List { pending_review } = command else {
+        return Err(anyhow::anyhow!("Expected List command"));
+    };
+
+    if *pending_review {
+        let pending = results_db.load_pending_review()?;
+        if pending.is_empty() {
+            println!("No runs pending review");
+        } else {
+            println!("Runs pending review ({}):", pending.len());
+            for r in pending {
+                println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
+            }
+        }
+    } else {
+        let runs = results_db.load_all()?;
+        if runs.is_empty() {
+            println!("No runs found");
+        } else {
+            println!("Runs ({}):", runs.len());
+            for r in runs {
+                println!(
+                    "  [{}] {} - {} ({}) - {}",
+                    r.id, r.scenario_id, r.tool, r.model, r.outcome
+                );
+            }
+        }
     }
 
     Ok(())

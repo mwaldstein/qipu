@@ -28,6 +28,9 @@ fn main() -> anyhow::Result<()> {
         cli::Commands::Run { .. } => {
             commands::handle_run(&cli.command, &base_dir, &results_db, &cache)?;
         }
+        cli::Commands::Scenarios { .. } => {
+            commands::handle_scenarios(&cli.command)?;
+        }
         cli::Commands::List { .. } => {
             commands::handle_list(&cli.command, &results_db)?;
         }

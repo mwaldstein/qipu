@@ -71,7 +71,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Extract print functions into `output.rs` - completed 2026-01-20
 
 ### CLI Polish (P3)
-- [ ] Rename `list` to show scenarios not runs
+- [x] Rename `list` to show scenarios not runs - completed 2026-01-20
 - [ ] Add `run --all` to run all scenarios
 - [ ] Add `baseline set <run_id>` command
 
@@ -346,3 +346,17 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Fixed unused import warnings in `src/commands/link/mod.rs`
   - Removed unused `PathResult` and `TreeNote` imports
 - All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### List to Scenarios Command Refactoring (completed 2026-01-20)
+- Renamed `List` command to `Scenarios` in `crates/llm-tool-test/src/cli.rs`
+  - Help text: "List available scenarios"
+  - Flags: `--tags`, `--tier` (for filtering scenarios)
+- Created new `List` command for listing runs
+  - Help text: "List runs"
+  - Flags: `--pending-review` (shows runs pending human review)
+  - Default behavior: lists all runs
+- Split `handle_list()` in `crates/llm-tool-test/src/commands.rs`:
+  - `handle_scenarios()`: loads and displays scenarios from fixtures directory
+  - `handle_list()`: loads and displays runs from results database
+- Updated main.rs to dispatch to both commands
+- All 123 llm-tool-test tests pass, all 463 workspace tests pass (123 llm-tool-test + 259 qipu + 6 golden + 6 pack + 6 perf + 3 workspace merge)

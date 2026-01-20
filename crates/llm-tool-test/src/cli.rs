@@ -60,7 +60,7 @@ pub enum Commands {
         timeout_secs: u64,
     },
     /// List available scenarios
-    List {
+    Scenarios {
         /// Filter by tags
         #[arg(long)]
         tags: Vec<String>,
@@ -68,7 +68,9 @@ pub enum Commands {
         /// Filter scenarios by tier (0=smoke, 1=quick, 2=standard, 3=comprehensive)
         #[arg(long, default_value = "0")]
         tier: usize,
-
+    },
+    /// List runs
+    List {
         /// Show runs pending human review
         #[arg(long)]
         pending_review: bool,

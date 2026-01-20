@@ -1,5 +1,6 @@
 pub mod amp;
 pub mod claude_code;
+pub mod mock;
 pub mod opencode;
 
 use crate::scenario::Scenario;

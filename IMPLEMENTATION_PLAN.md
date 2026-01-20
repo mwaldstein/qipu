@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 ## Status
-- Test baseline: `cargo test` passes (403 tests)
+- Test baseline: `cargo test` passes (189 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 
 ---
@@ -14,7 +14,7 @@ Large files to split for maintainability:
 - [x] `src/lib/graph/traversal.rs` (470 lines) → Extract BFS module (bfs.rs)
 - [x] `src/commands/link/list.rs` (454 lines) → Extract output formatters
 - [x] `src/commands/link/path.rs` (450 lines) → Extract output formatters
-- [ ] `src/commands/lib/db/notes.rs` (432 lines) → Split CRUD operations
+- [x] `src/lib/db/notes.rs` (432 lines) → Split CRUD operations
 - [ ] `src/commands/doctor/checks.rs` (402 lines) → Group by category
 
 ### Structured Logging Gaps

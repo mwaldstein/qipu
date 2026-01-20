@@ -7,6 +7,7 @@ use crate::cli::args::CreateArgs;
 use crate::cli::compact::CompactCommands;
 use crate::cli::link::LinkCommands;
 use crate::cli::parse::parse_note_type;
+use crate::cli::value::ValueCommands;
 use crate::cli::workspace::WorkspaceCommands;
 use crate::lib::note::NoteType;
 
@@ -137,6 +138,12 @@ pub enum Commands {
         /// Explicitly set verification status (true/false)
         #[arg(long)]
         status: Option<bool>,
+    },
+
+    /// Manage note value (quality/importance score)
+    Value {
+        #[command(subcommand)]
+        command: ValueCommands,
     },
 
     /// Manage and traverse note links

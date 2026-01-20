@@ -13,6 +13,7 @@ Commands:
   index      Build or refresh derived indexes
   search     Search notes by title and body
   verify     Toggle verification status of a note
+  value      Manage note value (quality/importance score)
   link       Manage and traverse note links
   prime      Output session-start primer for LLM agents
   setup      Install qipu integration instructions for agent tools

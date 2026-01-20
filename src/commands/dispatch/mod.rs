@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::cli::{Cli, Commands};
-use crate::lib::error::Result;
+use crate::lib::error::{QipuError, Result};
 use crate::lib::store::Store;
 use tracing::debug;
 
@@ -96,6 +96,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         Some(Commands::Verify { id_or_path, status }) => {
             notes::handle_verify(cli, &root, id_or_path, *status, start)
         }
+
+        Some(Commands::Value { command }) => handle_value(cli, &root, command, start),
 
         Some(Commands::Prime) => maintenance::handle_prime(cli, &root, start),
 
@@ -283,4 +285,66 @@ fn handle_compact(cli: &Cli, command: &crate::cli::CompactCommands) -> Result<()
 
 fn handle_workspace(cli: &Cli, command: &crate::cli::WorkspaceCommands) -> Result<()> {
     crate::commands::workspace::execute(cli, command)
+}
+
+fn handle_value(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &crate::cli::ValueCommands,
+    start: Instant,
+) -> Result<()> {
+    use crate::cli::ValueCommands;
+    use std::fs;
+    use std::path::Path;
+
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        ValueCommands::Set { id_or_path, score } => {
+            if *score > 100 {
+                return Err(QipuError::UsageError(
+                    "Value score must be between 0 and 100".to_string(),
+                ));
+            }
+
+            let mut note = if Path::new(id_or_path).exists() {
+                let content = fs::read_to_string(id_or_path)?;
+                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+            } else {
+                store.get_note(id_or_path)?
+            };
+
+            let note_id = note.id().to_string();
+
+            note.frontmatter.value = Some(*score);
+
+            store.save_note(&mut note)?;
+
+            println!("{}: {}", note_id, score);
+
+            debug!(elapsed = ?start.elapsed(), "value_set");
+            Ok(())
+        }
+
+        ValueCommands::Show { id_or_path } => {
+            let note = if Path::new(id_or_path).exists() {
+                let content = fs::read_to_string(id_or_path)?;
+                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+            } else {
+                store.get_note(id_or_path)?
+            };
+
+            let note_id = note.id().to_string();
+            let value = note.frontmatter.value.unwrap_or(50);
+
+            if note.frontmatter.value.is_some() {
+                println!("{}: {}", note_id, value);
+            } else {
+                println!("{}: {} (default)", note_id, value);
+            }
+
+            debug!(elapsed = ?start.elapsed(), "value_show");
+            Ok(())
+        }
+    }
 }

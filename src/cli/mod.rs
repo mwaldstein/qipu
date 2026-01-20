@@ -9,6 +9,7 @@ pub mod compact;
 pub mod link;
 pub mod output;
 pub mod parse;
+pub mod value;
 pub mod workspace;
 
 use clap::Parser;
@@ -19,6 +20,7 @@ pub use commands::Commands;
 pub use compact::CompactCommands;
 pub use link::LinkCommands;
 pub use output::OutputFormat;
+pub use value::ValueCommands;
 pub use workspace::WorkspaceCommands;
 
 /// Qipu - Zettelkasten-inspired knowledge management CLI

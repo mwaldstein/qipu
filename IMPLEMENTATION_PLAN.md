@@ -96,10 +96,10 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Updated `NoteMetadata` in `src/lib/index/types.rs` to include value field
   - Updated `builder.rs` to pass value from frontmatter to metadata
   - Updated test mock metadata in `similarity/mod.rs` to include value field
-- [ ] Update `src/lib/index/builder.rs` to index `value` field
+- [x] Update `src/lib/index/builder.rs` to index `value` field - ALREADY DONE (line 90 stores value in NoteMetadata)
 
 ### Phase 2: CLI Commands
-- [ ] Add `qipu value` subcommand in `src/cli/commands.rs`
+- [x] Add `qipu value` subcommand in `src/cli/commands.rs`
   - `value set <id> <score>` - update frontmatter value field
   - `value show <id>` - display current value (or "50 (default)" if unset)
 - [ ] Add `--min-value <n>` filter flag to:

@@ -47,6 +47,10 @@ pub enum Commands {
         /// Filter by creation date (ISO 8601)
         #[arg(long)]
         since: Option<String>,
+
+        /// Filter by minimum value (0-100)
+        #[arg(long)]
+        min_value: Option<u8>,
     },
 
     /// Show a note

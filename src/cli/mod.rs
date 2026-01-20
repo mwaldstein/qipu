@@ -157,9 +157,27 @@ mod tests {
     fn test_parse_list_with_filters() {
         let cli =
             Cli::try_parse_from(["qipu", "list", "--tag", "test", "--type", "fleeting"]).unwrap();
-        if let Some(Commands::List { tag, r#type, .. }) = cli.command {
+        if let Some(Commands::List {
+            tag,
+            r#type,
+            since,
+            min_value,
+        }) = cli.command
+        {
             assert_eq!(tag, Some("test".to_string()));
             assert_eq!(r#type, Some(NoteType::Fleeting));
+            assert_eq!(since, None);
+            assert_eq!(min_value, None);
+        } else {
+            panic!("Expected List command");
+        }
+    }
+
+    #[test]
+    fn test_parse_list_with_min_value() {
+        let cli = Cli::try_parse_from(["qipu", "list", "--min-value", "75"]).unwrap();
+        if let Some(Commands::List { min_value, .. }) = cli.command {
+            assert_eq!(min_value, Some(75));
         } else {
             panic!("Expected List command");
         }

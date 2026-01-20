@@ -50,6 +50,7 @@ pub(super) fn handle_list(
     tag: Option<&str>,
     note_type: Option<crate::lib::note::NoteType>,
     since: Option<&str>,
+    min_value: Option<u8>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -65,7 +66,7 @@ pub(super) fn handle_list(
         })
         .transpose()?;
 
-    commands::list::execute(cli, &store, tag, note_type, since_dt)?;
+    commands::list::execute(cli, &store, tag, note_type, since_dt, min_value)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

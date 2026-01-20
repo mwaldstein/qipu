@@ -23,6 +23,7 @@ pub fn execute(
     tag: Option<&str>,
     note_type: Option<NoteType>,
     since: Option<DateTime<Utc>>,
+    min_value: Option<u8>,
 ) -> Result<()> {
     let all_notes = store.list_notes()?;
     let mut notes = all_notes.clone();
@@ -52,6 +53,13 @@ pub fn execute(
             n.frontmatter
                 .created
                 .is_some_and(|created| created >= since)
+        });
+    }
+
+    if let Some(min_val) = min_value {
+        notes.retain(|n| {
+            let value = n.frontmatter.value.unwrap_or(50);
+            value >= min_val
         });
     }
 
@@ -270,7 +278,7 @@ mod tests {
         let (_temp_dir, store) = create_test_store();
         let cli = create_cli(OutputFormat::Human, false);
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -279,7 +287,7 @@ mod tests {
         let (_temp_dir, store) = create_test_store();
         let cli = create_cli(OutputFormat::Human, true);
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -288,7 +296,7 @@ mod tests {
         let (_temp_dir, store) = create_test_store();
         let cli = create_cli(OutputFormat::Json, false);
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -297,7 +305,7 @@ mod tests {
         let (_temp_dir, store) = create_test_store();
         let cli = create_cli(OutputFormat::Records, false);
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -309,7 +317,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -321,7 +329,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Json, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -333,7 +341,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Records, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -351,7 +359,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -369,7 +377,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, Some("matching"), None, None);
+        let result = execute(&cli, &store, Some("matching"), None, None, None);
         assert!(result.is_ok());
     }
 
@@ -381,7 +389,7 @@ mod tests {
             .unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, Some("nonexistent"), None, None);
+        let result = execute(&cli, &store, Some("nonexistent"), None, None, None);
         assert!(result.is_ok());
     }
 
@@ -399,7 +407,7 @@ mod tests {
         store.save_note(&mut note2).unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, Some(NoteType::Permanent), None);
+        let result = execute(&cli, &store, None, Some(NoteType::Permanent), None, None);
         assert!(result.is_ok());
     }
 
@@ -417,7 +425,7 @@ mod tests {
 
         let cli = create_cli(OutputFormat::Human, false);
         let since = Utc::now() - Duration::days(5);
-        let result = execute(&cli, &store, None, None, Some(since));
+        let result = execute(&cli, &store, None, None, Some(since), None);
         assert!(result.is_ok());
     }
 
@@ -436,7 +444,7 @@ mod tests {
         store.save_note(&mut digest).unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -457,7 +465,7 @@ mod tests {
         let mut cli = create_cli(OutputFormat::Human, false);
         cli.no_resolve_compaction = true;
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -482,7 +490,7 @@ mod tests {
         let mut cli = create_cli(OutputFormat::Human, false);
         cli.with_compaction_ids = true;
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -503,7 +511,7 @@ mod tests {
         cli.with_compaction_ids = true;
         cli.compaction_depth = Some(2);
 
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -538,7 +546,7 @@ mod tests {
         store.save_note(&mut digest).unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -562,7 +570,7 @@ mod tests {
         store.save_note(&mut digest).unwrap();
 
         let cli = create_cli(OutputFormat::Json, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -586,7 +594,7 @@ mod tests {
         store.save_note(&mut digest).unwrap();
 
         let cli = create_cli(OutputFormat::Records, false);
-        let result = execute(&cli, &store, None, None, None);
+        let result = execute(&cli, &store, None, None, None, None);
         assert!(result.is_ok());
     }
 
@@ -610,8 +618,111 @@ mod tests {
         ] {
             let mut cli = create_cli(format, false);
             cli.with_compaction_ids = true;
-            let result = execute(&cli, &store, None, None, None);
+            let result = execute(&cli, &store, None, None, None, None);
             assert!(result.is_ok());
         }
+    }
+
+    #[test]
+    fn test_list_filter_by_min_value_all_match() {
+        let (_temp_dir, store) = create_test_store();
+
+        let mut note1 = store
+            .create_note("High Value Note", None, &["high".to_string()], None)
+            .unwrap();
+        note1.frontmatter.value = Some(90);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Medium Value Note", None, &["medium".to_string()], None)
+            .unwrap();
+        note2.frontmatter.value = Some(70);
+        store.save_note(&mut note2).unwrap();
+
+        let cli = create_cli(OutputFormat::Human, false);
+        let result = execute(&cli, &store, None, None, None, Some(50));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_filter_by_min_value_some_match() {
+        let (_temp_dir, store) = create_test_store();
+
+        let mut note1 = store
+            .create_note("High Value Note", None, &["high".to_string()], None)
+            .unwrap();
+        note1.frontmatter.value = Some(90);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Low Value Note", None, &["low".to_string()], None)
+            .unwrap();
+        note2.frontmatter.value = Some(30);
+        store.save_note(&mut note2).unwrap();
+
+        let cli = create_cli(OutputFormat::Human, false);
+        let result = execute(&cli, &store, None, None, None, Some(50));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_filter_by_min_value_none_match() {
+        let (_temp_dir, store) = create_test_store();
+
+        let mut note1 = store
+            .create_note("Low Value Note 1", None, &["low".to_string()], None)
+            .unwrap();
+        note1.frontmatter.value = Some(20);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Low Value Note 2", None, &["low".to_string()], None)
+            .unwrap();
+        note2.frontmatter.value = Some(10);
+        store.save_note(&mut note2).unwrap();
+
+        let cli = create_cli(OutputFormat::Human, false);
+        let result = execute(&cli, &store, None, None, None, Some(50));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_filter_by_min_value_with_defaults() {
+        let (_temp_dir, store) = create_test_store();
+
+        let note1 = store
+            .create_note("Default Value Note", None, &["default".to_string()], None)
+            .unwrap();
+
+        let mut note2 = store
+            .create_note("Low Value Note", None, &["low".to_string()], None)
+            .unwrap();
+        note2.frontmatter.value = Some(20);
+        store.save_note(&mut note2).unwrap();
+
+        let cli = create_cli(OutputFormat::Human, false);
+        let result = execute(&cli, &store, None, None, None, Some(40));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_list_filter_by_min_value_exact() {
+        let (_temp_dir, store) = create_test_store();
+
+        let mut note1 = store
+            .create_note("Value 75 Note", None, &["exact".to_string()], None)
+            .unwrap();
+        note1.frontmatter.value = Some(75);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Value 50 Note", None, &["exact".to_string()], None)
+            .unwrap();
+        note2.frontmatter.value = Some(50);
+        store.save_note(&mut note2).unwrap();
+
+        let cli = create_cli(OutputFormat::Human, false);
+        let result = execute(&cli, &store, None, None, None, Some(50));
+        assert!(result.is_ok());
     }
 }

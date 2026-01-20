@@ -102,7 +102,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `qipu value` subcommand in `src/cli/commands.rs`
   - `value set <id> <score>` - update frontmatter value field
   - `value show <id>` - display current value (or "50 (default)" if unset)
-- [ ] Add `--min-value <n>` filter flag to:
+- [x] Add `--min-value <n>` filter flag to:
   - `qipu list`
   - `qipu search`
   - `qipu link tree`
@@ -208,4 +208,19 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - `src/commands/dump/serialize.rs` when dumping to pack
   - `src/commands/load/deserialize.rs` when deserializing pack format
 - Added "value" metadata parsing in pack deserializer
+- All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Min-Value Filter Implementation (completed 2026-01-20)
+- Added `--min-value <n>` flag to `Commands::List` in `src/cli/commands.rs`
+- Updated command dispatch path: `src/commands/dispatch/mod.rs` → `notes.rs` → `list.rs`
+- Filter logic in `src/commands/list.rs`:
+  - Notes without explicit value default to 50
+  - Filtering: `value >= min_value` (inclusive)
+- Added 5 unit tests covering:
+  - All notes match threshold
+  - Some notes match threshold
+  - No notes match threshold
+  - Notes with default value (None treated as 50)
+  - Exact threshold boundary (value = min_value)
+- Updated CLI parser tests to validate `--min-value` flag parsing
 - All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

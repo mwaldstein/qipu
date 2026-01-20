@@ -39,9 +39,20 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             notes::handle_create(cli, &root, args, start)
         }
 
-        Some(Commands::List { tag, r#type, since }) => {
-            notes::handle_list(cli, &root, tag.as_deref(), *r#type, since.as_deref(), start)
-        }
+        Some(Commands::List {
+            tag,
+            r#type,
+            since,
+            min_value,
+        }) => notes::handle_list(
+            cli,
+            &root,
+            tag.as_deref(),
+            *r#type,
+            since.as_deref(),
+            *min_value,
+            start,
+        ),
 
         Some(Commands::Show { id_or_path, links }) => {
             notes::handle_show(cli, &root, id_or_path, *links, start)

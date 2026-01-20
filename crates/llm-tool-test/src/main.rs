@@ -514,3 +514,169 @@ fn print_regression_report(report: &RegressionReport) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use scenario::ToolConfig;
+
+    fn assert_matrix_contains(matrix: &[ToolModelConfig], tool: &str, model: &str) {
+        assert!(
+            matrix
+                .iter()
+                .any(|c| c.tool == tool && c.model == model),
+            "Matrix should contain ({}, {}), got: {:?}",
+            tool,
+            model,
+            matrix
+        );
+    }
+
+    #[test]
+    fn test_build_tool_matrix_cli_both() {
+        let result = build_tool_matrix(
+            &Some("opencode,amp".to_string()),
+            &Some("gpt-4o,claude-sonnet".to_string()),
+            "opencode",
+            &None,
+            &None,
+        );
+
+        assert_eq!(result.len(), 4);
+        assert_matrix_contains(&result, "opencode", "gpt-4o");
+        assert_matrix_contains(&result, "opencode", "claude-sonnet");
+        assert_matrix_contains(&result, "amp", "gpt-4o");
+        assert_matrix_contains(&result, "amp", "claude-sonnet");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_cli_whitespace_handling() {
+        let result = build_tool_matrix(
+            &Some(" opencode , amp ".to_string()),
+            &Some(" gpt-4o , claude-sonnet ".to_string()),
+            "opencode",
+            &None,
+            &None,
+        );
+
+        assert_eq!(result.len(), 4);
+        assert_matrix_contains(&result, "opencode", "gpt-4o");
+        assert_matrix_contains(&result, "opencode", "claude-sonnet");
+        assert_matrix_contains(&result, "amp", "gpt-4o");
+        assert_matrix_contains(&result, "amp", "claude-sonnet");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_scenario_matrix_with_models() {
+        let scenario_matrix = vec![
+            ToolConfig {
+                tool: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
+            },
+            ToolConfig {
+                tool: "amp".to_string(),
+                models: vec!["default".to_string()],
+            },
+        ];
+
+        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+
+        assert_eq!(result.len(), 3);
+        assert_matrix_contains(&result, "opencode", "gpt-4o");
+        assert_matrix_contains(&result, "opencode", "claude-sonnet");
+        assert_matrix_contains(&result, "amp", "default");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_scenario_matrix_empty_models() {
+        let scenario_matrix = vec![
+            ToolConfig {
+                tool: "opencode".to_string(),
+                models: vec![],
+            },
+            ToolConfig {
+                tool: "amp".to_string(),
+                models: vec![],
+            },
+        ];
+
+        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+
+        assert_eq!(result.len(), 2);
+        assert_matrix_contains(&result, "opencode", "default");
+        assert_matrix_contains(&result, "amp", "default");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_single_tool_default_model() {
+        let result = build_tool_matrix(&None, &None, "opencode", &None, &None);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "default");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_single_tool_with_model() {
+        let result = build_tool_matrix(
+            &None,
+            &None,
+            "opencode",
+            &Some("claude-sonnet".to_string()),
+            &None,
+        );
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "claude-sonnet");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_scenario_matrix_empty() {
+        let scenario_matrix: Vec<ToolConfig> = vec![];
+
+        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_build_tool_matrix_cli_tools_only() {
+        let result = build_tool_matrix(&Some("opencode,amp".to_string()), &None, "opencode", &None, &None);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "default");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_cli_models_only() {
+        let result = build_tool_matrix(&None, &Some("gpt-4o,claude-sonnet".to_string()), "opencode", &None, &None);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "default");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_single_tool_empty_strings() {
+        let result = build_tool_matrix(
+            &Some("opencode,,amp".to_string()),
+            &Some("gpt-4o,,claude-sonnet".to_string()),
+            "opencode",
+            &None,
+            &None,
+        );
+
+        assert_eq!(result.len(), 9);
+        assert_matrix_contains(&result, "opencode", "gpt-4o");
+        assert_matrix_contains(&result, "opencode", "");
+        assert_matrix_contains(&result, "opencode", "claude-sonnet");
+        assert_matrix_contains(&result, "", "gpt-4o");
+        assert_matrix_contains(&result, "", "");
+        assert_matrix_contains(&result, "", "claude-sonnet");
+        assert_matrix_contains(&result, "amp", "gpt-4o");
+        assert_matrix_contains(&result, "amp", "");
+        assert_matrix_contains(&result, "amp", "claude-sonnet");
+    }
+}

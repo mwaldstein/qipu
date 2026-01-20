@@ -58,7 +58,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### Test Infrastructure (P2)
 - [x] Add tests for command parsing from transcript
-- [ ] Add tests for `build_tool_matrix()` edge cases
+- [x] Add tests for `build_tool_matrix()` edge cases
 - [ ] Add mock adapter for offline testing
 - [ ] Add end-to-end test with mock adapter
 - [ ] Remove dead code: `ResultsDB::load_latest_by_scenario`

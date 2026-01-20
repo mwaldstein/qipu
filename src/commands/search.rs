@@ -8,6 +8,9 @@
 //! - Compaction resolution (specs/compaction.md): show canonical digests with via= annotations
 
 use std::collections::HashMap;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
@@ -26,7 +29,23 @@ pub fn execute(
     tag_filter: Option<&str>,
     exclude_mocs: bool,
 ) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(
+            query,
+            ?type_filter,
+            ?tag_filter,
+            exclude_mocs,
+            "search_params"
+        );
+    }
+
     let mut results = store.db().search(query, type_filter, tag_filter, 200)?;
+
+    if cli.verbose {
+        debug!(result_count = results.len(), elapsed = ?start.elapsed(), "search");
+    }
 
     // Determine if compaction processing is needed
     let needs_compaction = !cli.no_resolve_compaction
@@ -42,6 +61,9 @@ pub fn execute(
     };
 
     let compaction_ctx = if needs_compaction {
+        if cli.verbose {
+            debug!(note_count = all_notes.len(), "build_compaction_context");
+        }
         Some(CompactionContext::build(&all_notes)?)
     } else {
         None
@@ -344,6 +366,10 @@ pub fn execute(
                 }
             }
         }
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
     }
 
     Ok(())

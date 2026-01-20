@@ -21,7 +21,7 @@ Large files to split for maintainability:
 Commands missing tracing instrumentation:
 - [x] `src/commands/capture.rs`
 - [x] `src/commands/create.rs`
-- [ ] `src/commands/search.rs`
+- [x] `src/commands/search.rs`
 - [ ] `src/commands/compact/*.rs` (7 files)
 - [ ] `src/commands/context/{budget,output,select,types}.rs`
 - [ ] `src/commands/workspace/{list,merge,new}.rs`

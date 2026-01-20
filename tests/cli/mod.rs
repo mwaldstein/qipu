@@ -20,3 +20,4 @@ mod setup;
 mod show;
 pub mod support;
 mod sync;
+mod workspace;

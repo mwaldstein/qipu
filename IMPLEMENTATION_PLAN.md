@@ -67,7 +67,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### File Refactoring (P3)
 - [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
-- [ ] Extract command handlers into `commands.rs`
+- [x] Extract command handlers into `commands.rs` - completed 2026-01-20
 - [ ] Extract print functions into `output.rs`
 
 ### CLI Polish (P3)
@@ -310,3 +310,22 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Integrated into doctor command flow in `src/commands/doctor/mod.rs` after required fields check
 - Issue category: "invalid-value", severity: Error, fixable: true
 - All 259 tests pass (240 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Command Handlers Extraction (completed 2026-01-20)
+- Created `crates/llm-tool-test/src/commands.rs` module to extract command handlers from `main.rs`
+- Extracted 6 command handler functions:
+  - `handle_run()` - handles run command execution with tool/model matrix
+  - `handle_list()` - handles list command and pending review listing
+  - `handle_show()` - handles show command to display run details
+  - `handle_compare()` - handles compare command for regression reports
+  - `handle_clean()` - handles clean command for cache clearing
+  - `handle_review()` - handles review command for adding human evaluations
+- Moved helper functions to commands.rs:
+  - `build_tool_matrix()` - constructs tool×model combinations
+  - `print_matrix_summary()` - displays matrix run results table
+  - `print_result_summary()` - displays single run results
+  - `print_regression_report()` - displays regression comparison results
+- Moved `ToolModelConfig` struct to commands.rs (made public)
+- Simplified `main.rs` match statement to delegate to command handlers
+- Moved all unit tests from main.rs to commands.rs (11 tests for build_tool_matrix)
+- All tests pass (123 llm-tool-test + 225 qipu + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

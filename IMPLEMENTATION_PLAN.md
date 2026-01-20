@@ -102,8 +102,8 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `qipu value` subcommand in `src/cli/commands.rs`
   - `value set <id> <score>` - update frontmatter value field
   - `value show <id>` - display current value (or "50 (default)" if unset)
-- [x] Add `--min-value <n>` filter flag to:
-  - `qipu list`
+- [x] Add `--min-value <n>` filter flag to `qipu list`
+- [ ] Add `--min-value <n>` filter flag to:
   - `qipu search`
   - `qipu link tree`
   - `qipu link path`

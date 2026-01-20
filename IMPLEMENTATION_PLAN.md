@@ -108,7 +108,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - `qipu link tree` (completed 2026-01-20)
   - `qipu link path`
   - `qipu context`
-- [ ] Add `--sort value` option to `qipu search`
+- [x] Add `--sort value` option to `qipu search` (completed 2026-01-20)
 
 ### Phase 3: Weighted Traversal
 - [ ] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`

@@ -95,6 +95,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             tag,
             exclude_mocs,
             min_value,
+            sort,
         }) => notes::handle_search(
             cli,
             &root,
@@ -103,6 +104,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             tag.as_deref(),
             *exclude_mocs,
             *min_value,
+            sort.as_deref(),
             start,
         ),
 

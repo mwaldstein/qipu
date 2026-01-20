@@ -277,13 +277,23 @@ pub(super) fn handle_search(
     tag: Option<&str>,
     exclude_mocs: bool,
     min_value: Option<u8>,
+    sort: Option<&str>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs, min_value)?;
+    commands::search::execute(
+        cli,
+        &store,
+        query,
+        note_type,
+        tag,
+        exclude_mocs,
+        min_value,
+        sort,
+    )?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

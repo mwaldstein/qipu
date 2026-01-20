@@ -136,6 +136,10 @@ pub enum Commands {
         /// Filter by minimum value (0-100)
         #[arg(long)]
         min_value: Option<u8>,
+
+        /// Sort results by field: 'relevance' (default) or 'value'
+        #[arg(long)]
+        sort: Option<String>,
     },
 
     /// Toggle verification status of a note

@@ -29,6 +29,7 @@ pub fn execute(
     tag_filter: Option<&str>,
     exclude_mocs: bool,
     min_value: Option<u8>,
+    sort: Option<&str>,
 ) -> Result<()> {
     let start = Instant::now();
 
@@ -39,6 +40,7 @@ pub fn execute(
             ?tag_filter,
             exclude_mocs,
             ?min_value,
+            ?sort,
             "search_params"
         );
     }
@@ -129,6 +131,17 @@ pub fn execute(
                     .partial_cmp(&a.relevance)
                     .unwrap_or(std::cmp::Ordering::Equal)
                     .then_with(|| a.id.cmp(&b.id))
+            });
+        }
+    }
+
+    // Apply value-based sorting if requested
+    if let Some(sort_field) = sort {
+        if sort_field == "value" {
+            results.sort_by(|a, b| {
+                let value_a = a.value.unwrap_or(50);
+                let value_b = b.value.unwrap_or(50);
+                value_b.cmp(&value_a).then_with(|| a.id.cmp(&b.id))
             });
         }
     }
@@ -410,7 +423,7 @@ mod tests {
             command: None,
         };
 
-        let result = execute(&cli, &store, "", None, None, false, None);
+        let result = execute(&cli, &store, "", None, None, false, None, None);
         assert!(result.is_ok(), "Empty query should not error");
     }
 
@@ -441,7 +454,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "nonexistent", None, None, false, None);
+        let result = execute(&cli, &store, "nonexistent", None, None, false, None, None);
         assert!(result.is_ok(), "Search with no results should succeed");
     }
 
@@ -467,6 +480,7 @@ mod tests {
             None,
             false,
             None,
+            None,
         );
         assert!(result.is_ok(), "Search with type filter should succeed");
     }
@@ -483,7 +497,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, Some("rust"), false, None);
+        let result = execute(&cli, &store, "note", None, Some("rust"), false, None, None);
         assert!(result.is_ok(), "Search with tag filter should succeed");
     }
 
@@ -501,7 +515,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, None, true, None);
+        let result = execute(&cli, &store, "note", None, None, true, None, None);
         assert!(result.is_ok(), "Search with MOC exclusion should succeed");
     }
 
@@ -517,7 +531,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Json;
 
-        let result = execute(&cli, &store, "test", None, None, false, None);
+        let result = execute(&cli, &store, "test", None, None, false, None, None);
         assert!(result.is_ok(), "Search with JSON format should succeed");
     }
 
@@ -533,7 +547,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Records;
 
-        let result = execute(&cli, &store, "test", None, None, false, None);
+        let result = execute(&cli, &store, "test", None, None, false, None, None);
         assert!(result.is_ok(), "Search with records format should succeed");
     }
 
@@ -545,7 +559,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.quiet = true;
 
-        let result = execute(&cli, &store, "nonexistent", None, None, false, None);
+        let result = execute(&cli, &store, "nonexistent", None, None, false, None, None);
         assert!(
             result.is_ok(),
             "Quiet search with no results should succeed"
@@ -562,7 +576,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.verbose = true;
 
-        let result = execute(&cli, &store, "test", None, None, false, None);
+        let result = execute(&cli, &store, "test", None, None, false, None, None);
         assert!(result.is_ok(), "Verbose search should succeed");
     }
 
@@ -581,7 +595,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "digest", None, None, false, None);
+        let result = execute(&cli, &store, "digest", None, None, false, None, None);
         assert!(
             result.is_ok(),
             "Search with compaction resolution should succeed"
@@ -598,7 +612,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.no_resolve_compaction = true;
 
-        let result = execute(&cli, &store, "test", None, None, false, None);
+        let result = execute(&cli, &store, "test", None, None, false, None, None);
         assert!(
             result.is_ok(),
             "Search without compaction resolution should succeed"
@@ -618,7 +632,7 @@ mod tests {
         cli.with_compaction_ids = true;
         cli.compaction_depth = Some(1);
 
-        let result = execute(&cli, &store, "digest", None, None, false, None);
+        let result = execute(&cli, &store, "digest", None, None, false, None, None);
         assert!(result.is_ok(), "Search with compaction IDs should succeed");
     }
 
@@ -635,7 +649,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, None, false, None);
+        let result = execute(&cli, &store, "note", None, None, false, None, None);
         assert!(
             result.is_ok(),
             "Search with multiple results should succeed"
@@ -667,10 +681,39 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, None, false, Some(50));
+        let result = execute(&cli, &store, "note", None, None, false, Some(50), None);
         assert!(
             result.is_ok(),
             "Search with min-value filter should succeed"
         );
+    }
+
+    #[test]
+    fn test_search_sort_by_value() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store
+            .create_note("High Value Note", None, &[], None)
+            .unwrap();
+        note1.frontmatter.value = Some(90);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Low Value Note", None, &[], None)
+            .unwrap();
+        note2.frontmatter.value = Some(20);
+        store.save_note(&mut note2).unwrap();
+
+        let mut note3 = store
+            .create_note("Medium Value Note", None, &[], None)
+            .unwrap();
+        note3.frontmatter.value = Some(60);
+        store.save_note(&mut note3).unwrap();
+
+        let cli = make_default_cli();
+
+        let result = execute(&cli, &store, "note", None, None, false, None, Some("value"));
+        assert!(result.is_ok(), "Search with --sort value should succeed");
     }
 }

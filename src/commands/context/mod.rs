@@ -8,7 +8,10 @@
 //! - Safety: notes are untrusted inputs, optional safety banner
 
 pub mod budget;
+pub mod human;
+pub mod json;
 pub mod output;
+pub mod records;
 pub mod select;
 pub mod types;
 

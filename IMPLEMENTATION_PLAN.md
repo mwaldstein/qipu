@@ -11,7 +11,7 @@
 ### File Size Refactoring
 Large files to split for maintainability:
 - [x] `src/commands/context/output.rs` (668 lines) → `json.rs`, `human.rs`, `records.rs`
-- [ ] `src/lib/graph/traversal.rs` (470 lines) → Extract BFS/Dijkstra modules
+- [x] `src/lib/graph/traversal.rs` (470 lines) → Extract BFS module (bfs.rs)
 - [ ] `src/commands/link/list.rs` (454 lines) → Extract output formatters
 - [ ] `src/commands/link/path.rs` (450 lines) → Extract output formatters
 - [ ] `src/lib/db/notes.rs` (432 lines) → Split CRUD operations

@@ -125,7 +125,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 ### Phase 4: Integration
 - [x] Update `qipu context` to respect `--min-value` threshold - verified complete 2026-01-20
 - [ ] Update `qipu doctor` to validate value range (0-100)
-- [ ] Add tests for value filtering and weighted traversal
+- [x] Add tests for value filtering and weighted traversal - completed 2026-01-20
 - [ ] Update help text and man pages
 
 ### Dependencies
@@ -270,3 +270,26 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Uses `bfs_find_path()` only when `ignore_value` is true
 - Updated `src/lib/graph/mod.rs` to export both new functions
 - All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Weighted Traversal Tests (completed 2026-01-20)
+- Added comprehensive unit tests in `src/lib/graph/bfs.rs` for Dijkstra traversal and path finding
+- Created `MockGraphProvider` test utility with support for notes and edges
+  - Notes have configurable value (Option<u8>) to test weighted edge costs
+  - Supports both outbound and inbound edges for Direction testing
+- Added 16 unit tests covering:
+  - Simple graph traversal with different note values (100, 50, 75)
+  - Min-value filtering: excludes notes below threshold, respects root filter
+  - Max-hops cost limit: traversal stops when accumulated cost exceeds limit
+  - Direct and multi-hop path finding
+  - Path finding with high-value intermediate nodes preferred
+  - Path not found when no route exists
+  - Min-value filtering in path finding (from, to, intermediate nodes)
+  - Direction handling: Out, In, Both modes
+  - Default note values (None defaults to 50)
+  - Max-hops limit in path finding
+- Key learnings:
+  - Direction::Both with semantic_inversion:default(true) adds virtual inverted edges
+  - Tests use Direction::Out to avoid counting virtual edges in link counts
+  - Edge cost formula: 1.0 * (1 + (100 - value) / 100)
+  - Value 100 → cost 1.0, value 50 → cost 1.5, value 0 → cost 2.0
+- All 475 tests pass (219 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

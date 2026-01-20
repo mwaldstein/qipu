@@ -1177,3 +1177,398 @@ pub fn dijkstra_find_path(
         links,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lib::index::types::{Edge, LinkSource, NoteMetadata};
+    use crate::lib::note::{LinkType, NoteType};
+    use crate::lib::store::{InitOptions, Store};
+    use std::collections::HashMap;
+
+    struct MockGraphProvider {
+        notes: HashMap<String, NoteMetadata>,
+        edges_out: HashMap<String, Vec<Edge>>,
+        edges_in: HashMap<String, Vec<Edge>>,
+    }
+
+    impl MockGraphProvider {
+        fn new() -> Self {
+            Self {
+                notes: HashMap::new(),
+                edges_out: HashMap::new(),
+                edges_in: HashMap::new(),
+            }
+        }
+
+        fn add_note(&mut self, id: &str, title: &str, value: Option<u8>) {
+            self.notes.insert(
+                id.to_string(),
+                NoteMetadata {
+                    id: id.to_string(),
+                    title: title.to_string(),
+                    note_type: NoteType::Fleeting,
+                    tags: vec![],
+                    path: format!("{}.md", id),
+                    created: None,
+                    updated: None,
+                    value,
+                },
+            );
+        }
+
+        fn add_edge(&mut self, from: &str, to: &str, link_type: &str) {
+            let edge = Edge {
+                from: from.to_string(),
+                to: to.to_string(),
+                link_type: LinkType::new(link_type),
+                source: LinkSource::Typed,
+            };
+
+            self.edges_out
+                .entry(from.to_string())
+                .or_default()
+                .push(edge.clone());
+            self.edges_in.entry(to.to_string()).or_default().push(edge);
+        }
+    }
+
+    impl GraphProvider for MockGraphProvider {
+        fn get_outbound_edges(&self, id: &str) -> Vec<Edge> {
+            self.edges_out.get(id).cloned().unwrap_or_default()
+        }
+
+        fn get_inbound_edges(&self, id: &str) -> Vec<Edge> {
+            self.edges_in.get(id).cloned().unwrap_or_default()
+        }
+
+        fn get_metadata(&self, id: &str) -> Option<NoteMetadata> {
+            self.notes.get(id).cloned()
+        }
+
+        fn contains(&self, id: &str) -> bool {
+            self.notes.contains_key(id)
+        }
+    }
+
+    fn mock_store() -> Store {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = Store::init_at(tmp.path(), Default::default(), None).unwrap();
+        store
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_simple_graph() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(100));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_note("c", "Node C", Some(75));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            direction: Direction::Out,
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.root, "a");
+        assert_eq!(result.notes.len(), 3);
+        assert!(result.notes.iter().any(|n| n.id == "a"));
+        assert!(result.notes.iter().any(|n| n.id == "b"));
+        assert!(result.notes.iter().any(|n| n.id == "c"));
+        assert_eq!(result.links.len(), 2);
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_with_min_value_filter() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(90));
+        provider.add_note("b", "Node B", Some(30));
+        provider.add_note("c", "Node C", Some(80));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("a", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            min_value: Some(50),
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.notes.len(), 2);
+        assert!(result.notes.iter().any(|n| n.id == "a"));
+        assert!(result.notes.iter().any(|n| n.id == "c"));
+        assert!(!result.notes.iter().any(|n| n.id == "b"));
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_excludes_root_below_min_value() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Low Value Root", Some(20));
+        provider.add_note("b", "High Value Child", Some(90));
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            min_value: Some(80),
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.notes.len(), 0);
+        assert_eq!(result.links.len(), 0);
+        assert_eq!(
+            result.truncation_reason,
+            Some("min_value filter excluded root".to_string())
+        );
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_with_max_hops_cost_limit() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(50));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_note("c", "Node C", Some(50));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            max_hops: HopCost::new(2.5),
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert!(result.notes.len() >= 2);
+        assert!(result.notes.iter().any(|n| n.id == "a"));
+        assert!(result.notes.iter().any(|n| n.id == "b"));
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_direct_connection() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(100));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions::default();
+
+        let result = dijkstra_find_path(&provider, &store, "a", "b", &opts, None, None).unwrap();
+
+        assert!(result.found);
+        assert_eq!(result.from, "a");
+        assert_eq!(result.to, "b");
+        assert_eq!(result.path_length, 1);
+        assert_eq!(result.notes.len(), 2);
+        assert_eq!(result.links.len(), 1);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_with_intermediate_nodes() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(80));
+        provider.add_note("b", "Node B", Some(60));
+        provider.add_note("c", "Node C", Some(90));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions::default();
+
+        let result = dijkstra_find_path(&provider, &store, "a", "c", &opts, None, None).unwrap();
+
+        assert!(result.found);
+        assert_eq!(result.from, "a");
+        assert_eq!(result.to, "c");
+        assert_eq!(result.path_length, 2);
+        assert_eq!(result.notes.len(), 3);
+        assert_eq!(result.links.len(), 2);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_prefers_higher_value_path() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(100));
+        provider.add_note("b", "Node B", Some(10));
+        provider.add_note("c", "Node C", Some(10));
+        provider.add_note("d", "Node D", Some(100));
+
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "d", "related");
+        provider.add_edge("a", "c", "related");
+        provider.add_edge("c", "d", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions::default();
+
+        let result = dijkstra_find_path(&provider, &store, "a", "d", &opts, None, None).unwrap();
+
+        assert!(result.found);
+        assert_eq!(result.from, "a");
+        assert_eq!(result.to, "d");
+        assert_eq!(result.path_length, 2);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_no_path_exists() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(100));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_note("c", "Node C", Some(75));
+
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions::default();
+
+        let result = dijkstra_find_path(&provider, &store, "a", "c", &opts, None, None).unwrap();
+
+        assert!(!result.found);
+        assert_eq!(result.notes.len(), 0);
+        assert_eq!(result.links.len(), 0);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_from_below_min_value() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(10));
+        provider.add_note("b", "Node B", Some(90));
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            min_value: Some(50),
+            ..Default::default()
+        };
+
+        let result = dijkstra_find_path(&provider, &store, "a", "b", &opts, None, None).unwrap();
+
+        assert!(!result.found);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_to_below_min_value() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(90));
+        provider.add_note("b", "Node B", Some(10));
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            min_value: Some(50),
+            ..Default::default()
+        };
+
+        let result = dijkstra_find_path(&provider, &store, "a", "b", &opts, None, None).unwrap();
+
+        assert!(!result.found);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_intermediate_below_min_value() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(90));
+        provider.add_note("b", "Node B", Some(10));
+        provider.add_note("c", "Node C", Some(90));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            min_value: Some(50),
+            ..Default::default()
+        };
+
+        let result = dijkstra_find_path(&provider, &store, "a", "c", &opts, None, None).unwrap();
+
+        assert!(!result.found);
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_respects_direction_out() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(50));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_note("c", "Node C", Some(50));
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            direction: Direction::Out,
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.notes.len(), 2);
+        assert!(result.notes.iter().any(|n| n.id == "a"));
+        assert!(result.notes.iter().any(|n| n.id == "b"));
+        assert!(!result.notes.iter().any(|n| n.id == "c"));
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_respects_direction_in() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(50));
+        provider.add_note("b", "Node B", Some(50));
+        provider.add_edge("b", "a", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            direction: Direction::In,
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.notes.len(), 2);
+        assert!(result.notes.iter().any(|n| n.id == "a"));
+        assert!(result.notes.iter().any(|n| n.id == "b"));
+    }
+
+    #[test]
+    fn test_dijkstra_traverse_with_default_values() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", None);
+        provider.add_note("b", "Node B", None);
+        provider.add_edge("a", "b", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            direction: Direction::Out,
+            ..Default::default()
+        };
+
+        let result = dijkstra_traverse(&provider, &store, "a", &opts, None, None).unwrap();
+
+        assert_eq!(result.notes.len(), 2);
+        assert_eq!(result.links.len(), 1);
+    }
+
+    #[test]
+    fn test_dijkstra_find_path_with_max_hops() {
+        let mut provider = MockGraphProvider::new();
+        provider.add_note("a", "Node A", Some(100));
+        provider.add_note("b", "Node B", Some(100));
+        provider.add_note("c", "Node C", Some(100));
+        provider.add_edge("a", "b", "related");
+        provider.add_edge("b", "c", "related");
+
+        let store = mock_store();
+        let opts = TreeOptions {
+            max_hops: HopCost::from(1),
+            ..Default::default()
+        };
+
+        let result = dijkstra_find_path(&provider, &store, "a", "c", &opts, None, None).unwrap();
+
+        assert!(!result.found);
+    }
+}

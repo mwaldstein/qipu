@@ -123,7 +123,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Update `bfs_find_path()` to support weighted mode - completed 2026-01-20
 
 ### Phase 4: Integration
-- [ ] Update `qipu context` to respect `--min-value` threshold
+- [x] Update `qipu context` to respect `--min-value` threshold - verified complete 2026-01-20
 - [ ] Update `qipu doctor` to validate value range (0-100)
 - [ ] Add tests for value filtering and weighted traversal
 - [ ] Update help text and man pages

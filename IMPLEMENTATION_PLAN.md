@@ -11,11 +11,10 @@
 
 ### value-model.md
 
-- [ ] `link tree` calls `bfs_traverse()` instead of `dijkstra_traverse()` by default
+- [x] `link tree` calls `bfs_traverse()` instead of `dijkstra_traverse()` by default
   - Spec (line 95-103): "By default, traversal commands use **weighted traversal**"
-  - Current: `src/commands/link/tree.rs:61` always calls `bfs_traverse()`
-  - Should call: `dijkstra_traverse()` when `ignore_value=false` (the default)
-  - Impact: Value-based edge costs are not applied; all edges treated as cost 1.0
+  - Fixed: `src/commands/link/tree.rs:61` now conditionally calls `dijkstra_traverse()` when `ignore_value=false`
+  - Impact: Value-based edge costs now properly applied
 
 ### semantic-graph.md
 

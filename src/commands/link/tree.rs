@@ -58,14 +58,25 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     let mut tree_opts = opts.clone();
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
-    let result = crate::lib::graph::bfs_traverse(
-        &index,
-        store,
-        &canonical_id,
-        &tree_opts,
-        compaction_ctx.as_ref(),
-        equivalence_map.as_ref(),
-    )?;
+    let result = if tree_opts.ignore_value {
+        crate::lib::graph::bfs_traverse(
+            &index,
+            store,
+            &canonical_id,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    } else {
+        crate::lib::graph::dijkstra_traverse(
+            &index,
+            store,
+            &canonical_id,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    };
 
     // Output
     match cli.format {

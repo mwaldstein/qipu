@@ -96,13 +96,7 @@
 
 - [ ] Test `compact apply` invariant rejection (cycles, self-compact)
   - Implementation: `src/lib/compaction/validation.rs:17-40`
-  - Gap: No CLI tests for error cases
-
-### value-model.md
-
-- [ ] Test `qipu search --sort value`
-  - Implementation: `src/cli/commands.rs:140-142`
-  - Gap: No CLI test in `tests/cli/search.rs`
+  - Gap: Unit tests exist but no CLI tests for error cases
 
 ### structured-logging.md
 
@@ -168,6 +162,11 @@
 - [ ] Add "Last updated" column to `workspace list` output
   - Spec: line 55
   - Gap: Column not displayed in `src/commands/workspace/list.rs:73-85`
+
+- [ ] Implement `--from-note` as graph slice (like dump -> load)
+  - Spec: line 64
+  - Current: `src/commands/workspace/new.rs:77-80` only copies single note
+  - Comment in code: "This should be a graph slice, but for now just copy the note"
 
 ### distribution.md
 
@@ -316,6 +315,7 @@
 - [x] Weighted traversal infrastructure: Dijkstra algorithm, edge cost formula, HopCost type
 - [x] Doctor validation for value range (0-100)
 - [x] `bfs_find_path()` respects `ignore_value` flag for weighted/unweighted mode
+- [x] `qipu search --sort value` - implementation and tests (`tests/cli/search.rs:688-937`)
 
 ### LLM Tool Test Harness (crates/llm-tool-test)
 - [x] Scenarios: tier 0/1 scenarios, setup step support

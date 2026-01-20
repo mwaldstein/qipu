@@ -84,8 +84,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `workspaces.md` | --dry-run, --strategy tests | `tests/cli/workspace.rs` |
 | `export.md` | bibliography, --tag, --query, --link-mode markdown | `tests/cli/export.rs` |
 | `pack.md` | --tag, --moc, --query, --no-attachments | `tests/cli/dump.rs` |
-| `compaction.md` | guide command test | `tests/cli/compact/` |
-| `value-model.md` | search --sort value test | `tests/cli/search.rs` |
+| `compaction.md` | guide command test, apply invariant CLI test | `tests/cli/compact/` |
+| `structured-logging.md` | trace level, default quiet behavior | `tests/cli/logging.rs` |
 
 ### P3: Optional / Low Priority
 
@@ -93,8 +93,9 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- |
 | `value-model.md` | `--ignore-value` flag | Infrastructure exists, needs CLI exposure |
 | `structured-logging.md` | Instrumentation gaps | Index/search/note ops need `#[tracing::instrument]` |
-| `llm-user-validation.md` | Schema extensions | tags, docs.prime, report command |
-| `distribution.md` | Release automation | Workflow, aarch64, installers |
+| `llm-user-validation.md` | Schema extensions | tags, docs.prime, report command, max_turns |
+| `distribution.md` | Release automation | Workflow, aarch64, installers, SHA256SUMS |
+| `workspaces.md` | `--from-note` graph slice | Currently single note; needs dump->load behavior |
 
 ### Not Applicable
 
@@ -102,3 +103,4 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- |
 | `telemetry.md` | DRAFT spec explicitly prohibits implementation |
 | `knowledge-model.md` tag aliases | Marked as optional in spec |
+| `value-model.md` search --sort value | Now tested (`tests/cli/search.rs:688-937`) |

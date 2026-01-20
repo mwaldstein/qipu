@@ -67,7 +67,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### File Refactoring (P3)
 - [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
-- [ ] Extract command handlers into `commands.rs`
+- [x] Extract command handlers into `commands.rs` - completed 2026-01-20
 - [ ] Extract print functions into `output.rs`
 
 ### CLI Polish (P3)
@@ -326,3 +326,18 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Test pattern: Create notes, set values with `value set`, run index, then query with filters
 - Note: 6 pre-existing test failures in missing store detection (exit code 3), unrelated to changes
 - Test count increased from 448 to 456 total (8 new CLI tests)
+
+### Command Handlers Refactoring (completed 2026-01-20)
+- Created new module `crates/llm-tool-test/src/commands.rs` with 6 command handler functions
+- Extracted all command logic from `main.rs` into dedicated handler functions:
+  - `handle_run_command()`: Processes run command with tool matrix support
+  - `handle_list_command()`: Lists scenarios or pending reviews
+  - `handle_show_command()`: Displays run details
+  - `handle_compare_command()`: Compares two runs
+  - `handle_clean_command()`: Clears cache
+  - `handle_review_command()`: Adds human review to a run
+- Updated `main.rs` to call handler functions instead of inline logic
+- Made utility functions public (`build_tool_matrix`, `print_matrix_summary`)
+- Fixed type mismatches (String vs PathBuf, usize vs u8, u64 vs Option<u64>)
+- All 123 tests pass, 4 pre-existing warnings unrelated to changes
+- Reduced `main.rs` complexity by separating command logic from CLI parsing

@@ -1,5 +1,6 @@
 mod adapter;
 mod cli;
+mod commands;
 mod evaluation;
 mod fixture;
 mod judge;
@@ -10,7 +11,6 @@ mod session;
 mod store_analysis;
 mod transcript;
 
-use chrono::Utc;
 use clap::Parser;
 use cli::{Cli, Commands};
 use evaluation::ScoreTier;
@@ -25,7 +25,7 @@ struct ToolModelConfig {
     model: String,
 }
 
-fn build_tool_matrix(
+pub fn build_tool_matrix(
     cli_tools: &Option<String>,
     cli_models: &Option<String>,
     cli_tool: &str,
@@ -73,7 +73,7 @@ fn build_tool_matrix(
     }
 }
 
-fn print_matrix_summary(results: &[(ToolModelConfig, anyhow::Result<ResultRecord>)]) {
+pub fn print_matrix_summary(results: &[(ToolModelConfig, anyhow::Result<ResultRecord>)]) {
     println!("\n--- Matrix Summary ---");
 
     let mut table: HashMap<String, HashMap<String, String>> = HashMap::new();
@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Run {
             scenario,
             tags: _,
-            tier,
+            tier: _,
             tool,
             model,
             tools,
@@ -146,43 +146,23 @@ fn main() -> anyhow::Result<()> {
             judge_model,
             timeout_secs,
         } => {
-            if let Some(model) = judge_model {
-                std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
-            }
-
             if let Some(path) = scenario {
                 let s = scenario::load(path)?;
-                println!("Loaded scenario: {}", s.name);
-
-                let matrix = build_tool_matrix(tools, models, tool, model, &s.tool_matrix);
-
-                if matrix.len() > 1 {
-                    println!("Matrix run: {} tool×model combinations", matrix.len());
-                }
-
-                let mut results = Vec::new();
-
-                for config in &matrix {
-                    println!("\n=== Running: {} / {} ===", config.tool, config.model);
-
-                    let result = run::run_single_scenario(
-                        &s,
-                        &config.tool,
-                        &config.model,
-                        *dry_run,
-                        *no_cache,
-                        *timeout_secs,
-                        &base_dir,
-                        &results_db,
-                        &cache,
-                    );
-
-                    results.push((config.clone(), result));
-                }
-
-                if matrix.len() > 1 {
-                    print_matrix_summary(&results);
-                }
+                commands::handle_run_command(
+                    scenario,
+                    tool,
+                    model,
+                    tools,
+                    models,
+                    *dry_run,
+                    *no_cache,
+                    *timeout_secs,
+                    judge_model,
+                    &s.tool_matrix,
+                    &base_dir,
+                    &results_db,
+                    &cache,
+                )?;
             } else {
                 println!("No scenario specified. Use --scenario <path>");
             }
@@ -192,142 +172,23 @@ fn main() -> anyhow::Result<()> {
             tier,
             pending_review,
         } => {
-            if *pending_review {
-                let pending = results_db.load_pending_review()?;
-                if pending.is_empty() {
-                    println!("No runs pending review");
-                } else {
-                    println!("Runs pending review ({}):", pending.len());
-                    for r in pending {
-                        println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
-                    }
-                }
-                return Ok(());
-            }
-
-            let mut scenarios = Vec::new();
-
-            fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<(String, usize, String)>) {
-                if let Ok(entries) = std::fs::read_dir(dir) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_file() {
-                            if let Some(ext) = path.extension() {
-                                if ext == "yaml" {
-                                    if let Ok(s) = scenario::load(&path) {
-                                        scenarios.push((s.name.clone(), s.tier, s.description));
-                                    }
-                                }
-                            }
-                        } else if path.is_dir() {
-                            find_scenarios(&path, scenarios);
-                        }
-                    }
-                }
-            }
-
-            let fixtures_dir = std::path::PathBuf::from("fixtures");
-            if fixtures_dir.exists() {
-                find_scenarios(&fixtures_dir, &mut scenarios);
-            }
-
-            scenarios.sort_by(|a, b| a.1.cmp(&b.1));
-
-            let tier_label = match *tier {
-                0 => "smoke",
-                1 => "quick",
-                2 => "standard",
-                3 => "comprehensive",
-                _ => "unknown",
-            };
-            println!("Available scenarios (tier {}):", tier_label);
-            for (name, _tier, description) in &scenarios {
-                println!("  [{}] {} - {}", tier_label, name, description);
-            }
+            commands::handle_list_command(tier, *pending_review, &results_db)?;
         }
         Commands::Show { name } => {
-            let record = results_db.load_by_id(name)?;
-            match record {
-                Some(r) => {
-                    println!("Run ID: {}", r.id);
-                    println!("Scenario: {}", r.scenario_id);
-                    println!("Tool: {}", r.tool);
-                    println!("Timestamp: {}", r.timestamp);
-                    println!("Duration: {:.2}s", r.duration_secs);
-                    println!("Cost: ${:.4}", r.cost_usd);
-                    println!("Outcome: {}", r.outcome);
-                    println!(
-                        "Gates: {}/{}",
-                        r.metrics.gates_passed, r.metrics.gates_total
-                    );
-                    println!("Notes: {}", r.metrics.note_count);
-                    println!("Links: {}", r.metrics.link_count);
-                    if let Some(score) = r.judge_score {
-                        let tier = ScoreTier::from_score(score);
-                        println!("Judge Score: {:.2} ({})", score, tier);
-                    }
-                    let composite_tier = ScoreTier::from_score(r.metrics.composite_score);
-                    println!(
-                        "Composite Score: {:.2} ({})",
-                        r.metrics.composite_score, composite_tier
-                    );
-                    println!("Transcript: {}", r.transcript_path);
-                    if let Some(review) = r.human_review {
-                        println!("Human Review:");
-                        for (dim, score) in &review.dimensions {
-                            println!("  {}: {:.2}", dim, score);
-                        }
-                        if let Some(notes) = &review.notes {
-                            println!("  Notes: {}", notes);
-                        }
-                        println!("  Reviewed: {}", review.timestamp);
-                    }
-                }
-                None => println!("Run not found: {}", name),
-            }
+            commands::handle_show_command(name, &results_db)?;
         }
         Commands::Compare { run_ids } => {
-            if run_ids.len() != 2 {
-                anyhow::bail!("Compare requires exactly 2 run IDs");
-            }
-
-            let r1 = results_db.load_by_id(&run_ids[0])?;
-            let r2 = results_db.load_by_id(&run_ids[1])?;
-
-            match (r1, r2) {
-                (Some(run1), Some(run2)) => {
-                    let report = results::compare_runs(&run1, &run2);
-                    print_regression_report(&report);
-                }
-                _ => anyhow::bail!("One or both runs not found"),
-            }
+            commands::handle_compare_command(run_ids, &results_db)?;
         }
         Commands::Clean => {
-            println!("Cleaning cache...");
-            cache.clear()?;
-            println!("Cache cleared");
+            commands::handle_clean_command(&cache)?;
         }
         Commands::Review {
             run_id,
             dimension,
             notes,
         } => {
-            let record = results_db.load_by_id(&run_id)?;
-            match record {
-                Some(_) => {
-                    let dimensions_map: std::collections::HashMap<String, f64> =
-                        dimension.iter().map(|(k, v)| (k.clone(), *v)).collect();
-                    let human_review = results::HumanReviewRecord {
-                        dimensions: dimensions_map,
-                        notes: notes.clone(),
-                        timestamp: Utc::now(),
-                    };
-
-                    results_db.update_human_review(&run_id, human_review)?;
-                    println!("Review added for run: {}", run_id);
-                }
-                None => anyhow::bail!("Run not found: {}", run_id),
-            }
+            commands::handle_review_command(run_id, dimension, notes, &results_db)?;
         }
     }
     Ok(())

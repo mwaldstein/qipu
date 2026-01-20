@@ -365,3 +365,14 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Added unit test for `find_scenarios()` to verify scenario discovery logic
 - All 126 tests pass (123 + 3 new tests)
 - Verified functional test: `llm-tool-test run --all --dry-run` successfully discovers and runs 5 scenarios
+
+### Baseline Command Implementation (completed 2026-01-20)
+- Added `BaselineStore` struct to persist baseline mappings in JSON format
+- Updated `ResultsDB` to include `baseline_path` field for storing `baselines.json`
+- Implemented baseline methods: `set_baseline`, `clear_baseline`, `list_baselines`
+- Modified `load_baseline` to check explicit baselines first, then fall back to most recent run
+- Added `Baseline` CLI command with subcommands: `set <run_id>`, `clear <scenario> <tool>`, `list`
+- Added handler functions: `handle_baseline_set_command`, `handle_baseline_clear_command`, `handle_baseline_list_command`
+- Updated `main.rs` to import `BaselineAction` and dispatch baseline commands
+- All 130 tests pass (126 existing + 4 new baseline tests)
+- Baseline format: `scenario:tool -> run_id` key-value pairs in `baselines.json`

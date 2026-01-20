@@ -19,7 +19,7 @@ impl super::super::Database {
 
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 params![
                     note.id(),
                     note.frontmatter.title,
@@ -29,6 +29,7 @@ impl super::super::Database {
                     updated_str,
                     &note.body,
                     mtime,
+                    note.frontmatter.value.or(Some(50)),
                 ],
             )
             .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
@@ -95,8 +96,8 @@ impl super::super::Database {
             .unwrap_or(0);
 
         conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 note.id(),
                 note.title(),
@@ -106,6 +107,7 @@ impl super::super::Database {
                 updated_str,
                 &note.body,
                 mtime,
+                note.frontmatter.value.or(Some(50)),
             ],
         )
         .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;

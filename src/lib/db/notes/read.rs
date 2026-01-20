@@ -9,7 +9,9 @@ impl super::super::Database {
     pub fn get_note_metadata(&self, note_id: &str) -> Result<Option<NoteMetadata>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, title, type, path, created, updated FROM notes WHERE id = ?1")
+            .prepare(
+                "SELECT id, title, type, path, created, updated, value FROM notes WHERE id = ?1",
+            )
             .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
 
         let note_opt = stmt.query_row(params![note_id], |row| {
@@ -19,6 +21,7 @@ impl super::super::Database {
             let path: String = row.get(3)?;
             let created: Option<String> = row.get(4)?;
             let updated: Option<String> = row.get(5)?;
+            let value: Option<i64> = row.get(6)?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -28,12 +31,15 @@ impl super::super::Database {
             let updated_dt = updated
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
                 .map(|dt| dt.with_timezone(&chrono::Utc));
+            let value_opt = value.and_then(|v| u8::try_from(v).ok());
 
-            Ok((id, title, note_type, path, created_dt, updated_dt))
+            Ok((
+                id, title, note_type, path, created_dt, updated_dt, value_opt,
+            ))
         });
 
         match note_opt {
-            Ok((id, title, note_type, path, created, updated)) => {
+            Ok((id, title, note_type, path, created, updated, value)) => {
                 let mut tag_stmt = self
                     .conn
                     .prepare("SELECT tag FROM tags WHERE note_id = ?1")
@@ -62,6 +68,7 @@ impl super::super::Database {
                     path,
                     created,
                     updated,
+                    value,
                 }))
             }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
@@ -81,7 +88,7 @@ impl super::super::Database {
     ) -> Result<Vec<NoteMetadata>> {
         let mut sql = String::from(
             r#"
-            SELECT n.id, n.title, n.type, n.path, n.created, n.updated
+            SELECT n.id, n.title, n.type, n.path, n.created, n.updated, n.value
             FROM notes n
         "#,
         );
@@ -157,6 +164,9 @@ impl super::super::Database {
             let updated: Option<String> = row
                 .get(5)
                 .map_err(|e| QipuError::Other(format!("failed to get updated: {}", e)))?;
+            let value: Option<i64> = row
+                .get(6)
+                .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -166,6 +176,7 @@ impl super::super::Database {
             let updated_dt = updated
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
                 .map(|dt| dt.with_timezone(&chrono::Utc));
+            let value_opt = value.and_then(|v| u8::try_from(v).ok());
 
             let mut tag_stmt = self
                 .conn
@@ -195,6 +206,7 @@ impl super::super::Database {
                 path,
                 created: created_dt,
                 updated: updated_dt,
+                value: value_opt,
             });
         }
 

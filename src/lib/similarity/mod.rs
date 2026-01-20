@@ -165,6 +165,7 @@ mod tests {
                 path: "1.md".to_string(),
                 created: None,
                 updated: None,
+                value: None,
             },
         );
 
@@ -186,6 +187,7 @@ mod tests {
                 path: "2.md".to_string(),
                 created: None,
                 updated: None,
+                value: None,
             },
         );
 
@@ -241,6 +243,7 @@ mod tests {
                 path: "1.md".to_string(),
                 created: None,
                 updated: None,
+                value: None,
             },
         );
 
@@ -264,6 +267,7 @@ mod tests {
                 path: "2.md".to_string(),
                 created: None,
                 updated: None,
+                value: None,
             },
         );
 

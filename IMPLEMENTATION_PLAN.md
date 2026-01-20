@@ -90,7 +90,12 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Add index: `CREATE INDEX idx_notes_value ON notes(value)`
   - Bump `CURRENT_SCHEMA_VERSION` to 2
   - Add migration path from v1 → v2
-- [ ] Update `src/lib/db/notes.rs` to read/write `value` column
+- [x] Update `src/lib/db/notes/` to read/write `value` column
+  - Updated `create.rs`: Both `insert_note` and `insert_note_internal` write value column
+  - Updated `read.rs`: Both `get_note_metadata` and `list_notes` read value column
+  - Updated `NoteMetadata` in `src/lib/index/types.rs` to include value field
+  - Updated `builder.rs` to pass value from frontmatter to metadata
+  - Updated test mock metadata in `similarity/mod.rs` to include value field
 - [ ] Update `src/lib/index/builder.rs` to index `value` field
 
 ### Phase 2: CLI Commands

@@ -87,6 +87,7 @@ impl<'a> IndexBuilder<'a> {
                 path: self.relative_path(&path),
                 created: note.frontmatter.created,
                 updated: note.frontmatter.updated,
+                value: note.frontmatter.value,
             };
 
             // Update tag index

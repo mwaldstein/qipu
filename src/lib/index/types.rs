@@ -72,6 +72,9 @@ pub struct NoteMetadata {
     pub created: Option<DateTime<Utc>>,
     /// Last update timestamp
     pub updated: Option<DateTime<Utc>>,
+    /// Note importance/quality score (0-100)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<u8>,
 }
 
 /// Search results

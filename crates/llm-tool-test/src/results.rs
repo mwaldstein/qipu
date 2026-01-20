@@ -36,6 +36,7 @@ pub struct EvaluationMetricsRecord {
     pub details: Vec<GateResultRecord>,
     pub efficiency: EfficiencyMetricsRecord,
     pub quality: QualityMetricsRecord,
+    pub composite_score: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -614,6 +615,7 @@ mod tests {
                     total_notes: 1,
                     total_links: 0,
                 },
+                composite_score: 0.95,
             },
             judge_score: Some(0.9),
             outcome: "PASS".to_string(),
@@ -688,6 +690,7 @@ mod tests {
                     total_notes: 1,
                     total_links: 0,
                 },
+                composite_score: 0.85,
             },
             judge_score: None,
             outcome: "PASS".to_string(),
@@ -896,6 +899,7 @@ mod tests {
                     total_notes: 1,
                     total_links: 0,
                 },
+                composite_score: 0.9,
             },
             judge_score: Some(0.9),
             outcome: "PASS".to_string(),

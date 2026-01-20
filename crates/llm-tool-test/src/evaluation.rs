@@ -19,6 +19,7 @@ pub struct EvaluationMetrics {
     pub judge_response: Option<JudgeResponse>,
     pub efficiency: EfficiencyMetrics,
     pub quality: QualityMetrics,
+    pub composite_score: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -168,6 +169,13 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
 
     let efficiency = compute_efficiency_metrics(env_root)?;
     let quality = compute_quality_metrics(env_root)?;
+    let composite_score = compute_composite_score(
+        judge_score,
+        gates_passed,
+        scenario.evaluation.gates.len(),
+        &efficiency,
+        &quality,
+    );
     let metrics = EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
@@ -178,6 +186,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         judge_response,
         efficiency,
         quality,
+        composite_score,
     };
 
     Ok(metrics)
@@ -413,6 +422,46 @@ fn compute_quality_metrics(env_root: &Path) -> Result<QualityMetrics> {
             total_links: 0,
         }),
     }
+}
+
+fn compute_composite_score(
+    judge_score: Option<f64>,
+    gates_passed: usize,
+    gates_total: usize,
+    efficiency: &EfficiencyMetrics,
+    quality: &QualityMetrics,
+) -> f64 {
+    const JUDGE_WEIGHT: f64 = 0.50;
+    const GATES_WEIGHT: f64 = 0.30;
+    const EFFICIENCY_WEIGHT: f64 = 0.10;
+    const QUALITY_WEIGHT: f64 = 0.10;
+
+    let judge_component = judge_score.unwrap_or(0.0);
+
+    let gates_component = if gates_total > 0 {
+        gates_passed as f64 / gates_total as f64
+    } else {
+        0.0
+    };
+
+    let efficiency_component = efficiency.first_try_success_rate;
+
+    let quality_component = if quality.total_notes > 0 {
+        let tags_score = quality.avg_tags_per_note.min(3.0) / 3.0;
+        let links_score = quality.links_per_note.min(2.0) / 2.0;
+        let orphan_penalty =
+            (quality.orphan_notes as f64 / quality.total_notes as f64).min(1.0) * 0.3;
+        (tags_score + links_score) / 2.0 - orphan_penalty
+    } else {
+        0.0
+    };
+
+    let composite = (JUDGE_WEIGHT * judge_component)
+        + (GATES_WEIGHT * gates_component)
+        + (EFFICIENCY_WEIGHT * efficiency_component)
+        + (QUALITY_WEIGHT * quality_component);
+
+    composite.max(0.0).min(1.0)
 }
 
 #[cfg(test)]
@@ -835,5 +884,138 @@ mod tests {
         };
         let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
+    }
+
+    #[test]
+    fn test_compute_composite_score_with_judge() {
+        let efficiency = EfficiencyMetrics {
+            total_commands: 5,
+            unique_commands: 3,
+            error_count: 0,
+            retry_count: 1,
+            help_invocations: 0,
+            first_try_success_rate: 0.8,
+            iteration_ratio: 1.5,
+        };
+
+        let quality = QualityMetrics {
+            avg_title_length: 10.0,
+            avg_body_length: 50.0,
+            avg_tags_per_note: 2.0,
+            notes_without_tags: 0,
+            links_per_note: 1.0,
+            orphan_notes: 0,
+            link_type_diversity: 1,
+            type_distribution: std::collections::HashMap::new(),
+            total_notes: 10,
+            total_links: 10,
+        };
+
+        let composite = compute_composite_score(Some(0.9), 3, 3, &efficiency, &quality);
+
+        let tags_score = (2.0_f64).min(3.0) / 3.0;
+        let links_score = (1.0_f64).min(2.0) / 2.0;
+        let orphan_penalty = 0.0;
+        let quality_component = (tags_score + links_score) / 2.0 - orphan_penalty;
+
+        let expected = (0.50 * 0.9) + (0.30 * 1.0) + (0.10 * 0.8) + (0.10 * quality_component);
+        assert!((composite - expected).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_compute_composite_score_without_judge() {
+        let efficiency = EfficiencyMetrics {
+            total_commands: 5,
+            unique_commands: 3,
+            error_count: 0,
+            retry_count: 1,
+            help_invocations: 0,
+            first_try_success_rate: 0.8,
+            iteration_ratio: 1.5,
+        };
+
+        let quality = QualityMetrics {
+            avg_title_length: 10.0,
+            avg_body_length: 50.0,
+            avg_tags_per_note: 2.0,
+            notes_without_tags: 0,
+            links_per_note: 1.0,
+            orphan_notes: 0,
+            link_type_diversity: 1,
+            type_distribution: std::collections::HashMap::new(),
+            total_notes: 10,
+            total_links: 10,
+        };
+
+        let composite = compute_composite_score(None, 3, 3, &efficiency, &quality);
+
+        let tags_score = (2.0_f64).min(3.0) / 3.0;
+        let links_score = (1.0_f64).min(2.0) / 2.0;
+        let orphan_penalty = 0.0;
+        let quality_component = (tags_score + links_score) / 2.0 - orphan_penalty;
+
+        let expected = (0.50 * 0.0) + (0.30 * 1.0) + (0.10 * 0.8) + (0.10 * quality_component);
+        assert!((composite - expected).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_compute_composite_score_empty_store() {
+        let efficiency = EfficiencyMetrics {
+            total_commands: 0,
+            unique_commands: 0,
+            error_count: 0,
+            retry_count: 0,
+            help_invocations: 0,
+            first_try_success_rate: 0.0,
+            iteration_ratio: 0.0,
+        };
+
+        let quality = QualityMetrics {
+            avg_title_length: 0.0,
+            avg_body_length: 0.0,
+            avg_tags_per_note: 0.0,
+            notes_without_tags: 0,
+            links_per_note: 0.0,
+            orphan_notes: 0,
+            link_type_diversity: 0,
+            type_distribution: std::collections::HashMap::new(),
+            total_notes: 0,
+            total_links: 0,
+        };
+
+        let composite = compute_composite_score(None, 0, 0, &efficiency, &quality);
+
+        assert_eq!(composite, 0.0);
+    }
+
+    #[test]
+    fn test_compute_composite_score_clamped() {
+        let efficiency = EfficiencyMetrics {
+            total_commands: 5,
+            unique_commands: 3,
+            error_count: 0,
+            retry_count: 1,
+            help_invocations: 0,
+            first_try_success_rate: 1.5,
+            iteration_ratio: 1.5,
+        };
+
+        let quality = QualityMetrics {
+            avg_title_length: 10.0,
+            avg_body_length: 50.0,
+            avg_tags_per_note: 10.0,
+            notes_without_tags: 0,
+            links_per_note: 10.0,
+            orphan_notes: 0,
+            link_type_diversity: 1,
+            type_distribution: std::collections::HashMap::new(),
+            total_notes: 10,
+            total_links: 10,
+        };
+
+        let composite = compute_composite_score(Some(1.5), 3, 3, &efficiency, &quality);
+
+        assert!(composite <= 1.0);
+        assert!(composite >= 0.0);
     }
 }

@@ -48,7 +48,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### LLM Judge Enhancements (P2)
 - [x] Add semantic quality evaluation (relevance, coherence, granularity)
-- [ ] Add weighted composite score combining automated + judge metrics
+- [x] Add weighted composite score combining automated + judge metrics
 - [ ] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
 
 ### Human Review Integration (P2)
@@ -105,3 +105,18 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
   - Granularity (0.30): Notes are appropriately scoped, neither too broad nor too fragmented
 - Rubric can be used by scenarios by adding `evaluation.judge` configuration
 - Added tests to verify rubric loading works correctly and validates weight sums
+
+### Weighted Composite Score (completed 2026-01-19)
+- Added `composite_score` field to `EvaluationMetrics` and `EvaluationMetricsRecord` structs
+- Implemented `compute_composite_score()` function with weighted components:
+  - Judge score (0.50): LLM-as-judge semantic evaluation
+  - Gate pass rate (0.30): Automated functional correctness checks
+  - First try success rate (0.10): Command efficiency
+  - Quality score (0.10): Store health (tags, links, orphan penalty)
+- Quality component calculation:
+  - Tags score: avg_tags_per_note (clamped at 3.0) / 3.0
+  - Links score: links_per_note (clamped at 2.0) / 2.0
+  - Orphan penalty: (orphan_notes / total_notes) * 0.3
+  - Quality = (tags_score + links_score) / 2.0 - orphan_penalty
+- Composite score is clamped to [0.0, 1.0] range
+- All 91 tests pass, including 4 new composite score tests

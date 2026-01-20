@@ -227,6 +227,7 @@ fn run_single_scenario(
                     total_notes: metrics.quality.total_notes,
                     total_links: metrics.quality.total_links,
                 },
+                composite_score: metrics.composite_score,
             },
             judge_score: metrics.judge_score,
             outcome,

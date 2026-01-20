@@ -40,25 +40,25 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; all timing keys present |
-| `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields implemented; tag aliases optional/not implemented |
-| `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter fields; `qipu.db` implemented |
-| `cli-interface.md` | ✅ | ✅ | ✅ | All 16+ commands implemented with correct exit codes |
-| `indexing-search.md` | ✅ | ✅ | ✅ | SQLite FTS5 complete; BM25 ranking; backlinks |
-| `semantic-graph.md` | ✅ | ✅ | ✅ | Config schema aligned; semantic inversion works; virtual edges |
-| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; "(seen)" in output; truncation flags |
-| `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; cosine similarity; Porter stemming; stop words; duplicate detection |
-| `records-output.md` | ✅ | ✅ | ✅ | All prefixes documented (H/N/S/E/B/W/D/C/M/L/A + B-END) |
-| `llm-context.md` | ✅ | ✅ | ✅ | Budget enforcement; --transitive; --backlinks; --related; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags field, docs.prime, --tags/--tier filtering |
-| `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
-| `export.md` | ✅ | ✅ | ⚠️ | Core complete; missing tests for bibliography, --tag, --query |
-| `compaction.md` | ✅ | ✅ | ✅ | All commands; all flags; truncation indicators |
-| `pack.md` | ✅ | ✅ | ⚠️ | All strategies work; missing tests for --tag, --moc, --query selectors |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for strategies |
-| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing init works; tests pass; missing instrumentation on some ops |
-| `operational-database.md` | ✅ | ✅ | ✅ | SQLite complete; FTS5; schema version; incremental repair |
-| `value-model.md` | ✅ | ✅ | ✅ | All implemented; missing `--ignore-value` CLI flag only |
+| `cli-tool.md` | ✅ | ✅ | ✅ | All flags; timing keys; performance budgets |
+| `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields; tag aliases optional |
+| `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter; stealth mode |
+| `cli-interface.md` | ✅ | ✅ | ✅ | All 16+ commands with correct exit codes |
+| `indexing-search.md` | ✅ | ✅ | ✅ | FTS5; BM25; backlinks; incremental repair |
+| `semantic-graph.md` | ✅ | ⚠️ | ✅ | Missing: context link type preference |
+| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; truncation |
+| `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; TF-IDF; duplicate detection |
+| `records-output.md` | ✅ | ✅ | ⚠️ | All prefixes; missing: export records test |
+| `llm-context.md` | ✅ | ✅ | ✅ | Budget; transitive; backlinks; safety banner |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags, docs.prime, report |
+| `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; verify command; context priority |
+| `export.md` | ✅ | ✅ | ⚠️ | Core complete; missing: bibliography, tag, query tests |
+| `compaction.md` | ✅ | ✅ | ⚠️ | All commands; missing: guide command test |
+| `pack.md` | ✅ | ✅ | ⚠️ | All strategies; missing: selector tests |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge works; missing: strategy tests |
+| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing works; missing: some instrumentation |
+| `operational-database.md` | ✅ | ✅ | ✅ | SQLite; FTS5; schema; incremental repair |
+| `value-model.md` | ✅ | ⚠️ | ⚠️ | P1: tree/path use BFS not Dijkstra; missing: --ignore-value |
 | `distribution.md` | ✅ | ⚠️ | ⚠️ | Cargo.toml ready; missing: release workflow, aarch64, installers |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
@@ -70,13 +70,22 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 ## Remaining Gaps
 
+### P1: Correctness Bugs
+
+| Spec | Issue | Reference |
+| --- | --- | --- |
+| `value-model.md` | `link tree`/`link path` use BFS instead of weighted Dijkstra | `src/commands/link/tree.rs:61`, `src/commands/link/path.rs:75` |
+| `semantic-graph.md` | Context budget doesn't prefer typed links over `related` | `src/commands/context/budget.rs` |
+
 ### P2: Missing Test Coverage
 
 | Spec | Gap | Reference |
 | --- | --- | --- |
 | `workspaces.md` | --dry-run, strategy tests | `tests/cli/workspace.rs` |
-| `export.md` | bibliography, --tag, --query tests | `tests/cli/export.rs` |
-| `pack.md` | --tag, --moc, --query, --no-attachments tests | `tests/cli/pack.rs` |
+| `export.md` | bibliography, --tag, --query, --link-mode markdown | `tests/cli/export.rs` |
+| `pack.md` | --tag, --moc, --query, --no-attachments | `tests/cli/pack.rs` |
+| `compaction.md` | guide command test | `tests/cli/compact/commands.rs` |
+| `value-model.md` | value set/show validation, doctor check | `tests/cli/` |
 
 ### P3: Optional / Low Priority
 
@@ -84,7 +93,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- |
 | `value-model.md` | `--ignore-value` flag | Infrastructure exists, needs CLI exposure |
 | `structured-logging.md` | Instrumentation gaps | Index/search/note ops need `#[tracing::instrument]` |
-| `llm-user-validation.md` | Schema extensions | tags, docs.prime, filtering |
+| `llm-user-validation.md` | Schema extensions | tags, docs.prime, report command |
 | `distribution.md` | Release automation | Workflow, aarch64, installers |
 
 ### Not Applicable

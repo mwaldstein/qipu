@@ -143,6 +143,16 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 
 ## Learnings
 
+### Human Review Integration (completed 2026-01-19)
+- Added `HumanReviewRecord` struct with dimension scores (HashMap<String, f64>) and optional notes
+- Implemented `ResultsDB::update_human_review()` with atomic file updates using temporary file pattern
+- Implemented `ResultsDB::load_pending_review()` to filter runs without human reviews
+- Added CLI `review` command with `--dimension key=value` parser and `--notes` flag
+- Added `--pending-review` flag to `list` command
+- Updated `show` command to display human review data with dimension scores and timestamp
+- Added 14 tests covering all new functionality (DB methods, CLI parser, serialization)
+- All 111 tests in llm-tool-test pass, 250+ tests in entire codebase
+
 ### Doctor Checks Refactoring (completed 2026-01-19)
 - Split `src/commands/doctor/checks.rs` (403 lines) into three focused modules:
   - `structure.rs` (store directory structure checks)

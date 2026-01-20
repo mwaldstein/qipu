@@ -26,6 +26,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`workspaces.md`](workspaces.md) | Workspaces | Temporary and secondary stores for agent tasks |
 | [`structured-logging.md`](structured-logging.md) | Infrastructure | Structured logging framework with tracing support |
 | [`operational-database.md`](operational-database.md) | Database | SQLite as operational layer, FTS5, schema |
+| [`value-model.md`](value-model.md) | Scoring | Note value (0-100), weighted traversal |
+| [`distribution.md`](distribution.md) | Release | Binary builds, installers, crates.io |
 | [`telemetry.md`](telemetry.md) | Telemetry | DRAFT - usage analytics (not implemented) |
 
 ## Status Tracking
@@ -34,28 +36,30 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-19*
+*Last audited: 2026-01-20*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; `--root` tested; verbose timing has `discover_store` key |
+| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; all timing keys present |
 | `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields implemented; tag aliases optional/not implemented |
 | `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter fields; `qipu.db` implemented |
-| `cli-interface.md` | ✅ | ✅ | ✅ | All commands implemented with correct exit codes |
-| `indexing-search.md` | ✅ | ✅ | ✅ | SQLite FTS5 complete; ripgrep removed; BM25 ranking |
+| `cli-interface.md` | ✅ | ✅ | ✅ | All 16+ commands implemented with correct exit codes |
+| `indexing-search.md` | ✅ | ✅ | ✅ | SQLite FTS5 complete; BM25 ranking; backlinks |
 | `semantic-graph.md` | ✅ | ✅ | ✅ | Config schema aligned; semantic inversion works; virtual edges |
-| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; "(seen)" in human output; truncation flags |
+| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; "(seen)" in output; truncation flags |
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; cosine similarity; Porter stemming; stop words; duplicate detection |
 | `records-output.md` | ✅ | ✅ | ✅ | All prefixes documented (H/N/S/E/B/W/D/C/M/L/A + B-END) |
 | `llm-context.md` | ✅ | ✅ | ✅ | Budget enforcement; --transitive; --backlinks; --related; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, some scenario fields |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags field, docs.prime, --tags/--tier filtering |
 | `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
-| `export.md` | ✅ | ✅ | ✅ | MOC ordering; anchor rewriting; attachment link rewriting |
+| `export.md` | ✅ | ✅ | ⚠️ | Core complete; missing tests for bibliography, --tag, --query |
 | `compaction.md` | ✅ | ✅ | ✅ | All commands; all flags; truncation indicators |
-| `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run/--empty |
-| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing init works; tests pass; 16 eprintln! remain |
+| `pack.md` | ✅ | ✅ | ⚠️ | All strategies work; missing tests for --tag, --moc, --query selectors |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for strategies |
+| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing init works; tests pass; missing instrumentation on some ops |
 | `operational-database.md` | ✅ | ✅ | ✅ | SQLite complete; FTS5; schema version; incremental repair |
+| `value-model.md` | ✅ | ✅ | ✅ | All implemented; missing `--ignore-value` CLI flag only |
+| `distribution.md` | ✅ | ⚠️ | ⚠️ | Cargo.toml ready; missing: release workflow, aarch64, installers |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -66,16 +70,22 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 ## Remaining Gaps
 
+### P2: Missing Test Coverage
+
+| Spec | Gap | Reference |
+| --- | --- | --- |
+| `workspaces.md` | --dry-run, strategy tests | `tests/cli/workspace.rs` |
+| `export.md` | bibliography, --tag, --query tests | `tests/cli/export.rs` |
+| `pack.md` | --tag, --moc, --query, --no-attachments tests | `tests/cli/pack.rs` |
+
 ### P3: Optional / Low Priority
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented; `load_indexes`/`execute_command` missing |
-| `structured-logging.md` | eprintln! cleanup | 16 callsites remain; should use tracing |
-| `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
-| `llm-user-validation.md` | Scenario schema | Missing id, tags, docs.prime, setup, etc. |
-| `workspaces.md` | Test coverage | Need --dry-run and --empty tests |
-| `operational-database.md` | validate_consistency() | Method exists but not called on startup |
+| `value-model.md` | `--ignore-value` flag | Infrastructure exists, needs CLI exposure |
+| `structured-logging.md` | Instrumentation gaps | Index/search/note ops need `#[tracing::instrument]` |
+| `llm-user-validation.md` | Schema extensions | tags, docs.prime, filtering |
+| `distribution.md` | Release automation | Workflow, aarch64, installers |
 
 ### Not Applicable
 

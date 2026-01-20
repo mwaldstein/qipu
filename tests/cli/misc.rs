@@ -59,6 +59,15 @@ fn test_unknown_argument_json_usage_error() {
 }
 
 #[test]
+fn test_unknown_argument_json_equals_format_usage_error() {
+    qipu()
+        .args(["--format=json", "list", "--bogus-flag"]) // parse/usage error
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"usage_error\""));
+}
+
+#[test]
 fn test_duplicate_format_json_usage_error() {
     qipu()
         .args(["--format", "json", "--format", "human", "list"])
@@ -76,6 +85,15 @@ fn test_unknown_command_exit_code_2() {
 fn test_unknown_command_json_usage_error() {
     qipu()
         .args(["--format", "json", "nonexistent"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"usage_error\""));
+}
+
+#[test]
+fn test_unknown_command_json_equals_format_usage_error() {
+    qipu()
+        .args(["--format=json", "nonexistent"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("\"type\":\"usage_error\""));

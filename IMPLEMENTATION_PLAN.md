@@ -17,7 +17,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/create.rs:88-95`
 
 ### CLI Tool (`specs/cli-tool.md`)
-- [ ] Emit JSON error envelopes for parse failures when `--format=json` is used (the `--format=json` form is currently missed).
+- [x] Emit JSON error envelopes for parse failures when `--format=json` is used (the `--format=json` form is currently missed).
   - `src/main.rs:82-93`
 
 ### Operational Database (`specs/operational-database.md`)

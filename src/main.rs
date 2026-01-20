@@ -88,6 +88,10 @@ fn argv_requests_json() -> bool {
                     return true;
                 }
             }
+        } else if arg.starts_with("--format=") {
+            if arg == "--format=json" {
+                return true;
+            }
         }
     }
     false

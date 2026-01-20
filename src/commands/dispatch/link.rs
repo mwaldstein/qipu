@@ -95,6 +95,7 @@ pub(super) fn handle_link(
                 max_chars: *max_chars,
                 semantic_inversion: true,
                 min_value: *min_value,
+                ignore_value: false,
             };
             commands::link::tree::execute(cli, &store, id_or_path, opts)?;
             if cli.verbose {
@@ -132,6 +133,7 @@ pub(super) fn handle_link(
                 max_chars: *max_chars,
                 semantic_inversion: true,
                 min_value: *min_value,
+                ignore_value: false,
             };
             commands::link::path::execute(cli, &store, from, to, opts)?;
             if cli.verbose {

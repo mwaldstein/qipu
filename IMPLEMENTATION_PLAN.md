@@ -114,7 +114,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`
   - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
   - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
-- [ ] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs`
+- [x] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs` - completed 2026-01-20
 - [ ] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs`
   - New function `dijkstra_traverse()` using `BinaryHeap` instead of `VecDeque`
   - Order by accumulated cost (min-heap)
@@ -238,3 +238,14 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Custom link type with mid value (75 returns 1.25)
   - Boundary value (1) with floating-point comparison
 - All 450 tests pass (202 unit + 233 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Ignore-Value Flag Implementation (completed 2026-01-20)
+- Added `ignore_value: bool` field to `TreeOptions` struct in `src/lib/graph/types.rs`
+- Updated `Default` implementation to initialize `ignore_value` as `false`
+- Added 2 unit tests:
+  - Default value is `false`
+  - Can be set to `true`
+- Updated all TreeOptions construction sites:
+  - `src/commands/dump/mod.rs` (dump command traversal)
+  - `src/commands/dispatch/link.rs` (link tree and link path commands)
+- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

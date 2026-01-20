@@ -163,6 +163,21 @@ mod tests {
         };
         assert_eq!(opts.max_hops.value(), 5.0);
     }
+
+    #[test]
+    fn test_tree_options_ignore_value_default() {
+        let opts = TreeOptions::default();
+        assert!(!opts.ignore_value);
+    }
+
+    #[test]
+    fn test_tree_options_ignore_value_true() {
+        let opts = TreeOptions {
+            ignore_value: true,
+            ..Default::default()
+        };
+        assert!(opts.ignore_value);
+    }
 }
 
 /// Direction for link listing/traversal
@@ -220,6 +235,8 @@ pub struct TreeOptions {
     pub semantic_inversion: bool,
     /// Filter by minimum value (0-100, None = no filter)
     pub min_value: Option<u8>,
+    /// Ignore note values when calculating edge costs (use unweighted BFS)
+    pub ignore_value: bool,
 }
 
 impl Default for TreeOptions {
@@ -237,6 +254,7 @@ impl Default for TreeOptions {
             max_chars: None,
             semantic_inversion: true,
             min_value: None,
+            ignore_value: false,
         }
     }
 }

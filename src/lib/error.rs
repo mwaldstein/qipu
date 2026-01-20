@@ -28,6 +28,12 @@ impl From<ExitCode> for i32 {
     }
 }
 
+impl From<rusqlite::Error> for QipuError {
+    fn from(err: rusqlite::Error) -> Self {
+        QipuError::Other(err.to_string())
+    }
+}
+
 /// Errors that can occur during qipu operations
 #[derive(Error, Debug)]
 pub enum QipuError {

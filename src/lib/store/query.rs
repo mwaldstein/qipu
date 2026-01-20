@@ -1,7 +1,5 @@
 //! Note query and retrieval operations
 
-use std::fs;
-
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 
@@ -11,18 +9,7 @@ impl Store {
     /// List all notes in the store
     pub fn list_notes(&self) -> Result<Vec<Note>> {
         let db = self.db();
-        let metadatas = db.list_notes(None, None, None)?;
-
-        let mut notes = Vec::new();
-        for metadata in metadatas {
-            let path = self.root.join(&metadata.path);
-            match Note::parse(&fs::read_to_string(&path)?, Some(path)) {
-                Ok(note) => notes.push(note),
-                Err(e) => {
-                    tracing::warn!(path = %metadata.path, error = %e, "Failed to parse note");
-                }
-            }
-        }
+        let mut notes = db.list_notes_full()?;
 
         // Sort by created date (newest first), then by id for stability
         notes.sort_by(|a, b| {
@@ -52,19 +39,7 @@ impl Store {
     /// Internal note lookup implementation
     pub(super) fn get_note_internal(&self, id: &str) -> Result<Note> {
         let db = self.db();
-        let meta = db
-            .get_note_metadata(id)?
-            .ok_or_else(|| QipuError::NoteNotFound { id: id.to_string() })?;
-
-        let path = self.root().join(&meta.path);
-        let content = fs::read_to_string(&path).map_err(|e| {
-            tracing::warn!(path = %meta.path, error = %e, "Failed to read note file");
-            QipuError::NoteNotFound { id: id.to_string() }
-        })?;
-
-        Note::parse(&content, Some(path)).map_err(|e| {
-            tracing::warn!(path = %meta.path, error = %e, "Failed to parse note");
-            QipuError::NoteNotFound { id: id.to_string() }
-        })
+        db.get_note(id)?
+            .ok_or_else(|| QipuError::NoteNotFound { id: id.to_string() })
     }
 }

@@ -3,6 +3,8 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
 use std::collections::HashMap;
+use std::time::Instant;
+use tracing::debug;
 
 /// Output in human-readable markdown format
 #[allow(clippy::too_many_arguments)]
@@ -18,6 +20,15 @@ pub fn output_human(
     all_notes: &[Note],
     max_chars: Option<usize>,
 ) {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(
+            notes_count = notes.len(),
+            truncated, with_body, safety_banner, max_chars, "output_human"
+        );
+    }
+
     let mut final_truncated = truncated;
     let mut note_count = notes.len();
 
@@ -36,6 +47,9 @@ pub fn output_human(
 
         if max_chars.is_none() || output.len() <= max_chars.unwrap() {
             print!("{}", output);
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "output_human_complete");
+            }
             return;
         }
 
@@ -47,6 +61,9 @@ pub fn output_human(
             println!("Store: {}", store_path);
             println!();
             println!("*Note: Output truncated due to --max-chars budget*");
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "output_human_complete");
+            }
             return;
         }
     }

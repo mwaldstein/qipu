@@ -16,6 +16,7 @@ pub mod select;
 pub mod types;
 
 use std::collections::{HashMap, HashSet};
+use std::time::Instant;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
@@ -29,6 +30,26 @@ use types::{RecordsOutputConfig, SelectedNote};
 
 /// Execute the context command
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        tracing::debug!(
+            note_ids_count = options.note_ids.len(),
+            tag = options.tag,
+            moc_id = options.moc_id,
+            query = options.query,
+            max_chars = options.max_chars,
+            max_tokens = options.max_tokens,
+            model = options.model,
+            transitive = options.transitive,
+            with_body = options.with_body,
+            safety_banner = options.safety_banner,
+            related_threshold = options.related_threshold,
+            backlinks = options.backlinks,
+            "context_params"
+        );
+    }
+
     // Build compaction context for annotations
     let all_notes = store.list_notes()?;
     let compaction_ctx = CompactionContext::build(&all_notes)?;
@@ -298,6 +319,10 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &all_notes,
             );
         }
+    }
+
+    if cli.verbose {
+        tracing::debug!(elapsed = ?start.elapsed(), notes_output = notes_to_output.len(), truncated, "context_complete");
     }
 
     Ok(())

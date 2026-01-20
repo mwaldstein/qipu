@@ -2,9 +2,15 @@ use crate::lib::db::Database;
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
 use std::collections::HashSet;
+use std::time::Instant;
+use tracing::debug;
 
 /// Get note IDs linked from a MOC (including the MOC itself)
 pub fn get_moc_linked_ids(db: &Database, moc_id: &str, transitive: bool) -> Result<Vec<String>> {
+    let start = Instant::now();
+
+    debug!(moc_id, transitive, "get_moc_linked_ids");
+
     let mut result = Vec::new();
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue = vec![moc_id.to_string()];
@@ -31,6 +37,12 @@ pub fn get_moc_linked_ids(db: &Database, moc_id: &str, transitive: bool) -> Resu
             }
         }
     }
+
+    debug!(
+        result_count = result.len(),
+        elapsed = ?start.elapsed(),
+        "get_moc_linked_ids_complete"
+    );
 
     Ok(result)
 }

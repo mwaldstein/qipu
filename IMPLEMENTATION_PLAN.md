@@ -23,7 +23,7 @@ Commands missing tracing instrumentation:
 - [x] `src/commands/create.rs`
 - [x] `src/commands/search.rs`
 - [x] `src/commands/compact/*.rs` (7 files) - completed 2026-01-19
-- [ ] `src/commands/context/{budget,output,select,types}.rs`
+- [x] `src/commands/context/{budget,output,select,types}.rs` - completed 2026-01-19
 - [ ] `src/commands/workspace/{list,merge,new}.rs`
 
 ### Test Coverage Gaps

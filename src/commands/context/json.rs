@@ -4,6 +4,8 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
 use std::collections::HashMap;
+use std::time::Instant;
+use tracing::debug;
 
 /// Output in JSON format
 #[allow(clippy::too_many_arguments)]
@@ -18,6 +20,15 @@ pub fn output_json(
     all_notes: &[Note],
     max_chars: Option<usize>,
 ) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(
+            notes_count = notes.len(),
+            truncated, with_body, max_chars, "output_json"
+        );
+    }
+
     let mut final_truncated = truncated;
     let mut note_count = notes.len();
 
@@ -37,6 +48,9 @@ pub fn output_json(
 
         if max_chars.is_none() || output_str.len() <= max_chars.unwrap() {
             println!("{}", output_str);
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "output_json_complete");
+            }
             return Ok(());
         }
 
@@ -50,6 +64,9 @@ pub fn output_json(
                 "notes": []
             });
             println!("{}", serde_json::to_string_pretty(&minimal)?);
+            if cli.verbose {
+                debug!(elapsed = ?start.elapsed(), "output_json_complete");
+            }
             return Ok(());
         }
     }

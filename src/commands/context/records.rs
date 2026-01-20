@@ -4,6 +4,8 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
 use crate::lib::records::escape_quotes;
 use std::collections::HashMap;
+use std::time::Instant;
+use tracing::debug;
 
 /// Output in records format
 pub fn output_records(
@@ -15,6 +17,19 @@ pub fn output_records(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
 ) {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(
+            notes_count = notes.len(),
+            truncated = config.truncated,
+            with_body = config.with_body,
+            safety_banner = config.safety_banner,
+            max_chars = config.max_chars,
+            "output_records"
+        );
+    }
+
     let budget = config.max_chars;
     let mut blocks = Vec::new();
 
@@ -227,6 +242,10 @@ pub fn output_records(
         for line in block {
             println!("{}", line);
         }
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "output_records_complete");
     }
 }
 

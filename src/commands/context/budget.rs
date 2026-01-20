@@ -1,5 +1,6 @@
 use super::types::SelectedNote;
 use crate::lib::note::Note;
+use std::time::Instant;
 use tiktoken_rs::get_bpe_from_model;
 
 /// Apply character and token budget to notes
@@ -11,6 +12,17 @@ pub fn apply_budget<'a>(
     model: &str,
     with_body: bool,
 ) -> (bool, Vec<&'a SelectedNote<'a>>) {
+    let start = Instant::now();
+
+    tracing::debug!(
+        input_notes = notes.len(),
+        max_chars,
+        max_tokens,
+        model,
+        with_body,
+        "apply_budget"
+    );
+
     if max_chars.is_none() && max_tokens.is_none() {
         return (false, notes.iter().collect());
     }
@@ -68,6 +80,13 @@ pub fn apply_budget<'a>(
             break;
         }
     }
+
+    tracing::debug!(
+        output_notes = result.len(),
+        truncated,
+        elapsed = ?start.elapsed(),
+        "apply_budget_complete"
+    );
 
     (truncated, result)
 }

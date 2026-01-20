@@ -8,8 +8,11 @@
 //! - `qipu link path <from> <to>` - find path between notes
 
 pub mod add;
+pub mod human;
+pub mod json;
 pub mod list;
 pub mod path;
+pub mod records;
 pub mod remove;
 pub mod tree;
 

@@ -5,6 +5,8 @@ use crate::lib::store::workspace::WorkspaceMetadata;
 use crate::lib::store::Store;
 use std::env;
 use std::path::PathBuf;
+use std::time::Instant;
+use tracing::debug;
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute(
@@ -17,6 +19,12 @@ pub fn execute(
     from_note: Option<&str>,
     from_query: Option<&str>,
 ) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(name, temp, empty, copy_primary, "new_params");
+    }
+
     let root = cli
         .root
         .clone()
@@ -40,6 +48,10 @@ pub fn execute(
     };
     let ws_store = Store::init_at(&workspace_path, options, None)?;
 
+    if cli.verbose {
+        debug!(path = %workspace_path.display(), "workspace_initialized");
+    }
+
     // Save workspace metadata
     let metadata = WorkspaceMetadata {
         name: name.to_string(),
@@ -50,6 +62,9 @@ pub fn execute(
     metadata.save(&workspace_path.join(WORKSPACE_FILE))?;
 
     if !empty {
+        if cli.verbose {
+            debug!("copying_notes_to_workspace");
+        }
         if copy_primary {
             copy_notes(&primary_store, &ws_store)?;
         } else if let Some(tag) = from_tag {
@@ -72,6 +87,10 @@ pub fn execute(
                 }
             }
         }
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "workspace_created");
     }
 
     if !cli.quiet {

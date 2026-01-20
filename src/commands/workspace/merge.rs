@@ -4,6 +4,8 @@ use crate::lib::store::paths::WORKSPACES_DIR;
 use crate::lib::store::Store;
 use std::env;
 use std::path::PathBuf;
+use std::time::Instant;
+use tracing::debug;
 
 pub fn execute(
     cli: &Cli,
@@ -13,11 +15,17 @@ pub fn execute(
     strategy: &str,
     delete_source: bool,
 ) -> Result<()> {
+    let start = Instant::now();
+
     if !matches!(strategy, "overwrite" | "merge-links" | "skip") {
         return Err(QipuError::UsageError(format!(
             "unknown merge strategy: '{}' (expected: overwrite, merge-links, or skip)",
             strategy
         )));
+    }
+
+    if cli.verbose {
+        debug!(source_name, target_name, strategy, dry_run, "merge_params");
     }
 
     let root = cli
@@ -26,6 +34,10 @@ pub fn execute(
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
     let primary_store = Store::discover(&root)?;
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "discovered_stores");
+    }
 
     let source_store = if source_name == "." {
         Store::discover(&root)?
@@ -87,6 +99,14 @@ pub fn execute(
         }
     }
 
+    if cli.verbose {
+        debug!(
+            conflicts = conflicts.len(),
+            additions = additions.len(),
+            "merge_notes_processed"
+        );
+    }
+
     if dry_run {
         println!(
             "Dry-run: Workspace merge from '{}' to '{}'",
@@ -112,6 +132,10 @@ pub fn execute(
 
     if delete_source && source_name != "." {
         std::fs::remove_dir_all(source_store.root())?;
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "merge_complete");
     }
 
     if !cli.quiet {

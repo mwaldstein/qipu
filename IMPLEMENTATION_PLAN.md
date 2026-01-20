@@ -24,7 +24,7 @@ Commands missing tracing instrumentation:
 - [x] `src/commands/search.rs`
 - [x] `src/commands/compact/*.rs` (7 files) - completed 2026-01-19
 - [x] `src/commands/context/{budget,output,select,types}.rs` - completed 2026-01-19
-- [ ] `src/commands/workspace/{list,merge,new}.rs`
+- [x] `src/commands/workspace/{list,merge,new}.rs` - completed 2026-01-19
 
 ### Test Coverage Gaps
 - [x] Add unit tests to `src/commands/list.rs` (231 lines)
@@ -174,3 +174,12 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Quality = (tags_score + links_score) / 2.0 - orphan_penalty
 - Composite score is clamped to [0.0, 1.0] range
 - All 91 tests pass, including 4 new composite score tests
+
+### Workspace Commands Tracing (completed 2026-01-19)
+- Added structured logging to `src/commands/workspace/list.rs`, `merge.rs`, and `new.rs`
+- Instrumentation follows the same pattern as other commands:
+  - Import `tracing::debug` and `std::time::Instant`
+  - Log key parameters at function entry when verbose
+  - Log intermediate milestones (store discovery, workspace initialization, note copying)
+  - Log completion with elapsed time
+- All 438 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

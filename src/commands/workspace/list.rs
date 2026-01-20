@@ -6,14 +6,25 @@ use crate::lib::store::workspace::WorkspaceMetadata;
 use crate::lib::store::Store;
 use std::env;
 use std::path::PathBuf;
+use std::time::Instant;
+use tracing::debug;
 
 pub fn execute(cli: &Cli) -> Result<()> {
+    let start = Instant::now();
     let root = cli
         .root
         .clone()
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
+    if cli.verbose {
+        debug!(root = %root.display(), "list_root");
+    }
+
     let primary_store = Store::discover(&root)?;
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "discovered_primary");
+    }
     let workspaces_dir = primary_store.root().join(WORKSPACES_DIR);
 
     let mut workspaces = Vec::new();
@@ -27,6 +38,9 @@ pub fn execute(cli: &Cli) -> Result<()> {
     });
 
     if workspaces_dir.is_dir() {
+        if cli.verbose {
+            debug!("discovering_workspaces");
+        }
         for entry in std::fs::read_dir(workspaces_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -47,6 +61,10 @@ pub fn execute(cli: &Cli) -> Result<()> {
                 }
             }
         }
+    }
+
+    if cli.verbose {
+        debug!(count = workspaces.len(), elapsed = ?start.elapsed(), "list_complete");
     }
 
     match cli.format {

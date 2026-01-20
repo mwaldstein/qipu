@@ -46,25 +46,25 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ⚠️ | Missing tests for visible store discovery, broader determinism, perf/no-network |
-| `knowledge-model.md` | ✅ | ✅ | ⚠️ | ID scheme + backlink behaviors lack integration coverage; tag aliases optional |
-| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Missing wiki-link rewrite, config store root, flat-notes enforcement |
-| `cli-interface.md` | ✅ | ✅ | ⚠️ | Missing tests for create alias/open/id, list tag/since/records, search opts |
-| `indexing-search.md` | ✅ | ⚠️ | ✅ | Incremental indexing not exposed; backlink index derived on demand |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | CLI help lists subset of types; limited tests for other types/custom inverses |
-| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | Missing CSV flags + context walk; tests missing inversion + truncation limits |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | No clustering/see-also; tests missing weight/stop-word/default thresholds |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` lacks max-chars; link tree/path truncation tests missing |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budget missing; store path formatting differs |
-| `llm-user-validation.md` | ✅ | ❌ | ❌ | No harness implementation under `src/` or tests (only transcripts) |
-| `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults/automation not enforced or tested |
-| `export.md` | ✅ | ⚠️ | ⚠️ | Tag/query tests missing; bibliography/link modes untested; no transitive export |
-| `compaction.md` | ✅ | ⚠️ | ⚠️ | `compact show` ignores max nodes; `compact guide` tests missing |
-| `pack.md` | ✅ | ⚠️ | ⚠️ | Link filtering vs spec; attachment paths flattened; selector/attachment tests missing |
-| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Last updated missing; rename strategy absent; graph-slice copy + parent_id gaps |
-| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Log-level gating/validation gaps; note ops missing instrumentation |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair unused; DB not sole index; rebuild always; weighting mismatch |
-| `value-model.md` | ✅ | ✅ | ⚠️ | Tests missing for value set/show, search sort, list/context min-value |
+| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | `--format=json` parse envelope bug; determinism tests missing |
+| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | DB reads default invalid types; quality/duplicate enforcement missing |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Config store root + rewrite + collision guards missing |
+| `cli-interface.md` | ✅ | ✅ | ⚠️ | Tests missing for create alias/open/id, list tag/since/records, search opts |
+| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | Incremental indexing no-op; qp-link scope; related-notes missing |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Context typed-link preference + doctor validation missing |
+| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | `link path` weighted default; CSV flags missing; tests incomplete |
+| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Default related threshold/opt-out missing; boosts hardcoded |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` max-chars missing; tree/path trunc tests missing |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budgeting missing |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness partial; guard/dry-run/gates/artifacts missing |
+| `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults + web capture defaults missing |
+| `export.md` | ✅ | ⚠️ | ⚠️ | Outline ordering + query cap; tests missing; optional formats |
+| `compaction.md` | ✅ | ⚠️ | ⚠️ | Link outputs miss annotations; truncation flags ignored |
+| `pack.md` | ✅ | ⚠️ | ⚠️ | Skip drops links; merge-links skips existing; path ignored |
+| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Rename strategy + graph-slice + post-merge checks missing |
+| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Log-level gating/validation gaps; default warn |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair/rebuild missing; DB not sole index |
+| `value-model.md` | ✅ | ⚠️ | ⚠️ | Min-value validation missing; tests incomplete |
 | `distribution.md` | ⚠️ | ❌ | ❌ | Release automation + install scripts missing |
 | `custom-metadata.md` | ✅ | ❌ | ❌ | No custom frontmatter/DB/CLI support |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
@@ -81,35 +81,37 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `operational-database.md` | Repair + rebuild semantics | `src/lib/db/mod.rs:83-85`, `src/commands/index.rs:14-19` |
-| `operational-database.md` | DB-only index + ranking weights | `src/lib/store/query.rs:13-52`, `src/lib/db/search.rs:20-105` |
-| `storage-format.md` | Missing rewrite/config/flat enforcement | `src/lib/index/links.rs:35-137`, `src/lib/config.rs:14-115` |
-| `graph-traversal.md` | CSV flags + context walk | `src/cli/link.rs:73-79`, `src/cli/commands.rs:226-279` |
-| `records-output.md` | `prime` budgeting | `src/commands/prime.rs:184-196` |
-| `llm-context.md` | Per-note truncation + prime budget | `src/commands/context/budget.rs:55-81`, `src/commands/prime.rs:15-70` |
-| `workspaces.md` | List/merge/metadata gaps | `src/commands/workspace/list.rs:70-100`, `src/commands/workspace/merge.rs:20-91` |
-| `pack.md` | Link filtering + attachment path flattening | `src/commands/dump/mod.rs:215-255`, `src/commands/load/mod.rs:70-90` |
-| `semantic-graph.md` | Help lists subset of types | `src/cli/link.rs:17-56` |
-| `structured-logging.md` | Log-level gating/validation + note ops spans | `src/commands/search.rs:36-54`, `src/lib/db/notes/create.rs:1-75` |
-| `provenance.md` | Verified defaults missing | `src/commands/create.rs:49-61` |
-| `compaction.md` | `compact show` truncation missing | `src/commands/compact/show.rs:46-105` |
+| `cli-tool.md` | JSON error envelope misses `--format=json` | `src/main.rs:82-93` |
+| `operational-database.md` | DB-only index + repair + auto-rebuild gaps | `src/lib/store/query.rs:14-52`, `src/lib/db/mod.rs:84-85`, `src/lib/db/schema.rs:94-112` |
+| `indexing-search.md` | `index --rebuild` no-op | `src/commands/index.rs:14-19` |
+| `graph-traversal.md` | `link path` weighted default (not shortest-hop) | `src/commands/link/path.rs:71-95` |
+| `pack.md` | `load --strategy skip` drops all links | `src/commands/load/mod.rs:77-84` |
+| `value-model.md` | Missing `--min-value` validation | `src/cli/commands.rs:136-141`, `src/cli/link.rs:105-156` |
+| `structured-logging.md` | Log-level gated by `--verbose` | `src/commands/dispatch/notes.rs:23-26` |
+| `llm-user-validation.md` | Guard + dry-run missing | `crates/llm-tool-test/src/main.rs:1-53`, `crates/llm-tool-test/src/run.rs:90-93` |
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Test coverage | Need visible-store discovery and broader golden determinism tests |
-| `cli-interface.md` | Test coverage | Missing tests for create/list/search/compact flag variants |
-| `value-model.md` | Test coverage | Missing tests for value set/show, search sort, min-value filters |
-| `export.md` | Coverage + optional | Tag/query/bibliography/link-mode tests; optional BibTeX/transitive export |
-| `graph-traversal.md` | Test coverage | Missing inversion + max_nodes/edges/fanout tests |
-| `records-output.md` | Test coverage | Missing truncation tests for tree/path records |
-| `workspaces.md` | Test coverage | Need `workspace merge --dry-run` coverage |
-| `similarity-ranking.md` | Coverage + optional | Missing weight/stop-word/default threshold tests; no clustering feature |
-| `pack.md` | Test coverage | Missing selector, attachment, compatibility tests |
+| `cli-tool.md` | Test coverage | Visible-store discovery + `--format=json` parse errors + more goldens |
+| `cli-interface.md` | Test coverage | Create/list/search/compact flag variants missing |
+| `indexing-search.md` | Feature gaps | qp-link scope + related-notes missing |
+| `storage-format.md` | Feature gaps | Config store root + rewrite + collision guards missing |
+| `semantic-graph.md` | Feature gaps | Typed-link preference + doctor validation missing |
+| `graph-traversal.md` | Feature gaps/tests | CSV flags missing; inversion + truncation tests missing |
+| `records-output.md` | Feature gaps/tests | `prime` max-chars missing; tree/path trunc tests missing |
+| `llm-context.md` | Feature gaps | Per-note truncation + prime budgeting missing |
+| `llm-user-validation.md` | Feature gaps | Schema/gates/budget/artifacts/tool-trait gaps |
+| `provenance.md` | Feature gaps | Verified defaults + web capture defaults missing |
+| `export.md` | Feature gaps/tests | Outline ordering + query cap; tests missing; optional formats |
+| `compaction.md` | Feature gaps | Link annotations + truncation flags missing |
+| `pack.md` | Feature gaps/tests | Merge-links + path gaps; selector/attachment tests missing |
+| `workspaces.md` | Feature gaps/tests | Rename + graph-slice + post-merge checks missing |
+| `structured-logging.md` | Feature gaps | Log-level validation + default warn |
+| `similarity-ranking.md` | Feature gaps/tests | Default threshold + stemming opt-out; boosts hardcoded |
 | `custom-metadata.md` | Unimplemented | Custom frontmatter + DB + CLI missing |
 | `distribution.md` | Unimplemented | Release automation and install scripts missing |
-| `llm-user-validation.md` | Unimplemented | No harness implementation in `src/` or tests |
 
 ### Not Applicable
 

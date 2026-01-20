@@ -12,112 +12,178 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ## P1: Correctness Bugs
 
-### Operational Database (`specs/operational-database.md`)
-- [ ] Trigger incremental repair when startup validation fails.
-  - `src/lib/db/mod.rs:83-85` (validation result ignored)
-  - `src/lib/db/repair.rs:6-141` (repair exists but unused)
-- [ ] Treat the database as the source of truth (remove filesystem fallbacks).
-  - `src/lib/store/query.rs:13-52`
-  - `src/lib/store/query.rs:66-101`
-- [ ] Respect `qipu index --rebuild` (avoid full rebuild by default).
-  - `src/commands/index.rs:14-19`
-- [ ] Align search ranking weights with spec (multiplicative vs additive boosts).
-  - `src/lib/db/search.rs:20-105`
-- [ ] Add tag frequency statistics (schema + query).
-  - `src/lib/db/schema.rs:19-72` (no stats table)
-- [ ] Make file + DB updates transactional.
-  - `src/lib/store/lifecycle.rs:52-70`
-  - `src/lib/store/lifecycle.rs:165-171`
+### CLI Tool (`specs/cli-tool.md`)
+- [ ] Emit JSON error envelopes for parse failures when `--format=json` is used (the `--format=json` form is currently missed).
+  - `src/main.rs:82-93`
 
-### Storage Format (`specs/storage-format.md`)
-- [ ] Add wiki-link canonicalization rewrite option (currently only extracted).
-  - `src/lib/index/links.rs:35-137`
-- [ ] Persist store root in config (config has no store path field).
-  - `src/lib/config.rs:14-115`
-- [ ] Enforce flat notes directory (prevent subdirectories during indexing).
-  - `src/lib/store/lifecycle.rs:87-205`
+### Operational Database (`specs/operational-database.md`)
+- [ ] Treat the database as the source of truth (remove filesystem fallbacks).
+  - `src/lib/store/query.rs:14-52`
+  - `src/lib/store/query.rs:66-101`
+- [ ] Trigger incremental repair when startup validation fails.
+  - `src/lib/db/mod.rs:84-85`
+  - `src/lib/db/repair.rs:6-141`
+- [ ] Auto-rebuild the database when schema mismatches are detected.
+  - `src/lib/db/schema.rs:94-112`
+  - `src/lib/db/tests.rs:911-925`
 
 ### Indexing/Search (`specs/indexing-search.md`)
-- [ ] Wire incremental indexing path (currently always rebuilds).
+- [ ] `qipu index --rebuild` is a no-op (always rebuilds); wire incremental indexing.
   - `src/commands/index.rs:14-19`
   - `src/lib/db/repair.rs:6-141`
 
 ### Graph Traversal (`specs/graph-traversal.md`)
-- [ ] Add CSV-style `--types`/`--exclude-types` flags (only repeated flags exist).
-  - `src/cli/link.rs:73-79`
-  - `src/cli/link.rs:130-136`
-- [ ] Implement `qipu context --walk` integration.
-  - `src/cli/commands.rs:226-279` (no `--walk`)
-  - `src/commands/context/mod.rs:31-336`
-
-### Records Output (`specs/records-output.md`)
-- [ ] Add `--max-chars` budgeting for `qipu prime` records output.
-  - `src/commands/prime.rs:184-196`
-  - `src/cli/commands.rs:167-168`
-
-### LLM Context (`specs/llm-context.md`)
-- [ ] Add per-note truncation markers when budgets are applied.
-  - `src/commands/context/budget.rs:55-81`
-  - `src/commands/context/human.rs:86-167`
-- [ ] Add token/char budget targeting for `qipu prime` output.
-  - `src/commands/prime.rs:15-70`
-
-### Workspaces (`specs/workspaces.md`)
-- [ ] Include "last updated" in `workspace list` output.
-  - `src/commands/workspace/list.rs:70-100`
-- [ ] Add `rename` merge strategy.
-  - `src/commands/workspace/merge.rs:20-91`
-- [ ] Implement graph-slice copying for `--from-note`/`--from-tag`/`--from-query`.
-  - `src/commands/workspace/new.rs:70-88`
-- [ ] Align workspace metadata path/layout with spec.
-  - `src/lib/store/paths.rs:19-26`
-  - `src/commands/workspace/new.rs:55-62`
-- [ ] Run post-merge `qipu doctor` integrity check.
-  - `src/commands/workspace/merge.rs:141-149`
-- [ ] Populate `parent_id` in `workspace.toml`.
-  - `src/commands/workspace/new.rs:56-61`
+- [ ] `link path` defaults to weighted Dijkstra instead of shortest-hop traversal.
+  - `src/commands/link/path.rs:71-95`
+  - `src/lib/graph/bfs.rs:350-359`
 
 ### Pack (`specs/pack.md`)
-- [ ] Preserve all links among included notes regardless of traversal filters.
-  - `src/commands/dump/mod.rs:215-255`
-- [ ] Preserve attachment paths on load (currently flattens to name).
-  - `src/commands/load/mod.rs:70-90`
+- [ ] `load --strategy skip` drops all links, even for newly loaded notes.
+  - `src/commands/load/mod.rs:77-84`
 
-### Semantic Graph (`specs/semantic-graph.md`)
-- [ ] CLI help should list the full standard type set (not a subset).
-  - `src/cli/link.rs:17-56`
+### Value Model (`specs/value-model.md`)
+- [ ] `--min-value` accepts values outside 0-100 without validation.
+  - `src/cli/commands.rs:136-141`
+  - `src/cli/link.rs:105-156`
 
 ### Structured Logging (`specs/structured-logging.md`)
-- [ ] Respect `--log-level` without requiring `--verbose`.
-  - `src/commands/search.rs:36-54`
-- [ ] Validate `--log-level` against allowed values.
-  - `src/cli/mod.rs:52-54`
-- [ ] Add tracing spans for note CRUD paths.
-  - `src/lib/db/notes/create.rs:1-75`
-  - `src/lib/db/notes/read.rs:1-140`
+- [ ] Debug logs are gated by `--verbose` even when `--log-level debug` is set.
+  - `src/commands/dispatch/notes.rs:23-26`
+  - `src/commands/search.rs:36-45`
 
-### Provenance (`specs/provenance.md`)
-- [ ] Default `verified` for LLM-generated notes should be false instead of unset.
-  - `src/commands/create.rs:49-61`
-  - `src/commands/capture.rs:72-84`
-
-### Compaction (`specs/compaction.md`)
-- [ ] Enforce `--compaction-max-nodes` in `compact show` and surface truncation.
-  - `src/commands/compact/show.rs:46-105`
-  - `src/lib/compaction/expansion.rs:101-134`
+### LLM User Validation (`specs/llm-user-validation.md`)
+- [ ] Guard rails (LLM_TOOL_TEST_ENABLED) are missing before running scenarios.
+  - `crates/llm-tool-test/src/main.rs:1-53`
+- [ ] `--dry-run` errors even for single-scenario runs.
+  - `crates/llm-tool-test/src/run.rs:90-93`
 
 ---
 
 ## P2: Missing Test Coverage & Gaps
 
-### CLI Tool (`specs/cli-tool.md`)
-- [ ] Add tests for discovery when only `qipu/` exists.
-  - `src/lib/store/paths.rs:28-41`
-  - `tests/cli/misc.rs:99-114`
-- [ ] Expand determinism coverage beyond help/list/prime.
-  - `tests/golden_tests.rs:115-217`
+### Operational Database (`specs/operational-database.md`)
+- [ ] Search ranking boosts don’t align with spec weights.
+  - `src/lib/db/search.rs:68-105`
+- [ ] Tag frequency statistics are missing.
+  - `src/lib/db/schema.rs:19-72`
 
-### CLI Interface (`specs/cli-interface.md`)
+### Indexing/Search (`specs/indexing-search.md`)
+- [ ] Ignore qp-style links outside the store (currently treated as resolved).
+  - `src/lib/index/links.rs:80-94`
+- [ ] Related-notes feature (shared tags / 2-hop) is missing.
+  - `src/lib/index/builder.rs:24-132`
+
+### Storage Format (`specs/storage-format.md`)
+- [ ] Configurable store root is not supported in config.
+  - `src/lib/config.rs:14-117`
+- [ ] Optional wiki-link rewrite/canonicalization is not implemented.
+  - `src/lib/index/links.rs:35-137`
+- [ ] No cross-branch ID collision avoidance.
+  - `src/lib/store/lifecycle.rs:31-34`
+  - `src/lib/store/lifecycle.rs:77-88`
+
+### Export (`specs/export.md`)
+- [ ] Outline export appends outbound edges beyond MOC body ordering.
+  - `src/commands/export/emit/outline.rs:54-68`
+- [ ] Query export caps results at 200 notes.
+  - `src/commands/export/plan.rs:54-59`
+- [ ] Outline export falls back to bundle when `--moc` is missing.
+  - `src/commands/export/emit/outline.rs:23-28`
+
+### Semantic Graph (`specs/semantic-graph.md`)
+- [ ] Context selection doesn’t prefer typed links over `related` when constrained.
+  - `src/commands/context/mod.rs:162-225`
+- [ ] Doctor does not validate semantic misuse of standard link types.
+  - `src/commands/doctor/database.rs:56-77`
+
+### Records Output (`specs/records-output.md`)
+- [ ] `prime` records output lacks `--max-chars` budgeting.
+  - `src/commands/prime.rs:190-196`
+  - `src/cli/commands.rs:167-168`
+- [ ] Link tree/path records rely on traversal order (no explicit ordering).
+  - `src/commands/link/tree.rs:287-340`
+  - `src/commands/link/records.rs:217-315`
+
+### LLM Context (`specs/llm-context.md`)
+- [ ] No per-note truncation marker when budgets are applied.
+  - `src/commands/context/budget.rs:55-82`
+  - `src/commands/context/human.rs:35-68`
+- [ ] Default output uses summaries unless `--with-body` (spec implies full body).
+  - `src/commands/context/human.rs:161-165`
+  - `src/commands/context/json.rs:91-95`
+- [ ] `prime` is count-capped only; no explicit token/char budgeting.
+  - `src/commands/prime.rs:15-20`
+
+### Compaction (`specs/compaction.md`)
+- [ ] Link outputs omit `compacts=`/`compaction=` annotations for digest nodes.
+  - `src/commands/link/human.rs:30-53`
+  - `src/commands/link/tree.rs:183-205`
+- [ ] JSON outputs ignore compaction truncation flags.
+  - `src/commands/search.rs:212-226`
+  - `src/commands/show.rs:97-107`
+- [ ] `compact show` ignores `--compaction-max-nodes` and truncation.
+  - `src/commands/compact/show.rs:75-105`
+
+### Pack (`specs/pack.md`)
+- [ ] `merge-links` only applies when targets were loaded (skips existing notes).
+  - `src/commands/load/mod.rs:319-328`
+- [ ] Pack note `path` is ignored on load.
+  - `src/commands/load/mod.rs:209-283`
+
+### Provenance (`specs/provenance.md`)
+- [ ] LLM-generated notes do not default `verified=false`.
+  - `src/commands/create.rs:49-67`
+  - `src/commands/capture.rs:72-87`
+- [ ] Web capture defaults for `source`/`author` are not implemented.
+  - `src/commands/capture.rs:72-87`
+
+### Structured Logging (`specs/structured-logging.md`)
+- [ ] `--log-level` accepts arbitrary strings (no validation).
+  - `src/cli/mod.rs:52-54`
+- [ ] Default log policy is `warn` (not silent-by-default).
+  - `src/lib/logging.rs:10-13`
+
+### LLM User Validation (`specs/llm-user-validation.md`)
+- [ ] Scenario schema omits `docs`, `tags`, `run` limits, `cost`, and `cache` fields.
+  - `crates/llm-tool-test/src/scenario.rs:4-86`
+- [ ] Stage-1 evaluation lacks `qipu doctor` and transcript error checks.
+  - `crates/llm-tool-test/src/evaluation.rs:75-148`
+- [ ] `--max-usd` is parsed but unused (no budget enforcement).
+  - `crates/llm-tool-test/src/commands.rs:23-36`
+- [ ] Artifact set is incomplete (missing `run.json`, `report.md`, snapshots).
+  - `crates/llm-tool-test/src/run.rs:89-114`
+- [ ] Tool adapter trait diverges from spec (`execute_task`/`ToolStatus` missing).
+  - `crates/llm-tool-test/src/adapter/mod.rs:9-22`
+
+### Workspaces (`specs/workspaces.md`)
+- [ ] `rename` merge strategy is not supported.
+  - `src/commands/workspace/merge.rs:20-24`
+- [ ] `--from-*` workspace creation is shallow; graph-slice copy is missing.
+  - `src/commands/workspace/new.rs:70-89`
+- [ ] Post-merge integrity validation is missing.
+  - `src/commands/workspace/merge.rs:10-149`
+- [ ] `workspace list` omits last-updated metadata.
+  - `src/commands/workspace/list.rs:70-85`
+- [ ] `parent_id` is never populated.
+  - `src/commands/workspace/new.rs:55-61`
+
+### Similarity Ranking (`specs/similarity-ranking.md`)
+- [ ] Related-note expansion only runs with explicit `--related`.
+  - `src/commands/context/mod.rs:162-165`
+- [ ] Stemming is always enabled; there is no opt-out.
+  - `src/lib/index/builder.rs:49-62`
+- [ ] Search ranking boosts are hardcoded (do not match spec weights).
+  - `src/lib/db/search.rs:81-102`
+
+### CLI Tool Tests (`specs/cli-tool.md`)
+- [ ] Add tests for visible-store discovery and `--format=json` parse errors.
+  - `src/lib/store/paths.rs:28-41`
+  - `src/main.rs:82-93`
+  - `tests/cli/misc.rs:53-114`
+- [ ] Expand golden determinism coverage beyond help/list/prime.
+  - `tests/golden_tests.rs:94-217`
+
+### CLI Interface Tests (`specs/cli-interface.md`)
 - [ ] Add tests for `create` alias `new`, `--open`, and `--id`.
   - `src/cli/commands.rs:31-36`
   - `src/cli/args.rs:18-20`
@@ -132,67 +198,66 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/cli/compact.rs:18-24`
   - `tests/cli/compact/commands.rs:9-659`
 
-### Value Model (`specs/value-model.md`)
+### Value Model Tests (`specs/value-model.md`)
 - [ ] Add tests for `qipu value set/show` output + validation.
   - `src/cli/value.rs:5-18`
-  - `src/commands/dispatch/mod.rs:307-361`
+  - `src/commands/dispatch/mod.rs:319-365`
 - [ ] Add tests for `search --sort value`.
-  - `src/commands/search.rs:38-45`
+  - `src/commands/search.rs:138-145`
 - [ ] Add tests for `list --min-value` and `context --min-value`.
   - `src/commands/list.rs:59-63`
-  - `src/commands/context/mod.rs:233-238`
+  - `src/commands/context/mod.rs:233-237`
 - [ ] Add tests for `--ignore-value` traversal ordering.
-  - `src/commands/link/tree.rs:61-73`
-  - `src/commands/link/path.rs:75-88`
-- [ ] Add tests for schema migration adding `value`.
-  - `src/lib/db/schema.rs:95-103`
+  - `src/commands/link/tree.rs:61-78`
+  - `src/commands/link/path.rs:71-95`
 
-### Export (`specs/export.md`)
-- [ ] Add tests for `--tag` and `--query` selection ordering.
-  - `src/commands/export/plan.rs:10-62`
-  - `tests/cli/export.rs:6-341`
+### Export Tests (`specs/export.md`)
+- [ ] Add tests for `--tag`/`--query` selection ordering.
+  - `src/commands/export/plan.rs:9-62`
+  - `tests/cli/export.rs:7-341`
 - [ ] Add tests for `--mode bibliography`.
-  - `src/commands/export/emit/bibliography.rs:4-40`
-  - `tests/cli/export.rs:6-341`
-- [ ] Add tests for `--link-mode markdown` and default `preserve`.
+  - `src/commands/export/emit/bibliography.rs:4-37`
+  - `tests/cli/export.rs:7-341`
+- [ ] Add tests for `--link-mode markdown` and `--link-mode preserve`.
   - `src/commands/export/mod.rs:47-69`
-  - `tests/cli/export.rs:6-341`
+  - `tests/cli/export.rs:7-341`
 
-### Graph Traversal (`specs/graph-traversal.md`)
-- [ ] Add tests for semantic inversion in `link tree/path`.
-  - `src/commands/link/tree.rs:57-60`
+### Graph Traversal Tests (`specs/graph-traversal.md`)
+- [ ] Add tests for semantic inversion in `link tree`/`link path`.
+  - `src/commands/link/tree.rs:57-63`
+  - `src/commands/link/path.rs:71-76`
   - `tests/cli/link/add_remove.rs:55-73`
 - [ ] Add tests for `max_nodes`, `max_edges`, and `max_fanout` truncation.
   - `src/cli/link.rs:89-99`
   - `tests/cli/link/tree.rs:366-435`
 
-### Records Output (`specs/records-output.md`)
+### Records Output Tests (`specs/records-output.md`)
 - [ ] Add `max-chars` truncation tests for link tree/path records output.
   - `src/commands/link/tree.rs:276-396`
-  - `src/commands/link/records.rs:205-314`
-  - `tests/cli/link/tree.rs:148-178`
-  - `tests/cli/link/path.rs:202-245`
+  - `src/commands/link/records.rs:205-315`
+  - `tests/cli/link/tree.rs:149-178`
+  - `tests/cli/link/path.rs:203-245`
 
-### Workspaces (`specs/workspaces.md`)
-- [ ] Add tests for `workspace merge --dry-run`.
-  - `src/commands/workspace/merge.rs:20-147`
-  - `tests/workspace_merge_test.rs:9-205`
+### Workspaces Tests (`specs/workspaces.md`)
+- [ ] Add tests for `workspace merge --dry-run`, `skip`, and `overwrite` strategies.
+  - `src/commands/workspace/merge.rs:20-149`
+  - `tests/workspace_merge_test.rs:55-205`
 
-### Semantic Graph (`specs/semantic-graph.md`)
+### Semantic Graph Tests (`specs/semantic-graph.md`)
 - [ ] Add tests for additional standard types and custom inverses.
   - `src/lib/note/types.rs:92-169`
-  - `src/lib/config.rs:65-78`
-  - `tests/cli/link/add_remove.rs:46-73`
+  - `src/lib/config.rs:65-79`
+  - `tests/cli/link/add_remove.rs:31-239`
 
-### Similarity Ranking (`specs/similarity-ranking.md`)
+### Similarity Ranking Tests (`specs/similarity-ranking.md`)
 - [ ] Add tests for default similarity thresholds and field weighting.
-  - `src/lib/similarity/mod.rs:27-138`
+  - `src/lib/similarity/mod.rs:27-135`
   - `tests/cli/doctor.rs:305-389`
 - [ ] Add end-to-end tests for stop-word filtering.
   - `src/lib/text/mod.rs:8-54`
-  - `src/lib/similarity/mod.rs:27-138`
+  - `src/lib/similarity/mod.rs:27-135`
 
-### Pack (`specs/pack.md`)
+### Pack Tests (`specs/pack.md`)
 - [ ] Add tests for `--tag`, `--moc`, `--query`, and "no selectors" dump.
   - `src/commands/dump/mod.rs:117-158`
   - `tests/cli/dump.rs:5-789`
@@ -204,43 +269,58 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/load/mod.rs:58-72`
   - `tests/cli/pack.rs:8-211`
 
-### Provenance (`specs/provenance.md`)
+### Provenance Tests (`specs/provenance.md`)
 - [ ] Add tests for default `verified=false` behavior on LLM-origin notes.
-  - `src/commands/create.rs:49-61`
-  - `tests/cli/provenance.rs:6-124`
+  - `src/commands/create.rs:49-67`
+  - `tests/cli/provenance.rs:6-123`
 
 ---
 
 ## P3: Unimplemented Optional / Future
 
 ### Custom Metadata (`specs/custom-metadata.md`)
-- [ ] Implement custom frontmatter fields, DB storage, and CLI access.
-  - `src/lib/note/frontmatter.rs:5-54`
-  - `src/lib/db/schema.rs:19-33`
-  - `src/cli/commands.rs:226-279`
+- [ ] Implement custom frontmatter, DB storage, and CLI/filter/output support.
+  - `src/lib/note/frontmatter.rs:7-54`
+  - `src/lib/db/schema.rs:19-60`
+  - `src/commands/doctor/mod.rs:170-323`
 
 ### Distribution (`specs/distribution.md`)
 - [ ] Add release automation and install scripts (GitHub releases + installers).
-  - `src/commands/setup.rs:1-138` (integration setup only)
-
-### LLM User Validation (`specs/llm-user-validation.md`)
-- [ ] Implement the llm-tool-test harness in code + tests.
-  - `specs/llm-user-validation.md:17-520`
-  - `tests/transcripts/opencode/` (transcript artifacts only)
+  - `.github/workflows/ci.yml:1-120`
+- [ ] Add checksum generation + installer verification.
+  - `tests/golden/version.txt:1`
 
 ### Export (`specs/export.md`)
 - [ ] Add optional BibTeX/CSL JSON outputs.
-  - `src/commands/export/emit/bibliography.rs:4-40`
+  - `src/commands/export/emit/bibliography.rs:4-37`
 - [ ] Add transitive export traversal (depth-limited).
   - `src/commands/export/plan.rs:112-209`
+- [ ] Add pandoc/PDF integration (future).
+  - `src/commands/export/mod.rs:13-261`
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
 - [ ] Add clustering/"see also" features for MOC generation.
-  - `src/lib/similarity/mod.rs:27-138`
+  - `src/lib/similarity/mod.rs:27-135`
+
+### Semantic Graph (`specs/semantic-graph.md`)
+- [ ] Support per-link-type hop costs (currently hardcoded to 1.0).
+  - `src/lib/graph/types.rs:48-53`
+
+### LLM User Validation (`specs/llm-user-validation.md`)
+- [ ] Add PTY fallback and richer event logging (tool_call/tool_result).
+  - `crates/llm-tool-test/src/session.rs:22-108`
+  - `crates/llm-tool-test/src/run.rs:91-99`
+- [ ] Include prime output hash in cache key.
+  - `crates/llm-tool-test/src/results.rs:233-272`
+- [ ] Fix MinLinks gate no-op in mock adapter.
+  - `crates/llm-tool-test/src/adapter/mock.rs:60-61`
+- [ ] Avoid error-swallowing defaults in evaluation metrics.
+  - `crates/llm-tool-test/src/evaluation.rs:72-114`
+  - `crates/llm-tool-test/src/evaluation.rs:410-458`
 
 ### Knowledge Model (`specs/knowledge-model.md`)
-- [ ] Implement tag alias support (optional in spec).
-  - `src/lib/note/frontmatter.rs:21-23`
+- [ ] Add quality bar / rationale validation and duplicate detection (future).
+  - `src/commands/doctor/content.rs:109-127`
 
 ---
 
@@ -254,12 +334,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/prime.rs:72-80`
 
 ### Indexing/Search (`specs/indexing-search.md`)
-- [ ] Confirm whether "backlink index" must be stored or can be derived.
+- [ ] Confirm whether backlink index must be stored or can be derived.
   - `src/lib/index/types.rs:161-169`
 
 ### Workspaces (`specs/workspaces.md`)
 - [ ] Decide expected gitignore behavior for `--temp` workspaces.
   - `src/commands/workspace/new.rs:33-101`
+
+### Telemetry (`specs/telemetry.md`)
+- [ ] Spec is DRAFT and explicitly prohibits implementation; confirm when to revisit.
+  - `specs/telemetry.md:1-5`
 
 ---
 
@@ -267,7 +351,6 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Workspaces
 - [x] `--empty` flag in `workspace new` verified and tested.
-- [x] Merge strategies verified.
 
 ### Structured Logging
 - [x] `src/commands/capture.rs` - Verified `tracing::debug!` usage.

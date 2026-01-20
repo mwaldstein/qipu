@@ -1,8 +1,11 @@
 use crate::cli::Cli;
 use crate::lib::error::Result;
+use crate::lib::index::Index;
+use crate::lib::index::IndexBuilder;
 use crate::lib::store::paths::{WORKSPACES_DIR, WORKSPACE_FILE};
 use crate::lib::store::workspace::WorkspaceMetadata;
 use crate::lib::store::Store;
+use std::collections::{HashSet, VecDeque};
 use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -75,9 +78,8 @@ pub fn execute(
                 }
             }
         } else if let Some(note_id) = from_note {
-            // This should be a graph slice, but for now just copy the note
-            let note = primary_store.get_note(note_id)?;
-            copy_note(&note, &ws_store)?;
+            let index = IndexBuilder::new(&primary_store).build()?;
+            copy_graph_slice(&primary_store, &index, note_id, &ws_store)?;
         } else if let Some(query) = from_query {
             // Simple search and copy
             let notes = primary_store.list_notes()?;
@@ -128,5 +130,51 @@ fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
     new_note.path = Some(file_path);
 
     dst.save_note(&mut new_note)?;
+    Ok(())
+}
+
+fn copy_graph_slice(src: &Store, index: &Index, root_id: &str, dst: &Store) -> Result<()> {
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut queue: VecDeque<(String, u32)> = VecDeque::new();
+
+    queue.push_back((root_id.to_string(), 0));
+    visited.insert(root_id.to_string());
+
+    while let Some((current_id, hops)) = queue.pop_front() {
+        if hops >= 3 {
+            continue;
+        }
+
+        // Copy the current note
+        match src.get_note(&current_id) {
+            Ok(note) => {
+                copy_note(&note, dst)?;
+            }
+            Err(_) => {
+                return Err(crate::lib::error::QipuError::NoteNotFound {
+                    id: current_id.to_string(),
+                });
+            }
+        }
+
+        // Explore neighbors
+        for edge in &index.edges {
+            let neighbor_id = if edge.from == current_id {
+                Some(&edge.to)
+            } else if edge.to == current_id {
+                Some(&edge.from)
+            } else {
+                None
+            };
+
+            if let Some(nid) = neighbor_id {
+                if !visited.contains(nid) {
+                    visited.insert(nid.to_string());
+                    queue.push_back((nid.clone(), hops + 1));
+                }
+            }
+        }
+    }
+
     Ok(())
 }

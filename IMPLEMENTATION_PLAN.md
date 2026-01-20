@@ -28,11 +28,12 @@
 
 ### workspaces.md
 
-- [ ] `--from-note` copies single note instead of graph slice
+- [x] `--from-note` copies single note instead of graph slice
   - Spec (line 64): "Initialize with a slice of the primary graph (like dump -> load)"
-  - Current: `src/commands/workspace/new.rs:77-80` only copies single note
-  - Code has TODO comment: "This should be a graph slice, but for now just copy the note"
-  - Impact: Workspace initialized from note misses related notes
+  - Fixed: Implemented graph traversal in `src/commands/workspace/new.rs`
+  - Added `copy_graph_slice()` function that performs BFS traversal with 3-hop limit
+  - Traverses in both directions (Direction::Both)
+  - Impact: Workspace initialized from note now includes related notes within 3 hops
 
 - [ ] `workspace list` missing "Last updated" column
   - Spec (line 51-55): Output should include Name, Status, Note count, Last updated
@@ -212,11 +213,10 @@
 
 ### workspaces.md
 
-- [ ] Fix `--from-note` to perform graph slice (fix P1 bug)
+- [x] Fix `--from-note` to perform graph slice (fix P1 bug)
   - Spec: line 64 - "Initialize with a slice of the primary graph (like dump -> load)"
-  - Current: `src/commands/workspace/new.rs:77-80` only copies single note
-  - Comment in code: "This should be a graph slice, but for now just copy the note"
-  - Approach: Reuse dump/load traversal logic
+  - Fixed: Implemented `copy_graph_slice()` with BFS traversal (3 hops, both directions)
+  - Test added: `tests/workspace_from_note_test.rs` verifies graph slicing behavior
 
 - [ ] Add "Last updated" column to `workspace list` output (fix P1 bug)
   - Spec: line 55

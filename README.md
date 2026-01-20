@@ -43,10 +43,11 @@ Qipu provides a git-backed, local-first knowledge store optimized for both human
 qipu init                 # Create a new store
 qipu create               # Create a new note (opens editor)
 qipu capture              # Quick capture from stdin or args
-qipu list                 # List notes (--type, --tag, --since filters)
+qipu list                 # List notes (--type, --tag, --since, --min-value filters)
 qipu show <id>            # Display a note (--links for connections)
-qipu search <query>       # Full-text search with ranking
+qipu search <query>       # Full-text search with ranking (--sort value)
 qipu inbox                # Show unlinked fleeting notes
+qipu value set <id> <n>   # Set note value (0-100, quality/importance score)
 ```
 
 ### Link Management
@@ -55,8 +56,8 @@ qipu inbox                # Show unlinked fleeting notes
 qipu link add <from> <to> --type <t>   # Create typed link
 qipu link remove <from> <to>           # Remove link
 qipu link list <id>                    # List note's links
-qipu link tree <id>                    # Show link tree
-qipu link path <from> <to>             # Find path between notes
+qipu link tree <id>                    # Show link tree (--min-value, weighted)
+qipu link path <from> <to>             # Find path between notes (--min-value)
 ```
 
 ### LLM Integration
@@ -92,6 +93,27 @@ All commands support `--format`:
 - `human` - Human-readable (default)
 - `json` - Structured JSON for programmatic use
 - `records` - Line-oriented format for LLM context injection
+
+## Value Model
+
+Notes can have a `value` attribute (0-100) representing quality/importance:
+
+- **0-20**: Deprioritized/junk (superseded drafts, noisy sources)
+- **21-80**: Standard (general research, work-in-progress)
+- **81-100**: High-value/gems (distilled insights, canonical definitions)
+
+Value affects weighted traversal and filtering:
+
+```bash
+qipu value set qp-a1b2 90            # Mark note as high-value
+qipu value show qp-a1b2              # Show current value
+qipu list --min-value 80             # List only high-value notes
+qipu search "topic" --sort value     # Rank results by value
+qipu context --moc <id> --min-value 70  # High-value context only
+qipu link tree <id> --min-value 50   # Traversal respects value
+```
+
+Notes without explicit value default to 50 (neutral). Weighted traversal uses Dijkstra's algorithm where edge cost scales with `(100 - value)`, prioritizing high-value notes.
 
 ## Store Structure
 

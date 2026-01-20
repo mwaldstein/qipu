@@ -132,11 +132,20 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Update `qipu context` to respect `--min-value` threshold (completed 2026-01-20)
 - [x] Update `qipu doctor` to validate value range (0-100) - completed 2026-01-20
 - [x] Add tests for value filtering and weighted traversal - completed 2026-01-20
-  - Added 4 CLI tests for `list --min-value` filter in `tests/cli/list.rs`
-  - Added 4 CLI tests for `search --min-value` and `search --sort value` in `tests/cli/search.rs`
-  - Tests cover: all match, some match, none match, default values, sorting, combined filters
-  - All 8 new tests pass (pre-existing 6 failures in unrelated tests: missing store detection)
-- [ ] Update help text and man pages
+   - Added 4 CLI tests for `list --min-value` filter in `tests/cli/list.rs`
+   - Added 4 CLI tests for `search --min-value` and `search --sort value` in `tests/cli/search.rs`
+   - Tests cover: all match, some match, none match, default values, sorting, combined filters
+   - All 8 new tests pass (pre-existing 6 failures in unrelated tests: missing store detection)
+- [x] Update help text and man pages - completed 2026-01-20
+   - Added `qipu value set` to Core Commands in README.md
+   - Added `--min-value` filters to `list` and `search` command examples
+   - Added `--sort value` option to search command
+   - Added new "Value Model" section to README.md explaining:
+     - Value scale (0-20 deprioritized, 21-80 standard, 81-100 high-value)
+     - CLI examples for setting, showing, and filtering by value
+     - Weighted traversal using Dijkstra's algorithm
+   - Updated Link Management section to mention `--min-value` and weighted traversal
+   - All value-related features documented; no man pages exist (only help text)
 
 ### Dependencies
 - Builds on existing `HopCost` infrastructure (`src/lib/graph/types.rs`)

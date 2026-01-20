@@ -52,6 +52,7 @@ pub fn serialize_pack_readable(
             generated_by: note.frontmatter.generated_by.clone(),
             prompt_hash: note.frontmatter.prompt_hash.clone(),
             verified: note.frontmatter.verified,
+            value: note.frontmatter.value,
         })
         .collect();
 

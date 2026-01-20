@@ -138,6 +138,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                 let mut generated_by = None;
                 let mut prompt_hash = None;
                 let mut verified = None;
+                let mut value = None;
 
                 // Split metadata_str carefully to handle quoted values
                 let mut current_pos = 0;
@@ -210,6 +211,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                             "generated_by" => generated_by = Some(val),
                             "prompt_hash" => prompt_hash = Some(val),
                             "verified" => verified = val.parse().ok(),
+                            "value" => value = val.parse().ok(),
                             _ => {}
                         }
                     } else {
@@ -234,6 +236,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                     generated_by,
                     prompt_hash,
                     verified,
+                    value,
                 });
             }
         } else if line.starts_with("B ") {

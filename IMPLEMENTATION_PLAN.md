@@ -82,7 +82,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 Adds a `value` field (0-100, default 50) to notes for quality/importance scoring, enabling weighted graph traversal.
 
 ### Phase 1: Data Model
-- [ ] Add `value` field to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
+- [x] Add `value` field to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
   - Type: `Option<u8>`, serde skip_serializing_if None
   - Update `NoteFrontmatter::new()` to initialize as None
 - [ ] Schema migration in `src/lib/db/schema.rs`
@@ -193,3 +193,14 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Log intermediate milestones (store discovery, workspace initialization, note copying)
   - Log completion with elapsed time
 - All 438 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Value Field Data Model (completed 2026-01-19)
+- Added `value` field (Option<u8>) to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
+- Updated `NoteFrontmatter::new()` to initialize value as None
+- Added `value` field to `PackNote` struct in both `src/commands/load/model.rs` and `src/commands/dump/model.rs`
+- Updated all PackNote construction sites to handle value field:
+  - `src/commands/load/mod.rs` when loading from pack
+  - `src/commands/dump/serialize.rs` when dumping to pack
+  - `src/commands/load/deserialize.rs` when deserializing pack format
+- Added "value" metadata parsing in pack deserializer
+- All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

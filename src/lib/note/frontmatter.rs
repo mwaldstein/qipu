@@ -48,6 +48,9 @@ pub struct NoteFrontmatter {
     /// Flag indicating if a human has manually reviewed the content
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verified: Option<bool>,
+    /// Note importance/quality score (0-100, default 50)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<u8>,
 }
 
 impl NoteFrontmatter {
@@ -69,6 +72,7 @@ impl NoteFrontmatter {
             generated_by: None,
             prompt_hash: None,
             verified: None,
+            value: None,
         }
     }
 

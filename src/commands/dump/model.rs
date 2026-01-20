@@ -49,6 +49,7 @@ pub struct PackNote {
     pub generated_by: Option<String>,
     pub prompt_hash: Option<String>,
     pub verified: Option<bool>,
+    pub value: Option<u8>,
 }
 
 /// Pack entry for a source reference

@@ -203,6 +203,7 @@ fn load_notes(
             generated_by: pack_note.generated_by.clone(),
             prompt_hash: pack_note.prompt_hash.clone(),
             verified: pack_note.verified,
+            value: pack_note.value,
         };
 
         // Create note

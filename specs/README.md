@@ -26,6 +26,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`workspaces.md`](workspaces.md) | Workspaces | Temporary and secondary stores for agent tasks |
 | [`structured-logging.md`](structured-logging.md) | Infrastructure | Structured logging framework with tracing support |
 | [`operational-database.md`](operational-database.md) | Database | SQLite as operational layer, FTS5, schema |
+| [`value-model.md`](value-model.md) | Ranking | Note importance/quality scores and weighted traversal |
+| [`distribution.md`](distribution.md) | Distribution | Installation methods and release automation |
 | [`telemetry.md`](telemetry.md) | Telemetry | DRAFT - usage analytics (not implemented) |
 
 ## Status Tracking
@@ -51,11 +53,13 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, some scenario fields |
 | `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
 | `export.md` | ✅ | ✅ | ✅ | MOC ordering; anchor rewriting; attachment link rewriting |
-| `compaction.md` | ✅ | ✅ | ✅ | All commands; all flags; truncation indicators |
+| `compaction.md` | ✅ | ⚠️ | ⚠️ | Missing CLI truncation indicators and bounds; `apply`/`suggest` work |
 | `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
 | `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run/--empty |
-| `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; eprintln! usage minimal |
-| `operational-database.md` | ✅ | ✅ | ✅ | SQLite complete; FTS5; schema version; incremental repair |
+| `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; unused `tracing-appender` dependency |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair trigger missing; ranking boost mismatch |
+| `value-model.md` | ✅ | ✅ | ✅ | Data model, CLI, weighted traversal, and tests implemented |
+| `distribution.md` | ⚠️ | ❌ | ❌ | Early draft; no implementation or scripts |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -66,14 +70,23 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 ## Remaining Gaps
 
-### P3: Optional / Low Priority
+### P1: Correctness Bugs
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented; `load_indexes`/`execute_command` missing |
+| `operational-database.md` | Startup repair | Result of `validate_consistency` ignored on startup |
+| `operational-database.md` | FTS5 Ranking | Additive boosting used instead of multiplicative |
 | `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
+
+### P2/P3: Missing Coverage or Features
+
+| Spec | Gap | Notes |
+| --- | --- | --- |
 | `llm-user-validation.md` | Scenario schema | Missing id, tags, docs.prime, setup, etc. |
 | `workspaces.md` | Test coverage | Need --dry-run and --empty tests |
+| `compaction.md` | CLI Display | Missing truncation indicators and bounds checks in `show` |
+| `distribution.md` | All | Scripts and workflows missing |
+| `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented |
 
 ### Not Applicable
 

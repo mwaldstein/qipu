@@ -9,6 +9,14 @@
 
 ## P1: Correctness Bugs
 
+### Operational Database
+- [ ] Startup repair trigger missing
+  - `src/lib/db/mod.rs`: `Database::open` calls `validate_consistency` but ignores the result.
+  - Spec: "On startup, qipu validates consistency and repairs if needed".
+- [ ] FTS5 ranking scoring mismatch
+  - `src/lib/db/search.rs`: Uses additive boosting (+5.0, +8.0).
+  - Spec: Requires multiplicative boosting (2.0x, 1.5x).
+
 ### LLM Tool Test Harness
 - [ ] Fix default tool mismatch in `llm-user-validation.md` (spec says "amp", code uses "opencode")
   - `crates/llm-tool-test/src/cli.rs:31`: `default_value = "opencode"`
@@ -28,6 +36,25 @@
 - [ ] Add scenario schema validation tests
   - `crates/llm-tool-test/src/scenario.rs`: `Scenario` struct validation
   - Ensure all required fields (id, tags, docs) are present or optional as per spec
+
+### Compaction
+- [ ] Truncation indicators in CLI
+  - `src/commands/compact/show.rs`: recursive display lacks bounds check and truncation indicators.
+  - Spec: Requires bounded expansion and indicators.
+
+---
+
+## P3: Unimplemented Optional / Cleanup
+
+### Distribution
+- [ ] Implement release automation and scripts
+  - `specs/distribution.md`: Entire spec unimplemented.
+  - Missing: `.github/workflows/release.yml`, `scripts/install.sh`, `scripts/install.ps1`.
+
+### Structured Logging
+- [ ] Remove or use `tracing-appender`
+  - `Cargo.toml`: Dependency present but unused in code.
+  - Spec: Does not explicitly mandate file logging, but dependency suggests intent.
 
 ---
 
@@ -52,6 +79,11 @@
 - [x] CLI: `qipu value` command, `--min-value` filters in list/search/context/link
 - [x] Traversal: `get_edge_cost`, `dijkstra_traverse`, `--ignore-value`
 - [x] Integration: `doctor` range check, weighted traversal tests
+
+### Export (`specs/export.md`)
+- [x] Strategies: `outline`, `bundle`, `bibliography`
+- [x] Ordering: Deterministic (MOC-driven or sorted)
+- [x] Format: Anchor rewriting and linking
 
 ### LLM Tool Test Harness
 - [x] Scenarios: smoke, basic, search, context

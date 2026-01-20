@@ -54,9 +54,9 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
 
 ### Human Review Integration (P2)
-- [ ] Add `review <RUN_ID> --dimension key=value --notes "..."` subcommand
-- [ ] Add `list --pending-review` to find unreviewed runs
-- [ ] Store human scores in results record
+- [x] Add `review <RUN_ID> --dimension key=value --notes "..."` subcommand
+- [x] Add `list --pending-review` to find unreviewed runs
+- [x] Store human scores in results record
 
 ### Test Infrastructure (P2)
 - [x] Add tests for command parsing from transcript

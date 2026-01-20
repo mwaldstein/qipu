@@ -25,6 +25,8 @@ pub struct ResultRecord {
     pub transcript_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub human_review: Option<HumanReviewRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,6 +71,13 @@ pub struct GateResultRecord {
     pub gate_type: String,
     pub passed: bool,
     pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HumanReviewRecord {
+    pub dimensions: std::collections::HashMap<String, f64>,
+    pub notes: Option<String>,
+    pub timestamp: DateTime<Utc>,
 }
 
 pub struct ResultsDB {
@@ -132,6 +141,49 @@ impl ResultsDB {
         Ok(records
             .into_iter()
             .find(|r| r.scenario_id == scenario_id && r.tool == tool))
+    }
+
+    pub fn update_human_review(
+        &self,
+        id: &str,
+        human_review: HumanReviewRecord,
+    ) -> Result<Option<ResultRecord>> {
+        let mut records = self.load_all()?;
+        let index = records.iter().position(|r| r.id == id);
+
+        if let Some(idx) = index {
+            records[idx].human_review = Some(human_review.clone());
+            let updated_record = records[idx].clone();
+
+            let temp_path = self.results_path.with_extension(".tmp");
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&temp_path)
+                .context("Failed to create temporary file")?;
+
+            for rec in &records {
+                let line = serde_json::to_string(rec)?;
+                writeln!(file, "{}", line).context("Failed to write record")?;
+            }
+
+            drop(file);
+            std::fs::rename(&temp_path, &self.results_path)
+                .context("Failed to replace results file")?;
+
+            Ok(Some(updated_record))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn load_pending_review(&self) -> Result<Vec<ResultRecord>> {
+        let records = self.load_all()?;
+        Ok(records
+            .into_iter()
+            .filter(|r| r.human_review.is_none())
+            .collect())
     }
 }
 
@@ -621,6 +673,7 @@ mod tests {
             outcome: "PASS".to_string(),
             transcript_path: "/path/to/transcript.txt".to_string(),
             cache_key: Some("cache-key-123".to_string()),
+            human_review: None,
         };
 
         let json = serde_json::to_string(&original).unwrap();
@@ -696,6 +749,7 @@ mod tests {
             outcome: "PASS".to_string(),
             transcript_path: "/path/to/transcript.txt".to_string(),
             cache_key: None,
+            human_review: None,
         };
 
         let json = serde_json::to_string(&record).unwrap();
@@ -905,6 +959,106 @@ mod tests {
             outcome: "PASS".to_string(),
             transcript_path: "/path/to/transcript.txt".to_string(),
             cache_key: Some("cache-key-123".to_string()),
+            human_review: None,
         }
+    }
+
+    #[test]
+    fn test_results_db_update_human_review() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record = create_test_record("run-1");
+        db.append(&record).unwrap();
+
+        let human_review = HumanReviewRecord {
+            dimensions: {
+                let mut map = HashMap::new();
+                map.insert("accuracy".to_string(), 0.9);
+                map.insert("clarity".to_string(), 0.8);
+                map
+            },
+            notes: Some("Good work".to_string()),
+            timestamp: Utc::now(),
+        };
+
+        let updated = db.update_human_review("run-1", human_review).unwrap();
+        assert!(updated.is_some());
+
+        let loaded = db.load_by_id("run-1").unwrap();
+        assert!(loaded.is_some());
+        let loaded = loaded.unwrap();
+        assert!(loaded.human_review.is_some());
+        let review = loaded.human_review.unwrap();
+        assert_eq!(review.dimensions.get("accuracy"), Some(&0.9));
+        assert_eq!(review.dimensions.get("clarity"), Some(&0.8));
+        assert_eq!(review.notes, Some("Good work".to_string()));
+    }
+
+    #[test]
+    fn test_results_db_update_human_review_nonexistent() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let human_review = HumanReviewRecord {
+            dimensions: HashMap::new(),
+            notes: None,
+            timestamp: Utc::now(),
+        };
+
+        let result = db.update_human_review("nonexistent", human_review).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_results_db_load_pending_review() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_record("run-1");
+        let mut record2 = create_test_record("run-2");
+        let record3 = create_test_record("run-3");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+        db.append(&record3).unwrap();
+
+        let pending = db.load_pending_review().unwrap();
+        assert_eq!(pending.len(), 3);
+
+        let human_review = HumanReviewRecord {
+            dimensions: HashMap::new(),
+            notes: None,
+            timestamp: Utc::now(),
+        };
+
+        db.update_human_review("run-2", human_review).unwrap();
+
+        let pending = db.load_pending_review().unwrap();
+        assert_eq!(pending.len(), 2);
+        let pending_ids: Vec<_> = pending.iter().map(|r| r.id.clone()).collect();
+        assert!(pending_ids.contains(&"run-1".to_string()));
+        assert!(pending_ids.contains(&"run-3".to_string()));
+    }
+
+    #[test]
+    fn test_human_review_record_serialization() {
+        let review = HumanReviewRecord {
+            dimensions: {
+                let mut map = HashMap::new();
+                map.insert("accuracy".to_string(), 0.9);
+                map.insert("clarity".to_string(), 0.8);
+                map
+            },
+            notes: Some("Great!".to_string()),
+            timestamp: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&review).unwrap();
+        let deserialized: HumanReviewRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.dimensions.get("accuracy"), Some(&0.9));
+        assert_eq!(deserialized.dimensions.get("clarity"), Some(&0.8));
+        assert_eq!(deserialized.notes, Some("Great!".to_string()));
     }
 }

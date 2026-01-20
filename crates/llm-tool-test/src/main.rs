@@ -234,6 +234,7 @@ fn run_single_scenario(
             outcome,
             transcript_path: transcript_path.clone(),
             cache_key: Some(cache_key.as_string()),
+            human_review: None,
         };
 
         results_db.append(&record)?;
@@ -369,7 +370,24 @@ fn main() -> anyhow::Result<()> {
                 println!("No scenario specified. Use --scenario <path>");
             }
         }
-        Commands::List { tags: _, tier } => {
+        Commands::List {
+            tags: _,
+            tier,
+            pending_review,
+        } => {
+            if *pending_review {
+                let pending = results_db.load_pending_review()?;
+                if pending.is_empty() {
+                    println!("No runs pending review");
+                } else {
+                    println!("Runs pending review ({}):", pending.len());
+                    for r in pending {
+                        println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
+                    }
+                }
+                return Ok(());
+            }
+
             let mut scenarios = Vec::new();
 
             fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<(String, usize, String)>) {
@@ -437,6 +455,16 @@ fn main() -> anyhow::Result<()> {
                         r.metrics.composite_score, composite_tier
                     );
                     println!("Transcript: {}", r.transcript_path);
+                    if let Some(review) = r.human_review {
+                        println!("Human Review:");
+                        for (dim, score) in &review.dimensions {
+                            println!("  {}: {:.2}", dim, score);
+                        }
+                        if let Some(notes) = &review.notes {
+                            println!("  Notes: {}", notes);
+                        }
+                        println!("  Reviewed: {}", review.timestamp);
+                    }
                 }
                 None => println!("Run not found: {}", name),
             }
@@ -461,6 +489,28 @@ fn main() -> anyhow::Result<()> {
             println!("Cleaning cache...");
             cache.clear()?;
             println!("Cache cleared");
+        }
+        Commands::Review {
+            run_id,
+            dimension,
+            notes,
+        } => {
+            let record = results_db.load_by_id(&run_id)?;
+            match record {
+                Some(_) => {
+                    let dimensions_map: std::collections::HashMap<String, f64> =
+                        dimension.iter().map(|(k, v)| (k.clone(), *v)).collect();
+                    let human_review = results::HumanReviewRecord {
+                        dimensions: dimensions_map,
+                        notes: notes.clone(),
+                        timestamp: Utc::now(),
+                    };
+
+                    results_db.update_human_review(&run_id, human_review)?;
+                    println!("Review added for run: {}", run_id);
+                }
+                None => anyhow::bail!("Run not found: {}", run_id),
+            }
         }
     }
     Ok(())
@@ -501,6 +551,9 @@ fn print_result_summary(record: &ResultRecord) {
         "Composite Score: {:.2} ({})",
         record.metrics.composite_score, composite_tier
     );
+    if record.human_review.is_some() {
+        println!("Human Review: Yes");
+    }
 }
 
 fn print_regression_report(report: &RegressionReport) {

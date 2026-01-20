@@ -107,7 +107,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - `qipu search` (completed 2026-01-20)
   - `qipu link tree` (completed 2026-01-20)
   - `qipu link path` (completed 2026-01-20)
-  - `qipu context`
+  - `qipu context` (completed 2026-01-20)
 - [x] Add `--sort value` option to `qipu search` (completed 2026-01-20)
 
 ### Phase 3: Weighted Traversal
@@ -224,6 +224,21 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Exact threshold boundary (value = min_value)
 - Updated CLI parser tests to validate `--min-value` flag parsing
 - All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Context Min-Value Filter Implementation (completed 2026-01-20)
+- Added `--min-value <n>` flag to `Commands::Context` in `src/cli/commands.rs`
+- Updated command dispatch path: `src/commands/dispatch/mod.rs` → `notes.rs` → `context/mod.rs`
+- Added `min_value: Option<u8>` field to `ContextOptions` in `src/commands/context/types.rs`
+- Filter logic in `src/commands/context/mod.rs`:
+  - Applied after all notes are collected but before sorting and budgeting
+  - Notes without explicit value default to 50
+  - Filtering: `value >= min_value` (inclusive)
+  - Logs filtered count when verbose mode is enabled
+- Added comprehensive CLI test `test_context_filter_by_min_value` in `tests/cli/context/basic.rs`:
+  - Tests high-value note (90) with min-value 80
+  - Tests default-value note (50) with min-value 50
+  - Tests low-value note (30) excluded by filters
+- All 233 CLI tests pass (1 new test added)
 
 ### Edge Cost Function Implementation (completed 2026-01-20)
 - Added `get_edge_cost(link_type, target_value)` function in `src/lib/graph/types.rs`

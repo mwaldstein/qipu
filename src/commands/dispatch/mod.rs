@@ -150,6 +150,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             safety_banner,
             related,
             backlinks,
+            min_value,
         }) => notes::handle_context(
             cli,
             &root,
@@ -165,6 +166,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             *safety_banner,
             *related,
             *backlinks,
+            *min_value,
             start,
         ),
 

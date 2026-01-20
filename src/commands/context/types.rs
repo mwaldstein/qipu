@@ -14,6 +14,7 @@ pub struct ContextOptions<'a> {
     pub safety_banner: bool,
     pub related_threshold: Option<f64>,
     pub backlinks: bool,
+    pub min_value: Option<u8>,
 }
 
 pub struct SelectedNote<'a> {

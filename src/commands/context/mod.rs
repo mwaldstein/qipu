@@ -46,6 +46,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             safety_banner = options.safety_banner,
             related_threshold = options.related_threshold,
             backlinks = options.backlinks,
+            min_value = options.min_value,
             "context_params"
         );
     }
@@ -238,6 +239,26 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         return Err(QipuError::Other(
             "no selection criteria provided. Use --note, --tag, --moc, or --query".to_string(),
         ));
+    }
+
+    // Apply min-value filter (notes without explicit value default to 50)
+    if let Some(min_value) = options.min_value {
+        let before_count = selected_notes.len();
+        selected_notes.retain(|selected| {
+            let note_value = selected.note.frontmatter.value.unwrap_or(50);
+            note_value >= min_value
+        });
+        let after_count = selected_notes.len();
+
+        if cli.verbose && before_count > after_count {
+            tracing::debug!(
+                min_value,
+                before_count,
+                after_count,
+                filtered = before_count - after_count,
+                "min_value_filter"
+            );
+        }
     }
 
     // Sort notes: Prioritize verified notes, then by created date, then by id

@@ -272,6 +272,10 @@ pub enum Commands {
         /// Include backlinks for selected notes
         #[arg(long)]
         backlinks: bool,
+
+        /// Minimum value threshold (0-100, default filters notes below threshold)
+        #[arg(long)]
+        min_value: Option<u8>,
     },
 
     /// Export notes to a single document

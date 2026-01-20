@@ -660,3 +660,143 @@ fn test_context_backlinks() {
 
     assert_eq!(notes[0]["id"].as_str().unwrap(), note2_id);
 }
+
+#[test]
+fn test_context_filter_by_min_value() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different values
+    let high_value_note = r#"---
+id: qp-high
+title: High Value Note
+type: permanent
+value: 90
+tags:
+  - important
+---
+
+This is a high-value note.
+"#;
+
+    let low_value_note = r#"---
+id: qp-low
+title: Low Value Note
+type: fleeting
+value: 30
+tags:
+  - testing
+---
+
+This is a low-value note.
+"#;
+
+    let default_value_note = r#"---
+id: qp-default
+title: Default Value Note
+type: literature
+tags:
+  - research
+---
+
+This is a note with default value (50).
+"#;
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    fs::write(
+        notes_dir.join("qp-high-high-value-note.md"),
+        high_value_note,
+    )
+    .unwrap();
+    fs::write(notes_dir.join("qp-low-low-value-note.md"), low_value_note).unwrap();
+    fs::write(
+        notes_dir.join("qp-default-default-value-note.md"),
+        default_value_note,
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test filter: min-value 80 should only include high-value note
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--note",
+            "qp-high",
+            "--note",
+            "qp-low",
+            "--note",
+            "qp-default",
+            "--min-value",
+            "80",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Should include only high-value note, got {}",
+        notes.len()
+    );
+    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-high");
+
+    // Test filter: min-value 50 should include high-value and default-value notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--note",
+            "qp-high",
+            "--note",
+            "qp-low",
+            "--note",
+            "qp-default",
+            "--min-value",
+            "50",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        2,
+        "Should include high-value and default-value notes, got {}",
+        notes.len()
+    );
+
+    let note_ids: Vec<&str> = notes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+
+    assert!(note_ids.contains(&"qp-high"));
+    assert!(note_ids.contains(&"qp-default"));
+    assert!(!note_ids.contains(&"qp-low"));
+}

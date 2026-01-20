@@ -120,7 +120,13 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Order by accumulated cost (min-heap)
   - Default behavior: weighted (Dijkstra)
   - With `--ignore-value`: unweighted (BFS, all edges cost 1.0)
-- [ ] Update `bfs_find_path()` to support weighted mode
+- [x] Update `bfs_find_path()` to support weighted mode - completed 2026-01-20
+  - Added logic to check `opts.ignore_value` flag
+  - When `ignore_value=true`: unweighted BFS (VecDeque, all edges cost 1.0)
+  - When `ignore_value=false`: weighted Dijkstra (BinaryHeap, cost based on note value)
+  - Added `best_costs` HashMap to track best-known cost to each node
+  - Supports re-visiting nodes with better paths (Dijkstra optimization)
+  - Added 3 unit tests: unweighted, weighted, and min_value filter
 
 ### Phase 4: Integration
 - [x] Update `qipu context` to respect `--min-value` threshold (completed 2026-01-20)

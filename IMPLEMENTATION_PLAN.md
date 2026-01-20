@@ -47,7 +47,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Add `CommandSucceeds { command }` - arbitrary qipu command
 
 ### LLM Judge Enhancements (P2)
-- [ ] Add semantic quality evaluation (relevance, coherence, granularity)
+- [x] Add semantic quality evaluation (relevance, coherence, granularity)
 - [ ] Add weighted composite score combining automated + judge metrics
 - [ ] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
 
@@ -86,3 +86,14 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - `tracing` ecosystem with env-filter and json features
 - Flags: `--verbose`, `--log-level`, `--log-json`
 - Env: `QIPU_LOG` override
+
+## Learnings
+
+### Semantic Quality Evaluation (completed 2026-01-19)
+- The existing judge system already supports flexible rubrics via YAML configuration
+- Created `crates/llm-tool-test/fixtures/qipu/rubrics/semantic_quality.yaml` with three criteria:
+  - Relevance (0.35): Notes directly address the task prompt
+  - Coherence (0.35): Notes are logically connected with consistent terminology
+  - Granularity (0.30): Notes are appropriately scoped, neither too broad nor too fragmented
+- Rubric can be used by scenarios by adding `evaluation.judge` configuration
+- Added tests to verify rubric loading works correctly and validates weight sums

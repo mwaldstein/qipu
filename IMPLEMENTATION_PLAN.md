@@ -18,11 +18,13 @@
 
 ### semantic-graph.md
 
-- [ ] Context budget doesn't prefer typed links over `related`
+- [x] Context budget doesn't prefer typed links over `related`
   - Spec (line 82-83): "When generating `qipu context`, strongly prefer typed links (especially `part-of` and `supports`) over generic `related`"
-  - Location: `src/commands/context/mod.rs:264-281`
-  - Current: Notes sorted by verified, created, id - no link type awareness
-  - Gap: Budget handling doesn't differentiate link types
+  - Fixed: Added `link_type` field to `SelectedNote` struct
+  - Updated `get_moc_linked_ids()` to return link types
+  - Updated backlink expansion to capture link types
+  - Modified sorting to prioritize: verified > (part-of/supports) > other typed links > related
+  - Impact: Budget-limited context now prioritizes high-signal typed links over generic related links
 
 ### workspaces.md
 

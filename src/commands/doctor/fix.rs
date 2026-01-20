@@ -46,6 +46,21 @@ pub fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> 
                     }
                 }
             }
+            "invalid-value" => {
+                // Clamp value to 100
+                if let Some(note_id) = &issue.note_id {
+                    if let Ok(mut note) = store.get_note(note_id) {
+                        if let Some(value) = note.frontmatter.value {
+                            if value > 100 {
+                                note.frontmatter.value = Some(100);
+                                if store.save_note(&mut note).is_ok() {
+                                    fixed += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             _ => {}
         }
     }

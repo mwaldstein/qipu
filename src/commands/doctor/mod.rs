@@ -63,7 +63,10 @@ pub fn execute(
     // 6. Check for required frontmatter fields
     checks::check_required_fields(&notes, &mut result);
 
-    // 9. Check for missing or orphaned attachments
+    // 7. Check value field is within valid range (0-100)
+    checks::check_value_range(&notes, &mut result);
+
+    // 8. Check for missing or orphaned attachments
     checks::check_attachments(store, &notes, &mut result);
 
     // 10. Check compaction invariants

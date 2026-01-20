@@ -124,7 +124,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 
 ### Phase 4: Integration
 - [x] Update `qipu context` to respect `--min-value` threshold - verified complete 2026-01-20
-- [ ] Update `qipu doctor` to validate value range (0-100)
+- [x] Update `qipu doctor` to validate value range (0-100) - completed 2026-01-20
 - [x] Add tests for value filtering and weighted traversal - completed 2026-01-20
 - [ ] Update help text and man pages
 
@@ -293,3 +293,20 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Edge cost formula: 1.0 * (1 + (100 - value) / 100)
   - Value 100 → cost 1.0, value 50 → cost 1.5, value 0 → cost 2.0
 - All 475 tests pass (219 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Value Range Validation in Doctor (completed 2026-01-20)
+- Added `check_value_range()` function in `src/commands/doctor/content.rs` to validate that note values are in range 0-100
+- Validation only checks upper bound (> 100) since u8 type already enforces >= 0
+- Added 6 unit tests covering:
+  - Valid value (50)
+  - Invalid value (150)
+  - Boundary max (100)
+  - Boundary min (0)
+  - None value (default)
+  - Mixed notes with some invalid
+- Added fix implementation in `src/commands/doctor/fix.rs`:
+  - "invalid-value" category fix clamps value to 100
+  - Updates note frontmatter and saves to store
+- Integrated into doctor command flow in `src/commands/doctor/mod.rs` after required fields check
+- Issue category: "invalid-value", severity: Error, fixable: true
+- All 259 tests pass (240 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

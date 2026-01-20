@@ -129,12 +129,6 @@ impl ResultsDB {
         Ok(records.into_iter().find(|r| r.id == id))
     }
 
-    pub fn load_latest_by_scenario(&self, scenario_id: &str) -> Result<Option<ResultRecord>> {
-        let mut records = self.load_all()?;
-        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        Ok(records.into_iter().find(|r| r.scenario_id == scenario_id))
-    }
-
     pub fn load_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<ResultRecord>> {
         let mut records = self.load_all()?;
         records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
@@ -800,28 +794,6 @@ mod tests {
 
         let not_found = db.load_by_id("run-3").unwrap();
         assert!(not_found.is_none());
-    }
-
-    #[test]
-    fn test_results_db_load_latest_by_scenario() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
-
-        let mut record1 = create_test_record_with_scenario("run-1", "scenario-a");
-        let mut record2 = create_test_record_with_scenario("run-2", "scenario-b");
-        let mut record3 = create_test_record_with_scenario("run-3", "scenario-a");
-
-        record2.timestamp = Utc::now();
-        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
-        record3.timestamp = Utc::now() - chrono::Duration::seconds(30);
-
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-        db.append(&record3).unwrap();
-
-        let loaded = db.load_latest_by_scenario("scenario-a").unwrap();
-        assert!(loaded.is_some());
-        assert_eq!(loaded.unwrap().id, "run-3");
     }
 
     #[test]

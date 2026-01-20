@@ -63,7 +63,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Add tests for `build_tool_matrix()` edge cases
 - [x] Add mock adapter for offline testing
 - [x] Add end-to-end test with mock adapter
-- [ ] Remove dead code: `ResultsDB::load_latest_by_scenario`
+- [x] Remove dead code: `ResultsDB::load_latest_by_scenario`
 
 ### File Refactoring (P3)
 - [ ] Extract `run_single_scenario` from `main.rs` into `run.rs`

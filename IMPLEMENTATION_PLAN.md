@@ -22,7 +22,7 @@ Commands missing tracing instrumentation:
 - [x] `src/commands/capture.rs`
 - [x] `src/commands/create.rs`
 - [x] `src/commands/search.rs`
-- [ ] `src/commands/compact/*.rs` (7 files)
+- [x] `src/commands/compact/*.rs` (7 files) - completed 2026-01-19
 - [ ] `src/commands/context/{budget,output,select,types}.rs`
 - [ ] `src/commands/workspace/{list,merge,new}.rs`
 

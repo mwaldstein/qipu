@@ -1,6 +1,9 @@
 use std::fs;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
@@ -15,7 +18,18 @@ pub fn execute(
     from_stdin: bool,
     notes_file: Option<&PathBuf>,
 ) -> Result<()> {
+    let start = Instant::now();
     // Discover store
+    if cli.verbose {
+        debug!(
+            digest_id,
+            note_count = note_ids.len(),
+            from_stdin,
+            notes_file_provided = notes_file.is_some(),
+            "apply_params"
+        );
+    }
+
     let root = cli
         .root
         .clone()
@@ -30,6 +44,10 @@ pub fn execute(
     } else {
         Store::discover(&root)?
     };
+
+    if cli.verbose {
+        debug!(store = %store.root().display(), "discover_store");
+    }
 
     // Collect source note IDs from various sources
     let mut source_ids = note_ids.to_vec();
@@ -108,6 +126,15 @@ pub fn execute(
 
     // Save the digest note
     store.save_note(&mut digest_note)?;
+
+    if cli.verbose {
+        debug!(
+            digest_id,
+            compact_count = source_ids.len(),
+            elapsed = ?start.elapsed(),
+            "apply_compaction"
+        );
+    }
 
     // Output
     match cli.format {

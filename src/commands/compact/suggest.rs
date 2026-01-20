@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::Cli;
 use crate::lib::error::Result;
@@ -6,6 +9,7 @@ use crate::lib::store::Store;
 
 /// Execute `qipu compact suggest`
 pub fn execute(cli: &Cli) -> Result<()> {
+    let start = Instant::now();
     let root = cli
         .root
         .clone()
@@ -21,13 +25,34 @@ pub fn execute(cli: &Cli) -> Result<()> {
         Store::discover(&root)?
     };
 
+    if cli.verbose {
+        debug!(store = %store.root().display(), "discover_store");
+    }
+
     // Build index for graph analysis
     let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+
+    if cli.verbose {
+        debug!("build_index");
+    }
 
     // Find compaction candidates
     let all_notes = store.list_notes()?;
     let ctx = crate::lib::compaction::CompactionContext::build(&all_notes)?;
+
+    if cli.verbose {
+        debug!(note_count = all_notes.len(), "build_compaction_context");
+    }
+
     let candidates = ctx.suggest(&store, &index)?;
+
+    if cli.verbose {
+        debug!(
+            candidate_count = candidates.len(),
+            elapsed = ?start.elapsed(),
+            "suggest_compaction"
+        );
+    }
 
     // Output
     match cli.format {

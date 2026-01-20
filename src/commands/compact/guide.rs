@@ -1,8 +1,17 @@
+use std::time::Instant;
+
+use tracing::debug;
+
 use crate::cli::Cli;
 use crate::lib::error::Result;
 
 /// Execute `qipu compact guide`
-pub fn execute(_cli: &Cli) -> Result<()> {
+pub fn execute(cli: &Cli) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!("guide_params");
+    }
     println!(
         r#"# Qipu Compaction Guide
 
@@ -62,6 +71,10 @@ Compaction must satisfy these invariants:
 Use `qipu doctor` to validate compaction invariants.
 "#
     );
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "guide_compaction");
+    }
 
     Ok(())
 }

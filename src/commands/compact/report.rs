@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
@@ -9,6 +12,11 @@ use super::utils::estimate_size;
 
 /// Execute `qipu compact report`
 pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
+    let start = Instant::now();
+    if cli.verbose {
+        debug!(digest_id, "report_params");
+    }
+
     let root = cli
         .root
         .clone()
@@ -24,11 +32,23 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
         Store::discover(&root)?
     };
 
+    if cli.verbose {
+        debug!(store = %store.root().display(), "discover_store");
+    }
+
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;
 
+    if cli.verbose {
+        debug!(note_count = all_notes.len(), "build_compaction_context");
+    }
+
     // Build index for edge analysis
     let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+
+    if cli.verbose {
+        debug!("build_index");
+    }
 
     // Get direct compacted notes
     let direct_compacts = ctx
@@ -108,6 +128,19 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
     // 5. Conflicts/cycles
     let validation_errors = ctx.validate(&all_notes);
     let has_conflicts = !validation_errors.is_empty();
+
+    if cli.verbose {
+        debug!(
+            digest_id,
+            compacts_count = direct_compacts.len(),
+            compaction_pct = format!("{:.1}", compaction_pct),
+            boundary_ratio = format!("{:.2}", boundary_edge_ratio),
+            is_stale,
+            has_conflicts,
+            elapsed = ?start.elapsed(),
+            "compaction_report"
+        );
+    }
 
     // Output
     match cli.format {

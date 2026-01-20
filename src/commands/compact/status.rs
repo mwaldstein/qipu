@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
@@ -7,6 +10,11 @@ use crate::lib::store::Store;
 
 /// Execute `qipu compact status`
 pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
+    let start = Instant::now();
+    if cli.verbose {
+        debug!(note_id, "status_params");
+    }
+
     let root = cli
         .root
         .clone()
@@ -22,13 +30,32 @@ pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
         Store::discover(&root)?
     };
 
+    if cli.verbose {
+        debug!(store = %store.root().display(), "discover_store");
+    }
+
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;
+
+    if cli.verbose {
+        debug!(note_count = all_notes.len(), "build_compaction_context");
+    }
 
     // Get compaction status
     let canonical = ctx.canon(note_id)?;
     let direct_compactor = ctx.get_compactor(note_id);
     let compacted_notes = ctx.get_compacted_notes(note_id);
+
+    if cli.verbose {
+        debug!(
+            note_id,
+            ?canonical,
+            ?direct_compactor,
+            compacted_count = compacted_notes.as_ref().map(|c| c.len()).unwrap_or(0),
+            elapsed = ?start.elapsed(),
+            "compaction_status"
+        );
+    }
 
     // Output
     match cli.format {

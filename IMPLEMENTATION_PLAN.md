@@ -1,7 +1,7 @@
 # Qipu Implementation Plan
 
 ## Status
-- Test baseline: `cargo test` passes (189 tests)
+- Test baseline: `cargo test` passes (439 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 
 ---
@@ -85,7 +85,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `value` field to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
   - Type: `Option<u8>`, serde skip_serializing_if None
   - Update `NoteFrontmatter::new()` to initialize as None
-- [ ] Schema migration in `src/lib/db/schema.rs`
+- [x] Schema migration in `src/lib/db/schema.rs`
   - Add `value INTEGER DEFAULT 50` column to `notes` table
   - Add index: `CREATE INDEX idx_notes_value ON notes(value)`
   - Bump `CURRENT_SCHEMA_VERSION` to 2

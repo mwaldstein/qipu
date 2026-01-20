@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+pub const CURRENT_SCHEMA_VERSION: i32 = 2;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -26,8 +26,10 @@ CREATE TABLE IF NOT EXISTS notes (
     created TEXT,
     updated TEXT,
     body TEXT,
-    mtime INTEGER
+    mtime INTEGER,
+    value INTEGER DEFAULT 50
 );
+CREATE INDEX IF NOT EXISTS idx_notes_value ON notes(value);
 
  -- Full-text search index with FTS5
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
@@ -90,13 +92,25 @@ pub fn create_schema(conn: &Connection) -> Result<()> {
             )?;
         }
         Some(v) if v < target_version => {
-            return Err(rusqlite::Error::ToSqlConversionFailure(
-                format!(
-                    "Database schema version {} is outdated. Current version: {}. Run 'qipu doctor --fix' or manually rebuild the database.",
-                    v, target_version
-                )
-                .into(),
-            ));
+            if v == 1 && target_version == 2 {
+                conn.execute("ALTER TABLE notes ADD COLUMN value INTEGER DEFAULT 50", [])?;
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_notes_value ON notes(value)",
+                    [],
+                )?;
+                conn.execute(
+                    "UPDATE index_meta SET value = ?1 WHERE key = 'schema_version'",
+                    [&target_version.to_string()],
+                )?;
+            } else {
+                return Err(rusqlite::Error::ToSqlConversionFailure(
+                    format!(
+                        "Database schema version {} is outdated. Current version: {}. Run 'qipu doctor --fix' or manually rebuild the database.",
+                        v, target_version
+                    )
+                    .into(),
+                ));
+            }
         }
         Some(v) if v == target_version => {}
         Some(v) => {

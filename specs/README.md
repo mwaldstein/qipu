@@ -33,6 +33,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`operational-database.md`](operational-database.md) | Database | SQLite as operational layer, FTS5, schema |
 | [`value-model.md`](value-model.md) | Ranking | Note importance/quality scores and weighted traversal |
 | [`distribution.md`](distribution.md) | Distribution | Installation methods and release automation |
+| [`custom-metadata.md`](custom-metadata.md) | Metadata | Application-specific metadata in frontmatter |
 | [`telemetry.md`](telemetry.md) | Telemetry | DRAFT - usage analytics (not implemented) |
 
 ## Status Tracking
@@ -55,16 +56,17 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; cosine similarity; Porter stemming; stop words; duplicate detection |
 | `records-output.md` | ✅ | ✅ | ✅ | All prefixes documented (H/N/S/E/B/W/D/C/M/L/A + B-END) |
 | `llm-context.md` | ✅ | ✅ | ✅ | Budget enforcement; --transitive; --backlinks; --related; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, some scenario fields |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, scenario schema fields, fixture location |
 | `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
 | `export.md` | ✅ | ✅ | ✅ | MOC ordering; anchor rewriting; attachment link rewriting |
 | `compaction.md` | ✅ | ⚠️ | ⚠️ | Missing CLI truncation indicators and bounds; `apply`/`suggest` work |
 | `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run/--empty |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run |
 | `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; unused `tracing-appender` dependency |
 | `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair trigger missing; ranking boost mismatch |
 | `value-model.md` | ✅ | ✅ | ✅ | Data model, CLI, weighted traversal, and tests implemented |
 | `distribution.md` | ⚠️ | ❌ | ❌ | Early draft; no implementation or scripts |
+| `custom-metadata.md` | ✅ | ❌ | ❌ | Not implemented; missing `custom` field in frontmatter/CLI |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -82,14 +84,15 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `operational-database.md` | Startup repair | Result of `validate_consistency` ignored on startup |
 | `operational-database.md` | FTS5 Ranking | Additive boosting used instead of multiplicative |
 | `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
+| `compaction.md` | CLI Display | Missing truncation indicators and bounds checks in `show` |
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `llm-user-validation.md` | Scenario schema | Missing id, tags, docs.prime, setup, etc. |
-| `workspaces.md` | Test coverage | Need --dry-run and --empty tests |
-| `compaction.md` | CLI Display | Missing truncation indicators and bounds checks in `show` |
+| `llm-user-validation.md` | Scenario schema | Missing `tags`, `docs` fields; fixtures in wrong location |
+| `workspaces.md` | Test coverage | Need --dry-run tests |
+| `custom-metadata.md` | All | Feature not implemented |
 | `distribution.md` | All | Scripts and workflows missing |
 | `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented |
 

@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: `cargo test` passes (439 tests)
+- Test baseline: `cargo test` passes
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 - Audit Date: 2026-01-20
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -25,29 +25,35 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/cli.rs:31`: `default_value = "opencode"`
   - `specs/llm-user-validation.md`: says default is "amp"
 
----
-
-## P2: Missing Test Coverage
-
-### Workspaces
-- [ ] Add tests for `--dry-run` and `--empty` flags
-  - `src/commands/workspace/new.rs`: `empty` logic
-  - `src/commands/workspace/merge.rs`: `dry_run` logic
-  - `tests/workspace_merge_test.rs`: existing tests do not cover these
-
-### LLM Tool Test Harness
-- [ ] Add scenario schema validation tests
-  - `crates/llm-tool-test/src/scenario.rs`: `Scenario` struct validation
-  - Ensure all required fields (id, tags, docs) are present or optional as per spec
-
 ### Compaction
 - [ ] Truncation indicators in CLI
-  - `src/commands/compact/show.rs`: recursive display lacks bounds check and truncation indicators.
+  - `src/commands/compact/show.rs`: recursive display lacks bounds check and truncation indicators in header output.
   - Spec: Requires bounded expansion and indicators.
 
 ---
 
+## P2: Missing Test Coverage & Gaps
+
+### Workspaces
+- [ ] Add tests for `--dry-run` flag
+  - `src/commands/workspace/merge.rs`: `dry_run` logic exists but lacks tests.
+  - `tests/workspace_merge_test.rs`: existing tests do not cover dry run.
+
+### LLM Tool Test Harness
+- [ ] Add scenario schema validation and missing fields
+  - `crates/llm-tool-test/src/scenario.rs`: `Scenario` struct missing `tags`, `docs` fields.
+  - Ensure all required fields are present as per spec.
+- [ ] Fix fixture location mismatch
+  - Spec says `tests/llm_scenarios/`, code uses `crates/llm-tool-test/fixtures/qipu/scenarios`.
+
+---
+
 ## P3: Unimplemented Optional / Cleanup
+
+### Custom Metadata
+- [ ] Implement Custom Metadata spec
+  - `specs/custom-metadata.md`: Entire spec unimplemented.
+  - Needs `custom` field in `NoteFrontmatter`, CLI command `qipu custom`, and SQLite JSON index.
 
 ### Distribution
 - [ ] Implement release automation and scripts
@@ -62,6 +68,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ---
 
 ## Completed (Verified 2026-01-20)
+
+### Workspaces
+- [x] `--empty` flag in `workspace new` verified and tested.
+- [x] Merge strategies verified.
 
 ### Structured Logging
 - [x] `src/commands/capture.rs` - Verified `tracing::debug!` usage

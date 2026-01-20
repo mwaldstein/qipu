@@ -316,6 +316,7 @@ pub(super) fn handle_context(
     safety_banner: bool,
     related: Option<f64>,
     backlinks: bool,
+    min_value: Option<u8>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -338,6 +339,7 @@ pub(super) fn handle_context(
             safety_banner,
             related_threshold: related,
             backlinks,
+            min_value,
         },
     )?;
     if cli.verbose {

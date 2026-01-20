@@ -46,6 +46,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             safety_banner = options.safety_banner,
             related_threshold = options.related_threshold,
             backlinks = options.backlinks,
+            min_value = options.min_value,
             "context_params"
         );
     }
@@ -227,6 +228,14 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         if let Some(via) = via_map.get(selected.note.id()) {
             selected.via = Some(via.clone());
         }
+    }
+
+    // Filter by min-value
+    if let Some(min_val) = options.min_value {
+        selected_notes.retain(|selected_note| {
+            let value = selected_note.note.frontmatter.value.unwrap_or(50);
+            value >= min_val
+        });
     }
 
     // If no selection criteria provided, return error

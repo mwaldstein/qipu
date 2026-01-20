@@ -107,7 +107,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - `qipu search` (completed 2026-01-20)
   - `qipu link tree` (completed 2026-01-20)
   - `qipu link path` (completed 2026-01-20)
-  - `qipu context`
+  - `qipu context` (completed 2026-01-20)
 - [x] Add `--sort value` option to `qipu search` (completed 2026-01-20)
 
 ### Phase 3: Weighted Traversal

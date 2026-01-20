@@ -35,10 +35,13 @@
   - Traverses in both directions (Direction::Both)
   - Impact: Workspace initialized from note now includes related notes within 3 hops
 
-- [ ] `workspace list` missing "Last updated" column
+- [x] `workspace list` missing "Last updated" column
   - Spec (line 51-55): Output should include Name, Status, Note count, Last updated
-  - Current: `src/commands/workspace/list.rs:72-75` shows Name, Temp, Notes, Path
-  - Impact: Users cannot see when workspaces were last modified
+  - Fixed: Added `get_max_mtime()` method to Database
+  - Updated WorkspaceInfo struct to include `last_updated` field
+  - Modified output to show "Last updated" instead of "Path"
+  - Changed Status column to show "Temp"/"Persistent" instead of "Yes"/"No"
+  - Impact: Users can now see when workspaces were last modified
 
 ### llm-user-validation.md
 

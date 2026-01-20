@@ -9,6 +9,17 @@ use std::path::PathBuf;
 use std::time::Instant;
 use tracing::debug;
 
+fn get_last_updated(store: &Store) -> String {
+    match store.db().get_max_mtime() {
+        Ok(Some(mtime)) => {
+            let dt =
+                chrono::DateTime::from_timestamp(mtime, 0).unwrap_or_else(|| chrono::Utc::now());
+            dt.format("%Y-%m-%d %H:%M").to_string()
+        }
+        _ => "Never".to_string(),
+    }
+}
+
 pub fn execute(cli: &Cli) -> Result<()> {
     let start = Instant::now();
     let root = cli
@@ -35,6 +46,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
         path: primary_store.root().to_path_buf(),
         temporary: false,
         note_count: primary_store.list_notes()?.len(),
+        last_updated: get_last_updated(&primary_store),
     });
 
     if workspaces_dir.is_dir() {
@@ -57,6 +69,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
                         path: path.to_path_buf(),
                         temporary: metadata.map(|m| m.temporary).unwrap_or(false),
                         note_count: store.list_notes()?.len(),
+                        last_updated: get_last_updated(&store),
                     });
                 }
             }
@@ -71,16 +84,16 @@ pub fn execute(cli: &Cli) -> Result<()> {
         OutputFormat::Human => {
             println!(
                 "{:<20} {:<10} {:<10} {:<20}",
-                "Name", "Temp", "Notes", "Path"
+                "Name", "Status", "Notes", "Last updated"
             );
             println!("{}", "-".repeat(60));
             for ws in workspaces {
                 println!(
                     "{:<20} {:<10} {:<10} {:<20}",
                     ws.name,
-                    if ws.temporary { "Yes" } else { "No" },
+                    if ws.temporary { "Temp" } else { "Persistent" },
                     ws.note_count,
-                    ws.path.display()
+                    ws.last_updated
                 );
             }
         }
@@ -91,11 +104,11 @@ pub fn execute(cli: &Cli) -> Result<()> {
         OutputFormat::Records => {
             for ws in workspaces {
                 println!(
-                    "WS {} temp={} notes={} path={}",
+                    "WS {} status={} notes={} last_updated=\"{}\"",
                     ws.name,
-                    ws.temporary,
+                    if ws.temporary { "temp" } else { "persistent" },
                     ws.note_count,
-                    ws.path.display()
+                    ws.last_updated
                 );
             }
         }
@@ -110,4 +123,5 @@ struct WorkspaceInfo {
     path: PathBuf,
     temporary: bool,
     note_count: usize,
+    last_updated: String,
 }

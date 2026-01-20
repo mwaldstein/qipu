@@ -19,7 +19,9 @@ Large files to split for maintainability:
 
 ### Structured Logging Gaps
 Commands missing tracing instrumentation:
-- [ ] `src/commands/capture.rs`, `create.rs`, `search.rs`
+- [x] `src/commands/capture.rs`
+- [ ] `src/commands/create.rs`
+- [ ] `src/commands/search.rs`
 - [ ] `src/commands/compact/*.rs` (7 files)
 - [ ] `src/commands/context/{budget,output,select,types}.rs`
 - [ ] `src/commands/workspace/{list,merge,new}.rs`

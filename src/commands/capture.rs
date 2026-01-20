@@ -11,6 +11,9 @@
 //! - `qipu capture --title "Thoughts on indexing" < notes.txt`
 
 use std::io::{self, Read};
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
@@ -33,6 +36,8 @@ pub fn execute(
     verified: Option<bool>,
     id: Option<&str>,
 ) -> Result<()> {
+    let start = Instant::now();
+
     // Read content from stdin
     let mut content = String::new();
     io::stdin().read_to_string(&mut content)?;
@@ -40,17 +45,29 @@ pub fn execute(
     // Trim trailing whitespace but preserve internal formatting
     let content = content.trim_end();
 
+    if cli.verbose {
+        debug!(content_len = content.len(), "read_stdin");
+    }
+
     // Generate title from content if not provided
     let title = match title {
         Some(t) => t.to_string(),
         None => generate_title_from_content(content),
     };
 
+    if cli.verbose {
+        debug!(title, ?note_type, tags_count = tags.len(), "capture_params");
+    }
+
     // Default type is fleeting for captures (per spec open question)
     let note_type = note_type.or(Some(NoteType::Fleeting));
 
     // Create note with the captured content
     let mut note = store.create_note_with_content(&title, note_type, tags, content, id)?;
+
+    if cli.verbose {
+        debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");
+    }
 
     // Add provenance fields if provided
     if source.is_some()
@@ -67,6 +84,10 @@ pub fn execute(
 
         // Save the updated note
         store.save_note(&mut note)?;
+
+        if cli.verbose {
+            debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
+        }
     }
 
     match cli.format {
@@ -116,6 +137,10 @@ pub fn execute(
                 tags_csv
             );
         }
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
     }
 
     Ok(())

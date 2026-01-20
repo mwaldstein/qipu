@@ -264,3 +264,16 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - `src/commands/dump/mod.rs` (dump command traversal)
   - `src/commands/dispatch/link.rs` (link tree and link path commands)
 - All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Dijkstra Traversal Implementation (completed 2026-01-20)
+- Added `dijkstra_traverse()` function in `src/lib/graph/bfs.rs` using `BinaryHeap` for cost-ordered traversal
+- Implements weighted edge costs using `get_edge_cost(link_type, target_value)` based on note value (0-100)
+- Supports unweighted mode via `--ignore-value` flag (all edges cost 1.0)
+- Added `HeapEntry` type with custom `Ord` implementation for min-heap ordering
+- Added 4 unit tests:
+  - Unweighted traversal (ignore_value=true)
+  - Weighted traversal with note values
+  - Min-value filter integration
+  - Heap entry comparison ordering
+- Exported `dijkstra_traverse` from graph module
+- All 208 unit tests pass (including 4 new dijkstra_traverse tests)

@@ -61,7 +61,7 @@ In a weighted traversal (e.g., Dijkstra's algorithm or cost-limited expansion), 
 Cost Formula:
 > `EdgeCost(A->B) = LinkTypeCost(edge) * (1 + (100 - Value(B)) / 100)`
 
-Where `LinkTypeCost(edge)` is the existing per-link-type cost from `get_link_type_cost()`. Currently this returns 1.0 for all types, but the function is designed for future per-link-type configuration (e.g., `part-of = 0.5`, `contradicts = 1.5`). The value multiplier preserves this extension point.
+Where `LinkTypeCost(edge)` is the per-link-type cost from `get_link_type_cost()`. Currently this returns 1.0 for all types, but `specs/semantic-graph.md` section 3.A proposes variable costs per link type (e.g., `part-of = 0.5` for cohesive relationships, `contradicts = 1.5` for conflict edges). The value multiplier composes with this extension point.
 
 *Examples (assuming LinkTypeCost = 1.0):*
 - Target Value **100** (Gem):
@@ -71,7 +71,7 @@ Where `LinkTypeCost(edge)` is the existing per-link-type cost from `get_link_typ
 - Target Value **0** (Junk):
   `Cost = 1.0 * (1 + 1.0) = 2.0` (Maximum resistance)
 
-*Note: The value multiplier is bounded [1.0, 2.0], avoiding pathological costs. Combined with future link-type costs, this enables fine-grained traversal control (e.g., a `contradicts` edge to a low-value note would have high resistance).*
+*Note: The value multiplier is bounded [1.0, 2.0], avoiding pathological costs. When combined with link-type costs (see `specs/semantic-graph.md` section 3.A), this enables fine-grained traversal control (e.g., a `part-of` edge with cost 0.5 to a high-value note = 0.5 total; a `contradicts` edge with cost 1.5 to a low-value note = 3.0 total).*
 
 ### 2. Priority Queue Traversal
 The current BFS implementation (`src/lib/graph/bfs.rs`) uses a `VecDeque` (FIFO queue) and already tracks `accumulated_cost` via the `HopCost` type. However, it expands nodes in FIFO order rather than cost order.

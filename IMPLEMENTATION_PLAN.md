@@ -75,6 +75,58 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ---
 
+## Value Model (`specs/value-model.md`) (P2)
+
+Adds a `value` field (0-100, default 50) to notes for quality/importance scoring, enabling weighted graph traversal.
+
+### Phase 1: Data Model
+- [ ] Add `value` field to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
+  - Type: `Option<u8>`, serde skip_serializing_if None
+  - Update `NoteFrontmatter::new()` to initialize as None
+- [ ] Schema migration in `src/lib/db/schema.rs`
+  - Add `value INTEGER DEFAULT 50` column to `notes` table
+  - Add index: `CREATE INDEX idx_notes_value ON notes(value)`
+  - Bump `CURRENT_SCHEMA_VERSION` to 2
+  - Add migration path from v1 → v2
+- [ ] Update `src/lib/db/notes.rs` to read/write `value` column
+- [ ] Update `src/lib/index/builder.rs` to index `value` field
+
+### Phase 2: CLI Commands
+- [ ] Add `qipu value` subcommand in `src/cli/commands.rs`
+  - `value set <id> <score>` - update frontmatter value field
+  - `value show <id>` - display current value (or "50 (default)" if unset)
+- [ ] Add `--min-value <n>` filter flag to:
+  - `qipu list`
+  - `qipu search`
+  - `qipu link tree`
+  - `qipu link path`
+  - `qipu context`
+- [ ] Add `--sort value` option to `qipu search`
+
+### Phase 3: Weighted Traversal
+- [ ] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`
+  - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
+  - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
+- [ ] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs`
+- [ ] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs`
+  - New function `dijkstra_traverse()` using `BinaryHeap` instead of `VecDeque`
+  - Order by accumulated cost (min-heap)
+  - Default behavior: weighted (Dijkstra)
+  - With `--ignore-value`: unweighted (BFS, all edges cost 1.0)
+- [ ] Update `bfs_find_path()` to support weighted mode
+
+### Phase 4: Integration
+- [ ] Update `qipu context` to respect `--min-value` threshold
+- [ ] Update `qipu doctor` to validate value range (0-100)
+- [ ] Add tests for value filtering and weighted traversal
+- [ ] Update help text and man pages
+
+### Dependencies
+- Builds on existing `HopCost` infrastructure (`src/lib/graph/types.rs`)
+- Complements compaction system (`specs/compaction.md`) - low-value notes are compaction candidates
+
+---
+
 ## Technology Reference
 
 ### Database

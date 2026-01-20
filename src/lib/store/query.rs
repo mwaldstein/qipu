@@ -2,37 +2,24 @@
 
 use std::fs;
 
-use walkdir::WalkDir;
-
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 
-use super::paths::{MOCS_DIR, NOTES_DIR};
 use super::Store;
 
 impl Store {
     /// List all notes in the store
     pub fn list_notes(&self) -> Result<Vec<Note>> {
+        let db = self.db();
+        let metadatas = db.list_notes(None, None, None)?;
+
         let mut notes = Vec::new();
-
-        for dir in [self.root.join(NOTES_DIR), self.root.join(MOCS_DIR)] {
-            if !dir.exists() {
-                continue;
-            }
-
-            for entry in WalkDir::new(&dir)
-                .follow_links(true)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                let path = entry.path();
-                if path.extension().is_some_and(|e| e == "md") {
-                    match Note::parse(&fs::read_to_string(path)?, Some(path.to_path_buf())) {
-                        Ok(note) => notes.push(note),
-                        Err(e) => {
-                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
-                        }
-                    }
+        for metadata in metadatas {
+            let path = self.root.join(&metadata.path);
+            match Note::parse(&fs::read_to_string(&path)?, Some(path)) {
+                Ok(note) => notes.push(note),
+                Err(e) => {
+                    tracing::warn!(path = %metadata.path, error = %e, "Failed to parse note");
                 }
             }
         }
@@ -64,42 +51,20 @@ impl Store {
 
     /// Internal note lookup implementation
     pub(super) fn get_note_internal(&self, id: &str) -> Result<Note> {
-        // Try using database metadata for path lookup
-        if let Ok(Some(meta)) = self.db().get_note_metadata(id) {
-            let path = self.root().join(&meta.path);
-            if path.exists() {
-                let content = fs::read_to_string(&path)?;
-                return Note::parse(&content, Some(path));
-            }
-        }
+        let db = self.db();
+        let meta = db
+            .get_note_metadata(id)?
+            .ok_or_else(|| QipuError::NoteNotFound { id: id.to_string() })?;
 
-        // Search in both notes and mocs directories
-        for dir in [self.root.join(NOTES_DIR), self.root.join(MOCS_DIR)] {
-            if !dir.exists() {
-                continue;
-            }
+        let path = self.root().join(&meta.path);
+        let content = fs::read_to_string(&path).map_err(|e| {
+            tracing::warn!(path = %meta.path, error = %e, "Failed to read note file");
+            QipuError::NoteNotFound { id: id.to_string() }
+        })?;
 
-            for entry in WalkDir::new(&dir)
-                .follow_links(true)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                let path = entry.path();
-                if path.extension().is_some_and(|e| e == "md") {
-                    // Check if filename starts with the ID
-                    if let Some(name) = path.file_stem() {
-                        let name = name.to_string_lossy();
-                        if name.starts_with(id)
-                            && (name.len() == id.len() || name.chars().nth(id.len()) == Some('-'))
-                        {
-                            let content = fs::read_to_string(path)?;
-                            return Note::parse(&content, Some(path.to_path_buf()));
-                        }
-                    }
-                }
-            }
-        }
-
-        Err(QipuError::NoteNotFound { id: id.to_string() })
+        Note::parse(&content, Some(path)).map_err(|e| {
+            tracing::warn!(path = %meta.path, error = %e, "Failed to parse note");
+            QipuError::NoteNotFound { id: id.to_string() }
+        })
     }
 }

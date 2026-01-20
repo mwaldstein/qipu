@@ -23,7 +23,11 @@ fn test_show_note() {
         .output()
         .unwrap();
 
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()
+        .unwrap()
+        .to_string();
 
     // Show should display the note
     qipu()

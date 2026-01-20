@@ -614,3 +614,324 @@ fn test_search_title_only_match_with_body_matches() {
         "Body match should be found"
     );
 }
+
+#[test]
+fn test_search_with_min_value_filter() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different values
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "High Value Programming"])
+        .output()
+        .unwrap();
+    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Medium Value Programming"])
+        .output()
+        .unwrap();
+    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Low Value Programming"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &high_id, "90"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &medium_id, "70"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Search with min-value 60 should include high and medium
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--min-value", "60", "programming"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("High Value Programming"))
+        .stdout(predicate::str::contains("Medium Value Programming"))
+        .stdout(predicate::str::contains("Low Value Programming").not());
+
+    // Search with min-value 85 should include only high
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--min-value", "85", "programming"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("High Value Programming"))
+        .stdout(predicate::str::contains("Medium Value Programming").not())
+        .stdout(predicate::str::contains("Low Value Programming").not());
+}
+
+#[test]
+fn test_search_sort_by_value() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different values
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Low Value Note"])
+        .output()
+        .unwrap();
+    let low_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Medium Value Note"])
+        .output()
+        .unwrap();
+    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "High Value Note"])
+        .output()
+        .unwrap();
+    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &low_id, "30"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &medium_id, "60"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &high_id, "90"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Search with --sort value should return results sorted by value (descending)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "search", "--sort", "value", "value"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output);
+    let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let results_array = results.as_array().expect("Expected JSON array");
+
+    assert_eq!(results_array.len(), 3, "Should find all three notes");
+
+    // Results should be sorted by value descending
+    assert_eq!(
+        results_array[0]["title"].as_str().unwrap(),
+        "High Value Note"
+    );
+    assert_eq!(
+        results_array[1]["title"].as_str().unwrap(),
+        "Medium Value Note"
+    );
+    assert_eq!(
+        results_array[2]["title"].as_str().unwrap(),
+        "Low Value Note"
+    );
+}
+
+#[test]
+fn test_search_sort_by_value_with_defaults() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with explicit and default values
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Explicit Value Note"])
+        .output()
+        .unwrap();
+    let explicit_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Default Value Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &explicit_id, "90"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Search with --sort value - explicit high value should come before default (50)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "search", "--sort", "value", "value"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output);
+    let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let results_array = results.as_array().expect("Expected JSON array");
+
+    assert_eq!(results_array.len(), 2, "Should find both notes");
+
+    // Explicit 90 should come before default 50
+    assert_eq!(
+        results_array[0]["title"].as_str().unwrap(),
+        "Explicit Value Note"
+    );
+    assert_eq!(
+        results_array[1]["title"].as_str().unwrap(),
+        "Default Value Note"
+    );
+}
+
+#[test]
+fn test_search_min_value_and_sort_combined() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different values
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Very High Note"])
+        .output()
+        .unwrap();
+    let very_high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "High Note"])
+        .output()
+        .unwrap();
+    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Medium Note"])
+        .output()
+        .unwrap();
+    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Low Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &very_high_id, "95"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &high_id, "80"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &medium_id, "65"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Combined min-value filter and sort by value
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "json",
+            "search",
+            "--min-value",
+            "60",
+            "--sort",
+            "value",
+            "note",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output);
+    let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let results_array = results.as_array().expect("Expected JSON array");
+
+    // Should only include notes with value >= 60 (very high, high, medium)
+    assert_eq!(
+        results_array.len(),
+        3,
+        "Should find only notes with value >= 60"
+    );
+
+    // Results should be sorted by value descending
+    assert_eq!(
+        results_array[0]["title"].as_str().unwrap(),
+        "Very High Note"
+    );
+    assert_eq!(results_array[1]["title"].as_str().unwrap(), "High Note");
+    assert_eq!(results_array[2]["title"].as_str().unwrap(), "Medium Note");
+}

@@ -8,6 +8,9 @@
 
 use std::path::Path;
 use std::process::Command;
+use std::time::Instant;
+
+use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
@@ -31,7 +34,17 @@ pub fn execute(
     prompt_hash: Option<String>,
     verified: Option<bool>,
 ) -> Result<()> {
+    let start = Instant::now();
+
+    if cli.verbose {
+        debug!(title, ?note_type, tags_count = tags.len(), "create_params");
+    }
+
     let mut note = store.create_note(title, note_type, tags, id.as_deref())?;
+
+    if cli.verbose {
+        debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");
+    }
 
     // Add provenance fields if provided
     if source.is_some()
@@ -48,6 +61,10 @@ pub fn execute(
 
         // Save the updated note
         store.save_note(&mut note)?;
+
+        if cli.verbose {
+            debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
+        }
     }
 
     match cli.format {
@@ -102,8 +119,15 @@ pub fn execute(
     // Open in editor if requested
     if open {
         if let Some(path) = &note.path {
+            if cli.verbose {
+                debug!(path = %path.display(), "open_editor");
+            }
             open_in_editor(path, store.config().editor.as_deref())?;
         }
+    }
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
     }
 
     Ok(())

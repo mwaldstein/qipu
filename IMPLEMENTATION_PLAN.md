@@ -72,7 +72,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 
 ### CLI Polish (P3)
 - [x] Rename `list` to show scenarios not runs - completed 2026-01-20
-- [ ] Add `run --all` to run all scenarios
+- [x] Add `run --all` to run all scenarios - completed 2026-01-20
 - [ ] Add `baseline set <run_id>` command
 
 ---
@@ -354,3 +354,14 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Removed unused imports from `main.rs` (`ScoreTier`, `ResultRecord`, `RegressionReport`, `HashMap`)
 - All 123 tests pass, 2 pre-existing warnings unrelated to changes
 - Improved code organization by separating output formatting logic from business logic
+
+### Run --all Flag Implementation (completed 2026-01-20)
+- Added `--all` flag to `Run` command in `cli.rs`
+- Created `find_scenarios()` helper function to recursively discover all YAML scenarios in fixtures directory
+- Updated `handle_run_command()` in `commands.rs` to support both single scenario and `--all` modes
+- When `--all` is used: discovers all scenarios, loads each one, and runs them sequentially
+- Removed unused `tool_matrix` parameter from function signatures (now loaded per scenario)
+- Added CLI tests to verify `--all` flag parsing works correctly
+- Added unit test for `find_scenarios()` to verify scenario discovery logic
+- All 126 tests pass (123 + 3 new tests)
+- Verified functional test: `llm-tool-test run --all --dry-run` successfully discovers and runs 5 scenarios

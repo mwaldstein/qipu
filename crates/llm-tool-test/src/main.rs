@@ -76,6 +76,7 @@ fn main() -> anyhow::Result<()> {
     match &cli.command {
         Commands::Run {
             scenario,
+            all,
             tags: _,
             tier: _,
             tool,
@@ -89,9 +90,10 @@ fn main() -> anyhow::Result<()> {
             timeout_secs,
         } => {
             if let Some(path) = scenario {
-                let s = scenario::load(path)?;
+                let _s = scenario::load(path)?;
                 commands::handle_run_command(
                     scenario,
+                    *all,
                     tool,
                     model,
                     tools,
@@ -100,13 +102,28 @@ fn main() -> anyhow::Result<()> {
                     *no_cache,
                     *timeout_secs,
                     judge_model,
-                    &s.tool_matrix,
+                    &base_dir,
+                    &results_db,
+                    &cache,
+                )?;
+            } else if *all {
+                commands::handle_run_command(
+                    scenario,
+                    *all,
+                    tool,
+                    model,
+                    tools,
+                    models,
+                    *dry_run,
+                    *no_cache,
+                    *timeout_secs,
+                    judge_model,
                     &base_dir,
                     &results_db,
                     &cache,
                 )?;
             } else {
-                println!("No scenario specified. Use --scenario <path>");
+                println!("No scenario specified. Use --scenario <path> or --all");
             }
         }
         Commands::Scenarios {

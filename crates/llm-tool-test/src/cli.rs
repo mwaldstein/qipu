@@ -15,6 +15,10 @@ pub enum Commands {
         #[arg(long, short)]
         scenario: Option<String>,
 
+        /// Run all scenarios in fixtures directory
+        #[arg(long)]
+        all: bool,
+
         /// Filter scenarios by tags
         #[arg(long)]
         tags: Vec<String>,
@@ -187,5 +191,37 @@ mod tests {
         let result = parse_key_value("first_try=0.8").unwrap();
         assert_eq!(result.0, "first_try");
         assert_eq!(result.1, 0.8);
+    }
+
+    #[test]
+    fn test_parse_run_command_with_all_flag() {
+        let cli = Cli::parse_from(["llm-tool-test", "run", "--all"]);
+        match &cli.command {
+            Commands::Run {
+                scenario,
+                all,
+                tool,
+                model,
+                ..
+            } => {
+                assert!(scenario.is_none());
+                assert_eq!(*all, true);
+                assert_eq!(tool, "opencode");
+                assert_eq!(model, &None);
+            }
+            _ => panic!("Expected Run command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_run_command_without_all_flag() {
+        let cli = Cli::parse_from(["llm-tool-test", "run", "--scenario", "test.yaml"]);
+        match &cli.command {
+            Commands::Run { scenario, all, .. } => {
+                assert_eq!(scenario, &Some("test.yaml".to_string()));
+                assert_eq!(*all, false);
+            }
+            _ => panic!("Expected Run command"),
+        }
     }
 }

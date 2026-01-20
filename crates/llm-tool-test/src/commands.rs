@@ -2,12 +2,32 @@ use crate::evaluation::ScoreTier;
 use crate::output;
 use crate::results::{Cache, ResultsDB};
 use crate::run;
-use crate::scenario::{load, ToolConfig};
+use crate::scenario::load;
 use chrono::Utc;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext == "yaml" {
+                        if let Ok(s) = load(&path) {
+                            scenarios.push((s.name.clone(), path));
+                        }
+                    }
+                }
+            } else if path.is_dir() {
+                find_scenarios(&path, scenarios);
+            }
+        }
+    }
+}
 
 pub fn handle_run_command(
     scenario: &Option<String>,
+    all: bool,
     tool: &str,
     model: &Option<String>,
     tools: &Option<String>,
@@ -16,7 +36,6 @@ pub fn handle_run_command(
     no_cache: bool,
     timeout_secs: u64,
     judge_model: &Option<String>,
-    tool_matrix: &Option<Vec<ToolConfig>>,
     base_dir: &PathBuf,
     results_db: &ResultsDB,
     cache: &Cache,
@@ -25,11 +44,26 @@ pub fn handle_run_command(
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }
 
-    if let Some(path) = scenario {
+    let scenarios_to_run = if all {
+        let mut scenarios = Vec::new();
+        let fixtures_dir = PathBuf::from("fixtures");
+        if fixtures_dir.exists() {
+            find_scenarios(&fixtures_dir, &mut scenarios);
+        }
+        scenarios
+    } else if let Some(path) = scenario {
         let s = load(path)?;
-        println!("Loaded scenario: {}", s.name);
+        vec![(s.name.clone(), PathBuf::from(path))]
+    } else {
+        println!("No scenario specified. Use --scenario <path> or --all");
+        return Ok(());
+    };
 
-        let matrix = crate::build_tool_matrix(tools, models, tool, model, tool_matrix);
+    for (name, path) in scenarios_to_run {
+        let s = load(&path)?;
+        println!("Loaded scenario: {}", name);
+
+        let matrix = crate::build_tool_matrix(tools, models, tool, model, &s.tool_matrix);
 
         if matrix.len() > 1 {
             println!("Matrix run: {} tool×model combinations", matrix.len());
@@ -58,8 +92,6 @@ pub fn handle_run_command(
         if matrix.len() > 1 {
             output::print_matrix_summary(&results);
         }
-    } else {
-        println!("No scenario specified. Use --scenario <path>");
     }
 
     Ok(())
@@ -220,4 +252,59 @@ pub fn handle_review_command(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_scenarios() {
+        let temp_dir = std::path::PathBuf::from("/tmp/test_scenarios_find");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let sub_dir = temp_dir.join("subdir");
+        std::fs::create_dir_all(&sub_dir).unwrap();
+
+        let yaml1 = temp_dir.join("scenario1.yaml");
+        let yaml2 = sub_dir.join("scenario2.yaml");
+        let txt = temp_dir.join("not_a_scenario.txt");
+
+        let scenario1_content = r#"
+name: test1
+description: "Test scenario 1"
+fixture: qipu
+task:
+  prompt: "Test"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+        let scenario2_content = r#"
+name: test2
+description: "Test scenario 2"
+fixture: qipu
+task:
+  prompt: "Test"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+
+        std::fs::write(&yaml1, scenario1_content).unwrap();
+        std::fs::write(&yaml2, scenario2_content).unwrap();
+        std::fs::write(&txt, "not a scenario").unwrap();
+
+        let mut scenarios = Vec::new();
+        find_scenarios(&temp_dir, &mut scenarios);
+
+        assert_eq!(scenarios.len(), 2);
+        assert!(scenarios.iter().any(|(name, _)| name == "test1"));
+        assert!(scenarios.iter().any(|(name, _)| name == "test2"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
 }

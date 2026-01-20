@@ -102,9 +102,13 @@ pub enum LinkCommands {
         #[arg(long)]
         max_chars: Option<usize>,
 
-        /// Filter by minimum value (0-100)
+        /// Filter by minimum value (0-100, default: 50)
         #[arg(long)]
         min_value: Option<u8>,
+
+        /// Ignore note values during traversal (unweighted BFS)
+        #[arg(long)]
+        ignore_value: bool,
     },
 
     /// Find path between two notes
@@ -143,8 +147,12 @@ pub enum LinkCommands {
         #[arg(long)]
         max_chars: Option<usize>,
 
-        /// Filter by minimum value (0-100)
+        /// Filter by minimum value (0-100, default: 50)
         #[arg(long)]
         min_value: Option<u8>,
+
+        /// Ignore note values during path finding (unweighted BFS)
+        #[arg(long)]
+        ignore_value: bool,
     },
 }

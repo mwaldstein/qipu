@@ -126,7 +126,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Update `qipu context` to respect `--min-value` threshold - verified complete 2026-01-20
 - [x] Update `qipu doctor` to validate value range (0-100) - completed 2026-01-20
 - [x] Add tests for value filtering and weighted traversal - completed 2026-01-20
-- [ ] Update help text and man pages
+- [x] Update help text and man pages - completed 2026-01-20
 
 ### Dependencies
 - Builds on existing `HopCost` infrastructure (`src/lib/graph/types.rs`)
@@ -329,3 +329,20 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Simplified `main.rs` match statement to delegate to command handlers
 - Moved all unit tests from main.rs to commands.rs (11 tests for build_tool_matrix)
 - All tests pass (123 llm-tool-test + 225 qipu + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Help Text and Documentation Update (completed 2026-01-20)
+- Added `--ignore-value` flag to `qipu link tree` and `qipu link path` commands
+  - Updated `src/cli/link.rs` to include ignore_value field in Tree and Path variants
+  - Updated `src/commands/dispatch/link.rs` to pass ignore_value from CLI to TreeOptions
+  - Flag description: "Ignore note values during traversal (unweighted BFS)"
+- Standardized `--min-value` help text across all commands
+  - Updated descriptions to consistently include "default: 50"
+  - Applied to: list, search, link tree, link path commands (context already had it)
+- Updated README.md to document value model features
+  - Added new "Value Management" section with qipu value commands
+  - Documented value scale: 0-20 (deprioritized), 21-80 (standard), 81-100 (high-value)
+  - Updated Link Management section to show --min-value and --ignore-value flags
+  - Updated LLM Integration section to note --min-value support for context command
+- Fixed unused import warnings in `src/commands/link/mod.rs`
+  - Removed unused `PathResult` and `TreeNote` imports
+- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

@@ -21,7 +21,7 @@ pub use crate::lib::graph::{Direction, TreeOptions};
 use std::collections::HashMap;
 
 use crate::lib::error::Result;
-use crate::lib::graph::{PathResult, TreeLink, TreeNote, TreeResult};
+use crate::lib::graph::{TreeLink, TreeResult};
 use crate::lib::index::{Edge, Index, LinkSource};
 use crate::lib::store::Store;
 

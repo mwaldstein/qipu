@@ -43,11 +43,23 @@ Qipu provides a git-backed, local-first knowledge store optimized for both human
 qipu init                 # Create a new store
 qipu create               # Create a new note (opens editor)
 qipu capture              # Quick capture from stdin or args
-qipu list                 # List notes (--type, --tag, --since filters)
+qipu list                 # List notes (--type, --tag, --since, --min-value filters)
 qipu show <id>            # Display a note (--links for connections)
-qipu search <query>       # Full-text search with ranking
+qipu search <query>       # Full-text search with ranking (--min-value, --sort value)
 qipu inbox                # Show unlinked fleeting notes
 ```
+
+### Value Management
+
+```bash
+qipu value set <id> <score>    # Set note value (0-100, default: 50)
+qipu value show <id>           # Display current value
+```
+
+The `value` field represents note quality/importance:
+- **0-20**: Deprioritized (superseded drafts, duplicates)
+- **21-80**: Standard (general research, work-in-progress)
+- **81-100**: High-value (canonical definitions, MOCs, gems)
 
 ### Link Management
 
@@ -55,8 +67,8 @@ qipu inbox                # Show unlinked fleeting notes
 qipu link add <from> <to> --type <t>   # Create typed link
 qipu link remove <from> <to>           # Remove link
 qipu link list <id>                    # List note's links
-qipu link tree <id>                    # Show link tree
-qipu link path <from> <to>             # Find path between notes
+qipu link tree <id>                    # Show link tree (--min-value, --ignore-value)
+qipu link path <from> <to>             # Find path between notes (--min-value, --ignore-value)
 ```
 
 ### LLM Integration
@@ -67,6 +79,8 @@ qipu context --moc <id>    # Context bundle from a map of content
 qipu context --query <q>   # Context bundle from search
 qipu context --tag <t>     # Context bundle by tag
 ```
+
+Note: `context` command supports `--min-value` to filter by note quality.
 
 ### Workspaces
 

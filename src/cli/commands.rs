@@ -48,7 +48,7 @@ pub enum Commands {
         #[arg(long)]
         since: Option<String>,
 
-        /// Filter by minimum value (0-100)
+        /// Filter by minimum value (0-100, default: 50)
         #[arg(long)]
         min_value: Option<u8>,
     },
@@ -133,7 +133,7 @@ pub enum Commands {
         #[arg(long)]
         exclude_mocs: bool,
 
-        /// Filter by minimum value (0-100)
+        /// Filter by minimum value (0-100, default: 50)
         #[arg(long)]
         min_value: Option<u8>,
 

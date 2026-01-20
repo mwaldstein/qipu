@@ -46,27 +46,27 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ✅ | All flags implemented; `--root` tested; timing instrumented |
-| `knowledge-model.md` | ✅ | ✅ | ✅ | Closed enum; all fields implemented; tag aliases optional/not implemented |
-| `storage-format.md` | ✅ | ✅ | ✅ | All directories; frontmatter fields; `qipu.db` implemented |
-| `cli-interface.md` | ✅ | ✅ | ✅ | All commands implemented with correct exit codes |
-| `indexing-search.md` | ✅ | ✅ | ✅ | SQLite FTS5 complete; ripgrep removed; BM25 ranking |
-| `semantic-graph.md` | ✅ | ✅ | ✅ | Config schema aligned; semantic inversion works; virtual edges |
-| `graph-traversal.md` | ✅ | ✅ | ✅ | All directions; type filters; "(seen)" in human output; truncation flags |
-| `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; cosine similarity; Porter stemming; stop words; duplicate detection |
-| `records-output.md` | ✅ | ✅ | ✅ | All prefixes documented (H/N/S/E/B/W/D/C/M/L/A + B-END) |
-| `llm-context.md` | ✅ | ✅ | ✅ | Budget enforcement; --transitive; --backlinks; --related; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tool default, scenario schema fields, fixture location |
-| `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; JSON output; CLI support; context prioritization |
-| `export.md` | ✅ | ✅ | ✅ | MOC ordering; anchor rewriting; attachment link rewriting |
-| `compaction.md` | ✅ | ⚠️ | ⚠️ | Missing CLI truncation indicators and bounds; `apply`/`suggest` work |
-| `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run |
-| `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; unused `tracing-appender` dependency |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair result ignored; ranking boost mismatch |
-| `value-model.md` | ✅ | ✅ | ✅ | Data model, CLI, weighted traversal, and tests implemented |
-| `distribution.md` | ⚠️ | ❌ | ❌ | Early draft; no implementation or scripts |
-| `custom-metadata.md` | ✅ | ❌ | ❌ | Not implemented; missing `custom` field in frontmatter/CLI |
+| `cli-tool.md` | ✅ | ✅ | ⚠️ | Missing tests for visible store discovery, broader determinism, perf/no-network |
+| `knowledge-model.md` | ✅ | ✅ | ⚠️ | ID scheme + backlink behaviors lack integration coverage; tag aliases optional |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Missing wiki-link rewrite, config store root, flat-notes enforcement |
+| `cli-interface.md` | ✅ | ✅ | ⚠️ | Missing tests for create alias/open/id, list tag/since/records, search opts |
+| `indexing-search.md` | ✅ | ⚠️ | ✅ | Incremental indexing not exposed; backlink index derived on demand |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | CLI help lists subset of types; limited tests for other types/custom inverses |
+| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | Missing CSV flags + context walk; tests missing inversion + truncation limits |
+| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | No clustering/see-also; tests missing weight/stop-word/default thresholds |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` lacks max-chars; link tree/path truncation tests missing |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budget missing; store path formatting differs |
+| `llm-user-validation.md` | ✅ | ❌ | ❌ | No harness implementation under `src/` or tests (only transcripts) |
+| `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults/automation not enforced or tested |
+| `export.md` | ✅ | ⚠️ | ⚠️ | Tag/query tests missing; bibliography/link modes untested; no transitive export |
+| `compaction.md` | ✅ | ⚠️ | ⚠️ | `compact show` ignores max nodes; `compact guide` tests missing |
+| `pack.md` | ✅ | ⚠️ | ⚠️ | Link filtering vs spec; attachment paths flattened; selector/attachment tests missing |
+| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Last updated missing; rename strategy absent; graph-slice copy + parent_id gaps |
+| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Log-level gating/validation gaps; note ops missing instrumentation |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair unused; DB not sole index; rebuild always; weighting mismatch |
+| `value-model.md` | ✅ | ✅ | ⚠️ | Tests missing for value set/show, search sort, list/context min-value |
+| `distribution.md` | ⚠️ | ❌ | ❌ | Release automation + install scripts missing |
+| `custom-metadata.md` | ✅ | ❌ | ❌ | No custom frontmatter/DB/CLI support |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -81,20 +81,35 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `operational-database.md` | Startup repair | Result of `validate_consistency` ignored on startup |
-| `operational-database.md` | FTS5 Ranking | Additive boosting used instead of multiplicative |
-| `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
-| `compaction.md` | CLI Display | Missing truncation indicators and bounds checks in `show` |
+| `operational-database.md` | Repair + rebuild semantics | `src/lib/db/mod.rs:83-85`, `src/commands/index.rs:14-19` |
+| `operational-database.md` | DB-only index + ranking weights | `src/lib/store/query.rs:13-52`, `src/lib/db/search.rs:20-105` |
+| `storage-format.md` | Missing rewrite/config/flat enforcement | `src/lib/index/links.rs:35-137`, `src/lib/config.rs:14-115` |
+| `graph-traversal.md` | CSV flags + context walk | `src/cli/link.rs:73-79`, `src/cli/commands.rs:226-279` |
+| `records-output.md` | `prime` budgeting | `src/commands/prime.rs:184-196` |
+| `llm-context.md` | Per-note truncation + prime budget | `src/commands/context/budget.rs:55-81`, `src/commands/prime.rs:15-70` |
+| `workspaces.md` | List/merge/metadata gaps | `src/commands/workspace/list.rs:70-100`, `src/commands/workspace/merge.rs:20-91` |
+| `pack.md` | Link filtering + attachment path flattening | `src/commands/dump/mod.rs:215-255`, `src/commands/load/mod.rs:70-90` |
+| `semantic-graph.md` | Help lists subset of types | `src/cli/link.rs:17-56` |
+| `structured-logging.md` | Log-level gating/validation + note ops spans | `src/commands/search.rs:36-54`, `src/lib/db/notes/create.rs:1-75` |
+| `provenance.md` | Verified defaults missing | `src/commands/create.rs:49-61` |
+| `compaction.md` | `compact show` truncation missing | `src/commands/compact/show.rs:46-105` |
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `llm-user-validation.md` | Scenario schema | Missing `tags`, `docs` fields; fixtures in wrong location |
-| `workspaces.md` | Test coverage | Need --dry-run tests |
-| `custom-metadata.md` | All | Feature not implemented |
-| `distribution.md` | All | Scripts and workflows missing |
-| `structured-logging.md` | Clean up | `tracing-appender` dependency unused |
+| `cli-tool.md` | Test coverage | Need visible-store discovery and broader golden determinism tests |
+| `cli-interface.md` | Test coverage | Missing tests for create/list/search/compact flag variants |
+| `value-model.md` | Test coverage | Missing tests for value set/show, search sort, min-value filters |
+| `export.md` | Coverage + optional | Tag/query/bibliography/link-mode tests; optional BibTeX/transitive export |
+| `graph-traversal.md` | Test coverage | Missing inversion + max_nodes/edges/fanout tests |
+| `records-output.md` | Test coverage | Missing truncation tests for tree/path records |
+| `workspaces.md` | Test coverage | Need `workspace merge --dry-run` coverage |
+| `similarity-ranking.md` | Coverage + optional | Missing weight/stop-word/default threshold tests; no clustering feature |
+| `pack.md` | Test coverage | Missing selector, attachment, compatibility tests |
+| `custom-metadata.md` | Unimplemented | Custom frontmatter + DB + CLI missing |
+| `distribution.md` | Unimplemented | Release automation and install scripts missing |
+| `llm-user-validation.md` | Unimplemented | No harness implementation in `src/` or tests |
 
 ### Not Applicable
 

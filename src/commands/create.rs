@@ -87,10 +87,8 @@ pub fn execute(
         }
         OutputFormat::Human => {
             println!("{}", note.id());
-            if cli.verbose {
-                if let Some(path) = &note.path {
-                    println!("Created: {}", path.display());
-                }
+            if let Some(path) = &note.path {
+                println!("{}", path.display());
             }
         }
         OutputFormat::Records => {

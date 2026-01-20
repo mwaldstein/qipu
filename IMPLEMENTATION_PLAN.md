@@ -13,7 +13,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## P1: Correctness Bugs
 
 ### CLI Interface (`specs/cli-interface.md`)
-- [ ] `qipu create` does not print the created note path by default (spec says ID and path).
+- [x] `qipu create` does not print the created note path by default (spec says ID and path).
   - `src/commands/create.rs:88-95`
 
 ### CLI Tool (`specs/cli-tool.md`)

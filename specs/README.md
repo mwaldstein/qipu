@@ -50,16 +50,16 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25; TF-IDF; duplicate detection |
 | `records-output.md` | ✅ | ✅ | ✅ | All prefixes implemented |
 | `llm-context.md` | ✅ | ✅ | ✅ | Budget; transitive; backlinks; safety banner |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness works; missing: tags, docs.prime, report cmd |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | P1: --tags/--tier/--max-usd parsed but ignored |
 | `provenance.md` | ✅ | ✅ | ✅ | All 5 fields; verify command; context priority |
 | `export.md` | ✅ | ✅ | ⚠️ | Core complete; missing: bibliography, tag, query tests |
-| `compaction.md` | ✅ | ✅ | ⚠️ | All commands; missing: guide command test |
-| `pack.md` | ✅ | ✅ | ⚠️ | All strategies; missing: --tag/--moc/--query tests |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Merge works; missing: strategy/dry-run tests |
-| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing works; missing: some instrumentation |
+| `compaction.md` | ✅ | ✅ | ⚠️ | All commands; missing: guide, apply rejection tests |
+| `pack.md` | ✅ | ✅ | ⚠️ | All strategies; missing: --tag/--moc/--query/attachment tests |
+| `workspaces.md` | ✅ | ⚠️ | ⚠️ | P1: --from-note single note, list missing column |
+| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Tracing works; missing: instrumentation, trace/quiet tests |
 | `operational-database.md` | ✅ | ✅ | ✅ | SQLite; FTS5; schema; incremental repair |
 | `value-model.md` | ✅ | ⚠️ | ⚠️ | P1: tree uses BFS not Dijkstra; missing: --ignore-value |
-| `distribution.md` | ✅ | ⚠️ | ⚠️ | Cargo.toml ready; missing: release workflow, aarch64, installers |
+| `distribution.md` | ✅ | ⚠️ | ⚠️ | P1: repo URL, CI disabled; missing: release, aarch64, installers |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -76,15 +76,20 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- |
 | `value-model.md` | `link tree` calls `bfs_traverse()` instead of `dijkstra_traverse()` | `src/commands/link/tree.rs:61` |
 | `semantic-graph.md` | Context budget doesn't prefer typed links over `related` | `src/commands/context/mod.rs:264-281` |
+| `workspaces.md` | `--from-note` copies single note, not graph slice | `src/commands/workspace/new.rs:77-80` |
+| `workspaces.md` | `workspace list` missing "Last updated" column | `src/commands/workspace/list.rs:72-75` |
+| `llm-user-validation.md` | `--tags`, `--tier`, `--max-usd` flags parsed but ignored | `crates/llm-tool-test/src/main.rs:80-86` |
+| `distribution.md` | Repository URL mismatch (Cargo.toml vs git remote) | `Cargo.toml:11` |
+| `distribution.md` | CI workflow disabled (manual trigger only) | `.github/workflows/ci.yml:4-14` |
 
 ### P2: Missing Test Coverage
 
 | Spec | Gap | Reference |
 | --- | --- | --- |
-| `workspaces.md` | --dry-run, --strategy tests | `tests/cli/workspace.rs` |
-| `export.md` | bibliography, --tag, --query, --link-mode markdown | `tests/cli/export.rs` |
-| `pack.md` | --tag, --moc, --query, --no-attachments | `tests/cli/dump.rs` |
-| `compaction.md` | guide command test, apply invariant CLI test | `tests/cli/compact/` |
+| `workspaces.md` | --dry-run, --strategy, --delete-source tests | `tests/cli/workspace.rs` |
+| `export.md` | bibliography, --tag, --query, --link-mode markdown, ordering | `tests/cli/export.rs` |
+| `pack.md` | --tag, --moc, --query, --no-attachments, attachment roundtrip | `tests/cli/dump.rs` |
+| `compaction.md` | guide command test, apply invariant rejection CLI tests | `tests/cli/compact/` |
 | `structured-logging.md` | trace level, default quiet behavior | `tests/cli/logging.rs` |
 
 ### P3: Optional / Low Priority
@@ -93,9 +98,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- |
 | `value-model.md` | `--ignore-value` flag | Infrastructure exists, needs CLI exposure |
 | `structured-logging.md` | Instrumentation gaps | Index/search/note ops need `#[tracing::instrument]` |
-| `llm-user-validation.md` | Schema extensions | tags, docs.prime, report command, max_turns |
-| `distribution.md` | Release automation | Workflow, aarch64, installers, SHA256SUMS |
-| `workspaces.md` | `--from-note` graph slice | Currently single note; needs dump->load behavior |
+| `llm-user-validation.md` | Schema extensions | tags field, docs.prime, report command, max_turns |
+| `distribution.md` | Release automation | release.yml, aarch64, installers, SHA256SUMS |
 
 ### Not Applicable
 

@@ -17,11 +17,6 @@
   - Should call: `dijkstra_traverse()` when `ignore_value=false` (the default)
   - Impact: Value-based edge costs are not applied; all edges treated as cost 1.0
 
-- [ ] `link path` respects `ignore_value` but CLI doesn't expose the flag
-  - `bfs_find_path()` at `src/lib/graph/bfs.rs:746` correctly switches between weighted/unweighted
-  - But `src/commands/dispatch/link.rs:147` hardcodes `ignore_value: false`
-  - No `--ignore-value` flag in `src/cli/link.rs:110-149`
-
 ### semantic-graph.md
 
 - [ ] Context budget doesn't prefer typed links over `related`
@@ -29,6 +24,52 @@
   - Location: `src/commands/context/mod.rs:264-281`
   - Current: Notes sorted by verified, created, id - no link type awareness
   - Gap: Budget handling doesn't differentiate link types
+
+### workspaces.md
+
+- [ ] `--from-note` copies single note instead of graph slice
+  - Spec (line 64): "Initialize with a slice of the primary graph (like dump -> load)"
+  - Current: `src/commands/workspace/new.rs:77-80` only copies single note
+  - Code has TODO comment: "This should be a graph slice, but for now just copy the note"
+  - Impact: Workspace initialized from note misses related notes
+
+- [ ] `workspace list` missing "Last updated" column
+  - Spec (line 51-55): Output should include Name, Status, Note count, Last updated
+  - Current: `src/commands/workspace/list.rs:72-75` shows Name, Temp, Notes, Path
+  - Impact: Users cannot see when workspaces were last modified
+
+### llm-user-validation.md
+
+- [ ] `--tags` flag parsed but ignored in run command
+  - Spec (line 444): `--tags capture,links` should filter scenarios by tags
+  - CLI: `crates/llm-tool-test/src/cli.rs:22-24` defines argument
+  - Code: `crates/llm-tool-test/src/main.rs:80` marks `tags: _` (explicitly ignored)
+  - Impact: Tag filtering doesn't work
+
+- [ ] `--tier` flag parsed but ignored in run command
+  - Spec (line 445): Should filter scenarios by tier
+  - CLI: `crates/llm-tool-test/src/cli.rs:26-28` defines argument
+  - Code: `crates/llm-tool-test/src/main.rs:81` marks `tier: _` (explicitly ignored)
+  - Impact: Tier filtering doesn't work
+
+- [ ] `--max-usd` flag parsed but ignored (no cost enforcement)
+  - Spec (lines 446, 476-479): Per-run and session budget enforcement
+  - CLI: `crates/llm-tool-test/src/cli.rs:46-48` defines argument
+  - Code: `crates/llm-tool-test/src/main.rs:86` marks `max_usd: _` (explicitly ignored)
+  - Impact: No cost limits enforced
+
+### distribution.md
+
+- [ ] Repository URL mismatch between Cargo.toml and git remote
+  - Spec (lines 36, 49, 63): References `mwaldstein/qipu`
+  - Cargo.toml:11: `repository = "https://github.com/anomalyco/qipu"`
+  - Git remote: `git@github.com:mwaldstein/qipu.git`
+  - Impact: crates.io would publish with wrong repository URL
+
+- [ ] CI workflow disabled for automated triggers
+  - Spec (line 87-88): "On tagged releases (v*), automation should..."
+  - Current: `.github/workflows/ci.yml:4-14` runs only on `workflow_dispatch`
+  - Impact: No automatic CI on push/PR; tagged releases won't trigger builds
 
 ---
 
@@ -88,6 +129,10 @@
   - Implementation: `src/commands/dump/mod.rs:54-59`
   - Gap: No CLI test
 
+- [ ] Test attachment roundtrip (dump with attachments, load, verify)
+  - Implementation: `src/commands/dump/mod.rs:327-376`, `src/commands/load/mod.rs:362-396`
+  - Gap: No test creates note with attachment, dumps, loads, and verifies
+
 ### compaction.md
 
 - [ ] Test `qipu compact guide` command
@@ -106,6 +151,12 @@
 - [ ] Test default quiet behavior (no flags = no log output)
   - Gap: No explicit test
 
+### export.md
+
+- [ ] Test deterministic ordering for tag/query exports
+  - Implementation: `src/commands/export/plan.rs:100-110` sorts by `(created_at, id)`
+  - Gap: No test verifies ordering for non-MOC exports
+
 ---
 
 ## P3: Unimplemented but Ready
@@ -116,8 +167,9 @@
   - Spec: `specs/value-model.md:100-104`
   - Infrastructure exists: `src/lib/graph/types.rs:238-239` (`ignore_value` in TreeOptions)
   - Gap: No CLI flag exposed in `src/cli/link.rs`
+  - Note: `bfs_find_path()` already respects `ignore_value` internally
 
-- [ ] Switch `link tree` to call `dijkstra_traverse()` by default
+- [ ] Switch `link tree` to call `dijkstra_traverse()` by default (fix P1 bug)
   - Location: `src/commands/link/tree.rs:61`
   - Change: `if tree_opts.ignore_value { bfs_traverse() } else { dijkstra_traverse() }`
 
@@ -159,16 +211,26 @@
 
 ### workspaces.md
 
-- [ ] Add "Last updated" column to `workspace list` output
-  - Spec: line 55
-  - Gap: Column not displayed in `src/commands/workspace/list.rs:73-85`
-
-- [ ] Implement `--from-note` as graph slice (like dump -> load)
-  - Spec: line 64
+- [ ] Fix `--from-note` to perform graph slice (fix P1 bug)
+  - Spec: line 64 - "Initialize with a slice of the primary graph (like dump -> load)"
   - Current: `src/commands/workspace/new.rs:77-80` only copies single note
   - Comment in code: "This should be a graph slice, but for now just copy the note"
+  - Approach: Reuse dump/load traversal logic
+
+- [ ] Add "Last updated" column to `workspace list` output (fix P1 bug)
+  - Spec: line 55
+  - Gap: Column not displayed in `src/commands/workspace/list.rs:72-75`
+  - Need: Stat workspace directory or notes for mtime
 
 ### distribution.md
+
+- [ ] Fix repository URL in Cargo.toml to match git remote (fix P1 bug)
+  - Current: `repository = "https://github.com/anomalyco/qipu"`
+  - Should match: git remote `mwaldstein/qipu`
+
+- [ ] Enable CI workflow triggers (fix P1 bug)
+  - Current: `.github/workflows/ci.yml` only runs on `workflow_dispatch`
+  - Should: Trigger on push and pull_request
 
 - [ ] Create `.github/workflows/release.yml` for tagged releases
   - Spec: lines 85-92
@@ -189,6 +251,33 @@
 - [ ] Generate SHA256SUMS for releases
   - Spec: line 90
   - Gap: Not implemented
+
+### llm-user-validation.md
+
+- [ ] Add `tags` field to scenario schema (fix P1 bug - filtering needs schema)
+  - Spec: line 123 - `tags: [capture, links, retrieval]`
+  - Location: `crates/llm-tool-test/src/scenario.rs:4-17`
+
+- [ ] Add `docs.prime` and `docs.help_commands` to scenario schema
+  - Spec: lines 125-131 - include `qipu prime` output in context
+  - Location: `crates/llm-tool-test/src/scenario.rs`
+
+- [ ] Wire `--tags` filtering in run command (fix P1 bug)
+  - Currently ignored: `crates/llm-tool-test/src/main.rs:80`
+
+- [ ] Wire `--tier` filtering in run command (fix P1 bug)
+  - Currently ignored: `crates/llm-tool-test/src/main.rs:81`
+
+- [ ] Wire `--max-usd` cost enforcement (fix P1 bug)
+  - Currently ignored: `crates/llm-tool-test/src/main.rs:86`
+
+- [ ] Add `report` command
+  - Spec: line 455 - `llm-tool-test report` for summary
+  - Gap: Command not implemented
+
+- [ ] Add per-scenario `run.max_turns` support
+  - Spec: line 160
+  - Gap: Not in schema or adapter interface
 
 ---
 

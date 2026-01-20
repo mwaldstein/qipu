@@ -58,8 +58,9 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | `rename` merge strategy | Spec marks as "Complexity warning" - fork IDs to avoid conflicts | 113-116 |
 | Git integration for temp workspaces | Auto-add to .gitignore | 142 |
 | Merge creates git commit | Design needed for commit message format | 143 |
-| `--from-note` graph slice | Currently copies single note only; spec says "like dump -> load" | Comment in `src/commands/workspace/new.rs:77-78` |
 | Post-merge doctor check | Spec says run `qipu doctor` after merge; not implemented | 119-120 |
+
+Note: `--from-note` graph slice moved to IMPLEMENTATION_PLAN.md (P1 bug + P3 ready)
 
 ### operational-database.md
 
@@ -94,7 +95,8 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 |------|-------|-----------|
 | Homebrew tap | Requires separate repository setup | 62-69 |
 | crates.io publishing | Account setup and verification needed | 92 |
-| Repository URL alignment | Cargo.toml says `anomalyco/qipu`, remote is `mwaldstein/qipu` | 11 vs remote |
+
+Note: Repository URL mismatch moved to IMPLEMENTATION_PLAN.md (P1 bug - simple fix)
 
 ### semantic-graph.md
 
@@ -102,6 +104,13 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 |------|-------|-----------|
 | Variable hop costs per link type | Spec allows 0.5 or "free" costs; currently all 1.0 | 74-77 |
 | Doctor warnings for semantic misuse | Spec says warn on misused link types | 109 |
+
+### compaction.md
+
+| Item | Issue | Spec Line |
+|------|-------|-----------|
+| Breadcrumb `via=<id>` in traversal outputs | Spec says search hits in compacted notes yield `via=<id>`; not in `link tree`/`link path` | 118-120 |
+| Depth-aware compaction metrics | Spec marks as optional ("may optionally") | 176-177 |
 
 ---
 

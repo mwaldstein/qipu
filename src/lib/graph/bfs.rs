@@ -1,12 +1,13 @@
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::graph::types::{
-    filter_edge, get_link_type_cost, Direction, HopCost, PathResult, SpanningTreeEntry, TreeLink,
-    TreeNote, TreeOptions, TreeResult,
+    filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, PathResult,
+    SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult,
 };
 use crate::lib::graph::GraphProvider;
 use crate::lib::index::Edge;
 use crate::lib::store::Store;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 /// Perform BFS traversal from a root node
@@ -314,6 +315,370 @@ pub fn bfs_traverse(
     })
 }
 
+/// Priority queue entry for Dijkstra traversal
+/// Ordered by accumulated cost (min-heap: lowest cost first)
+#[derive(Debug, Clone)]
+struct HeapEntry {
+    node_id: String,
+    accumulated_cost: HopCost,
+}
+
+impl PartialEq for HeapEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.accumulated_cost == other.accumulated_cost && self.node_id == other.node_id
+    }
+}
+
+impl Eq for HeapEntry {}
+
+impl PartialOrd for HeapEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for HeapEntry {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Min-heap: lower cost = higher priority
+        self.accumulated_cost
+            .partial_cmp(&other.accumulated_cost)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| self.node_id.cmp(&other.node_id))
+    }
+}
+
+/// Perform Dijkstra traversal from a root node using weighted edge costs
+///
+/// This function implements Dijkstra's algorithm for weighted graph traversal.
+/// Edge costs are calculated based on target note value:
+/// - With `--ignore-value`: all edges cost 1.0 (equivalent to BFS)
+/// - Default: edge cost = LinkTypeCost * (1 + (100 - target_value) / 100)
+///
+/// The traversal uses a min-heap (BinaryHeap) to always expand the node with
+/// the lowest accumulated cost first, ensuring optimal paths are found.
+#[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(root = %root, direction = ?opts.direction, max_hops = %opts.max_hops.value(), max_nodes, max_edges, max_fanout, ignore_value = %opts.ignore_value))]
+pub fn dijkstra_traverse(
+    provider: &dyn GraphProvider,
+    store: &Store,
+    root: &str,
+    opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
+) -> Result<TreeResult> {
+    use std::collections::BinaryHeap;
+
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::new();
+    let mut notes: Vec<TreeNote> = Vec::new();
+    let mut links: Vec<TreeLink> = Vec::new();
+    let mut spanning_tree: Vec<SpanningTreeEntry> = Vec::new();
+
+    let mut truncated = false;
+    let mut truncation_reason: Option<String> = None;
+
+    // Check min_value filter for root note before initializing
+    let root_passes_filter = if let Some(meta) = provider.get_metadata(root) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !root_passes_filter {
+        return Ok(TreeResult {
+            root: root.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            max_hops: opts.max_hops.as_u32_for_display(),
+            truncated: false,
+            truncation_reason: Some("min_value filter excluded root".to_string()),
+            notes: vec![],
+            links: vec![],
+            spanning_tree: vec![],
+        });
+    }
+
+    // Initialize with root
+    heap.push(HeapEntry {
+        node_id: root.to_string(),
+        accumulated_cost: HopCost::from(0),
+    });
+    visited.insert(root.to_string());
+
+    // Add root note
+    if let Some(meta) = provider.get_metadata(root) {
+        notes.push(TreeNote {
+            id: meta.id.clone(),
+            title: meta.title.clone(),
+            note_type: meta.note_type,
+            tags: meta.tags.clone(),
+            path: meta.path.clone(),
+        });
+    }
+
+    while let Some(entry) = heap.pop() {
+        let current_id = entry.node_id;
+        let accumulated_cost = entry.accumulated_cost;
+
+        // Check max_nodes limit
+        if let Some(max) = opts.max_nodes {
+            if visited.len() >= max {
+                truncated = true;
+                truncation_reason = Some("max_nodes".to_string());
+                break;
+            }
+        }
+
+        // Check max_edges limit
+        if let Some(max) = opts.max_edges {
+            if links.len() >= max {
+                truncated = true;
+                truncation_reason = Some("max_edges".to_string());
+                break;
+            }
+        }
+
+        // Don't expand beyond max_hops (use accumulated cost)
+        if accumulated_cost.value() >= opts.max_hops.value() {
+            // Check if there are any neighbors that would have been expanded
+            let source_ids = equivalence_map
+                .and_then(|map| map.get(&current_id).cloned())
+                .unwrap_or_else(|| vec![current_id.clone()]);
+
+            let has_unexpanded_neighbors =
+                if opts.direction == Direction::Out || opts.direction == Direction::Both {
+                    source_ids.iter().any(|id| {
+                        provider
+                            .get_outbound_edges(id)
+                            .iter()
+                            .any(|e| filter_edge(e, opts))
+                    })
+                } else {
+                    false
+                } || if opts.direction == Direction::In || opts.direction == Direction::Both {
+                    source_ids.iter().any(|id| {
+                        provider
+                            .get_inbound_edges(id)
+                            .iter()
+                            .any(|e| filter_edge(e, opts))
+                    })
+                } else {
+                    false
+                };
+
+            if has_unexpanded_neighbors {
+                truncated = true;
+                if truncation_reason.is_none() {
+                    truncation_reason = Some("max_hops".to_string());
+                }
+            }
+
+            continue;
+        }
+
+        // Get neighbors based on direction (gather edges from all compacted notes)
+        let source_ids = equivalence_map
+            .and_then(|map| map.get(&current_id).cloned())
+            .unwrap_or_else(|| vec![current_id.clone()]);
+
+        let mut neighbors = Vec::new();
+
+        // Outbound edges
+        if opts.direction == Direction::Out || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_outbound_edges(source_id) {
+                    if filter_edge(&edge, opts) {
+                        neighbors.push((edge.to.clone(), edge));
+                    }
+                }
+            }
+        }
+
+        // Inbound edges (Inversion point)
+        if opts.direction == Direction::In || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_inbound_edges(source_id) {
+                    if opts.semantic_inversion {
+                        // Virtual Inversion
+                        let virtual_edge = edge.invert(store.config());
+                        if filter_edge(&virtual_edge, opts) {
+                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                        }
+                    } else {
+                        // Raw backlink
+                        if filter_edge(&edge, opts) {
+                            neighbors.push((edge.from.clone(), edge));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort for determinism
+        neighbors.sort_by(|a, b| {
+            a.1.link_type
+                .cmp(&b.1.link_type)
+                .then_with(|| a.0.cmp(&b.0))
+        });
+
+        // Apply max_fanout
+        let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {
+            if neighbors.len() > max_fanout {
+                truncated = true;
+                truncation_reason = Some("max_fanout".to_string());
+            }
+            neighbors.into_iter().take(max_fanout).collect()
+        } else {
+            neighbors
+        };
+
+        for (neighbor_id, edge) in neighbors {
+            // Canonicalize edge endpoints if using compaction
+            let canonical_from = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.from)?
+            } else {
+                edge.from.clone()
+            };
+            let canonical_to = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.to)?
+            } else {
+                edge.to.clone()
+            };
+
+            // Skip self-loops introduced by compaction contraction
+            if canonical_from == canonical_to {
+                continue;
+            }
+
+            // Canonicalize the neighbor ID
+            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&neighbor_id)?
+            } else {
+                neighbor_id.clone()
+            };
+
+            // Check min_value filter before adding link or processing neighbor
+            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
+                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
+                    let value = meta.value.unwrap_or(50);
+                    opts.min_value.is_none_or(|min| value >= min)
+                } else {
+                    false
+                }
+            } else {
+                true
+            };
+
+            // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
+            if !neighbor_passes_filter {
+                continue;
+            }
+
+            // Check max_edges again before adding
+            if let Some(max) = opts.max_edges {
+                if links.len() >= max {
+                    truncated = true;
+                    truncation_reason = Some("max_edges".to_string());
+                    break;
+                }
+            }
+
+            // Add edge with canonical IDs
+            links.push(TreeLink {
+                from: canonical_from.clone(),
+                to: canonical_to.clone(),
+                link_type: edge.link_type.to_string(),
+                source: edge.source.to_string(),
+            });
+
+            // Process neighbor if not visited (use canonical ID)
+            if !visited.contains(&canonical_neighbor) {
+                // Check max_nodes before adding
+                if let Some(max) = opts.max_nodes {
+                    if visited.len() >= max {
+                        truncated = true;
+                        truncation_reason = Some("max_nodes".to_string());
+                        break;
+                    }
+                }
+
+                visited.insert(canonical_neighbor.clone());
+
+                // Calculate edge cost based on ignore_value flag
+                let edge_cost = if opts.ignore_value {
+                    get_link_type_cost(edge.link_type.as_str())
+                } else {
+                    let target_value = provider
+                        .get_metadata(&canonical_neighbor)
+                        .and_then(|meta| meta.value)
+                        .unwrap_or(50);
+                    get_edge_cost(edge.link_type.as_str(), target_value)
+                };
+
+                let new_cost = accumulated_cost + edge_cost;
+
+                // Add to spanning tree (first discovery, use canonical IDs)
+                spanning_tree.push(SpanningTreeEntry {
+                    from: current_id.clone(),
+                    to: canonical_neighbor.clone(),
+                    hop: new_cost.as_u32_for_display(),
+                    link_type: edge.link_type.to_string(),
+                });
+
+                // Add note metadata (use canonical ID)
+                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
+                    notes.push(TreeNote {
+                        id: meta.id.clone(),
+                        title: meta.title.clone(),
+                        note_type: meta.note_type,
+                        tags: meta.tags.clone(),
+                        path: meta.path.clone(),
+                    });
+                }
+
+                // Queue for further expansion (use canonical ID)
+                heap.push(HeapEntry {
+                    node_id: canonical_neighbor,
+                    accumulated_cost: new_cost,
+                });
+            }
+        }
+    }
+
+    // Sort for determinism
+    notes.sort_by(|a, b| a.id.cmp(&b.id));
+    links.sort_by(|a, b| {
+        a.from
+            .cmp(&b.from)
+            .then_with(|| a.link_type.cmp(&b.link_type))
+            .then_with(|| a.to.cmp(&b.to))
+    });
+    spanning_tree.sort_by(|a, b| {
+        a.hop
+            .cmp(&b.hop)
+            .then_with(|| a.link_type.cmp(&b.link_type))
+            .then_with(|| a.to.cmp(&b.to))
+    });
+
+    Ok(TreeResult {
+        root: root.to_string(),
+        direction: match opts.direction {
+            Direction::Out => "out".to_string(),
+            Direction::In => "in".to_string(),
+            Direction::Both => "both".to_string(),
+        },
+        max_hops: opts.max_hops.as_u32_for_display(),
+        truncated,
+        truncation_reason,
+        notes,
+        links,
+        spanning_tree,
+    })
+}
+
 /// Find path between two nodes using BFS
 #[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(from = %from, to = %to, direction = ?opts.direction, max_hops = %opts.max_hops.value()))]
 pub fn bfs_find_path(
@@ -485,6 +850,269 @@ pub fn bfs_find_path(
                 let edge_cost = get_link_type_cost(edge.link_type.as_str());
                 let new_cost = accumulated_cost + edge_cost;
                 queue.push_back((canonical_neighbor, new_cost));
+            }
+        }
+    }
+
+    // Reconstruct path if found
+    let (notes, links) = if found {
+        let mut path_nodes: Vec<String> = Vec::new();
+        let mut path_links: Vec<TreeLink> = Vec::new();
+
+        // Backtrack from target to source
+        let mut current = to.to_string();
+        path_nodes.push(current.clone());
+
+        while current != from {
+            if let Some((pred, edge)) = predecessors.get(&current) {
+                path_links.push(TreeLink {
+                    from: edge.from.clone(),
+                    to: edge.to.clone(),
+                    link_type: edge.link_type.to_string(),
+                    source: edge.source.to_string(),
+                });
+                current = pred.clone();
+                path_nodes.push(current.clone());
+            } else {
+                break;
+            }
+        }
+
+        path_nodes.reverse();
+        path_links.reverse();
+
+        // Convert to TreeNotes
+        let tree_notes: Vec<TreeNote> = path_nodes
+            .iter()
+            .filter_map(|id| {
+                provider.get_metadata(id).map(|meta| TreeNote {
+                    id: meta.id.clone(),
+                    title: meta.title.clone(),
+                    note_type: meta.note_type,
+                    tags: meta.tags.clone(),
+                    path: meta.path.clone(),
+                })
+            })
+            .collect();
+
+        (tree_notes, path_links)
+    } else {
+        (Vec::new(), Vec::new())
+    };
+
+    Ok(PathResult {
+        from: from.to_string(),
+        to: to.to_string(),
+        direction: match opts.direction {
+            Direction::Out => "out".to_string(),
+            Direction::In => "in".to_string(),
+            Direction::Both => "both".to_string(),
+        },
+        found,
+        path_length: links.len(),
+        notes,
+        links,
+    })
+}
+
+/// Find path between two nodes using Dijkstra's algorithm with weighted edge costs
+///
+/// This function implements Dijkstra's algorithm for finding the shortest path
+/// in a weighted graph. Edge costs are calculated based on target note value:
+/// - With `--ignore-value`: all edges cost 1.0 (equivalent to BFS)
+/// - Default: edge cost = LinkTypeCost * (1 + (100 - target_value) / 100)
+///
+/// The algorithm uses a min-heap (BinaryHeap) to always expand the node with
+/// the lowest accumulated cost first, ensuring the shortest cost path is found.
+#[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(from = %from, to = %to, direction = ?opts.direction, max_hops = %opts.max_hops.value(), ignore_value = %opts.ignore_value))]
+pub fn dijkstra_find_path(
+    provider: &dyn GraphProvider,
+    store: &Store,
+    from: &str,
+    to: &str,
+    opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
+) -> Result<PathResult> {
+    use std::collections::BinaryHeap;
+
+    // Check min_value filter for from and to notes before initializing
+    let from_passes_filter = if let Some(meta) = provider.get_metadata(from) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !from_passes_filter {
+        return Ok(PathResult {
+            from: from.to_string(),
+            to: to.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            found: false,
+            notes: vec![],
+            links: vec![],
+            path_length: 0,
+        });
+    }
+
+    let to_passes_filter = if let Some(meta) = provider.get_metadata(to) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !to_passes_filter {
+        return Ok(PathResult {
+            from: from.to_string(),
+            to: to.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            found: false,
+            notes: vec![],
+            links: vec![],
+            path_length: 0,
+        });
+    }
+
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::new();
+    let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
+
+    // Initialize
+    heap.push(HeapEntry {
+        node_id: from.to_string(),
+        accumulated_cost: HopCost::from(0),
+    });
+    visited.insert(from.to_string());
+
+    let mut found = false;
+
+    while let Some(entry) = heap.pop() {
+        let current_id = entry.node_id;
+        let accumulated_cost = entry.accumulated_cost;
+
+        // Check if we found the target
+        if current_id == to {
+            found = true;
+            break;
+        }
+
+        // Don't expand beyond max_hops (use accumulated cost)
+        if accumulated_cost.value() >= opts.max_hops.value() {
+            continue;
+        }
+
+        // Get neighbors (gather edges from all compacted notes)
+        let source_ids = equivalence_map
+            .and_then(|map| map.get(&current_id).cloned())
+            .unwrap_or_else(|| vec![current_id.clone()]);
+
+        let mut neighbors = Vec::new();
+        // Outbound edges
+        if opts.direction == Direction::Out || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_outbound_edges(source_id) {
+                    if filter_edge(&edge, opts) {
+                        neighbors.push((edge.to.clone(), edge));
+                    }
+                }
+            }
+        }
+        // Inbound edges
+        if opts.direction == Direction::In || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_inbound_edges(source_id) {
+                    if opts.semantic_inversion {
+                        let virtual_edge = edge.invert(store.config());
+                        if filter_edge(&virtual_edge, opts) {
+                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                        }
+                    } else if filter_edge(&edge, opts) {
+                        neighbors.push((edge.from.clone(), edge));
+                    }
+                }
+            }
+        }
+
+        for (neighbor_id, edge) in neighbors {
+            // Canonicalize edge endpoints if using compaction
+            let canonical_from = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.from)?
+            } else {
+                edge.from.clone()
+            };
+            let canonical_to = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&edge.to)?
+            } else {
+                edge.to.clone()
+            };
+
+            // Skip self-loops introduced by compaction contraction
+            if canonical_from == canonical_to {
+                continue;
+            }
+
+            // Canonicalize the neighbor ID
+            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
+                ctx.canon(&neighbor_id)?
+            } else {
+                neighbor_id.clone()
+            };
+
+            // Check min_value filter before processing neighbor
+            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
+                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
+                    let value = meta.value.unwrap_or(50);
+                    opts.min_value.is_none_or(|min| value >= min)
+                } else {
+                    false
+                }
+            } else {
+                true
+            };
+
+            // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
+            if !neighbor_passes_filter {
+                continue;
+            }
+
+            if !visited.contains(&canonical_neighbor) {
+                visited.insert(canonical_neighbor.clone());
+                // Store canonical edge
+                let canonical_edge = Edge {
+                    from: canonical_from,
+                    to: canonical_to,
+                    link_type: edge.link_type.clone(),
+                    source: edge.source,
+                };
+                predecessors.insert(
+                    canonical_neighbor.clone(),
+                    (current_id.clone(), canonical_edge),
+                );
+                // Calculate edge cost based on ignore_value flag
+                let edge_cost = if opts.ignore_value {
+                    get_link_type_cost(edge.link_type.as_str())
+                } else {
+                    let target_value = provider
+                        .get_metadata(&canonical_neighbor)
+                        .and_then(|meta| meta.value)
+                        .unwrap_or(50);
+                    get_edge_cost(edge.link_type.as_str(), target_value)
+                };
+                let new_cost = accumulated_cost + edge_cost;
+                heap.push(HeapEntry {
+                    node_id: canonical_neighbor,
+                    accumulated_cost: new_cost,
+                });
             }
         }
     }

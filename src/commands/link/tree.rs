@@ -54,18 +54,30 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
         });
     }
 
-    // Perform BFS traversal with compaction context
+    // Perform traversal with compaction context
     let mut tree_opts = opts.clone();
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
-    let result = crate::lib::graph::bfs_traverse(
-        &index,
-        store,
-        &canonical_id,
-        &tree_opts,
-        compaction_ctx.as_ref(),
-        equivalence_map.as_ref(),
-    )?;
+    // Use Dijkstra for weighted traversal (default), BFS for unweighted (--ignore-value)
+    let result = if tree_opts.ignore_value {
+        crate::lib::graph::bfs_traverse(
+            &index,
+            store,
+            &canonical_id,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    } else {
+        crate::lib::graph::dijkstra_traverse(
+            &index,
+            store,
+            &canonical_id,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    };
 
     // Output
     match cli.format {

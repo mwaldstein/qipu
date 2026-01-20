@@ -68,19 +68,32 @@ pub fn execute(
         });
     }
 
-    // Find path using BFS with compaction context
+    // Find path using weighted or unweighted traversal with compaction context
     let mut tree_opts = opts.clone();
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
-    let result = crate::lib::graph::bfs_find_path(
-        &index,
-        store,
-        &canonical_from,
-        &canonical_to,
-        &tree_opts,
-        compaction_ctx.as_ref(),
-        equivalence_map.as_ref(),
-    )?;
+    // Use Dijkstra for weighted traversal (default), BFS for unweighted (--ignore-value)
+    let result = if tree_opts.ignore_value {
+        crate::lib::graph::bfs_find_path(
+            &index,
+            store,
+            &canonical_from,
+            &canonical_to,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    } else {
+        crate::lib::graph::dijkstra_find_path(
+            &index,
+            store,
+            &canonical_from,
+            &canonical_to,
+            &tree_opts,
+            compaction_ctx.as_ref(),
+            equivalence_map.as_ref(),
+        )?
+    };
 
     // Output
     match cli.format {

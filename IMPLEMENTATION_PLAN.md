@@ -115,12 +115,12 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
   - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
 - [x] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs` - completed 2026-01-20
-- [ ] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs`
+- [x] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs` - completed 2026-01-20
   - New function `dijkstra_traverse()` using `BinaryHeap` instead of `VecDeque`
   - Order by accumulated cost (min-heap)
   - Default behavior: weighted (Dijkstra)
   - With `--ignore-value`: unweighted (BFS, all edges cost 1.0)
-- [ ] Update `bfs_find_path()` to support weighted mode
+- [x] Update `bfs_find_path()` to support weighted mode - completed 2026-01-20
 
 ### Phase 4: Integration
 - [ ] Update `qipu context` to respect `--min-value` threshold
@@ -248,4 +248,25 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - Updated all TreeOptions construction sites:
   - `src/commands/dump/mod.rs` (dump command traversal)
   - `src/commands/dispatch/link.rs` (link tree and link path commands)
+- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Dijkstra Traversal Implementation (completed 2026-01-20)
+- Added `HeapEntry` struct for priority queue entries with `Ord` implementation for min-heap ordering
+  - Orders by accumulated cost (lowest first), with node ID as tiebreaker
+- Implemented `dijkstra_traverse()` function in `src/lib/graph/bfs.rs`:
+  - Uses `BinaryHeap` instead of `VecDeque` for priority queue
+  - Calculates edge cost using `get_edge_cost()` when `ignore_value` is false (default)
+  - Uses `get_link_type_cost()` when `ignore_value` is true (unweighted mode)
+  - Mirrors `bfs_traverse()` logic but with cost-ordered expansion
+- Implemented `dijkstra_find_path()` function in `src/lib/graph/bfs.rs`:
+  - Dijkstra's algorithm for shortest path in weighted graph
+  - Supports both weighted (default) and unweighted (`--ignore-value`) modes
+  - Returns same `PathResult` type as `bfs_find_path()`
+- Updated `src/commands/link/tree.rs`:
+  - Conditionally uses `dijkstra_traverse()` for weighted mode (default)
+  - Uses `bfs_traverse()` only when `ignore_value` is true
+- Updated `src/commands/link/path.rs`:
+  - Conditionally uses `dijkstra_find_path()` for weighted mode (default)
+  - Uses `bfs_find_path()` only when `ignore_value` is true
+- Updated `src/lib/graph/mod.rs` to export both new functions
 - All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

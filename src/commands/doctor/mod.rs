@@ -6,8 +6,11 @@
 //! - `--fix` auto-repairs issues where possible
 
 pub mod checks;
+pub mod content;
+pub mod database;
 pub mod fix;
 pub mod report;
+pub mod structure;
 pub mod types;
 
 use crate::cli::Cli;

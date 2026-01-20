@@ -15,7 +15,7 @@ Large files to split for maintainability:
 - [x] `src/commands/link/list.rs` (454 lines) → Extract output formatters
 - [x] `src/commands/link/path.rs` (450 lines) → Extract output formatters
 - [x] `src/lib/db/notes.rs` (432 lines) → Split CRUD operations
-- [ ] `src/commands/doctor/checks.rs` (402 lines) → Group by category
+- [x] `src/commands/doctor/checks.rs` (402 lines) → Group by category
 
 ### Structured Logging Gaps
 Commands missing tracing instrumentation:
@@ -88,6 +88,14 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - Env: `QIPU_LOG` override
 
 ## Learnings
+
+### Doctor Checks Refactoring (completed 2026-01-19)
+- Split `src/commands/doctor/checks.rs` (403 lines) into three focused modules:
+  - `structure.rs` (store directory structure checks)
+  - `database.rs` (database consistency checks: duplicate IDs, missing files, broken/orphaned notes)
+  - `content.rs` (note validation: scan, required fields, compaction invariants, duplicates, attachments)
+- Used re-exports in `checks.rs` for backward compatibility with existing code
+- All 229 tests pass after refactoring
 
 ### Semantic Quality Evaluation (completed 2026-01-19)
 - The existing judge system already supports flexible rubrics via YAML configuration

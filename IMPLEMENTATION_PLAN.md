@@ -130,7 +130,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 
 ### Phase 4: Integration
 - [x] Update `qipu context` to respect `--min-value` threshold (completed 2026-01-20)
-- [ ] Update `qipu doctor` to validate value range (0-100)
+- [x] Update `qipu doctor` to validate value range (0-100) - completed 2026-01-20
 - [ ] Add tests for value filtering and weighted traversal
 - [ ] Update help text and man pages
 
@@ -283,3 +283,16 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Heap entry comparison ordering
 - Exported `dijkstra_traverse` from graph module
 - All 208 unit tests pass (including 4 new dijkstra_traverse tests)
+
+### Value Range Validation (completed 2026-01-20)
+- Added `check_value_range()` function in `src/commands/doctor/content.rs`
+- Validates that when `value` field is Some(v), v must be in range 0-100
+- None values are valid (default to 50 in other parts of the system)
+- Added check call in `src/commands/doctor/mod.rs` execute function (after required fields check)
+- Added 4 unit tests covering:
+  - Invalid value (150) detection
+  - Valid values (0, 50, 100) pass validation
+  - None values pass validation
+  - Boundary value (101) detection
+- All doctor tests pass (12 tests, including 4 new value range tests)
+- All 457 tests pass (203 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

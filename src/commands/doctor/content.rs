@@ -127,6 +127,27 @@ pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorR
     }
 }
 
+pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
+    for note in notes {
+        if let Some(value) = note.frontmatter.value {
+            if value > 100 {
+                result.add_issue(Issue {
+                    severity: Severity::Error,
+                    category: "invalid-value".to_string(),
+                    message: format!(
+                        "Note '{}' has invalid value: {} (must be 0-100)",
+                        note.id(),
+                        value
+                    ),
+                    note_id: Some(note.id().to_string()),
+                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    fixable: false,
+                });
+            }
+        }
+    }
+}
+
 pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResult) {
     let attachments_dir = store.root().join(ATTACHMENTS_DIR);
     let mut referenced_attachments = HashSet::new();

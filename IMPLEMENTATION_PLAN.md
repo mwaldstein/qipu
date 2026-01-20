@@ -62,7 +62,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Add tests for command parsing from transcript
 - [x] Add tests for `build_tool_matrix()` edge cases
 - [x] Add mock adapter for offline testing
-- [ ] Add end-to-end test with mock adapter
+- [x] Add end-to-end test with mock adapter
 - [ ] Remove dead code: `ResultsDB::load_latest_by_scenario`
 
 ### File Refactoring (P3)

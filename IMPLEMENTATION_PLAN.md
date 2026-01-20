@@ -66,7 +66,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Remove dead code: `ResultsDB::load_latest_by_scenario`
 
 ### File Refactoring (P3)
-- [ ] Extract `run_single_scenario` from `main.rs` into `run.rs`
+- [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
 - [ ] Extract command handlers into `commands.rs`
 - [ ] Extract print functions into `output.rs`
 

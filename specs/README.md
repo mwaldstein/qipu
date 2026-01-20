@@ -34,7 +34,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-19*
+*Last audited: 2026-01-20*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
@@ -54,7 +54,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `compaction.md` | ✅ | ✅ | ✅ | All commands; all flags; truncation indicators |
 | `pack.md` | ✅ | ✅ | ✅ | All strategies work; merge-links preserves content; filters work |
 | `workspaces.md` | ✅ | ✅ | ⚠️ | Merge strategies work; --dry-run implemented; tests needed for --dry-run/--empty |
-| `structured-logging.md` | ✅ | ⚠️ | ✅ | Tracing init works; tests pass; 16 eprintln! remain |
+| `structured-logging.md` | ✅ | ✅ | ✅ | Tracing init works; tests pass; eprintln! usage minimal |
 | `operational-database.md` | ✅ | ✅ | ✅ | SQLite complete; FTS5; schema version; incremental repair |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
@@ -71,11 +71,9 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Gap | Notes |
 | --- | --- | --- |
 | `cli-tool.md` | Verbose timing keys | Only `discover_store` instrumented; `load_indexes`/`execute_command` missing |
-| `structured-logging.md` | eprintln! cleanup | 16 callsites remain; should use tracing |
 | `llm-user-validation.md` | Tool default | Defaults to "opencode", spec says "amp" |
 | `llm-user-validation.md` | Scenario schema | Missing id, tags, docs.prime, setup, etc. |
 | `workspaces.md` | Test coverage | Need --dry-run and --empty tests |
-| `operational-database.md` | validate_consistency() | Method exists but not called on startup |
 
 ### Not Applicable
 

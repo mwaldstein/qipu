@@ -3,360 +3,62 @@
 ## Status
 - Test baseline: `cargo test` passes (439 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
+- Audit Date: 2026-01-20
 
 ---
 
-## Qipu Core (P2)
+## P1: Correctness Bugs
+
+### LLM Tool Test Harness
+- [ ] Fix default tool mismatch in `llm-user-validation.md` (spec says "amp", code uses "opencode")
+  - `crates/llm-tool-test/src/cli.rs:31`: `default_value = "opencode"`
+  - `specs/llm-user-validation.md`: says default is "amp"
+
+---
+
+## P2: Missing Test Coverage
+
+### Workspaces
+- [ ] Add tests for `--dry-run` and `--empty` flags
+  - `src/commands/workspace/new.rs`: `empty` logic
+  - `src/commands/workspace/merge.rs`: `dry_run` logic
+  - `tests/workspace_merge_test.rs`: existing tests do not cover these
+
+### LLM Tool Test Harness
+- [ ] Add scenario schema validation tests
+  - `crates/llm-tool-test/src/scenario.rs`: `Scenario` struct validation
+  - Ensure all required fields (id, tags, docs) are present or optional as per spec
+
+---
+
+## Completed (Verified 2026-01-20)
+
+### Structured Logging
+- [x] `src/commands/capture.rs` - Verified `tracing::debug!` usage
+- [x] `src/commands/compact/*.rs` - Verified
+- [x] `src/commands/context/*.rs` - Verified
+- [x] `src/commands/workspace/*.rs` - Verified
+- [x] `eprintln!` cleanup (reduced from 16 to 4 acceptable calls in `main.rs`)
 
 ### File Size Refactoring
-Large files to split for maintainability:
-- [x] `src/commands/context/output.rs` (668 lines) → `json.rs`, `human.rs`, `records.rs`
-- [x] `src/lib/graph/traversal.rs` (470 lines) → Extract BFS module (bfs.rs)
-- [x] `src/commands/link/list.rs` (454 lines) → Extract output formatters
-- [x] `src/commands/link/path.rs` (450 lines) → Extract output formatters
-- [x] `src/lib/db/notes.rs` (432 lines) → Split CRUD operations
-- [x] `src/commands/doctor/checks.rs` (402 lines) → Group by category
+- [x] `src/commands/context/output.rs` split -> `json.rs`, `human.rs`, `records.rs`
+- [x] `src/lib/graph/traversal.rs` split -> `bfs.rs`
+- [x] `src/commands/link/list.rs` extracted output formatters
+- [x] `src/lib/db/notes.rs` split CRUD operations
+- [x] `src/commands/doctor/checks.rs` split by category
 
-### Structured Logging Gaps
-Commands missing tracing instrumentation:
-- [x] `src/commands/capture.rs`
-- [x] `src/commands/create.rs`
-- [x] `src/commands/search.rs`
-- [x] `src/commands/compact/*.rs` (7 files) - completed 2026-01-19
-- [x] `src/commands/context/{budget,output,select,types}.rs` - completed 2026-01-19
-- [x] `src/commands/workspace/{list,merge,new}.rs` - completed 2026-01-19
+### Value Model (`specs/value-model.md`)
+- [x] Data Model: `value` in `NoteFrontmatter`, schema v2, index support
+- [x] CLI: `qipu value` command, `--min-value` filters in list/search/context/link
+- [x] Traversal: `get_edge_cost`, `dijkstra_traverse`, `--ignore-value`
+- [x] Integration: `doctor` range check, weighted traversal tests
 
-### Test Coverage Gaps
-- [x] Add unit tests to `src/commands/list.rs` (231 lines)
-- [x] Add CLI tests for workspace commands (`new`, `list`, `delete`)
+### LLM Tool Test Harness
+- [x] Scenarios: smoke, basic, search, context
+- [x] Gates: NoteExists, LinkExists, TagExists, ContentContains, CommandSucceeds
+- [x] Judge: Semantic quality, composite score
+- [x] Human Review: `review` command, database storage
+- [x] Infrastructure: `commands.rs` extraction
 
----
-
-## LLM Tool Test Harness (`crates/llm-tool-test`)
-
-### Scenarios (P1)
-- [x] Create tier 0 (smoke) scenario: single `qipu create` command
-- [x] Create tier 1 (quick) scenarios: basic capture, simple linking
-- [x] Add scenarios: `search_basic`, `context_retrieval`, `compaction_workflow`
-- [x] Add `setup` step support (pre-populate store with seed notes)
-
-### Gate Types (P1)
-Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagExists`, `ContentContains`, `CommandSucceeds`
-- [x] Add `NoteExists { id }` - verify specific note created
-- [x] Add `LinkExists { from, to, link_type }` - verify specific link
-- [x] Add `TagExists { tag }` - verify tag usage
-- [x] Add `ContentContains { id, substring }` - verify note content
-- [x] Add `CommandSucceeds { command }` - arbitrary qipu command
-
-### LLM Judge Enhancements (P2)
-- [x] Add semantic quality evaluation (relevance, coherence, granularity)
-- [x] Add weighted composite score combining automated + judge metrics
-- [x] Define score thresholds: Excellent (0.9+), Good (0.7-0.9), Acceptable (0.5-0.7), Poor (<0.5)
-
-### Human Review Integration (P2)
-- [x] Add `review <RUN_ID> --dimension key=value --notes "..."` subcommand
-- [x] Add `list --pending-review` to find unreviewed runs
-- [x] Store human scores in results record
-
-### Test Infrastructure (P2)
-- [x] Add tests for command parsing from transcript
-- [x] Add tests for `build_tool_matrix()` edge cases
-- [x] Add mock adapter for offline testing
-- [x] Add end-to-end test with mock adapter
-- [x] Remove dead code: `ResultsDB::load_latest_by_scenario`
-
-### File Refactoring (P3)
-- [x] Extract `run_single_scenario` from `main.rs` into `run.rs` - completed 2026-01-20
-- [x] Extract command handlers into `commands.rs` - completed 2026-01-20
-- [x] Extract print functions into `output.rs` - completed 2026-01-20
-
-### CLI Polish (P3)
-- [x] Rename `list` to show scenarios not runs - completed 2026-01-20
-- [x] Add `run --all` to run all scenarios - completed 2026-01-20
-- [x] Add `baseline set <run_id>` command - completed 2026-01-20
-
----
-
-## Value Model (`specs/value-model.md`) (P2)
-
-Adds a `value` field (0-100, default 50) to notes for quality/importance scoring, enabling weighted graph traversal.
-
-### Phase 1: Data Model
-- [x] Add `value` field to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
-  - Type: `Option<u8>`, serde skip_serializing_if None
-  - Update `NoteFrontmatter::new()` to initialize as None
-- [x] Schema migration in `src/lib/db/schema.rs`
-  - Add `value INTEGER DEFAULT 50` column to `notes` table
-  - Add index: `CREATE INDEX idx_notes_value ON notes(value)`
-  - Bump `CURRENT_SCHEMA_VERSION` to 2
-  - Add migration path from v1 → v2
-- [x] Update `src/lib/db/notes/` to read/write `value` column
-  - Updated `create.rs`: Both `insert_note` and `insert_note_internal` write value column
-  - Updated `read.rs`: Both `get_note_metadata` and `list_notes` read value column
-  - Updated `NoteMetadata` in `src/lib/index/types.rs` to include value field
-  - Updated `builder.rs` to pass value from frontmatter to metadata
-  - Updated test mock metadata in `similarity/mod.rs` to include value field
-- [x] Update `src/lib/index/builder.rs` to index `value` field - ALREADY DONE (line 90 stores value in NoteMetadata)
-
-### Phase 2: CLI Commands
-- [x] Add `qipu value` subcommand in `src/cli/commands.rs`
-  - `value set <id> <score>` - update frontmatter value field
-  - `value show <id>` - display current value (or "50 (default)" if unset)
-- [x] Add `--min-value <n>` filter flag to `qipu list`
-- [x] Add `--min-value <n>` filter flag to:
-  - `qipu search` (completed 2026-01-20)
-  - `qipu link tree` (completed 2026-01-20)
-  - `qipu link path` (completed 2026-01-20)
-  - `qipu context` (completed 2026-01-20)
-- [x] Add `--sort value` option to `qipu search` (completed 2026-01-20)
-
-### Phase 3: Weighted Traversal
-- [x] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`
-  - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
-  - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
-- [x] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs` - completed 2026-01-20
-- [x] Implement Dijkstra traversal variant in `src/lib/graph/bfs.rs` - completed 2026-01-20
-  - New function `dijkstra_traverse()` using `BinaryHeap` instead of `VecDeque`
-  - Order by accumulated cost (min-heap)
-  - Default behavior: weighted (Dijkstra)
-  - With `--ignore-value`: unweighted (BFS, all edges cost 1.0)
-- [x] Update `bfs_find_path()` to support weighted mode - completed 2026-01-20
-
-### Phase 4: Integration
-- [x] Update `qipu context` to respect `--min-value` threshold - verified complete 2026-01-20
-- [x] Update `qipu doctor` to validate value range (0-100) - completed 2026-01-20
-- [x] Add tests for value filtering and weighted traversal - completed 2026-01-20
-- [x] Update help text and man pages - completed 2026-01-20
-
-### Dependencies
-- Builds on existing `HopCost` infrastructure (`src/lib/graph/types.rs`)
-- Complements compaction system (`specs/compaction.md`) - low-value notes are compaction candidates
-
----
-
-## Technology Reference
-
-### Database
-- SQLite with `rusqlite` (bundled), WAL mode, FTS5 with porter tokenizer
-- Schema: notes, notes_fts, tags, edges, unresolved, index_meta
-- Location: `.qipu/qipu.db`
-
-### Logging
-- `tracing` ecosystem with env-filter and json features
-- Flags: `--verbose`, `--log-level`, `--log-json`
-- Env: `QIPU_LOG` override
-
-## Learnings
-
-### Human Review Integration (completed 2026-01-19)
-- Added `HumanReviewRecord` struct with dimension scores (HashMap<String, f64>) and optional notes
-- Implemented `ResultsDB::update_human_review()` with atomic file updates using temporary file pattern
-- Implemented `ResultsDB::load_pending_review()` to filter runs without human reviews
-- Added CLI `review` command with `--dimension key=value` parser and `--notes` flag
-- Added `--pending-review` flag to `list` command
-- Updated `show` command to display human review data with dimension scores and timestamp
-- Added 14 tests covering all new functionality (DB methods, CLI parser, serialization)
-- All 111 tests in llm-tool-test pass, 250+ tests in entire codebase
-
-### Doctor Checks Refactoring (completed 2026-01-19)
-- Split `src/commands/doctor/checks.rs` (403 lines) into three focused modules:
-  - `structure.rs` (store directory structure checks)
-  - `database.rs` (database consistency checks: duplicate IDs, missing files, broken/orphaned notes)
-  - `content.rs` (note validation: scan, required fields, compaction invariants, duplicates, attachments)
-- Used re-exports in `checks.rs` for backward compatibility with existing code
-- All 229 tests pass after refactoring
-
-### Semantic Quality Evaluation (completed 2026-01-19)
-- The existing judge system already supports flexible rubrics via YAML configuration
-- Created `crates/llm-tool-test/fixtures/qipu/rubrics/semantic_quality.yaml` with three criteria:
-  - Relevance (0.35): Notes directly address the task prompt
-  - Coherence (0.35): Notes are logically connected with consistent terminology
-  - Granularity (0.30): Notes are appropriately scoped, neither too broad nor too fragmented
-- Rubric can be used by scenarios by adding `evaluation.judge` configuration
-- Added tests to verify rubric loading works correctly and validates weight sums
-
-### Weighted Composite Score (completed 2026-01-19)
-- Added `composite_score` field to `EvaluationMetrics` and `EvaluationMetricsRecord` structs
-- Implemented `compute_composite_score()` function with weighted components:
-  - Judge score (0.50): LLM-as-judge semantic evaluation
-  - Gate pass rate (0.30): Automated functional correctness checks
-  - First try success rate (0.10): Command efficiency
-  - Quality score (0.10): Store health (tags, links, orphan penalty)
-- Quality component calculation:
-  - Tags score: avg_tags_per_note (clamped at 3.0) / 3.0
-  - Links score: links_per_note (clamped at 2.0) / 2.0
-  - Orphan penalty: (orphan_notes / total_notes) * 0.3
-  - Quality = (tags_score + links_score) / 2.0 - orphan_penalty
-- Composite score is clamped to [0.0, 1.0] range
-- All 91 tests pass, including 4 new composite score tests
-
-### Workspace Commands Tracing (completed 2026-01-19)
-- Added structured logging to `src/commands/workspace/list.rs`, `merge.rs`, and `new.rs`
-- Instrumentation follows the same pattern as other commands:
-  - Import `tracing::debug` and `std::time::Instant`
-  - Log key parameters at function entry when verbose
-  - Log intermediate milestones (store discovery, workspace initialization, note copying)
-  - Log completion with elapsed time
-- All 438 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Value Field Data Model (completed 2026-01-19)
-- Added `value` field (Option<u8>) to `NoteFrontmatter` in `src/lib/note/frontmatter.rs`
-- Updated `NoteFrontmatter::new()` to initialize value as None
-- Added `value` field to `PackNote` struct in both `src/commands/load/model.rs` and `src/commands/dump/model.rs`
-- Updated all PackNote construction sites to handle value field:
-  - `src/commands/load/mod.rs` when loading from pack
-  - `src/commands/dump/serialize.rs` when dumping to pack
-  - `src/commands/load/deserialize.rs` when deserializing pack format
-- Added "value" metadata parsing in pack deserializer
-- All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Min-Value Filter Implementation (completed 2026-01-20)
-- Added `--min-value <n>` flag to `Commands::List` in `src/cli/commands.rs`
-- Updated command dispatch path: `src/commands/dispatch/mod.rs` → `notes.rs` → `list.rs`
-- Filter logic in `src/commands/list.rs`:
-  - Notes without explicit value default to 50
-  - Filtering: `value >= min_value` (inclusive)
-- Added 5 unit tests covering:
-  - All notes match threshold
-  - Some notes match threshold
-  - No notes match threshold
-  - Notes with default value (None treated as 50)
-  - Exact threshold boundary (value = min_value)
-- Updated CLI parser tests to validate `--min-value` flag parsing
-- All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Edge Cost Function Implementation (completed 2026-01-20)
-- Added `get_edge_cost(link_type, target_value)` function in `src/lib/graph/types.rs`
-- Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
-  - Value 100 → multiplier 1.0 (no penalty)
-  - Value 50 → multiplier 1.5
-  - Value 0 → multiplier 2.0 (maximum penalty)
-- Added 5 unit tests covering:
-  - Max value (100) returns 1.0
-  - Mid value (50) returns 1.5
-  - Min value (0) returns 2.0
-  - Custom link type with mid value (75 returns 1.25)
-  - Boundary value (1) with floating-point comparison
-- All 450 tests pass (202 unit + 233 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Ignore-Value Flag Implementation (completed 2026-01-20)
-- Added `ignore_value: bool` field to `TreeOptions` struct in `src/lib/graph/types.rs`
-- Updated `Default` implementation to initialize `ignore_value` as `false`
-- Added 2 unit tests:
-  - Default value is `false`
-  - Can be set to `true`
-- Updated all TreeOptions construction sites:
-  - `src/commands/dump/mod.rs` (dump command traversal)
-  - `src/commands/dispatch/link.rs` (link tree and link path commands)
-- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Dijkstra Traversal Implementation (completed 2026-01-20)
-- Added `HeapEntry` struct for priority queue entries with `Ord` implementation for min-heap ordering
-  - Orders by accumulated cost (lowest first), with node ID as tiebreaker
-- Implemented `dijkstra_traverse()` function in `src/lib/graph/bfs.rs`:
-  - Uses `BinaryHeap` instead of `VecDeque` for priority queue
-  - Calculates edge cost using `get_edge_cost()` when `ignore_value` is false (default)
-  - Uses `get_link_type_cost()` when `ignore_value` is true (unweighted mode)
-  - Mirrors `bfs_traverse()` logic but with cost-ordered expansion
-- Implemented `dijkstra_find_path()` function in `src/lib/graph/bfs.rs`:
-  - Dijkstra's algorithm for shortest path in weighted graph
-  - Supports both weighted (default) and unweighted (`--ignore-value`) modes
-  - Returns same `PathResult` type as `bfs_find_path()`
-- Updated `src/commands/link/tree.rs`:
-  - Conditionally uses `dijkstra_traverse()` for weighted mode (default)
-  - Uses `bfs_traverse()` only when `ignore_value` is true
-- Updated `src/commands/link/path.rs`:
-  - Conditionally uses `dijkstra_find_path()` for weighted mode (default)
-  - Uses `bfs_find_path()` only when `ignore_value` is true
-- Updated `src/lib/graph/mod.rs` to export both new functions
-- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Weighted Traversal Tests (completed 2026-01-20)
-- Added comprehensive unit tests in `src/lib/graph/bfs.rs` for Dijkstra traversal and path finding
-- Created `MockGraphProvider` test utility with support for notes and edges
-  - Notes have configurable value (Option<u8>) to test weighted edge costs
-  - Supports both outbound and inbound edges for Direction testing
-- Added 16 unit tests covering:
-  - Simple graph traversal with different note values (100, 50, 75)
-  - Min-value filtering: excludes notes below threshold, respects root filter
-  - Max-hops cost limit: traversal stops when accumulated cost exceeds limit
-  - Direct and multi-hop path finding
-  - Path finding with high-value intermediate nodes preferred
-  - Path not found when no route exists
-  - Min-value filtering in path finding (from, to, intermediate nodes)
-  - Direction handling: Out, In, Both modes
-  - Default note values (None defaults to 50)
-  - Max-hops limit in path finding
-- Key learnings:
-  - Direction::Both with semantic_inversion:default(true) adds virtual inverted edges
-  - Tests use Direction::Out to avoid counting virtual edges in link counts
-  - Edge cost formula: 1.0 * (1 + (100 - value) / 100)
-  - Value 100 → cost 1.0, value 50 → cost 1.5, value 0 → cost 2.0
-- All 475 tests pass (219 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Value Range Validation in Doctor (completed 2026-01-20)
-- Added `check_value_range()` function in `src/commands/doctor/content.rs` to validate that note values are in range 0-100
-- Validation only checks upper bound (> 100) since u8 type already enforces >= 0
-- Added 6 unit tests covering:
-  - Valid value (50)
-  - Invalid value (150)
-  - Boundary max (100)
-  - Boundary min (0)
-  - None value (default)
-  - Mixed notes with some invalid
-- Added fix implementation in `src/commands/doctor/fix.rs`:
-  - "invalid-value" category fix clamps value to 100
-  - Updates note frontmatter and saves to store
-- Integrated into doctor command flow in `src/commands/doctor/mod.rs` after required fields check
-- Issue category: "invalid-value", severity: Error, fixable: true
-- All 259 tests pass (240 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Command Handlers Extraction (completed 2026-01-20)
-- Created `crates/llm-tool-test/src/commands.rs` module to extract command handlers from `main.rs`
-- Extracted 6 command handler functions:
-  - `handle_run()` - handles run command execution with tool/model matrix
-  - `handle_list()` - handles list command and pending review listing
-  - `handle_show()` - handles show command to display run details
-  - `handle_compare()` - handles compare command for regression reports
-  - `handle_clean()` - handles clean command for cache clearing
-  - `handle_review()` - handles review command for adding human evaluations
-- Moved helper functions to commands.rs:
-  - `build_tool_matrix()` - constructs tool×model combinations
-  - `print_matrix_summary()` - displays matrix run results table
-  - `print_result_summary()` - displays single run results
-  - `print_regression_report()` - displays regression comparison results
-- Moved `ToolModelConfig` struct to commands.rs (made public)
-- Simplified `main.rs` match statement to delegate to command handlers
-- Moved all unit tests from main.rs to commands.rs (11 tests for build_tool_matrix)
-- All tests pass (123 llm-tool-test + 225 qipu + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### Help Text and Documentation Update (completed 2026-01-20)
-- Added `--ignore-value` flag to `qipu link tree` and `qipu link path` commands
-  - Updated `src/cli/link.rs` to include ignore_value field in Tree and Path variants
-  - Updated `src/commands/dispatch/link.rs` to pass ignore_value from CLI to TreeOptions
-  - Flag description: "Ignore note values during traversal (unweighted BFS)"
-- Standardized `--min-value` help text across all commands
-  - Updated descriptions to consistently include "default: 50"
-  - Applied to: list, search, link tree, link path commands (context already had it)
-- Updated README.md to document value model features
-  - Added new "Value Management" section with qipu value commands
-  - Documented value scale: 0-20 (deprioritized), 21-80 (standard), 81-100 (high-value)
-  - Updated Link Management section to show --min-value and --ignore-value flags
-  - Updated LLM Integration section to note --min-value support for context command
-- Fixed unused import warnings in `src/commands/link/mod.rs`
-  - Removed unused `PathResult` and `TreeNote` imports
-- All 457 tests pass (204 unit + 238 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
-
-### List to Scenarios Command Refactoring (completed 2026-01-20)
-- Renamed `List` command to `Scenarios` in `crates/llm-tool-test/src/cli.rs`
-  - Help text: "List available scenarios"
-  - Flags: `--tags`, `--tier` (for filtering scenarios)
-- Created new `List` command for listing runs
-  - Help text: "List runs"
-  - Flags: `--pending-review` (shows runs pending human review)
-  - Default behavior: lists all runs
-- Split `handle_list()` in `crates/llm-tool-test/src/commands.rs`:
-  - `handle_scenarios()`: loads and displays scenarios from fixtures directory
-  - `handle_list()`: loads and displays runs from results database
-- Updated main.rs to dispatch to both commands
-- All 123 llm-tool-test tests pass, all 463 workspace tests pass (123 llm-tool-test + 259 qipu + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+### Operational Database
+- [x] Consistency check on startup: `db.validate_consistency()` called in `src/lib/db/mod.rs:84`

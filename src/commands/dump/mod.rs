@@ -225,25 +225,8 @@ fn collect_links(
     for edge in &index.edges {
         // Only include links between selected notes
         if selected_ids.contains(edge.from.as_str()) && selected_ids.contains(edge.to.as_str()) {
-            // Apply link type filters
-            if !options.type_include.is_empty()
-                && !options
-                    .type_include
-                    .iter()
-                    .any(|t| t == edge.link_type.as_str())
-            {
-                continue;
-            }
-
             // Determine if this is an inline link based on source
             let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
-
-            if !is_inline && options.inline_only {
-                continue;
-            }
-            if is_inline && options.typed_only {
-                continue;
-            }
 
             links.push(PackLink {
                 from: edge.from.clone(),

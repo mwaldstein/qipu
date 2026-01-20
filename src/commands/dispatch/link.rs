@@ -75,6 +75,7 @@ pub(super) fn handle_link(
             max_edges,
             max_fanout,
             max_chars,
+            min_value,
         } => {
             let dir = direction
                 .parse::<crate::lib::graph::Direction>()
@@ -93,6 +94,7 @@ pub(super) fn handle_link(
                 max_fanout: *max_fanout,
                 max_chars: *max_chars,
                 semantic_inversion: true,
+                min_value: *min_value,
             };
             commands::link::tree::execute(cli, &store, id_or_path, opts)?;
             if cli.verbose {
@@ -110,6 +112,7 @@ pub(super) fn handle_link(
             typed_only,
             inline_only,
             max_chars,
+            min_value,
         } => {
             let dir = direction
                 .parse::<crate::lib::graph::Direction>()
@@ -128,6 +131,7 @@ pub(super) fn handle_link(
                 max_fanout: None,
                 max_chars: *max_chars,
                 semantic_inversion: true,
+                min_value: *min_value,
             };
             commands::link::path::execute(cli, &store, from, to, opts)?;
             if cli.verbose {

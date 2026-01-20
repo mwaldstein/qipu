@@ -101,6 +101,10 @@ pub enum LinkCommands {
         /// Maximum output characters (exact budget, records format only)
         #[arg(long)]
         max_chars: Option<usize>,
+
+        /// Filter by minimum value (0-100)
+        #[arg(long)]
+        min_value: Option<u8>,
     },
 
     /// Find path between two notes
@@ -138,5 +142,9 @@ pub enum LinkCommands {
         /// Maximum output characters (exact budget, records format only)
         #[arg(long)]
         max_chars: Option<usize>,
+
+        /// Filter by minimum value (0-100)
+        #[arg(long)]
+        min_value: Option<u8>,
     },
 }

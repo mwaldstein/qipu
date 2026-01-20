@@ -169,6 +169,8 @@ pub struct TreeOptions {
     pub max_chars: Option<usize>,
     /// Whether to use semantic inversion for inbound links
     pub semantic_inversion: bool,
+    /// Filter by minimum value (0-100, None = no filter)
+    pub min_value: Option<u8>,
 }
 
 impl Default for TreeOptions {
@@ -185,6 +187,7 @@ impl Default for TreeOptions {
             max_fanout: None,
             max_chars: None,
             semantic_inversion: true,
+            min_value: None,
         }
     }
 }

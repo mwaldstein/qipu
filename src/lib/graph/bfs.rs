@@ -28,6 +28,31 @@ pub fn bfs_traverse(
     let mut truncated = false;
     let mut truncation_reason: Option<String> = None;
 
+    // Check min_value filter for root note before initializing
+    let root_passes_filter = if let Some(meta) = provider.get_metadata(root) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    };
+
+    if !root_passes_filter {
+        return Ok(TreeResult {
+            root: root.to_string(),
+            direction: match opts.direction {
+                Direction::Out => "out".to_string(),
+                Direction::In => "in".to_string(),
+                Direction::Both => "both".to_string(),
+            },
+            max_hops: opts.max_hops.as_u32_for_display(),
+            truncated: false,
+            truncation_reason: Some("min_value filter excluded root".to_string()),
+            notes: vec![],
+            links: vec![],
+            spanning_tree: vec![],
+        });
+    }
+
     // Initialize with root
     queue.push_back((root.to_string(), HopCost::from(0)));
     visited.insert(root.to_string());
@@ -181,6 +206,23 @@ pub fn bfs_traverse(
             } else {
                 neighbor_id.clone()
             };
+
+            // Check min_value filter before adding link or processing neighbor
+            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
+                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
+                    let value = meta.value.unwrap_or(50);
+                    opts.min_value.is_none_or(|min| value >= min)
+                } else {
+                    false
+                }
+            } else {
+                true // Already visited, include the link
+            };
+
+            // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
+            if !neighbor_passes_filter {
+                continue;
+            }
 
             // Check max_edges again before adding
             if let Some(max) = opts.max_edges {

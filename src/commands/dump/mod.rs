@@ -175,6 +175,7 @@ fn collect_notes_with_traversal(
             max_fanout: None,
             max_chars: None,
             semantic_inversion: true,
+            min_value: None,
         };
 
         // Build compaction context if needed

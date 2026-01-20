@@ -105,7 +105,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `--min-value <n>` filter flag to `qipu list`
 - [x] Add `--min-value <n>` filter flag to:
   - `qipu search` (completed 2026-01-20)
-  - `qipu link tree`
+  - `qipu link tree` (completed 2026-01-20)
   - `qipu link path`
   - `qipu context`
 - [ ] Add `--sort value` option to `qipu search`

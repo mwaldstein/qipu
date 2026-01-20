@@ -4,6 +4,11 @@ This directory contains **implementable** Qipu specifications. Each file should 
 
 Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/examples live under `docs/`.
 
+## Planning Documents
+
+- **[`../IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md)** - Concrete implementation tasks, bugs, and missing test coverage that need to be addressed
+- **[`../FUTURE_PLAN.md`](../FUTURE_PLAN.md)** - Future work, exploratory features, and open questions from specs not yet in the implementation plan
+
 ## Spec Index
 
 | Spec | Domain | What it covers |

@@ -1,9 +1,12 @@
 # Qipu Implementation Plan
 
+This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
+
 ## Status
 - Test baseline: `cargo test` passes (439 tests)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 - Audit Date: 2026-01-20
+- Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
 ---
 

@@ -111,7 +111,7 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
 - [x] Add `--sort value` option to `qipu search` (completed 2026-01-20)
 
 ### Phase 3: Weighted Traversal
-- [ ] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`
+- [x] Add `get_edge_cost(link_type, target_value)` in `src/lib/graph/types.rs`
   - Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
   - Composes with future per-link-type costs (see `specs/semantic-graph.md` §3.A)
 - [ ] Add `--ignore-value` flag to `TreeOptions` in `src/lib/graph/types.rs`
@@ -224,3 +224,17 @@ Adds a `value` field (0-100, default 50) to notes for quality/importance scoring
   - Exact threshold boundary (value = min_value)
 - Updated CLI parser tests to validate `--min-value` flag parsing
 - All 439 tests pass (189 unit + 229 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)
+
+### Edge Cost Function Implementation (completed 2026-01-20)
+- Added `get_edge_cost(link_type, target_value)` function in `src/lib/graph/types.rs`
+- Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
+  - Value 100 → multiplier 1.0 (no penalty)
+  - Value 50 → multiplier 1.5
+  - Value 0 → multiplier 2.0 (maximum penalty)
+- Added 5 unit tests covering:
+  - Max value (100) returns 1.0
+  - Mid value (50) returns 1.5
+  - Min value (0) returns 2.0
+  - Custom link type with mid value (75 returns 1.25)
+  - Boundary value (1) with floating-point comparison
+- All 450 tests pass (202 unit + 233 CLI + 6 golden + 6 pack + 6 perf + 3 workspace merge)

@@ -52,6 +52,24 @@ pub fn get_link_type_cost(_link_type: &str) -> HopCost {
     HopCost::DEFAULT
 }
 
+/// Get the edge cost for traversing to a target note
+/// Formula: `LinkTypeCost * (1 + (100 - value) / 100)`
+/// - Value 100 → multiplier 1.0 (no penalty)
+/// - Value 50 → multiplier 1.5
+/// - Value 0 → multiplier 2.0 (maximum penalty)
+///
+/// # Arguments
+/// * `link_type` - The type of link being traversed
+/// * `target_value` - The value of the target note (0-100)
+///
+/// # Returns
+/// The total cost to traverse this edge
+pub fn get_edge_cost(link_type: &str, target_value: u8) -> HopCost {
+    let link_cost = get_link_type_cost(link_type);
+    let value_multiplier = 1.0 + (100 - target_value) as f32 / 100.0;
+    HopCost(link_cost.value() * value_multiplier)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,6 +115,37 @@ mod tests {
     fn test_get_link_type_cost_unknown() {
         let cost = get_link_type_cost("unknown-type");
         assert_eq!(cost.value(), 1.0);
+    }
+
+    #[test]
+    fn test_get_edge_cost_max_value() {
+        let cost = get_edge_cost("supports", 100);
+        assert_eq!(cost.value(), 1.0);
+    }
+
+    #[test]
+    fn test_get_edge_cost_mid_value() {
+        let cost = get_edge_cost("supports", 50);
+        assert_eq!(cost.value(), 1.5);
+    }
+
+    #[test]
+    fn test_get_edge_cost_min_value() {
+        let cost = get_edge_cost("supports", 0);
+        assert_eq!(cost.value(), 2.0);
+    }
+
+    #[test]
+    fn test_get_edge_cost_custom_link_type() {
+        let cost = get_edge_cost("part-of", 75);
+        assert_eq!(cost.value(), 1.25);
+    }
+
+    #[test]
+    fn test_get_edge_cost_boundary() {
+        let cost = get_edge_cost("supports", 1);
+        let expected = 1.0 + (100.0 - 1.0) / 100.0;
+        assert!((cost.value() - expected).abs() < 0.001);
     }
 
     #[test]

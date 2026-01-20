@@ -46,25 +46,25 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | `--format=json` parse envelope bug; determinism tests missing |
-| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | DB reads default invalid types; quality/duplicate enforcement missing |
+| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | `--format=json` parse envelope bug; 10k perf budget unverified |
+| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | Context MOC ordering not preserved; quality/duplicate enforcement missing |
 | `storage-format.md` | ✅ | ⚠️ | ⚠️ | Config store root + rewrite + collision guards missing |
-| `cli-interface.md` | ✅ | ✅ | ⚠️ | Tests missing for create alias/open/id, list tag/since/records, search opts |
+| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | `create` output missing path; tests missing for create alias/open/id, list tag/since/records, search opts |
 | `indexing-search.md` | ✅ | ⚠️ | ⚠️ | Incremental indexing no-op; qp-link scope; related-notes missing |
 | `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Context typed-link preference + doctor validation missing |
 | `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | `link path` weighted default; CSV flags missing; tests incomplete |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Default related threshold/opt-out missing; boosts hardcoded |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` max-chars missing; tree/path trunc tests missing |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budgeting missing |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` max-chars missing; link records omit path |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budgeting missing; empty headers omitted |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness partial; guard/dry-run/gates/artifacts missing |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults + web capture defaults missing |
 | `export.md` | ✅ | ⚠️ | ⚠️ | Outline ordering + query cap; tests missing; optional formats |
 | `compaction.md` | ✅ | ⚠️ | ⚠️ | Link outputs miss annotations; truncation flags ignored |
-| `pack.md` | ✅ | ⚠️ | ⚠️ | Skip drops links; merge-links skips existing; path ignored |
+| `pack.md` | ✅ | ⚠️ | ⚠️ | Skip drops links; dump filters drop links; merge-links skips existing; path ignored |
 | `workspaces.md` | ✅ | ⚠️ | ⚠️ | Rename strategy + graph-slice + post-merge checks missing |
 | `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Log-level gating/validation gaps; default warn |
 | `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair/rebuild missing; DB not sole index |
-| `value-model.md` | ✅ | ⚠️ | ⚠️ | Min-value validation missing; tests incomplete |
+| `value-model.md` | ✅ | ⚠️ | ⚠️ | Min-value validation missing; Dijkstra ordering bug; tests incomplete |
 | `distribution.md` | ⚠️ | ❌ | ❌ | Release automation + install scripts missing |
 | `custom-metadata.md` | ✅ | ❌ | ❌ | No custom frontmatter/DB/CLI support |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
@@ -84,9 +84,13 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `cli-tool.md` | JSON error envelope misses `--format=json` | `src/main.rs:82-93` |
 | `operational-database.md` | DB-only index + repair + auto-rebuild gaps | `src/lib/store/query.rs:14-52`, `src/lib/db/mod.rs:84-85`, `src/lib/db/schema.rs:94-112` |
 | `indexing-search.md` | `index --rebuild` no-op | `src/commands/index.rs:14-19` |
-| `graph-traversal.md` | `link path` weighted default (not shortest-hop) | `src/commands/link/path.rs:71-95` |
+| `graph-traversal.md` | `link path` weighted default; missing CSV types flags | `src/commands/link/path.rs:71-95`, `src/cli/link.rs:73-79` |
 | `pack.md` | `load --strategy skip` drops all links | `src/commands/load/mod.rs:77-84` |
-| `value-model.md` | Missing `--min-value` validation | `src/cli/commands.rs:136-141`, `src/cli/link.rs:105-156` |
+| `pack.md` | `dump` filters can drop links between included notes | `src/commands/dump/mod.rs:225-246` |
+| `records-output.md` | Link records omit `path=` | `src/commands/link/records.rs:65-71`, `src/commands/link/tree.rs:293-299` |
+| `value-model.md` | Missing `--min-value` validation; Dijkstra ordering bug | `src/cli/commands.rs:136-141`, `src/lib/graph/bfs.rs:340-346` |
+| `cli-interface.md` | `create` output missing path | `src/commands/create.rs:88-95` |
+| `knowledge-model.md` | Context traversal ignores MOC ordering | `src/commands/context/select.rs:21-38` |
 | `structured-logging.md` | Log-level gated by `--verbose` | `src/commands/dispatch/notes.rs:23-26` |
 | `llm-user-validation.md` | Guard + dry-run missing | `crates/llm-tool-test/src/main.rs:1-53`, `crates/llm-tool-test/src/run.rs:90-93` |
 
@@ -95,13 +99,14 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Gap | Notes |
 | --- | --- | --- |
 | `cli-tool.md` | Test coverage | Visible-store discovery + `--format=json` parse errors + more goldens |
+| `cli-tool.md` | Test coverage | Performance budget coverage missing for 10k-note search |
 | `cli-interface.md` | Test coverage | Create/list/search/compact flag variants missing |
 | `indexing-search.md` | Feature gaps | qp-link scope + related-notes missing |
 | `storage-format.md` | Feature gaps | Config store root + rewrite + collision guards missing |
 | `semantic-graph.md` | Feature gaps | Typed-link preference + doctor validation missing |
 | `graph-traversal.md` | Feature gaps/tests | CSV flags missing; inversion + truncation tests missing |
 | `records-output.md` | Feature gaps/tests | `prime` max-chars missing; tree/path trunc tests missing |
-| `llm-context.md` | Feature gaps | Per-note truncation + prime budgeting missing |
+| `llm-context.md` | Feature gaps | Per-note truncation + prime budgeting missing; empty headers omitted |
 | `llm-user-validation.md` | Feature gaps | Schema/gates/budget/artifacts/tool-trait gaps |
 | `provenance.md` | Feature gaps | Verified defaults + web capture defaults missing |
 | `export.md` | Feature gaps/tests | Outline ordering + query cap; tests missing; optional formats |

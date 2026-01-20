@@ -12,6 +12,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ## P1: Correctness Bugs
 
+### CLI Interface (`specs/cli-interface.md`)
+- [ ] `qipu create` does not print the created note path by default (spec says ID and path).
+  - `src/commands/create.rs:88-95`
+
 ### CLI Tool (`specs/cli-tool.md`)
 - [ ] Emit JSON error envelopes for parse failures when `--format=json` is used (the `--format=json` form is currently missed).
   - `src/main.rs:82-93`
@@ -36,15 +40,31 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] `link path` defaults to weighted Dijkstra instead of shortest-hop traversal.
   - `src/commands/link/path.rs:71-95`
   - `src/lib/graph/bfs.rs:350-359`
+- [ ] `link tree/path` flags do not support CSV-style `--types/--exclude-types` (only repeatable `--type`/`--exclude-type`).
+  - `src/cli/link.rs:73-79`
+  - `src/cli/link.rs:130-136`
+
+### Knowledge Model (`specs/knowledge-model.md`)
+- [ ] Context traversal does not preserve MOC ordering as a “reading path” (unordered outbound edges).
+  - `src/commands/context/select.rs:21-38`
 
 ### Pack (`specs/pack.md`)
 - [ ] `load --strategy skip` drops all links, even for newly loaded notes.
   - `src/commands/load/mod.rs:77-84`
+- [ ] `dump` link preservation can drop links between included notes when `--type`/`--inline-only` filters are used.
+  - `src/commands/dump/mod.rs:225-246`
+
+### Records Output (`specs/records-output.md`)
+- [ ] Link records omit `path=` in `N` records for tree/path/list outputs.
+  - `src/commands/link/records.rs:65-71`
+  - `src/commands/link/tree.rs:293-299`
 
 ### Value Model (`specs/value-model.md`)
 - [ ] `--min-value` accepts values outside 0-100 without validation.
   - `src/cli/commands.rs:136-141`
   - `src/cli/link.rs:105-156`
+- [ ] Dijkstra traversal uses a max-heap ordering, which can invert expected “shortest” paths.
+  - `src/lib/graph/bfs.rs:340-346`
 
 ### Structured Logging (`specs/structured-logging.md`)
 - [ ] Debug logs are gated by `--verbose` even when `--log-level debug` is set.
@@ -60,6 +80,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ---
 
 ## P2: Missing Test Coverage & Gaps
+
+### CLI Tool (`specs/cli-tool.md`)
+- [ ] Add performance budget coverage for search at 10k notes (spec target) instead of 2k baseline.
+  - `tests/performance_tests.rs:188-240`
 
 ### Operational Database (`specs/operational-database.md`)
 - [ ] Search ranking boosts don’t align with spec weights.
@@ -113,6 +137,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/context/json.rs:91-95`
 - [ ] `prime` is count-capped only; no explicit token/char budgeting.
   - `src/commands/prime.rs:15-20`
+- [ ] Bundle output omits empty metadata headers (`Path`, `Tags`, `Sources`) when values are absent.
+  - `src/commands/context/human.rs:105-157`
 
 ### Compaction (`specs/compaction.md`)
 - [ ] Link outputs omit `compacts=`/`compaction=` annotations for digest nodes.
@@ -154,6 +180,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/run.rs:89-114`
 - [ ] Tool adapter trait diverges from spec (`execute_task`/`ToolStatus` missing).
   - `crates/llm-tool-test/src/adapter/mod.rs:9-22`
+- [ ] Missing `report` subcommand and `clean --older-than` support.
+  - `crates/llm-tool-test/src/cli.rs:11-115`
 
 ### Workspaces (`specs/workspaces.md`)
 - [ ] `rename` merge strategy is not supported.
@@ -210,6 +238,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] Add tests for `--ignore-value` traversal ordering.
   - `src/commands/link/tree.rs:61-78`
   - `src/commands/link/path.rs:71-95`
+- [ ] Add CLI coverage for `--unweighted`/`--weighted` aliases (spec names vs current flags).
+  - `src/cli/link.rs:105-111`
 
 ### Export Tests (`specs/export.md`)
 - [ ] Add tests for `--tag`/`--query` selection ordering.

@@ -132,6 +132,10 @@ pub enum Commands {
         /// Exclude MOCs from search results
         #[arg(long)]
         exclude_mocs: bool,
+
+        /// Filter by minimum value (0-100)
+        #[arg(long)]
+        min_value: Option<u8>,
     },
 
     /// Toggle verification status of a note

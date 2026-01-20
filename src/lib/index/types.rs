@@ -101,6 +101,9 @@ pub struct SearchResult {
     /// a compacted note matched, annotate with via=<matching-note-id>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    /// Note importance/quality score (0-100)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<u8>,
 }
 
 /// The complete index structure

@@ -28,6 +28,7 @@ pub fn execute(
     type_filter: Option<NoteType>,
     tag_filter: Option<&str>,
     exclude_mocs: bool,
+    min_value: Option<u8>,
 ) -> Result<()> {
     let start = Instant::now();
 
@@ -37,11 +38,14 @@ pub fn execute(
             ?type_filter,
             ?tag_filter,
             exclude_mocs,
+            ?min_value,
             "search_params"
         );
     }
 
-    let mut results = store.db().search(query, type_filter, tag_filter, 200)?;
+    let mut results = store
+        .db()
+        .search(query, type_filter, tag_filter, min_value, 200)?;
 
     if cli.verbose {
         debug!(result_count = results.len(), elapsed = ?start.elapsed(), "search");
@@ -406,7 +410,7 @@ mod tests {
             command: None,
         };
 
-        let result = execute(&cli, &store, "", None, None, false);
+        let result = execute(&cli, &store, "", None, None, false, None);
         assert!(result.is_ok(), "Empty query should not error");
     }
 
@@ -437,7 +441,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "nonexistent", None, None, false);
+        let result = execute(&cli, &store, "nonexistent", None, None, false, None);
         assert!(result.is_ok(), "Search with no results should succeed");
     }
 
@@ -455,7 +459,15 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", Some(NoteType::Permanent), None, false);
+        let result = execute(
+            &cli,
+            &store,
+            "note",
+            Some(NoteType::Permanent),
+            None,
+            false,
+            None,
+        );
         assert!(result.is_ok(), "Search with type filter should succeed");
     }
 
@@ -471,7 +483,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, Some("rust"), false);
+        let result = execute(&cli, &store, "note", None, Some("rust"), false, None);
         assert!(result.is_ok(), "Search with tag filter should succeed");
     }
 
@@ -489,7 +501,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, None, true);
+        let result = execute(&cli, &store, "note", None, None, true, None);
         assert!(result.is_ok(), "Search with MOC exclusion should succeed");
     }
 
@@ -505,7 +517,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Json;
 
-        let result = execute(&cli, &store, "test", None, None, false);
+        let result = execute(&cli, &store, "test", None, None, false, None);
         assert!(result.is_ok(), "Search with JSON format should succeed");
     }
 
@@ -521,7 +533,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Records;
 
-        let result = execute(&cli, &store, "test", None, None, false);
+        let result = execute(&cli, &store, "test", None, None, false, None);
         assert!(result.is_ok(), "Search with records format should succeed");
     }
 
@@ -533,7 +545,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.quiet = true;
 
-        let result = execute(&cli, &store, "nonexistent", None, None, false);
+        let result = execute(&cli, &store, "nonexistent", None, None, false, None);
         assert!(
             result.is_ok(),
             "Quiet search with no results should succeed"
@@ -550,7 +562,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.verbose = true;
 
-        let result = execute(&cli, &store, "test", None, None, false);
+        let result = execute(&cli, &store, "test", None, None, false, None);
         assert!(result.is_ok(), "Verbose search should succeed");
     }
 
@@ -569,7 +581,7 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "digest", None, None, false);
+        let result = execute(&cli, &store, "digest", None, None, false, None);
         assert!(
             result.is_ok(),
             "Search with compaction resolution should succeed"
@@ -586,7 +598,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.no_resolve_compaction = true;
 
-        let result = execute(&cli, &store, "test", None, None, false);
+        let result = execute(&cli, &store, "test", None, None, false, None);
         assert!(
             result.is_ok(),
             "Search without compaction resolution should succeed"
@@ -606,7 +618,7 @@ mod tests {
         cli.with_compaction_ids = true;
         cli.compaction_depth = Some(1);
 
-        let result = execute(&cli, &store, "digest", None, None, false);
+        let result = execute(&cli, &store, "digest", None, None, false, None);
         assert!(result.is_ok(), "Search with compaction IDs should succeed");
     }
 
@@ -623,10 +635,42 @@ mod tests {
 
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, "note", None, None, false);
+        let result = execute(&cli, &store, "note", None, None, false, None);
         assert!(
             result.is_ok(),
             "Search with multiple results should succeed"
+        );
+    }
+
+    #[test]
+    fn test_search_with_min_value_filter() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store
+            .create_note("High Value Note", None, &[], None)
+            .unwrap();
+        note1.frontmatter.value = Some(80);
+        store.save_note(&mut note1).unwrap();
+
+        let mut note2 = store
+            .create_note("Low Value Note", None, &[], None)
+            .unwrap();
+        note2.frontmatter.value = Some(30);
+        store.save_note(&mut note2).unwrap();
+
+        let mut note3 = store
+            .create_note("Default Value Note", None, &[], None)
+            .unwrap();
+        note3.frontmatter.value = None;
+        store.save_note(&mut note3).unwrap();
+
+        let cli = make_default_cli();
+
+        let result = execute(&cli, &store, "note", None, None, false, Some(50));
+        assert!(
+            result.is_ok(),
+            "Search with min-value filter should succeed"
         );
     }
 }

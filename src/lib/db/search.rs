@@ -26,6 +26,7 @@ impl super::Database {
         query: &str,
         type_filter: Option<NoteType>,
         tag_filter: Option<&str>,
+        min_value: Option<u8>,
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
         if query.trim().is_empty() {
@@ -40,7 +41,7 @@ impl super::Database {
 
         let limit_i64 = limit as i64;
 
-        // Build filter conditions for type and tag
+        // Build filter conditions for type, tag, and value
         let type_filter_str = type_filter.map(|t| t.to_string());
         let tag_filter_str = tag_filter.map(|t| t.to_string());
 
@@ -57,6 +58,13 @@ impl super::Database {
             ));
         }
 
+        if let Some(min_val) = min_value {
+            where_clause.push_str(&format!(
+                " AND (n.value >= {} OR n.value IS NULL) ",
+                min_val
+            ));
+        }
+
         // Recency boost: decay factor for age in days
         // - Notes updated within 7 days get ~0.1 boost
         // - Notes updated 30+ days ago get minimal boost
@@ -68,35 +76,35 @@ impl super::Database {
         let sql = format!(
             r#"
             WITH ranked_results AS (
-              SELECT 
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
-                bm25(notes_fts, 1.0, 1.0, 1.0) + 5.0 + 
+              SELECT
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 5.0 +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?1 {}
-              
+
               UNION ALL
-              
-              SELECT 
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
-                bm25(notes_fts, 1.0, 1.0, 1.0) + 8.0 + 
+
+              SELECT
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 8.0 +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?2 {}
-              
+
               UNION ALL
-              
-              SELECT 
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
-                bm25(notes_fts, 1.0, 1.0, 1.0) + 0.0 + 
+
+              SELECT
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                bm25(notes_fts, 1.0, 1.0, 1.0) + 0.0 +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?3 {}
             )
-            SELECT rowid, id, title, path, type, tags, MAX(rank) AS rank
+            SELECT rowid, id, title, path, type, tags, value, MAX(rank) AS rank
             FROM ranked_results
             GROUP BY rowid
             ORDER BY rank DESC
@@ -152,12 +160,16 @@ impl super::Database {
             let tags_str: String = row
                 .get(5)
                 .map_err(|e| QipuError::Other(format!("failed to get tags: {}", e)))?;
-            let rank: f64 = row
+            let value: Option<i64> = row
                 .get(6)
+                .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
+            let rank: f64 = row
+                .get(7)
                 .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
 
             let note_type = NoteType::from_str(&note_type_str).unwrap_or(NoteType::Fleeting);
             let tags = parse_tags(&tags_str);
+            let value_opt = value.and_then(|v| u8::try_from(v).ok());
 
             results.push(SearchResult {
                 id,
@@ -168,6 +180,7 @@ impl super::Database {
                 match_context: None,
                 relevance: rank,
                 via: None,
+                value: value_opt,
             });
         }
 

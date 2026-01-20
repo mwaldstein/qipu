@@ -276,13 +276,14 @@ pub(super) fn handle_search(
     note_type: Option<crate::lib::note::NoteType>,
     tag: Option<&str>,
     exclude_mocs: bool,
+    min_value: Option<u8>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs)?;
+    commands::search::execute(cli, &store, query, note_type, tag, exclude_mocs, min_value)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

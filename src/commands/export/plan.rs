@@ -51,7 +51,7 @@ pub fn collect_notes(
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = store.db().search(q, None, None, 200)?;
+        let results = store.db().search(q, None, None, None, 200)?;
         for result in results {
             if seen_ids.insert(result.id.clone()) {
                 if let Ok(note) = store.get_note(&result.id) {

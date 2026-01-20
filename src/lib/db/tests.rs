@@ -183,7 +183,7 @@ fn test_search_fts_basic() {
     let db = Database::open(store.root()).unwrap();
     db.rebuild(store.root()).unwrap();
 
-    let results = db.search("test", None, None, 10).unwrap();
+    let results = db.search("test", None, None, None, 10).unwrap();
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].title, "Test Note One");
@@ -218,7 +218,7 @@ fn test_search_fts_tag_boost() {
     let db = Database::open(store.root()).unwrap();
     db.rebuild(store.root()).unwrap();
 
-    let results = db.search("test", None, None, 10).unwrap();
+    let results = db.search("test", None, None, None, 10).unwrap();
 
     assert_eq!(results.len(), 2);
     assert_eq!(results[0].title, "Test Note");
@@ -241,7 +241,7 @@ fn test_search_with_type_filter() {
     db.rebuild(store.root()).unwrap();
 
     let results = db
-        .search("test", Some(NoteType::Fleeting), None, 10)
+        .search("test", Some(NoteType::Fleeting), None, None, 10)
         .unwrap();
 
     assert_eq!(results.len(), 1);
@@ -276,7 +276,7 @@ fn test_search_with_tag_filter() {
     let db = Database::open(store.root()).unwrap();
     db.rebuild(store.root()).unwrap();
 
-    let results = db.search("test", None, Some("test-tag"), 10).unwrap();
+    let results = db.search("test", None, Some("test-tag"), None, 10).unwrap();
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].title, "Test Note One");
@@ -294,7 +294,7 @@ fn test_search_empty_query() {
     let db = Database::open(store.root()).unwrap();
     db.rebuild(store.root()).unwrap();
 
-    let results = db.search("", None, None, 10).unwrap();
+    let results = db.search("", None, None, None, 10).unwrap();
 
     assert_eq!(results.len(), 0);
 }
@@ -313,7 +313,7 @@ fn test_search_limit() {
     let db = Database::open(store.root()).unwrap();
     db.rebuild(store.root()).unwrap();
 
-    let results = db.search("test", None, None, 3).unwrap();
+    let results = db.search("test", None, None, None, 3).unwrap();
 
     assert_eq!(results.len(), 3);
 }

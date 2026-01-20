@@ -109,7 +109,7 @@ fn main() -> anyhow::Result<()> {
                 println!("No scenario specified. Use --scenario <path>");
             }
         }
-        Commands::List {
+        Commands::Scenarios {
             tags: _,
             tier,
             pending_review,

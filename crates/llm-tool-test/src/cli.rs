@@ -60,7 +60,7 @@ pub enum Commands {
         timeout_secs: u64,
     },
     /// List available scenarios
-    List {
+    Scenarios {
         /// Filter by tags
         #[arg(long)]
         tags: Vec<String>,

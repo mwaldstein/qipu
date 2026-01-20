@@ -71,7 +71,7 @@ Current: `MinNotes`, `MinLinks`, `SearchHit`, `NoteExists`, `LinkExists`, `TagEx
 - [x] Extract print functions into `output.rs` - completed 2026-01-20
 
 ### CLI Polish (P3)
-- [ ] Rename `list` to show scenarios not runs
+- [x] Rename `list` to show scenarios not runs - completed 2026-01-20
 - [ ] Add `run --all` to run all scenarios
 - [ ] Add `baseline set <run_id>` command
 

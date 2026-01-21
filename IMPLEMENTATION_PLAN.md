@@ -66,10 +66,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: Added `path=` field to N records in both `append_note_metadata_lines` (for link tree/list) and `output_path_records` (for link path) functions; both NoteMetadata and TreeNote structs already had path fields available
 
 ### Value Model (`specs/value-model.md`)
-- [ ] `--min-value` accepts values outside 0-100 without validation.
-  - `src/cli/commands.rs:136-141`
-  - `src/cli/link.rs:105-156`
-- [ ] Dijkstra traversal uses a max-heap ordering, which can invert expected “shortest” paths.
+- [x] `--min-value` accepts values outside 0-100 without validation.
+  - `src/cli/parse.rs:14-19`
+  - `src/cli/commands.rs:51,136,278`
+  - `src/cli/link.rs:105,150`
+  - Learnings: Added `parse_min_value` function to validate range 0-100; applied value_parser to all 5 min_value CLI arguments (list, search, context, link tree, link path)
+- [ ] Dijkstra traversal uses a max-heap ordering, which can invert expected "shortest" paths.
   - `src/lib/graph/bfs.rs:340-346`
 
 ### Structured Logging (`specs/structured-logging.md`)

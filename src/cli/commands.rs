@@ -49,7 +49,7 @@ pub enum Commands {
         since: Option<String>,
 
         /// Filter by minimum value (0-100, default: 50)
-        #[arg(long)]
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
     },
 
@@ -134,7 +134,7 @@ pub enum Commands {
         exclude_mocs: bool,
 
         /// Filter by minimum value (0-100, default: 50)
-        #[arg(long)]
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
 
         /// Sort results by field: 'relevance' (default) or 'value'
@@ -274,7 +274,7 @@ pub enum Commands {
         backlinks: bool,
 
         /// Filter notes by minimum value (0-100, default: 50)
-        #[arg(long, value_name = "N")]
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value, value_name = "N")]
         min_value: Option<u8>,
     },
 

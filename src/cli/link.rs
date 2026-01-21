@@ -103,7 +103,7 @@ pub enum LinkCommands {
         max_chars: Option<usize>,
 
         /// Filter by minimum value (0-100, default: 50)
-        #[arg(long)]
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
 
         /// Ignore note values during traversal (unweighted BFS)
@@ -148,7 +148,7 @@ pub enum LinkCommands {
         max_chars: Option<usize>,
 
         /// Filter by minimum value (0-100, default: 50)
-        #[arg(long)]
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
 
         /// Ignore note values during path finding (unweighted BFS, default: true)

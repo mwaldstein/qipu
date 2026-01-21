@@ -15,7 +15,7 @@ pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
     if rebuild {
         store.db().rebuild(store.root())?;
     } else {
-        store.db().rebuild(store.root())?;
+        store.db().incremental_repair(store.root())?;
     }
 
     let notes_count = store.list_notes()?.len();

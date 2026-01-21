@@ -36,7 +36,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: Added SchemaCreateResult enum to signal when rebuild is needed; create_schema now drops all tables and returns NeedsRebuild on schema mismatch; Database::open checks this flag and calls rebuild(); updated tests to verify auto-rebuild behavior
 
 ### Indexing/Search (`specs/indexing-search.md`)
-- [ ] `qipu index --rebuild` is a no-op (always rebuilds); wire incremental indexing.
+- [x] `qipu index --rebuild` is a no-op (always rebuilds); wire incremental indexing.
   - `src/commands/index.rs:14-19`
   - `src/lib/db/repair.rs:6-141`
 

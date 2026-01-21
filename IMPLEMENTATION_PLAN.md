@@ -1,6 +1,6 @@
 # Qipu Implementation Plan
 
-This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
+This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
 - Test baseline: 494 tests pass (223 unit + 249 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge)

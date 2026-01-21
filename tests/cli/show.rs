@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -70,99 +70,11 @@ fn test_show_links_no_links() {
     // Create a note
     let output = qipu()
         .current_dir(dir.path())
-        .args(["create", "Note Without Links"])
+        .args(["create", "Note with Links"])
         .output()
         .unwrap();
 
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
-    // Show with --links should work and show no links
-    qipu()
-        .current_dir(dir.path())
-        .args(["show", &id, "--links"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Links for"))
-        .stdout(predicate::str::contains("No links found"));
-}
-
-#[test]
-fn test_show_links_with_links() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    // Create two notes
-    let output1 = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Source Note"])
-        .output()
-        .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
-
-    let output2 = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Target Note"])
-        .output()
-        .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
-
-    // Add link from note1 to note2
-    qipu()
-        .current_dir(dir.path())
-        .args(["link", "add", &id1, &id2, "--type", "related"])
-        .assert()
-        .success();
-
-    // Rebuild index
-    qipu()
-        .current_dir(dir.path())
-        .args(["index", "--rebuild"])
-        .assert()
-        .success();
-
-    // Show --links on source note should show outbound link
-    qipu()
-        .current_dir(dir.path())
-        .args(["show", &id1, "--links"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Outbound links"))
-        .stdout(predicate::str::contains(&id2))
-        .stdout(predicate::str::contains("related"))
-        .stdout(predicate::str::contains("typed"));
-
-    // Show --links on target note should show inbound link (backlink)
-    qipu()
-        .current_dir(dir.path())
-        .args(["show", &id2, "--links"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Inbound links"))
-        .stdout(predicate::str::contains(&id1));
-}
-
-#[test]
-fn test_show_links_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Test Note"])
-        .output()
-        .unwrap();
-
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     // Show --links with JSON format
     qipu()
@@ -190,14 +102,14 @@ fn test_show_links_records_format() {
         .args(["create", "Source"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Target"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())

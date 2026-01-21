@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -17,14 +17,14 @@ fn test_link_path_direct() {
         .args(["create", "Start"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "End"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -65,21 +65,21 @@ fn test_link_path_multi_hop() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -127,14 +127,14 @@ fn test_link_path_not_found() {
         .args(["create", "Isolated 1"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Isolated 2"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -166,14 +166,14 @@ fn test_link_path_json_format() {
         .args(["create", "JSON Start"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "JSON End"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -214,14 +214,14 @@ fn test_link_path_records_format() {
         .args(["create", "Records Start"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Records End"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -260,21 +260,21 @@ fn test_link_path_type_filter() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -326,21 +326,21 @@ fn test_link_path_exclude_type_filter() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -515,21 +515,21 @@ fn test_link_path_direction_in() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -575,14 +575,14 @@ fn test_link_path_direction_both() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     qipu()
         .current_dir(dir.path())
@@ -630,14 +630,14 @@ fn test_link_path_min_value_filter_excludes_from_note() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     qipu()
         .current_dir(dir.path())
@@ -682,14 +682,14 @@ fn test_link_path_min_value_filter_excludes_to_note() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     qipu()
         .current_dir(dir.path())
@@ -735,21 +735,21 @@ fn test_link_path_min_value_filter_excludes_intermediate_note() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -800,14 +800,14 @@ fn test_link_path_min_value_filter_all_match() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     qipu()
         .current_dir(dir.path())
@@ -860,14 +860,14 @@ fn test_link_path_min_value_filter_with_defaults() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     qipu()
         .current_dir(dir.path())

@@ -36,7 +36,7 @@ impl super::Database {
                         ))
                     })?;
 
-                for edge in edges {
+                for (position, edge) in edges.iter().enumerate() {
                     let link_type_str = edge.link_type.to_string();
                     let inline_flag =
                         if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
@@ -44,11 +44,12 @@ impl super::Database {
                         } else {
                             0
                         };
+                    let position = position as i64;
 
                     self.conn
                         .execute(
-                            "INSERT INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
-                            params![edge.from, edge.to, link_type_str, inline_flag],
+                            "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
+                            params![edge.from, edge.to, link_type_str, inline_flag, position],
                         )
                         .map_err(|e| {
                             QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
@@ -128,7 +129,7 @@ impl super::Database {
                         ))
                     })?;
 
-                for edge in edges {
+                for (position, edge) in edges.iter().enumerate() {
                     let link_type_str = edge.link_type.to_string();
                     let inline_flag =
                         if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
@@ -136,10 +137,11 @@ impl super::Database {
                         } else {
                             0
                         };
+                    let position = position as i64;
 
                     conn.execute(
-                        "INSERT INTO edges (source_id, target_id, link_type, inline) VALUES (?1, ?2, ?3, ?4)",
-                        params![edge.from, edge.to, link_type_str, inline_flag],
+                        "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
+                        params![edge.from, edge.to, link_type_str, inline_flag, position],
                     )
                     .map_err(|e| {
                         QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
@@ -228,7 +230,7 @@ impl super::Database {
     pub fn get_outbound_edges(&self, note_id: &str) -> Result<Vec<Edge>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
+            .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1 ORDER BY position")
             .map_err(|e| {
                 QipuError::Other(format!("failed to prepare outbound edges query: {}", e))
             })?;

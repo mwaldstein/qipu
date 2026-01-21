@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -113,14 +113,14 @@ fn test_doctor_broken_link_detection() {
         .args(["create", "Note With Link"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Target Note"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     // Link note1 -> note2
     qipu()

@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -41,7 +41,7 @@ fn test_context_by_note_id() {
         .args(["create", "Context Test Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     // Get context by note ID
     qipu()
@@ -141,7 +141,7 @@ fn test_context_safety_banner() {
         .args(["create", "Safe Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -169,9 +169,7 @@ fn test_context_by_moc() {
         .args(["create", "Topic Map", "--type", "moc"])
         .output()
         .unwrap();
-    let moc_id = String::from_utf8_lossy(&moc_output.stdout)
-        .trim()
-        .to_string();
+    let moc_id = extract_id(&moc_output);
 
     // Create a note
     let note_output = qipu()
@@ -179,9 +177,7 @@ fn test_context_by_moc() {
         .args(["create", "Linked Note"])
         .output()
         .unwrap();
-    let note_id = String::from_utf8_lossy(&note_output.stdout)
-        .trim()
-        .to_string();
+    let note_id = extract_id(&note_output);
 
     // Link MOC to note
     qipu()
@@ -224,9 +220,7 @@ fn test_context_transitive_moc_traversal() {
         .args(["create", "Top Level MOC", "--type", "moc"])
         .output()
         .unwrap();
-    let moc_a_id = String::from_utf8_lossy(&moc_a_output.stdout)
-        .trim()
-        .to_string();
+    let moc_a_id = extract_id(&moc_a_output);
 
     // Create MOC B (nested MOC)
     let moc_b_output = qipu()
@@ -234,9 +228,7 @@ fn test_context_transitive_moc_traversal() {
         .args(["create", "Nested MOC", "--type", "moc"])
         .output()
         .unwrap();
-    let moc_b_id = String::from_utf8_lossy(&moc_b_output.stdout)
-        .trim()
-        .to_string();
+    let moc_b_id = extract_id(&moc_b_output);
 
     // Create regular notes
     let note1_output = qipu()
@@ -244,27 +236,21 @@ fn test_context_transitive_moc_traversal() {
         .args(["create", "Note One"])
         .output()
         .unwrap();
-    let note1_id = String::from_utf8_lossy(&note1_output.stdout)
-        .trim()
-        .to_string();
+    let note1_id = extract_id(&note1_output);
 
     let note2_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Note Two"])
         .output()
         .unwrap();
-    let note2_id = String::from_utf8_lossy(&note2_output.stdout)
-        .trim()
-        .to_string();
+    let note2_id = extract_id(&note2_output);
 
     let note3_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Note Three"])
         .output()
         .unwrap();
-    let note3_id = String::from_utf8_lossy(&note3_output.stdout)
-        .trim()
-        .to_string();
+    let note3_id = extract_id(&note3_output);
 
     // Link structure:
     // MOC A -> MOC B, Note 1
@@ -580,18 +566,14 @@ fn test_context_backlinks() {
         .args(["create", "Source Note"])
         .output()
         .unwrap();
-    let note1_id = String::from_utf8_lossy(&note1_output.stdout)
-        .trim()
-        .to_string();
+    let note1_id = extract_id(&note1_output);
 
     let note2_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Target Note"])
         .output()
         .unwrap();
-    let note2_id = String::from_utf8_lossy(&note2_output.stdout)
-        .trim()
-        .to_string();
+    let note2_id = extract_id(&note2_output);
 
     // Create a link from note1 to note2
     qipu()

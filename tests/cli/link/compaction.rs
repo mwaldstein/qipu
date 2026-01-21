@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use std::fs;
 use tempfile::tempdir;
 
@@ -18,21 +18,21 @@ fn test_link_list_with_compaction() {
         .args(["create", "Note 1"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Note 2"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let digest_id = extract_id(&output3);
 
     // Add link from note1 to note2
     qipu()
@@ -106,21 +106,21 @@ fn test_link_tree_with_compaction() {
         .args(["create", "Note 1"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Note 2"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "Note 3"])
         .output()
         .unwrap();
-    let id3 = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let id3 = extract_id(&output3);
 
     let output_digest = qipu()
         .current_dir(dir.path())
@@ -313,21 +313,21 @@ fn test_link_no_resolve_compaction_flag() {
         .args(["create", "Note 1"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Note 2"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let digest_id = extract_id(&output3);
 
     // Add link
     qipu()

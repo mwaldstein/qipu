@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -19,7 +19,7 @@ fn test_link_list_empty() {
         .output()
         .unwrap();
 
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     // First build index
     qipu()
@@ -53,14 +53,14 @@ fn test_link_list_json_format() {
         .args(["create", "JSON Source"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "JSON Target"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -100,14 +100,14 @@ fn test_link_list_direction_filter() {
         .args(["create", "Direction Source"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Direction Target"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -162,14 +162,14 @@ fn test_link_list_records_format() {
         .args(["create", "Records Source"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Records Target"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -209,21 +209,21 @@ fn test_link_list_records_max_chars() {
         .args(["create", "Link List Budget A"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Link List Budget B"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "Link List Budget C"])
         .output()
         .unwrap();
-    let id3 = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let id3 = extract_id(&output3);
 
     qipu()
         .current_dir(dir.path())

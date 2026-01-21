@@ -50,8 +50,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Added `alias` and `value_delimiter` attributes to both `r#type` and `exclude_type` fields in Tree and Path commands; this allows both `--type/--exclude-type` (repeatable) and `--types/--exclude-types` (CSV) forms as specified in the spec
 
 ### Knowledge Model (`specs/knowledge-model.md`)
-- [ ] Context traversal does not preserve MOC ordering as a “reading path” (unordered outbound edges).
+- [x] Context traversal does not preserve MOC ordering as a "reading path" (unordered outbound edges).
   - `src/commands/context/select.rs:21-38`
+  - Learnings: Added `position INTEGER NOT NULL DEFAULT 0` column to edges schema; updated INSERT statements to include position; updated `get_outbound_edges` query to ORDER BY position; changed queue from vec to VecDeque with pop_front for FIFO behavior; bumped schema version to 3
 
 ### Pack (`specs/pack.md`)
 - [ ] `load --strategy skip` drops all links, even for newly loaded notes.
@@ -399,5 +400,6 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## Notes
 
 - Audit Date: 2026-01-20
-- Recent completions include workspaces `--empty` flag, structured logging verification, and file size refactoring
+- Recent completions include workspaces `--empty` flag, structured logging verification, file size refactoring, and MOC ordering preservation
 - Documentation additions: `docs/building-on-qipu.md` and type detection spec in `specs/custom-metadata.md`
+- Test fixes: Added `extract_id` helper to test support to handle two-line create output (ID + path); updated ID extraction in test files; added index calls to test cases that manually create notes

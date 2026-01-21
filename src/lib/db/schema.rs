@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 2;
+pub const CURRENT_SCHEMA_VERSION: i32 = 3;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS edges (
     target_id TEXT NOT NULL,
     link_type TEXT,
     inline INTEGER DEFAULT 0,
+    position INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (source_id, target_id, link_type)
 );
 CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id);

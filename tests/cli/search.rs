@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
@@ -631,14 +631,14 @@ fn test_search_with_min_value_filter() {
         .args(["create", "High Value Programming"])
         .output()
         .unwrap();
-    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let high_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Medium Value Programming"])
         .output()
         .unwrap();
-    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let medium_id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -701,21 +701,21 @@ fn test_search_sort_by_value() {
         .args(["create", "Low Value Note"])
         .output()
         .unwrap();
-    let low_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let low_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Medium Value Note"])
         .output()
         .unwrap();
-    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let medium_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "High Value Note"])
         .output()
         .unwrap();
-    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let high_id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -788,7 +788,7 @@ fn test_search_sort_by_value_with_defaults() {
         .args(["create", "Explicit Value Note"])
         .output()
         .unwrap();
-    let explicit_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let explicit_id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -851,21 +851,21 @@ fn test_search_min_value_and_sort_combined() {
         .args(["create", "Very High Note"])
         .output()
         .unwrap();
-    let very_high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let very_high_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "High Note"])
         .output()
         .unwrap();
-    let high_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let high_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Medium Note"])
         .output()
         .unwrap();
-    let medium_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let medium_id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())

@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 // ============================================================================
@@ -36,7 +36,7 @@ fn test_context_expand_compaction_human_format() {
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let digest_id = extract_id(&output);
 
     // Get note IDs for source notes
     let list_output = qipu()
@@ -129,7 +129,7 @@ fn test_context_expand_compaction_json_format() {
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let digest_id = extract_id(&output);
 
     // Get note IDs for source notes
     let list_output = qipu()
@@ -244,7 +244,7 @@ fn test_context_expand_compaction_records_format() {
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let digest_id = extract_id(&output);
 
     // Get note IDs for source notes
     let list_output = qipu()
@@ -346,7 +346,7 @@ fn test_context_expand_compaction_with_depth() {
         .args(["create", "Intermediate Digest"])
         .output()
         .unwrap();
-    let intermediate_id = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let intermediate_id = extract_id(&output1);
 
     // Create top-level digest
     let output2 = qipu()
@@ -354,7 +354,7 @@ fn test_context_expand_compaction_with_depth() {
         .args(["create", "Top Digest"])
         .output()
         .unwrap();
-    let top_id = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let top_id = extract_id(&output2);
 
     // Get note IDs
     let list_output = qipu()

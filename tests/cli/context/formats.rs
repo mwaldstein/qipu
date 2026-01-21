@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -21,7 +21,7 @@ fn test_context_json_format() {
         .args(["create", "JSON Context Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -48,7 +48,7 @@ fn test_context_records_format() {
         .args(["create", "Records Context Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -75,7 +75,7 @@ fn test_context_records_escapes_quotes_in_title() {
         .args(["create", "Title with \"quotes\" inside"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
@@ -132,7 +132,7 @@ fn test_context_json_with_provenance() {
         ])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     // Run context command with JSON format
     let output = qipu()
@@ -177,7 +177,7 @@ fn test_context_records_safety_banner() {
         .args(["create", "Records Safety Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -207,7 +207,7 @@ fn test_context_records_without_safety_banner() {
         .args(["create", "Records No Banner Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())

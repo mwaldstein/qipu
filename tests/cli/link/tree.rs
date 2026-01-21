@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -18,7 +18,7 @@ fn test_link_tree_single_node() {
         .args(["create", "Root Note"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -52,21 +52,21 @@ fn test_link_tree_with_links() {
         .args(["create", "Root"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 1"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 2"])
         .output()
         .unwrap();
-    let id3 = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let id3 = extract_id(&output3);
 
     // Link root -> child1 -> child2
     qipu()
@@ -113,14 +113,14 @@ fn test_link_tree_json_format() {
         .args(["create", "JSON Root"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "JSON Child"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     qipu()
         .current_dir(dir.path())
@@ -160,7 +160,7 @@ fn test_link_tree_records_format() {
         .args(["create", "Records Root"])
         .output()
         .unwrap();
-    let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let id = extract_id(&output);
 
     qipu()
         .current_dir(dir.path())
@@ -242,21 +242,21 @@ fn test_link_tree_direction_out() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -303,21 +303,21 @@ fn test_link_tree_cycle_shows_seen() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     // Create a cycle: A -> B -> C -> A
     qipu()
@@ -461,21 +461,21 @@ fn test_link_tree_spanning_tree_ordering() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     // Add links with types that have different lexical ordering
     // "derived-from" < "related" < "supports" (alphabetically: d < r < s)
@@ -799,21 +799,21 @@ fn test_link_tree_direction_in() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -858,21 +858,21 @@ fn test_link_tree_direction_both() {
         .args(["create", "Node A"])
         .output()
         .unwrap();
-    let id_a = String::from_utf8_lossy(&output_a.stdout).trim().to_string();
+    let id_a = extract_id(&output_a);
 
     let output_b = qipu()
         .current_dir(dir.path())
         .args(["create", "Node B"])
         .output()
         .unwrap();
-    let id_b = String::from_utf8_lossy(&output_b.stdout).trim().to_string();
+    let id_b = extract_id(&output_b);
 
     let output_c = qipu()
         .current_dir(dir.path())
         .args(["create", "Node C"])
         .output()
         .unwrap();
-    let id_c = String::from_utf8_lossy(&output_c.stdout).trim().to_string();
+    let id_c = extract_id(&output_c);
 
     qipu()
         .current_dir(dir.path())
@@ -918,14 +918,14 @@ fn test_link_tree_min_value_filter_all_match() {
         .args(["create", "Root Note"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "High Value Note"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     // Set values
     qipu()
@@ -979,21 +979,21 @@ fn test_link_tree_min_value_filter_some_match() {
         .args(["create", "Root Note"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Low Value Note"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     let output3 = qipu()
         .current_dir(dir.path())
         .args(["create", "High Value Note"])
         .output()
         .unwrap();
-    let id3 = String::from_utf8_lossy(&output3.stdout).trim().to_string();
+    let id3 = extract_id(&output3);
 
     // Set values
     qipu()
@@ -1060,14 +1060,14 @@ fn test_link_tree_min_value_filter_with_defaults() {
         .args(["create", "Root Note"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Default Value Note"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     // Set only root value, leave child as default (treated as 50)
     qipu()
@@ -1115,14 +1115,14 @@ fn test_link_tree_min_value_filter_excludes_root() {
         .args(["create", "Low Value Root"])
         .output()
         .unwrap();
-    let id1 = String::from_utf8_lossy(&output1.stdout).trim().to_string();
+    let id1 = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "High Value Child"])
         .output()
         .unwrap();
-    let id2 = String::from_utf8_lossy(&output2.stdout).trim().to_string();
+    let id2 = extract_id(&output2);
 
     // Set values
     qipu()

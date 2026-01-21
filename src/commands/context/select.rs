@@ -2,6 +2,7 @@ use crate::lib::db::Database;
 use crate::lib::error::Result;
 use crate::lib::note::{LinkType, NoteType};
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::time::Instant;
 use tracing::debug;
 
@@ -18,12 +19,13 @@ pub fn get_moc_linked_ids(
 
     let mut result = Vec::new();
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue = vec![(moc_id.to_string(), None)];
+    let mut queue = VecDeque::new();
+    queue.push_back((moc_id.to_string(), None));
 
     visited.insert(moc_id.to_string());
     result.push((moc_id.to_string(), None));
 
-    while let Some((current_id, _)) = queue.pop() {
+    while let Some((current_id, _)) = queue.pop_front() {
         // Get outbound edges from current note
         let edges = db.get_outbound_edges(&current_id)?;
 
@@ -36,7 +38,7 @@ pub fn get_moc_linked_ids(
                 if transitive {
                     if let Some(meta) = db.get_note_metadata(&edge.to)? {
                         if meta.note_type == NoteType::Moc {
-                            queue.push((edge.to.clone(), Some(link_type)));
+                            queue.push_back((edge.to.clone(), Some(link_type)));
                         }
                     }
                 }

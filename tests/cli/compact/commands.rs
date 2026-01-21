@@ -98,6 +98,13 @@ This digest summarizes notes 1 and 2."#;
     )
     .unwrap();
 
+    // Index the digest note so it exists in the database
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
     // Apply compaction
     qipu()
         .current_dir(dir.path())
@@ -474,6 +481,13 @@ Content from source note 2."#;
         digest_content,
     )
     .unwrap();
+
+    // Index the notes so they exist in the database
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
 
     // Apply compaction
     qipu()

@@ -475,6 +475,19 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/performance_tests.rs:188-240` - 10k note search test
   - `tests/performance_tests.rs:50-120` - list/index performance tests
 
+### Test Suite Optimization
+- [ ] Review and rationalize test suite for faster feedback loops.
+  - As the test suite grows, execution time increases; review for opportunities to optimize.
+  - Questions to resolve:
+    - Which tests are redundant or overlapping?
+    - Can slow integration tests be split into fast unit tests?
+    - Should tests be organized into tiers (fast/slow) for different CI stages?
+    - Are there tests that can be parallelized more effectively?
+    - Can expensive setup/teardown be shared across test groups?
+  - `tests/` - Integration test suite
+  - `src/lib/db/tests.rs` - Database unit tests
+  - `crates/llm-tool-test/` - LLM validation tests
+
 ---
 
 ## Notes

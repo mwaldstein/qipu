@@ -41,9 +41,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/db/repair.rs:6-141`
 
 ### Graph Traversal (`specs/graph-traversal.md`)
-- [ ] `link path` defaults to weighted Dijkstra instead of shortest-hop traversal.
-  - `src/commands/link/path.rs:71-95`
-  - `src/lib/graph/bfs.rs:350-359`
+- [x] `link path` defaults to weighted Dijkstra instead of shortest-hop traversal.
+  - `src/cli/link.rs:154-156`
+  - Learnings: Changed default_value for ignore_value flag from false to true in link path CLI definition; this makes link path use unweighted BFS (shortest-hop traversal) by default
 - [ ] `link tree/path` flags do not support CSV-style `--types/--exclude-types` (only repeatable `--type`/`--exclude-type`).
   - `src/cli/link.rs:73-79`
   - `src/cli/link.rs:130-136`

@@ -229,8 +229,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/cli/commands.rs:267-276` - Added `--summary-only` flag; hid `--with-body` (now deprecated but preserved for compatibility)
   - `src/commands/dispatch/mod.rs:145-176` - Changed default to use full body; `use_full_body = !summary_only || *with_body`
   - **Learnings**: Spec says "Preserve original note markdown as-is" which means full body by default. Changed default behavior to include full body content, added `--summary-only` flag to opt into the old behavior (summary extraction). The `--with-body` flag is kept as a hidden option for backward compatibility but is now redundant since full body is the default.
-- [ ] Bundle output omits empty metadata headers (`Path`, `Tags`, `Sources`) when values are absent.
-  - `src/commands/context/human.rs:105-157`
+- [x] Bundle output omits empty metadata headers (`Path`, `Tags`, `Sources`) when values are absent.
+  - `src/commands/context/human.rs:116-118,121-123,159-168`
+  - **Status**: Already implemented correctly. Path is only shown when Some (line 116-118), Tags only when not empty (line 121-123), and Sources only when not empty (line 159-168).
+  - **Learnings**: The implementation already follows best practices for clean output by omitting empty metadata fields. Type is always shown since every note has a type.
 
 ### Compaction (`specs/compaction.md`)
 - [ ] Link outputs omit `compacts=`/`compaction=` annotations for digest nodes.

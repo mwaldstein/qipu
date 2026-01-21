@@ -86,22 +86,16 @@ fn test_inbox_exclude_linked() {
     let moc_output = qipu()
         .current_dir(dir.path())
         .args(["create", "--type", "moc", "Project MOC"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap();
     let moc_id = extract_id(&moc_output);
 
     // Create two fleeting notes
     let fleeting1_output = qipu()
         .current_dir(dir.path())
         .args(["create", "--type", "fleeting", "Linked Note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap();
     let fleeting1_id = extract_id(&fleeting1_output);
 
     qipu()

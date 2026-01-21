@@ -185,9 +185,9 @@ fn test_list_performance_1k_notes() {
 // ============================================================================
 
 #[test]
-fn test_search_performance_2k_notes() {
+fn test_search_performance_10k_notes() {
     let store_dir = tempdir().unwrap();
-    let note_count = 2000; // Reduced for practical testing
+    let note_count = 10000;
 
     // Create test store with notes
     create_test_store_with_notes(store_dir.path(), note_count).unwrap();

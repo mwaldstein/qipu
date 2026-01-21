@@ -95,8 +95,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## P2: Missing Test Coverage & Gaps
 
 ### CLI Tool (`specs/cli-tool.md`)
-- [ ] Add performance budget coverage for search at 10k notes (spec target) instead of 2k baseline.
+- [x] Add performance budget coverage for search at 10k notes (spec target) instead of 2k baseline.
   - `tests/performance_tests.rs:188-240`
+  - Learnings: Changed note_count from 2000 to 10000 and renamed test from test_search_performance_2k_notes to test_search_performance_10k_notes; actual performance is 186ms for 10k notes, well within spec target of <1s
 
 ### Operational Database (`specs/operational-database.md`)
 - [ ] Search ranking boosts don’t align with spec weights.

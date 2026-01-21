@@ -6,7 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, TagsCommands};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::store::Store;
 use tracing::debug;
@@ -113,6 +113,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         }
 
         Some(Commands::Value { command }) => handle_value(cli, &root, command, start),
+
+        Some(Commands::Tags { command }) => handle_tags(cli, &root, command, start),
 
         Some(Commands::Prime) => maintenance::handle_prime(cli, &root, start),
 
@@ -361,6 +363,58 @@ fn handle_value(
             }
 
             debug!(elapsed = ?start.elapsed(), "value_show");
+            Ok(())
+        }
+    }
+}
+
+fn handle_tags(cli: &Cli, root: &PathBuf, command: &TagsCommands, start: Instant) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        TagsCommands::List {} => {
+            use crate::cli::OutputFormat;
+
+            let frequencies = store.get_tag_frequencies()?;
+
+            match cli.format {
+                OutputFormat::Json => {
+                    let output: Vec<_> = frequencies
+                        .iter()
+                        .map(|(tag, count)| {
+                            serde_json::json!({
+                                "tag": tag,
+                                "count": count
+                            })
+                        })
+                        .collect();
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    if frequencies.is_empty() {
+                        if !cli.quiet {
+                            println!("No tags found");
+                        }
+                    } else {
+                        for (tag, count) in &frequencies {
+                            println!("{}: {}", tag, count);
+                        }
+                    }
+                }
+                OutputFormat::Records => {
+                    if frequencies.is_empty() {
+                        if !cli.quiet {
+                            println!("No tags found");
+                        }
+                    } else {
+                        for (tag, count) in &frequencies {
+                            println!("T tag=\"{}\" count={}", tag, count);
+                        }
+                    }
+                }
+            }
+
+            debug!(elapsed = ?start.elapsed(), "tags_list");
             Ok(())
         }
     }

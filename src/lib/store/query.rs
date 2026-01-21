@@ -42,4 +42,10 @@ impl Store {
         db.get_note(id)?
             .ok_or_else(|| QipuError::NoteNotFound { id: id.to_string() })
     }
+
+    /// Get tag frequency statistics
+    pub fn get_tag_frequencies(&self) -> Result<Vec<(String, i64)>> {
+        let db = self.db();
+        db.get_tag_frequencies()
+    }
 }

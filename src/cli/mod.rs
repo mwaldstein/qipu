@@ -9,6 +9,7 @@ pub mod compact;
 pub mod link;
 pub mod output;
 pub mod parse;
+pub mod tags;
 pub mod value;
 pub mod workspace;
 
@@ -20,6 +21,7 @@ pub use commands::Commands;
 pub use compact::CompactCommands;
 pub use link::LinkCommands;
 pub use output::OutputFormat;
+pub use tags::TagsCommands;
 pub use value::ValueCommands;
 pub use workspace::WorkspaceCommands;
 

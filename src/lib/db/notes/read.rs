@@ -474,4 +474,38 @@ impl super::super::Database {
 
         Ok(results)
     }
+
+    pub fn get_tag_frequencies(&self) -> Result<Vec<(String, i64)>> {
+        let sql = r#"
+            SELECT tag, COUNT(*) as count
+            FROM tags
+            GROUP BY tag
+            ORDER BY count DESC, tag
+        "#;
+
+        let mut stmt = self.conn.prepare(sql).map_err(|e| {
+            QipuError::Other(format!("failed to prepare tag frequency query: {}", e))
+        })?;
+
+        let mut results = Vec::new();
+
+        let mut rows = stmt.query([]).map_err(|e| {
+            QipuError::Other(format!("failed to execute tag frequency query: {}", e))
+        })?;
+
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read tag frequency results: {}", e)))?
+        {
+            let tag: String = row
+                .get(0)
+                .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?;
+            let count: i64 = row
+                .get(1)
+                .map_err(|e| QipuError::Other(format!("failed to read count: {}", e)))?;
+            results.push((tag, count));
+        }
+
+        Ok(results)
+    }
 }

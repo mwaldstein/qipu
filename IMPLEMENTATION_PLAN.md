@@ -56,6 +56,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Pack (`specs/pack.md`)
 - [x] `load --strategy skip` drops all links, even for newly loaded notes.
+  - Learnings: Added `new_ids` return value to track newly loaded notes (notes that didn't exist before); changed skip strategy to only load links between newly loaded notes (using `new_ids` instead of `loaded_ids`)
+  - Fixes P1 correctness bug where skip strategy was dropping ALL links, even for newly loaded notes. Now only loads links where both source AND target notes are newly loaded, preventing any mutation of skipped existing notes.
+  - Blocked by: Separate database location bug when using `QIPU_STORE` environment variable causes tests to fail (database created in wrong location: `store_root/.qipu/qipu.db` instead of `.qipu/qipu.db`)
+### Records Output (`specs/records-output.md`)
   - `src/commands/load/mod.rs:77-84`
   - Learnings: Added `new_ids` return value to track newly loaded notes (notes that didn't exist before loading); changed skip strategy to only load links between newly loaded notes (using `new_ids` instead of `loaded_ids`)
 - [ ] `dump` link preservation can drop links between included notes when `--type`/`--inline-only` filters are used.

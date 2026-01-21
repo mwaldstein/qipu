@@ -152,28 +152,34 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             model,
             transitive,
             with_body,
+            summary_only,
             safety_banner,
             related,
             backlinks,
             min_value,
-        }) => notes::handle_context(
-            cli,
-            &root,
-            note,
-            tag.as_deref(),
-            moc.as_deref(),
-            query.as_deref(),
-            *max_chars,
-            *max_tokens,
-            model.as_str(),
-            *transitive,
-            *with_body,
-            *safety_banner,
-            *related,
-            *backlinks,
-            *min_value,
-            start,
-        ),
+        }) => {
+            // Default to full body unless --summary-only is specified
+            // --with-body is kept for backward compatibility but is now the default
+            let use_full_body = !summary_only || *with_body;
+            notes::handle_context(
+                cli,
+                &root,
+                note,
+                tag.as_deref(),
+                moc.as_deref(),
+                query.as_deref(),
+                *max_chars,
+                *max_tokens,
+                model.as_str(),
+                *transitive,
+                use_full_body,
+                *safety_banner,
+                *related,
+                *backlinks,
+                *min_value,
+                start,
+            )
+        }
 
         Some(Commands::Export {
             note,

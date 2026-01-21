@@ -225,9 +225,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/context/records.rs:10-290` - Added "D excluded" markers
   - `tests/cli/context/budget.rs:412-502` - Added comprehensive test
   - **Learnings**: When budget constraints prevent notes from being included, all three output formats now show which notes were excluded. Human format shows an "Excluded Notes" section, JSON format includes an "excluded_notes" array with id/title, and records format adds "D excluded" markers. Records format budget calculation was updated to account for excluded note marker size to ensure exact budget compliance.
-- [ ] Default output uses summaries unless `--with-body` (spec implies full body).
-  - `src/commands/context/human.rs:161-165`
-  - `src/commands/context/json.rs:91-95`
+- [x] Default output uses summaries unless `--with-body` (spec implies full body).
+  - `src/cli/commands.rs:267-276` - Added `--summary-only` flag; hid `--with-body` (now deprecated but preserved for compatibility)
+  - `src/commands/dispatch/mod.rs:145-176` - Changed default to use full body; `use_full_body = !summary_only || *with_body`
+  - **Learnings**: Spec says "Preserve original note markdown as-is" which means full body by default. Changed default behavior to include full body content, added `--summary-only` flag to opt into the old behavior (summary extraction). The `--with-body` flag is kept as a hidden option for backward compatibility but is now redundant since full body is the default.
 - [ ] Bundle output omits empty metadata headers (`Path`, `Tags`, `Sources`) when values are absent.
   - `src/commands/context/human.rs:105-157`
 

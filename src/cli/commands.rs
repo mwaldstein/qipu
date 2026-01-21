@@ -268,9 +268,13 @@ pub enum Commands {
         #[arg(long)]
         transitive: bool,
 
-        /// Include full note body content (records format)
-        #[arg(long)]
+        /// Include full note body content (default, use --summary-only to disable)
+        #[arg(long, hide = true)]
         with_body: bool,
+
+        /// Use summary instead of full body content
+        #[arg(long)]
+        summary_only: bool,
 
         /// Include safety banner for LLM prompt injection prevention
         #[arg(long)]

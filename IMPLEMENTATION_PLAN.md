@@ -127,9 +127,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/index.rs:13-68`
   - `src/lib/config.rs:44-45`
   - Learnings: Added `rewrite_wiki_links` function to convert `[[id]]` and `[[id|label]]` to `[label](id.md)`. Added `--rewrite-wiki-links` flag to index command. Added `rewrite_wiki_links` config field to StoreConfig (default false). Added tests for simple links, labeled links, multiple links, and integration test. Feature is opt-in via CLI flag.
-- [ ] No cross-branch ID collision avoidance.
-  - `src/lib/store/lifecycle.rs:31-34`
-  - `src/lib/store/lifecycle.rs:77-88`
+- [x] No cross-branch ID collision avoidance.
+  - `src/lib/store/lifecycle.rs:177-215`
+  - `src/lib/git.rs:228-342`
+  - Learnings: Added `get_ids_from_all_branches()` function to git module that scans all git branches (local and remote) for note files and extracts IDs from filenames. Updated `Store::existing_ids()` to query both current database and all git branches when generating new IDs. Added `find_repo_root()` helper to locate git repository root. This provides additional collision protection for multi-branch/multi-agent workflows beyond the cryptographic collision resistance already provided by timestamp+random hash generation.
 
 ### Export (`specs/export.md`)
 - [ ] Outline export appends outbound edges beyond MOC body ordering.

@@ -242,6 +242,112 @@ pub fn has_changes(repo_path: &Path) -> Result<bool> {
     Ok(!output.stdout.is_empty())
 }
 
+/// Get all note IDs from all git branches to avoid cross-branch collisions
+///
+/// This function searches all branches for note files and extracts their IDs
+/// from the frontmatter. This provides collision avoidance for multi-branch workflows.
+pub fn get_ids_from_all_branches(
+    repo_path: &Path,
+    store_subpath: &str,
+) -> Result<std::collections::HashSet<String>> {
+    use std::collections::HashSet;
+
+    // First, check if we're in a git repo
+    if !is_git_available() {
+        return Ok(HashSet::new());
+    }
+
+    // Check if repo has any commits
+    let has_commits = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("rev-parse")
+        .arg("--verify")
+        .arg("HEAD")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !has_commits {
+        return Ok(HashSet::new());
+    }
+
+    let mut all_ids = HashSet::new();
+
+    // Get all branches (local and remote)
+    let branches_output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("branch")
+        .arg("-a")
+        .arg("--format=%(refname)")
+        .output()?;
+
+    if !branches_output.status.success() {
+        // If we can't list branches, just return empty set (no additional protection)
+        return Ok(HashSet::new());
+    }
+
+    let branches = String::from_utf8_lossy(&branches_output.stdout);
+
+    // For each branch, list all note files and extract IDs
+    for branch_ref in branches.lines() {
+        let branch_ref = branch_ref.trim();
+        if branch_ref.is_empty() {
+            continue;
+        }
+
+        // List all markdown files in notes/ and mocs/ directories
+        for dir in &["notes", "mocs"] {
+            let path_pattern = format!("{}{}/**/*.md", store_subpath, dir);
+
+            let ls_output = Command::new("git")
+                .arg("-C")
+                .arg(repo_path)
+                .arg("ls-tree")
+                .arg("-r")
+                .arg("--name-only")
+                .arg(branch_ref)
+                .arg(&path_pattern)
+                .output();
+
+            if let Ok(output) = ls_output {
+                if output.status.success() {
+                    let files = String::from_utf8_lossy(&output.stdout);
+
+                    // Extract IDs from filenames (format: <id>-<slug>.md)
+                    for file_path in files.lines() {
+                        let file_path = file_path.trim();
+                        if file_path.is_empty() {
+                            continue;
+                        }
+
+                        // Get filename from path
+                        if let Some(filename) = file_path.split('/').last() {
+                            // Extract ID (format: qp-<hash>-<slug>.md or qp-<hash>.md)
+                            if let Some(id_part) = filename.strip_suffix(".md") {
+                                // Find the first hyphen after "qp-"
+                                if id_part.starts_with("qp-") {
+                                    // The ID is everything up to the next hyphen (if any)
+                                    // or the entire string if no more hyphens
+                                    let id = if let Some(pos) = id_part[3..].find('-') {
+                                        &id_part[..pos + 3]
+                                    } else {
+                                        id_part
+                                    };
+                                    all_ids.insert(id.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(all_ids)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

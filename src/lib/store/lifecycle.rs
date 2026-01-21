@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::fs;
+use std::path::PathBuf;
 
 use crate::lib::error::{QipuError, Result};
 use crate::lib::id::{filename, NoteId};
@@ -174,9 +175,48 @@ impl Store {
     }
 
     /// Get all existing note IDs in the store
+    ///
+    /// Returns IDs from:
+    /// 1. Current database (notes in current working tree)
+    /// 2. All git branches (if in a git repository)
+    ///
+    /// This provides collision avoidance for multi-branch workflows.
     pub fn existing_ids(&self) -> Result<HashSet<String>> {
-        let ids = self.db.list_note_ids()?;
-        Ok(ids.into_iter().collect())
+        // Start with IDs from current database
+        let mut ids: HashSet<String> = self.db.list_note_ids()?.into_iter().collect();
+
+        // Add IDs from all git branches if we're in a git repo
+        if let Some(repo_root) = self.find_repo_root() {
+            // Determine store subpath relative to repo root
+            let store_subpath = if let Ok(rel_path) = self.root.strip_prefix(&repo_root) {
+                format!("{}/", rel_path.display())
+            } else {
+                // Store is not under repo root, use empty subpath
+                String::new()
+            };
+
+            if let Ok(git_ids) =
+                crate::lib::git::get_ids_from_all_branches(&repo_root, &store_subpath)
+            {
+                ids.extend(git_ids);
+            }
+        }
+
+        Ok(ids)
+    }
+
+    /// Find the git repository root (if any) for this store
+    fn find_repo_root(&self) -> Option<PathBuf> {
+        let mut current = self.root.as_path();
+
+        loop {
+            let git_dir = current.join(".git");
+            if git_dir.exists() {
+                return Some(current.to_path_buf());
+            }
+
+            current = current.parent()?;
+        }
     }
 
     #[allow(dead_code)]

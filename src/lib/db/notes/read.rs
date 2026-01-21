@@ -330,6 +330,21 @@ impl super::super::Database {
         }
     }
 
+    pub fn list_note_ids(&self) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id FROM notes ORDER BY id")
+            .map_err(|e| QipuError::Other(format!("failed to prepare note IDs query: {}", e)))?;
+
+        let ids = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| QipuError::Other(format!("failed to query note IDs: {}", e)))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| QipuError::Other(format!("failed to read note ID rows: {}", e)))?;
+
+        Ok(ids)
+    }
+
     pub fn list_notes_full(&self) -> Result<Vec<Note>> {
         let sql = r#"
             SELECT id, title, type, path, created, updated, body, value

@@ -175,38 +175,8 @@ impl Store {
 
     /// Get all existing note IDs in the store
     pub fn existing_ids(&self) -> Result<HashSet<String>> {
-        use walkdir::WalkDir;
-
-        let mut ids = HashSet::new();
-
-        for dir in [self.root.join(NOTES_DIR), self.root.join(MOCS_DIR)] {
-            if !dir.exists() {
-                continue;
-            }
-
-            for entry in WalkDir::new(&dir)
-                .follow_links(true)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                if entry.path().extension().is_some_and(|e| e == "md") {
-                    // Try to extract ID from filename (format: qp-xxxx-slug.md)
-                    if let Some(name) = entry.path().file_stem() {
-                        let name = name.to_string_lossy();
-                        if let Some(id_end) = name.find('-').and_then(|first| {
-                            name[first + 1..].find('-').map(|second| first + 1 + second)
-                        }) {
-                            ids.insert(name[..id_end].to_string());
-                        } else if name.starts_with("qp-") {
-                            // Might be just qp-xxxx.md
-                            ids.insert(name.to_string());
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(ids)
+        let ids = self.db.list_note_ids()?;
+        Ok(ids.into_iter().collect())
     }
 
     #[allow(dead_code)]

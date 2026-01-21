@@ -21,9 +21,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/main.rs:82-93`
 
 ### Operational Database (`specs/operational-database.md`)
-- [ ] Treat the database as the source of truth (remove filesystem fallbacks).
+- [x] Treat the database as the source of truth (remove filesystem fallbacks).
   - `src/lib/store/query.rs:14-52`
   - `src/lib/store/query.rs:66-101`
+  - Learnings: Added `list_note_ids()` method to Database module; replaced filesystem scanning in `existing_ids()` with database query
 - [ ] Trigger incremental repair when startup validation fails.
   - `src/lib/db/mod.rs:84-85`
   - `src/lib/db/repair.rs:6-141`

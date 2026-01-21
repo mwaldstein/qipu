@@ -1,8 +1,19 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
+use std::process::Output;
 use tempfile::tempdir;
 
 fn qipu() -> Command {
     cargo_bin_cmd!("qipu")
+}
+
+/// Extract note ID from create command output (first line)
+/// Create outputs: <id>\n<path>\n, so we take the first line
+fn extract_id(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()
+        .map(|s| s.to_string())
+        .unwrap_or_default()
 }
 
 #[test]
@@ -20,8 +31,7 @@ fn test_workspace_copy_primary_preserves_id() {
         .current_dir(root)
         .output()
         .unwrap();
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let main_id = stdout.trim();
+    let main_id = extract_id(&output);
     assert!(!main_id.is_empty(), "Main ID should not be empty");
 
     // 3. Create a workspace with copy-primary
@@ -46,7 +56,7 @@ fn test_workspace_copy_primary_preserves_id() {
 
     // Check if main_id is present in the output
     assert!(
-        stdout.contains(main_id),
+        stdout.contains(&main_id),
         "Workspace note ID should match primary note ID"
     );
 }
@@ -66,7 +76,7 @@ fn test_workspace_merge_strategies_links() {
         .current_dir(root)
         .output()
         .unwrap();
-    let id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let id = extract_id(&output);
 
     // 3. Copy to workspace
     qipu()
@@ -92,7 +102,7 @@ fn test_workspace_merge_strategies_links() {
         .current_dir(root)
         .output()
         .unwrap();
-    let ws_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let ws_id = extract_id(&output);
 
     // Link Target -> WorkspaceOnly in workspace
     qipu()
@@ -115,7 +125,7 @@ fn test_workspace_merge_strategies_links() {
         .current_dir(root)
         .output()
         .unwrap();
-    let main_only_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let main_only_id = extract_id(&output);
 
     // Link Target -> MainOnly in main
     qipu()

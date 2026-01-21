@@ -1,8 +1,19 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
+use std::process::Output;
 use tempfile::tempdir;
 
 fn qipu() -> Command {
     cargo_bin_cmd!("qipu")
+}
+
+/// Extract note ID from create command output (first line)
+/// Create outputs: <id>\n<path>\n, so we take the first line
+fn extract_id(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()
+        .map(|s| s.to_string())
+        .unwrap_or_default()
 }
 
 #[test]
@@ -20,7 +31,7 @@ fn test_workspace_from_note_performs_graph_slice() {
         .current_dir(root)
         .output()
         .unwrap();
-    let root_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let root_id = extract_id(&output);
     assert!(!root_id.is_empty(), "Root ID should not be empty");
 
     // 3. Create linked notes (1 hop away)
@@ -30,7 +41,7 @@ fn test_workspace_from_note_performs_graph_slice() {
         .current_dir(root)
         .output()
         .unwrap();
-    let child1_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let child1_id = extract_id(&output);
 
     let output = qipu()
         .arg("create")
@@ -38,7 +49,7 @@ fn test_workspace_from_note_performs_graph_slice() {
         .current_dir(root)
         .output()
         .unwrap();
-    let child2_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let child2_id = extract_id(&output);
 
     // 4. Link root to children
     qipu()
@@ -70,7 +81,7 @@ fn test_workspace_from_note_performs_graph_slice() {
         .current_dir(root)
         .output()
         .unwrap();
-    let grandchild_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let grandchild_id = extract_id(&output);
 
     qipu()
         .arg("link")
@@ -90,7 +101,7 @@ fn test_workspace_from_note_performs_graph_slice() {
         .current_dir(root)
         .output()
         .unwrap();
-    let far_id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let far_id = extract_id(&output);
 
     qipu()
         .arg("link")

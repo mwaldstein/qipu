@@ -219,24 +219,22 @@ fn test_search_performance_10k_notes() {
 
     let avg_duration = total_duration / iterations;
 
-    // Current performance baseline - meeting spec (<1s for 10k notes)
-    let target_budget_ms = (note_count as f64 / 10000.0 * 1000.0) as u128;
-    let current_baseline_ms = 500; // Optimized performance target
+    // Per spec: search must complete in <1s for 10k notes
+    let spec_budget_ms = (note_count as f64 / 10000.0 * 1000.0) as u128;
 
     println!(
-        "Search command average: {}ms for {} notes (target: <{}ms, current baseline: ~{}ms)",
+        "Search command average: {}ms for {} notes (spec target: <{}ms)",
         avg_duration.as_millis(),
         note_count,
-        target_budget_ms,
-        current_baseline_ms
+        spec_budget_ms
     );
 
-    // Current implementation performance verification (not spec compliance)
+    // Verify spec compliance (<1s for 10k notes)
     assert!(
-        avg_duration.as_millis() < current_baseline_ms,
-        "Search performance regression: took {}ms, expected <{}ms",
+        avg_duration.as_millis() < spec_budget_ms,
+        "Search performance exceeds spec: took {}ms, expected <{}ms",
         avg_duration.as_millis(),
-        current_baseline_ms
+        spec_budget_ms
     );
 }
 

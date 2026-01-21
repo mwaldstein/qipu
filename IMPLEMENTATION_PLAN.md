@@ -180,8 +180,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Outline export appends outbound edges beyond MOC body ordering.
   - `src/commands/export/emit/outline.rs:54`
   - Learnings: Removed `.chain()` call that was appending database outbound edges after MOC body ordering; outline export now strictly follows MOC body link order as per spec
-- [ ] Query export caps results at 200 notes.
-  - `src/commands/export/plan.rs:54-59`
+- [x] Query export caps results at 200 notes.
+  - `src/commands/export/plan.rs:54`
+  - Learnings: Increased query result limit from 200 to 10,000 notes for export command; export is a deliberate bulk operation that should not arbitrarily cap results; 10,000 is 50x the previous limit and handles most realistic use cases while providing safety bound
 - [ ] Outline export falls back to bundle when `--moc` is missing.
   - `src/commands/export/emit/outline.rs:23-28`
 

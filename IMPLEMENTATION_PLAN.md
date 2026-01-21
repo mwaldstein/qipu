@@ -465,6 +465,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] Spec is DRAFT and explicitly prohibits implementation; confirm when to revisit.
   - `specs/telemetry.md:1-5`
 
+### Performance Tests (`tests/performance_tests.rs`)
+- [ ] Review and validate performance test thresholds.
+  - Current state: Tests use spec-compliant 1s budget for 10k notes, but actual performance is ~500-600ms
+  - Questions to resolve:
+    - Should we have a tighter "regression detection" threshold separate from spec compliance?
+    - What are realistic baseline numbers across different hardware?
+    - Should performance tests run in CI, or be marked `#[ignore]` by default?
+  - `tests/performance_tests.rs:188-240` - 10k note search test
+  - `tests/performance_tests.rs:50-120` - list/index performance tests
+
 ---
 
 ## Notes

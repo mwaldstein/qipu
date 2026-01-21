@@ -55,8 +55,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Added `position INTEGER NOT NULL DEFAULT 0` column to edges schema; updated INSERT statements to include position; updated `get_outbound_edges` query to ORDER BY position; changed queue from vec to VecDeque with pop_front for FIFO behavior; bumped schema version to 3
 
 ### Pack (`specs/pack.md`)
-- [ ] `load --strategy skip` drops all links, even for newly loaded notes.
+- [x] `load --strategy skip` drops all links, even for newly loaded notes.
   - `src/commands/load/mod.rs:77-84`
+  - Learnings: Added `new_ids` return value to track newly loaded notes (notes that didn't exist before loading); changed skip strategy to only load links between newly loaded notes (using `new_ids` instead of `loaded_ids`)
 - [ ] `dump` link preservation can drop links between included notes when `--type`/`--inline-only` filters are used.
   - `src/commands/dump/mod.rs:225-246`
 

@@ -72,13 +72,12 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     }
 
     // Load notes
-    let (loaded_notes_count, loaded_ids) = load_notes(store, &pack_data.notes, &strategy)?;
+    let (loaded_notes_count, loaded_ids, new_ids) = load_notes(store, &pack_data.notes, &strategy)?;
 
     // Load links
-    // With skip strategy, skip link processing entirely to ensure
-    // no notes are mutated (either skipped notes or notes with links to skipped notes)
+    // With skip strategy, only load links between newly loaded notes
     let loaded_links_count = if matches!(strategy, LoadStrategy::Skip) {
-        0 // Don't process any links with skip strategy
+        load_links(store, &pack_data.links, &new_ids)?
     } else {
         load_links(store, &pack_data.links, &loaded_ids)?
     };
@@ -161,9 +160,10 @@ fn load_notes(
     store: &Store,
     pack_notes: &[PackNote],
     strategy: &LoadStrategy,
-) -> Result<(usize, HashSet<String>)> {
+) -> Result<(usize, HashSet<String>, HashSet<String>)> {
     let mut loaded_count = 0;
     let mut loaded_ids: HashSet<String> = HashSet::new();
+    let mut new_ids: HashSet<String> = HashSet::new();
     let existing_ids = store.existing_ids()?;
 
     for pack_note in pack_notes {
@@ -288,13 +288,17 @@ fn load_notes(
             write_note_preserving_updated(store, &note)?;
             loaded_count += 1;
             loaded_ids.insert(note.id().to_string());
+            // Track newly loaded notes (notes that didn't exist before)
+            if !existing_ids.contains(note.id()) {
+                new_ids.insert(note.id().to_string());
+            }
         } else if matches!(strategy, LoadStrategy::MergeLinks) && existing_ids.contains(note.id()) {
             // For merge-links, add existing note to loaded_ids so links will be processed
             loaded_ids.insert(note.id().to_string());
         }
     }
 
-    Ok((loaded_count, loaded_ids))
+    Ok((loaded_count, loaded_ids, new_ids))
 }
 
 /// Load links from pack into store

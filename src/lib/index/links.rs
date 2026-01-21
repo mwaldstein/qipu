@@ -23,6 +23,7 @@ pub(crate) fn extract_links(
         let to_id = link.id.clone();
         if !valid_ids.contains(&to_id) {
             unresolved.insert(to_id.clone());
+            continue;
         }
         edges.push(Edge {
             from: from_id.clone(),
@@ -47,6 +48,7 @@ pub(crate) fn extract_links(
         }
         if !valid_ids.contains(&to_id) {
             unresolved.insert(to_id.clone());
+            continue;
         }
         // Inline links default to "related" type
         edges.push(Edge {
@@ -127,6 +129,7 @@ pub(crate) fn extract_links(
 
         if !valid_ids.contains(&to_id) {
             unresolved.insert(to_id.clone());
+            continue;
         }
 
         edges.push(Edge {

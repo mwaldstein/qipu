@@ -108,8 +108,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: Added `get_tag_frequencies()` method to Database module that returns tags ordered by count DESC, then tag ASC; added CLI `qipu tags list` command with support for human, json, and records output formats; added delegation through Store::get_tag_frequencies() to Database::get_tag_frequencies()
 
 ### Indexing/Search (`specs/indexing-search.md`)
-- [ ] Ignore qp-style links outside the store (currently treated as resolved).
-  - `src/lib/index/links.rs:80-94`
+- [x] Ignore qp-style links outside the store (currently treated as resolved).
+   - `src/lib/index/links.rs:80-94`
+   - Learnings: Added `continue` statement after adding to unresolved set for typed links, wiki links, and markdown links. This ensures that links to non-existent notes are ignored (not added to edges) while still being tracked in unresolved for doctor reporting. Updated `test_unresolved_links` test to reflect new behavior (edges.len() should be 0, not 1).
 - [ ] Related-notes feature (shared tags / 2-hop) is missing.
   - `src/lib/index/builder.rs:24-132`
 

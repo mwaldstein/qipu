@@ -106,7 +106,7 @@ mod tests {
             &std::collections::HashMap::new(),
         );
 
-        assert_eq!(edges.len(), 1);
+        assert_eq!(edges.len(), 0);
         assert!(unresolved.contains("qp-missing"));
     }
 

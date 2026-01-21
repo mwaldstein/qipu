@@ -38,7 +38,6 @@ impl Ord for HeapEntry {
             .value()
             .partial_cmp(&other.accumulated_cost.value())
             .unwrap()
-            .reverse()
     }
 }
 
@@ -1092,9 +1091,9 @@ mod tests {
             accumulated_cost: HopCost::from(1),
         };
 
-        // Lower cost should compare as greater (for min-heap)
-        assert_eq!(entry1.cmp(&entry2), std::cmp::Ordering::Greater);
-        assert_eq!(entry2.cmp(&entry1), std::cmp::Ordering::Less);
+        // Lower cost should compare as less (normal ordering)
+        assert_eq!(entry1.cmp(&entry2), std::cmp::Ordering::Less);
+        assert_eq!(entry2.cmp(&entry1), std::cmp::Ordering::Greater);
 
         // Equal costs with different node_ids
         assert_eq!(entry1.cmp(&entry3), std::cmp::Ordering::Equal);

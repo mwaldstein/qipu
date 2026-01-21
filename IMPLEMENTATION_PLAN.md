@@ -71,8 +71,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/cli/commands.rs:51,136,278`
   - `src/cli/link.rs:105,150`
   - Learnings: Added `parse_min_value` function to validate range 0-100; applied value_parser to all 5 min_value CLI arguments (list, search, context, link tree, link path)
-- [ ] Dijkstra traversal uses a max-heap ordering, which can invert expected "shortest" paths.
-  - `src/lib/graph/bfs.rs:340-346`
+- [x] Dijkstra traversal uses a max-heap ordering, which can invert expected "shortest" paths.
+  - `src/lib/graph/bfs.rs:35-43`
+  - Learnings: Removed `.reverse()` from HeapEntry::cmp implementation; the Reverse<HeapEntry> wrapper already provides min-heap semantics for BinaryHeap; the reverse was causing max-heap behavior instead of min-heap
 
 ### Structured Logging (`specs/structured-logging.md`)
 - [ ] Debug logs are gated by `--verbose` even when `--log-level debug` is set.

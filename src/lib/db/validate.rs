@@ -97,6 +97,27 @@ impl super::Database {
         Ok(orphaned)
     }
 
+    /// Get all typed edges (non-inline links) for semantic validation
+    pub fn get_all_typed_edges(&self) -> Result<Vec<(String, String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT source_id, target_id, link_type FROM edges WHERE inline = 0")
+            .map_err(|e| QipuError::Other(format!("failed to prepare edges query: {}", e)))?;
+
+        let edges = stmt
+            .query_map([], |row| {
+                let source_id: String = row.get(0)?;
+                let target_id: String = row.get(1)?;
+                let link_type: String = row.get(2)?;
+                Ok((source_id, target_id, link_type))
+            })
+            .map_err(|e| QipuError::Other(format!("failed to query edges: {}", e)))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| QipuError::Other(format!("failed to read edge rows: {}", e)))?;
+
+        Ok(edges)
+    }
+
     /// Quick consistency check between database and filesystem
     ///
     /// Returns true if database is consistent with filesystem, false otherwise

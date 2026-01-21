@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 625 tests pass (223 unit + 250 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
+- Test baseline: 630 tests pass (228 unit + 250 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -197,12 +197,20 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Semantic Graph (`specs/semantic-graph.md`)
 - [x] Context selection doesn't prefer typed links over `related` when constrained.
-  - `src/commands/context/mod.rs:337-368`
-  - `tests/cli/context/budget.rs:244-391`
-  - **Status**: Already implemented. Context selection sorts notes by: (1) verified status, (2) link type priority (`part-of` and `supports` get highest priority 0, other typed links get priority 1, `related` gets priority 2), (3) created date, (4) ID. This ensures typed links are preferred over `related` when budget constraints are applied.
-  - **Learnings**: Added comprehensive test that verifies typed links appear before `related` links in output and are prioritized when budget constraints force selection. The sorting happens before budget application in `apply_budget()`.
-- [ ] Doctor does not validate semantic misuse of standard link types.
-  - `src/commands/doctor/database.rs:56-77`
+   - `src/commands/context/mod.rs:337-368`
+   - `tests/cli/context/budget.rs:244-391`
+   - **Status**: Already implemented. Context selection sorts notes by: (1) verified status, (2) link type priority (`part-of` and `supports` get highest priority 0, other typed links get priority 1, `related` gets priority 2), (3) created date, (4) ID. This ensures typed links are preferred over `related` when budget constraints are applied.
+   - **Learnings**: Added comprehensive test that verifies typed links appear before `related` links in output and are prioritized when budget constraints force selection. The sorting happens before budget application in `apply_budget()`.
+- [x] Doctor does not validate semantic misuse of standard link types.
+   - `src/lib/db/validate.rs:121-147` - Added `get_all_typed_edges()` method to Database
+   - `src/commands/doctor/database.rs:86-220` - Implemented `check_semantic_link_types()` validation function
+   - `src/commands/doctor/mod.rs:62` - Added call to semantic link validation in doctor execute
+   - `src/commands/doctor/mod.rs:420-549` - Added 5 comprehensive tests for semantic link validation
+   - **Validations Implemented**:
+     - Conflicting relationships: warns when a note both `supports` and `contradicts` the same target
+     - Self-referential identity links: warns when a note has `same-as` or `alias-of` pointing to itself
+     - Mixed identity types: warns when a note has both `same-as` and `alias-of` to the same target
+   - **Learnings**: Semantic validation runs at database level using typed edges (inline=0). All validations produce warnings (not errors) since these are semantic issues that don't break functionality. The validation integrates seamlessly with existing doctor checks.
 
 ### Records Output (`specs/records-output.md`)
 - [ ] Link tree/path records rely on traversal order (no explicit ordering).

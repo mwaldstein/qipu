@@ -60,6 +60,9 @@ pub fn execute(
     // 5. Check for broken links (using DB)
     checks::check_broken_links(store, &mut result);
 
+    // 5.5. Check for semantic link type misuse (using DB)
+    checks::check_semantic_link_types(store, &mut result);
+
     // 6. Check for required frontmatter fields
     checks::check_required_fields(&notes, &mut result);
 
@@ -414,5 +417,175 @@ mod tests {
             .issues
             .iter()
             .any(|i| i.category == "invalid-value" && i.message.contains("101")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_conflicting_support_contradict() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create two notes
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let mut note2 = store.create_note("Note 2", None, &[], None).unwrap();
+
+        // Add conflicting links: both supports and contradicts the same note
+        note2.frontmatter.links = vec![
+            TypedLink {
+                link_type: LinkType::from(LinkType::SUPPORTS),
+                id: note1.frontmatter.id.clone(),
+            },
+            TypedLink {
+                link_type: LinkType::from(LinkType::CONTRADICTS),
+                id: note1.frontmatter.id.clone(),
+            },
+        ];
+
+        store.save_note(&mut note2).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find conflicting support/contradict relationship
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "semantic-link-misuse"
+                && i.message.contains("both supports and contradicts")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_self_referential_same_as() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with self-referential same-as link
+        let mut note = store.create_note("Note 1", None, &[], None).unwrap();
+        note.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::SAME_AS),
+            id: note.frontmatter.id.clone(),
+        }];
+
+        store.save_note(&mut note).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find self-referential same-as
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "semantic-link-misuse"
+                && i.message.contains("self-referential 'same-as'")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_self_referential_alias_of() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with self-referential alias-of link
+        let mut note = store.create_note("Note 1", None, &[], None).unwrap();
+        note.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::ALIAS_OF),
+            id: note.frontmatter.id.clone(),
+        }];
+
+        store.save_note(&mut note).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find self-referential alias-of
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "semantic-link-misuse"
+                && i.message.contains("self-referential 'alias-of'")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_mixed_identity_types() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create two notes
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let mut note2 = store.create_note("Note 2", None, &[], None).unwrap();
+
+        // Add both same-as and alias-of to the same target
+        note2.frontmatter.links = vec![
+            TypedLink {
+                link_type: LinkType::from(LinkType::SAME_AS),
+                id: note1.frontmatter.id.clone(),
+            },
+            TypedLink {
+                link_type: LinkType::from(LinkType::ALIAS_OF),
+                id: note1.frontmatter.id.clone(),
+            },
+        ];
+
+        store.save_note(&mut note2).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find mixed identity types
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "semantic-link-misuse"
+                && i.message.contains("both 'same-as' and 'alias-of'")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_valid_relationships() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create three notes with valid relationships
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let mut note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        // Add valid typed links
+        note3.frontmatter.links = vec![
+            TypedLink {
+                link_type: LinkType::from(LinkType::SUPPORTS),
+                id: note1.frontmatter.id.clone(),
+            },
+            TypedLink {
+                link_type: LinkType::from(LinkType::PART_OF),
+                id: note2.frontmatter.id.clone(),
+            },
+        ];
+
+        store.save_note(&mut note3).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should have no semantic link misuse warnings
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "semantic-link-misuse")
+                .count(),
+            0
+        );
     }
 }

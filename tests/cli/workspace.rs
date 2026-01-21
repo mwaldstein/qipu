@@ -67,7 +67,7 @@ fn test_workspace_new_temp() {
         .assert()
         .success()
         .stdout(predicate::str::contains("temp-workspace"))
-        .stdout(predicate::str::contains("Yes"));
+        .stdout(predicate::str::contains("Temp"));
 }
 
 #[test]

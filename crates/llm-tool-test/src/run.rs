@@ -2,6 +2,7 @@ use crate::adapter::{
     amp::AmpAdapter, claude_code::ClaudeCodeAdapter, mock::MockAdapter, opencode::OpenCodeAdapter,
     ToolAdapter,
 };
+use crate::output;
 use crate::results::{
     Cache, CacheKey, EfficiencyMetricsRecord, EvaluationMetricsRecord, GateResultRecord,
     QualityMetricsRecord, ResultRecord, ResultsDB,
@@ -29,7 +30,7 @@ pub fn run_single_scenario(
     if !no_cache {
         if let Some(cached) = cache.get(&cache_key) {
             println!("Cache HIT! Using cached result: {}", cached.id);
-            crate::print_result_summary(&cached);
+            output::print_result_summary(&cached);
             return Ok(cached);
         }
     }
@@ -171,20 +172,14 @@ pub fn run_single_scenario(
         results_db.append(&record)?;
         cache.put(&cache_key, &record)?;
 
-        let baseline = if let Some(baseline_run_id) = results_db.get_baseline(&s.name, tool)? {
-            results_db.load_by_id(&baseline_run_id)?
-        } else {
-            results_db.load_baseline(&s.name, tool)?
-        };
-
-        if let Some(baseline_record) = baseline {
-            let report = crate::results::compare_runs(&record, &baseline_record);
-            crate::print_regression_report(&report);
+        if let Some(baseline) = results_db.load_baseline(&s.name, tool)? {
+            let report = crate::results::compare_runs(&record, &baseline);
+            output::print_regression_report(&report);
         }
 
         println!("\nRun completed: {}", record.id);
         println!("Transcript written to: {}", transcript_path);
-        crate::print_result_summary(&record);
+        output::print_result_summary(&record);
 
         Ok(record)
     } else {

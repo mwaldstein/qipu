@@ -14,6 +14,22 @@ pub struct Scenario {
     pub tool_matrix: Option<Vec<ToolConfig>>,
     #[serde(default)]
     pub setup: Option<Vec<SetupStep>>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub cost: Option<Cost>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Cost {
+    #[serde(default)]
+    pub max_usd: Option<f64>,
+    #[serde(default = "default_cache")]
+    pub cache: bool,
+}
+
+fn default_cache() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -7,6 +7,61 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct BaselineStore {
+    baselines: HashMap<String, String>,
+}
+
+impl BaselineStore {
+    fn load(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let content = std::fs::read_to_string(path)?;
+        serde_json::from_str(&content).context("Failed to parse baseline store")
+    }
+
+    fn save(&self, path: &Path) -> Result<()> {
+        let content = serde_json::to_string_pretty(self)?;
+        std::fs::write(path, content)?;
+        Ok(())
+    }
+
+    fn key(scenario_id: &str, tool: &str) -> String {
+        format!("{}:{}", scenario_id, tool)
+    }
+
+    fn set(&mut self, scenario_id: &str, tool: &str, run_id: &str) {
+        let key = Self::key(scenario_id, tool);
+        self.baselines.insert(key, run_id.to_string());
+    }
+
+    fn get(&self, scenario_id: &str, tool: &str) -> Option<&String> {
+        let key = Self::key(scenario_id, tool);
+        self.baselines.get(&key)
+    }
+
+    fn remove(&mut self, scenario_id: &str, tool: &str) {
+        let key = Self::key(scenario_id, tool);
+        self.baselines.remove(&key);
+    }
+
+    fn list(&self) -> Vec<(String, String)> {
+        self.baselines
+            .iter()
+            .map(|(k, v)| {
+                let parts: Vec<&str> = k.split(':').collect();
+                let key = if parts.len() == 2 {
+                    format!("{} ({})", parts[0], parts[1])
+                } else {
+                    k.clone()
+                };
+                (key, v.clone())
+            })
+            .collect()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultRecord {
     pub id: String,
@@ -82,16 +137,17 @@ pub struct HumanReviewRecord {
 
 pub struct ResultsDB {
     results_path: PathBuf,
-    baselines_path: PathBuf,
+    baseline_path: PathBuf,
 }
 
 impl ResultsDB {
     pub fn new(base_dir: &Path) -> Self {
         let results_dir = base_dir.join("results");
         std::fs::create_dir_all(&results_dir).ok();
+        let baseline_path = results_dir.join("baselines.json");
         Self {
             results_path: results_dir.join("results.jsonl"),
-            baselines_path: results_dir.join("baselines.json"),
+            baseline_path,
         }
     }
 
@@ -129,14 +185,6 @@ impl ResultsDB {
     pub fn load_by_id(&self, id: &str) -> Result<Option<ResultRecord>> {
         let records = self.load_all()?;
         Ok(records.into_iter().find(|r| r.id == id))
-    }
-
-    pub fn load_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<ResultRecord>> {
-        let mut records = self.load_all()?;
-        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        Ok(records
-            .into_iter()
-            .find(|r| r.scenario_id == scenario_id && r.tool == tool))
     }
 
     pub fn update_human_review(
@@ -182,51 +230,37 @@ impl ResultsDB {
             .collect())
     }
 
-    fn load_baselines(&self) -> Result<HashMap<String, String>> {
-        if !self.baselines_path.exists() {
-            return Ok(HashMap::new());
+    pub fn set_baseline(&self, scenario_id: &str, tool: &str, run_id: &str) -> Result<()> {
+        let mut store = BaselineStore::load(&self.baseline_path)?;
+        store.set(scenario_id, tool, run_id);
+        store.save(&self.baseline_path)?;
+        Ok(())
+    }
+
+    pub fn clear_baseline(&self, scenario_id: &str, tool: &str) -> Result<()> {
+        let mut store = BaselineStore::load(&self.baseline_path)?;
+        store.remove(scenario_id, tool);
+        store.save(&self.baseline_path)?;
+        Ok(())
+    }
+
+    pub fn list_baselines(&self) -> Result<Vec<(String, String)>> {
+        let store = BaselineStore::load(&self.baseline_path)?;
+        Ok(store.list())
+    }
+
+    pub fn load_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<ResultRecord>> {
+        let store = BaselineStore::load(&self.baseline_path)?;
+
+        if let Some(baseline_run_id) = store.get(scenario_id, tool) {
+            return self.load_by_id(baseline_run_id);
         }
 
-        let content = std::fs::read_to_string(&self.baselines_path)
-            .context("Failed to read baselines.json")?;
-        serde_json::from_str(&content).context("Failed to parse baselines.json")
-    }
-
-    fn save_baselines(&self, baselines: &HashMap<String, String>) -> Result<()> {
-        let temp_path = self.baselines_path.with_extension(".tmp");
-        let content = serde_json::to_string_pretty(baselines)?;
-
-        std::fs::write(&temp_path, content).context("Failed to write baselines.json.tmp")?;
-        std::fs::rename(&temp_path, &self.baselines_path)
-            .context("Failed to replace baselines.json")?;
-
-        Ok(())
-    }
-
-    fn baseline_key(scenario_id: &str, tool: &str) -> String {
-        format!("{}:{}", scenario_id, tool)
-    }
-
-    pub fn set_baseline(&self, scenario_id: &str, tool: &str, run_id: &str) -> Result<()> {
-        let mut baselines = self.load_baselines()?;
-        let key = Self::baseline_key(scenario_id, tool);
-        baselines.insert(key, run_id.to_string());
-        self.save_baselines(&baselines)?;
-        Ok(())
-    }
-
-    pub fn get_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<String>> {
-        let baselines = self.load_baselines()?;
-        let key = Self::baseline_key(scenario_id, tool);
-        Ok(baselines.get(&key).cloned())
-    }
-
-    pub fn unset_baseline(&self, scenario_id: &str, tool: &str) -> Result<()> {
-        let mut baselines = self.load_baselines()?;
-        let key = Self::baseline_key(scenario_id, tool);
-        baselines.remove(&key);
-        self.save_baselines(&baselines)?;
-        Ok(())
+        let mut records = self.load_all()?;
+        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        Ok(records
+            .into_iter()
+            .find(|r| r.scenario_id == scenario_id && r.tool == tool))
     }
 }
 
@@ -872,6 +906,87 @@ mod tests {
     }
 
     #[test]
+    fn test_baseline_set_and_load() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
+        let mut record3 = create_test_record_with_tool("run-3", "scenario-a", "opencode");
+
+        record3.timestamp = Utc::now();
+        record2.timestamp = Utc::now() - chrono::Duration::seconds(30);
+        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+        db.append(&record3).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+
+        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        assert!(baseline.is_some());
+        assert_eq!(baseline.unwrap().id, "run-1");
+    }
+
+    #[test]
+    fn test_baseline_clear() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
+
+        record2.timestamp = Utc::now();
+        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        assert_eq!(baseline.unwrap().id, "run-1");
+
+        db.clear_baseline("scenario-a", "opencode").unwrap();
+
+        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        assert!(baseline.is_some());
+        assert_eq!(baseline.unwrap().id, "run-2");
+    }
+
+    #[test]
+    fn test_baseline_list() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
+        let record2 = create_test_record_with_tool("run-2", "scenario-b", "amp");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        db.set_baseline("scenario-b", "amp", "run-2").unwrap();
+
+        let baselines = db.list_baselines().unwrap();
+        assert_eq!(baselines.len(), 2);
+    }
+
+    #[test]
+    fn test_baseline_nonexistent_scenario() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_record("run-1");
+        db.append(&record1).unwrap();
+
+        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+
+        let baseline = db.load_baseline("scenario-b", "opencode").unwrap();
+        assert!(baseline.is_none());
+    }
+
+    #[test]
     fn test_results_db_persistence() {
         let temp_dir = TempDir::new().unwrap();
 
@@ -1037,7 +1152,7 @@ mod tests {
         let db = ResultsDB::new(temp_dir.path());
 
         let record1 = create_test_record("run-1");
-        let mut record2 = create_test_record("run-2");
+        let record2 = create_test_record("run-2");
         let record3 = create_test_record("run-3");
 
         db.append(&record1).unwrap();
@@ -1060,111 +1175,6 @@ mod tests {
         let pending_ids: Vec<_> = pending.iter().map(|r| r.id.clone()).collect();
         assert!(pending_ids.contains(&"run-1".to_string()));
         assert!(pending_ids.contains(&"run-3".to_string()));
-    }
-
-    #[test]
-    fn test_results_db_set_and_get_baseline() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
-
-        let record = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        db.append(&record).unwrap();
-
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-
-        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
-        assert_eq!(baseline, Some("run-1".to_string()));
-
-        let no_baseline = db.get_baseline("scenario-b", "opencode").unwrap();
-        assert_eq!(no_baseline, None);
-    }
-
-    #[test]
-    fn test_results_db_unset_baseline() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
-
-        let record = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        db.append(&record).unwrap();
-
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-
-        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
-        assert_eq!(baseline, Some("run-1".to_string()));
-
-        db.unset_baseline("scenario-a", "opencode").unwrap();
-
-        let baseline = db.get_baseline("scenario-a", "opencode").unwrap();
-        assert_eq!(baseline, None);
-    }
-
-    #[test]
-    fn test_results_db_baseline_persistence() {
-        let temp_dir = TempDir::new().unwrap();
-
-        let db1 = ResultsDB::new(temp_dir.path());
-        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        db1.append(&record1).unwrap();
-        db1.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-
-        let db2 = ResultsDB::new(temp_dir.path());
-        let baseline = db2.get_baseline("scenario-a", "opencode").unwrap();
-        assert_eq!(baseline, Some("run-1".to_string()));
-    }
-
-    #[test]
-    fn test_results_db_baseline_multiple_scenario_tool_combinations() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
-
-        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let record2 = create_test_record_with_tool("run-2", "scenario-a", "amp");
-        let record3 = create_test_record_with_tool("run-3", "scenario-b", "opencode");
-
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-        db.append(&record3).unwrap();
-
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-        db.set_baseline("scenario-a", "amp", "run-2").unwrap();
-        db.set_baseline("scenario-b", "opencode", "run-3").unwrap();
-
-        assert_eq!(
-            db.get_baseline("scenario-a", "opencode").unwrap(),
-            Some("run-1".to_string())
-        );
-        assert_eq!(
-            db.get_baseline("scenario-a", "amp").unwrap(),
-            Some("run-2".to_string())
-        );
-        assert_eq!(
-            db.get_baseline("scenario-b", "opencode").unwrap(),
-            Some("run-3".to_string())
-        );
-    }
-
-    #[test]
-    fn test_results_db_baseline_overwrites_existing() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
-
-        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
-
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-        assert_eq!(
-            db.get_baseline("scenario-a", "opencode").unwrap(),
-            Some("run-1".to_string())
-        );
-
-        db.set_baseline("scenario-a", "opencode", "run-2").unwrap();
-        assert_eq!(
-            db.get_baseline("scenario-a", "opencode").unwrap(),
-            Some("run-2".to_string())
-        );
     }
 
     #[test]

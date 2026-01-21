@@ -63,7 +63,7 @@ pub fn execute(
     // 6. Check for required frontmatter fields
     checks::check_required_fields(&notes, &mut result);
 
-    // 7. Check value field is within valid range (0-100)
+    // 7. Check for valid value range (0-100)
     checks::check_value_range(&notes, &mut result);
 
     // 8. Check for missing or orphaned attachments
@@ -331,5 +331,88 @@ mod tests {
 
         // Should have no errors
         assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_invalid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note.value = Some(150);
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        checks::check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "invalid-value" && i.message.contains("150")));
+    }
+
+    #[test]
+    fn test_doctor_value_range_valid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.value = Some(100);
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.value = Some(0);
+
+        let mut note3 = NoteFrontmatter::new("qp-3".to_string(), "Note 3".to_string());
+        note3.value = Some(50);
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+            Note::new(note3, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        checks::check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_none() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        checks::check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_boundary() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.value = Some(100);
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.value = Some(101);
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        checks::check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "invalid-value" && i.message.contains("101")));
     }
 }

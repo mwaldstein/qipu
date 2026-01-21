@@ -15,7 +15,7 @@ pub enum Commands {
         #[arg(long, short)]
         scenario: Option<String>,
 
-        /// Run all scenarios
+        /// Run all scenarios in fixtures directory
         #[arg(long)]
         all: bool,
 
@@ -72,9 +72,7 @@ pub enum Commands {
         /// Filter scenarios by tier (0=smoke, 1=quick, 2=standard, 3=comprehensive)
         #[arg(long, default_value = "0")]
         tier: usize,
-    },
-    /// List runs
-    List {
+
         /// Show runs pending human review
         #[arg(long)]
         pending_review: bool,
@@ -107,7 +105,7 @@ pub enum Commands {
         #[arg(long)]
         notes: Option<String>,
     },
-    /// Manage baseline runs
+    /// Manage baselines
     Baseline {
         #[command(subcommand)]
         action: BaselineAction,
@@ -116,25 +114,24 @@ pub enum Commands {
 
 #[derive(Subcommand)]
 pub enum BaselineAction {
-    /// Set a run as the baseline for its scenario/tool
+    /// Set a specific run as baseline for a scenario
     Set {
-        /// Run ID to set as baseline
+        /// Run ID to use as baseline
+        #[arg(required = true)]
         run_id: String,
     },
-    /// Show the current baseline for a scenario/tool
-    Show {
-        /// Scenario name
-        scenario: String,
+    /// Clear the baseline for a scenario
+    Clear {
+        /// Scenario ID
+        #[arg(required = true)]
+        scenario_id: String,
+
         /// Tool name
+        #[arg(required = true)]
         tool: String,
     },
-    /// Remove baseline designation
-    Unset {
-        /// Scenario name
-        scenario: String,
-        /// Tool name
-        tool: String,
-    },
+    /// List all configured baselines
+    List,
 }
 
 fn parse_key_value(s: &str) -> Result<(String, f64), String> {
@@ -224,45 +221,34 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_baseline_set() {
-        let cli = Cli::try_parse_from(["test", "baseline", "set", "run-123"]).unwrap();
+    fn test_parse_run_command_with_all_flag() {
+        let cli = Cli::parse_from(["llm-tool-test", "run", "--all"]);
         match &cli.command {
-            Commands::Baseline {
-                action: BaselineAction::Set { run_id },
+            Commands::Run {
+                scenario,
+                all,
+                tool,
+                model,
+                ..
             } => {
-                assert_eq!(run_id, "run-123");
+                assert!(scenario.is_none());
+                assert_eq!(*all, true);
+                assert_eq!(tool, "opencode");
+                assert_eq!(model, &None);
             }
-            _ => panic!("Expected Baseline::Set command"),
+            _ => panic!("Expected Run command"),
         }
     }
 
     #[test]
-    fn test_parse_baseline_show() {
-        let cli =
-            Cli::try_parse_from(["test", "baseline", "show", "scenario-a", "opencode"]).unwrap();
+    fn test_parse_run_command_without_all_flag() {
+        let cli = Cli::parse_from(["llm-tool-test", "run", "--scenario", "test.yaml"]);
         match &cli.command {
-            Commands::Baseline {
-                action: BaselineAction::Show { scenario, tool },
-            } => {
-                assert_eq!(scenario, "scenario-a");
-                assert_eq!(tool, "opencode");
+            Commands::Run { scenario, all, .. } => {
+                assert_eq!(scenario, &Some("test.yaml".to_string()));
+                assert_eq!(*all, false);
             }
-            _ => panic!("Expected Baseline::Show command"),
-        }
-    }
-
-    #[test]
-    fn test_parse_baseline_unset() {
-        let cli =
-            Cli::try_parse_from(["test", "baseline", "unset", "scenario-a", "opencode"]).unwrap();
-        match &cli.command {
-            Commands::Baseline {
-                action: BaselineAction::Unset { scenario, tool },
-            } => {
-                assert_eq!(scenario, "scenario-a");
-                assert_eq!(tool, "opencode");
-            }
-            _ => panic!("Expected Baseline::Unset command"),
+            _ => panic!("Expected Run command"),
         }
     }
 }

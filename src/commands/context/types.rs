@@ -1,4 +1,4 @@
-use crate::lib::note::Note;
+use crate::lib::note::{LinkType, Note};
 
 /// Options for the context command
 pub struct ContextOptions<'a> {
@@ -20,6 +20,7 @@ pub struct ContextOptions<'a> {
 pub struct SelectedNote<'a> {
     pub note: &'a Note,
     pub via: Option<String>,
+    pub link_type: Option<LinkType>,
 }
 
 pub struct RecordsOutputConfig {

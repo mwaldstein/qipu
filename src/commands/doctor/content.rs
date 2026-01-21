@@ -129,25 +129,19 @@ pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorR
 
 pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
     for note in notes {
-        let path = note
-            .path
-            .as_ref()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-
         if let Some(value) = note.frontmatter.value {
             if value > 100 {
                 result.add_issue(Issue {
                     severity: Severity::Error,
                     category: "invalid-value".to_string(),
                     message: format!(
-                        "Note '{}' has value {} which exceeds maximum of 100",
+                        "Note '{}' has invalid value: {} (must be 0-100)",
                         note.id(),
                         value
                     ),
                     note_id: Some(note.id().to_string()),
-                    path: Some(path.clone()),
-                    fixable: true,
+                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    fixable: false,
                 });
             }
         }
@@ -235,105 +229,5 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lib::note::NoteFrontmatter;
-
-    #[test]
-    fn test_check_value_range_valid() {
-        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Valid Note".to_string());
-        note.value = Some(50);
-
-        let notes = vec![Note::new(note, String::new())];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 0);
-    }
-
-    #[test]
-    fn test_check_value_range_invalid() {
-        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Invalid Note".to_string());
-        note.value = Some(150);
-
-        let notes = vec![Note::new(note, String::new())];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 1);
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.category == "invalid-value" && i.message.contains("150")));
-    }
-
-    #[test]
-    fn test_check_value_range_boundary_max() {
-        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Boundary Note".to_string());
-        note.value = Some(100);
-
-        let notes = vec![Note::new(note, String::new())];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 0);
-    }
-
-    #[test]
-    fn test_check_value_range_boundary_min() {
-        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Boundary Note".to_string());
-        note.value = Some(0);
-
-        let notes = vec![Note::new(note, String::new())];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 0);
-    }
-
-    #[test]
-    fn test_check_value_range_none() {
-        let note = NoteFrontmatter::new("qp-1".to_string(), "No Value Note".to_string());
-
-        let notes = vec![Note::new(note, String::new())];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 0);
-    }
-
-    #[test]
-    fn test_check_value_range_mixed() {
-        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Valid Note".to_string());
-        note1.value = Some(75);
-
-        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Invalid Note".to_string());
-        note2.value = Some(200);
-
-        let mut note3 = NoteFrontmatter::new("qp-3".to_string(), "No Value Note".to_string());
-
-        let notes = vec![
-            Note::new(note1, String::new()),
-            Note::new(note2, String::new()),
-            Note::new(note3, String::new()),
-        ];
-        let mut result = DoctorResult::new();
-
-        check_value_range(&notes, &mut result);
-
-        assert_eq!(result.error_count, 1);
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.category == "invalid-value" && i.message.contains("qp-2")));
     }
 }

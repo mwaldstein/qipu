@@ -7,6 +7,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 impl super::super::Database {
+    pub fn get_max_mtime(&self) -> Result<Option<i64>> {
+        self.conn
+            .query_row("SELECT MAX(mtime) FROM notes", [], |row| row.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to query max mtime: {}", e)))
+    }
     pub fn get_note_metadata(&self, note_id: &str) -> Result<Option<NoteMetadata>> {
         let mut stmt = self
             .conn

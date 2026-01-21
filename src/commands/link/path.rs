@@ -72,28 +72,16 @@ pub fn execute(
     let mut tree_opts = opts.clone();
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
-    // Use Dijkstra for weighted traversal (default), BFS for unweighted (--ignore-value)
-    let result = if tree_opts.ignore_value {
-        crate::lib::graph::bfs_find_path(
-            &index,
-            store,
-            &canonical_from,
-            &canonical_to,
-            &tree_opts,
-            compaction_ctx.as_ref(),
-            equivalence_map.as_ref(),
-        )?
-    } else {
-        crate::lib::graph::dijkstra_find_path(
-            &index,
-            store,
-            &canonical_from,
-            &canonical_to,
-            &tree_opts,
-            compaction_ctx.as_ref(),
-            equivalence_map.as_ref(),
-        )?
-    };
+    // bfs_find_path now handles both weighted (Dijkstra) and unweighted (BFS) based on ignore_value flag
+    let result = crate::lib::graph::bfs_find_path(
+        &index,
+        store,
+        &canonical_from,
+        &canonical_to,
+        &tree_opts,
+        compaction_ctx.as_ref(),
+        equivalence_map.as_ref(),
+    )?;
 
     // Output
     match cli.format {

@@ -1,116 +1,88 @@
-use crate::cli::Commands;
 use crate::evaluation::ScoreTier;
+use crate::output;
 use crate::results::{Cache, ResultsDB};
 use crate::run;
-use crate::scenario::ToolConfig;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use crate::scenario::load;
+use chrono::Utc;
+use std::path::{Path, PathBuf};
 
-pub use crate::output::{print_regression_report, print_result_summary};
-
-#[derive(Debug, Clone)]
-pub struct ToolModelConfig {
-    pub tool: String,
-    pub model: String,
+fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext == "yaml" {
+                        if let Ok(s) = load(&path) {
+                            scenarios.push((s.name.clone(), path));
+                        }
+                    }
+                }
+            } else if path.is_dir() {
+                find_scenarios(&path, scenarios);
+            }
+        }
+    }
 }
 
-pub fn handle_run(
-    command: &Commands,
+pub fn handle_run_command(
+    scenario: &Option<String>,
+    all: bool,
+    tags: &[String],
+    tier: &usize,
+    tool: &str,
+    model: &Option<String>,
+    tools: &Option<String>,
+    models: &Option<String>,
+    dry_run: bool,
+    no_cache: bool,
+    timeout_secs: u64,
+    judge_model: &Option<String>,
     base_dir: &PathBuf,
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<()> {
-    let Commands::Run {
-        scenario,
-        all,
-        tags: _,
-        tier: _,
-        tool,
-        model,
-        tools,
-        models: _,
-        max_usd: _,
-        dry_run,
-        no_cache,
-        judge_model,
-        timeout_secs,
-    } = command
-    else {
-        return Err(anyhow::anyhow!("Expected Run command"));
-    };
-
     if let Some(model) = judge_model {
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }
 
-    if *all {
+    let scenarios_to_run = if all {
         let mut scenarios = Vec::new();
-        fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<std::path::PathBuf>) {
-            if let Ok(entries) = std::fs::read_dir(dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        if let Some(ext) = path.extension() {
-                            if ext == "yaml" {
-                                scenarios.push(path);
-                            }
-                        }
-                    } else if path.is_dir() {
-                        find_scenarios(&path, scenarios);
-                    }
-                }
-            }
-        }
-        let fixtures_dir = std::path::PathBuf::from("fixtures");
+        let fixtures_dir = PathBuf::from("fixtures");
         if fixtures_dir.exists() {
             find_scenarios(&fixtures_dir, &mut scenarios);
         }
 
-        if scenarios.is_empty() {
-            println!("No scenarios found in fixtures/");
-            return Ok(());
-        }
+        let mut filtered_scenarios = Vec::new();
+        for (name, path) in scenarios {
+            let s = load(&path)?;
 
-        println!("Running {} scenarios", scenarios.len());
+            let tags_match = if tags.is_empty() {
+                true
+            } else {
+                tags.iter().all(|tag| s.tags.contains(tag))
+            };
 
-        let mut all_results = Vec::new();
-        for scenario_path in scenarios {
-            let s = crate::scenario::load(&scenario_path)?;
-            println!("\n=== Scenario: {} ===", s.name);
+            let tier_match = &s.tier <= tier;
 
-            let matrix = build_tool_matrix(tools, model, tool, model, &s.tool_matrix);
-
-            for config in &matrix {
-                println!("Running: {} / {}", config.tool, config.model);
-                let result = run::run_single_scenario(
-                    &s,
-                    &config.tool,
-                    &config.model,
-                    *dry_run,
-                    *no_cache,
-                    *timeout_secs,
-                    base_dir,
-                    results_db,
-                    cache,
-                );
-                all_results.push((config.clone(), result));
+            if tags_match && tier_match {
+                filtered_scenarios.push((name, path));
             }
         }
-
-        if all_results.len() > 1 {
-            println!("\n=== Summary ===");
-            for (config, result) in all_results {
-                match result {
-                    Ok(_) => println!("✓ {} / {}", config.tool, config.model),
-                    Err(e) => println!("✗ {} / {} - {}", config.tool, config.model, e),
-                }
-            }
-        }
+        filtered_scenarios
     } else if let Some(path) = scenario {
-        let s = crate::scenario::load(path)?;
-        println!("Loaded scenario: {}", s.name);
+        let s = load(path)?;
+        vec![(s.name.clone(), PathBuf::from(path))]
+    } else {
+        println!("No scenario specified. Use --scenario <path> or --all");
+        return Ok(());
+    };
 
-        let matrix = build_tool_matrix(tools, model, tool, model, &s.tool_matrix);
+    for (name, path) in scenarios_to_run {
+        let s = load(&path)?;
+        println!("Loaded scenario: {}", name);
+
+        let matrix = crate::build_tool_matrix(tools, models, tool, model, &s.tool_matrix);
 
         if matrix.len() > 1 {
             println!("Matrix run: {} tool×model combinations", matrix.len());
@@ -125,9 +97,9 @@ pub fn handle_run(
                 &s,
                 &config.tool,
                 &config.model,
-                *dry_run,
-                *no_cache,
-                *timeout_secs,
+                dry_run,
+                no_cache,
+                timeout_secs,
                 base_dir,
                 results_db,
                 cache,
@@ -137,31 +109,52 @@ pub fn handle_run(
         }
 
         if matrix.len() > 1 {
-            crate::output::print_matrix_summary(&results);
+            output::print_matrix_summary(&results);
         }
-    } else {
-        println!("No scenario specified. Use --scenario <path> or --all");
     }
 
     Ok(())
 }
 
-pub fn handle_scenarios(command: &Commands) -> anyhow::Result<()> {
-    let Commands::Scenarios { tags: _, tier } = command else {
-        return Err(anyhow::anyhow!("Expected Scenarios command"));
-    };
+pub fn handle_list_command(
+    tags: &[String],
+    tier: &usize,
+    pending_review: bool,
+    results_db: &ResultsDB,
+) -> anyhow::Result<()> {
+    if pending_review {
+        let pending = results_db.load_pending_review()?;
+        if pending.is_empty() {
+            println!("No runs pending review");
+        } else {
+            println!("Runs pending review ({}):", pending.len());
+            for r in pending {
+                println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
+            }
+        }
+        return Ok(());
+    }
 
     let mut scenarios = Vec::new();
 
-    fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<(String, usize, String)>) {
+    fn find_scenarios(
+        dir: &std::path::Path,
+        scenarios: &mut Vec<(PathBuf, String, usize, String, Vec<String>)>,
+    ) {
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_file() {
                     if let Some(ext) = path.extension() {
                         if ext == "yaml" {
-                            if let Ok(s) = crate::scenario::load(&path) {
-                                scenarios.push((s.name.clone(), s.tier, s.description));
+                            if let Ok(s) = load(&path) {
+                                scenarios.push((
+                                    path,
+                                    s.name.clone(),
+                                    s.tier,
+                                    s.description,
+                                    s.tags,
+                                ));
                             }
                         }
                     }
@@ -177,7 +170,18 @@ pub fn handle_scenarios(command: &Commands) -> anyhow::Result<()> {
         find_scenarios(&fixtures_dir, &mut scenarios);
     }
 
-    scenarios.sort_by(|a, b| a.1.cmp(&b.1));
+    let filtered_scenarios: Vec<_> = scenarios
+        .iter()
+        .filter(|(_, _, scenario_tier, _, scenario_tags)| {
+            let tier_match = scenario_tier <= tier;
+            let tags_match = if tags.is_empty() {
+                true
+            } else {
+                tags.iter().all(|tag| scenario_tags.contains(tag))
+            };
+            tier_match && tags_match
+        })
+        .collect();
 
     let tier_label = match *tier {
         0 => "smoke",
@@ -187,51 +191,19 @@ pub fn handle_scenarios(command: &Commands) -> anyhow::Result<()> {
         _ => "unknown",
     };
     println!("Available scenarios (tier {}):", tier_label);
-    for (name, _tier, description) in &scenarios {
-        println!("  [{}] {} - {}", tier_label, name, description);
+    for (_path, name, _scenario_tier, description, scenario_tags) in &filtered_scenarios {
+        let tags_str = if scenario_tags.is_empty() {
+            String::new()
+        } else {
+            format!(" [{}]", scenario_tags.join(", "))
+        };
+        println!("  [{}] {}{} - {}", tier_label, name, tags_str, description);
     }
 
     Ok(())
 }
 
-pub fn handle_list(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    let Commands::List { pending_review } = command else {
-        return Err(anyhow::anyhow!("Expected List command"));
-    };
-
-    if *pending_review {
-        let pending = results_db.load_pending_review()?;
-        if pending.is_empty() {
-            println!("No runs pending review");
-        } else {
-            println!("Runs pending review ({}):", pending.len());
-            for r in pending {
-                println!("  [{}] {} - {} ({})", r.id, r.scenario_id, r.tool, r.model);
-            }
-        }
-    } else {
-        let runs = results_db.load_all()?;
-        if runs.is_empty() {
-            println!("No runs found");
-        } else {
-            println!("Runs ({}):", runs.len());
-            for r in runs {
-                println!(
-                    "  [{}] {} - {} ({}) - {}",
-                    r.id, r.scenario_id, r.tool, r.model, r.outcome
-                );
-            }
-        }
-    }
-
-    Ok(())
-}
-
-pub fn handle_show(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    let Commands::Show { name } = command else {
-        return Err(anyhow::anyhow!("Expected Show command"));
-    };
-
+pub fn handle_show_command(name: &str, results_db: &ResultsDB) -> anyhow::Result<()> {
     let record = results_db.load_by_id(name)?;
     match record {
         Some(r) => {
@@ -275,11 +247,7 @@ pub fn handle_show(command: &Commands, results_db: &ResultsDB) -> anyhow::Result
     Ok(())
 }
 
-pub fn handle_compare(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    let Commands::Compare { run_ids } = command else {
-        return Err(anyhow::anyhow!("Expected Compare command"));
-    };
-
+pub fn handle_compare_command(run_ids: &[String], results_db: &ResultsDB) -> anyhow::Result<()> {
     if run_ids.len() != 2 {
         anyhow::bail!("Compare requires exactly 2 run IDs");
     }
@@ -290,7 +258,7 @@ pub fn handle_compare(command: &Commands, results_db: &ResultsDB) -> anyhow::Res
     match (r1, r2) {
         (Some(run1), Some(run2)) => {
             let report = crate::results::compare_runs(&run1, &run2);
-            print_regression_report(&report);
+            output::print_regression_report(&report);
         }
         _ => anyhow::bail!("One or both runs not found"),
     }
@@ -298,32 +266,24 @@ pub fn handle_compare(command: &Commands, results_db: &ResultsDB) -> anyhow::Res
     Ok(())
 }
 
-pub fn handle_clean(cache: &Cache) -> anyhow::Result<()> {
+pub fn handle_clean_command(cache: &Cache) -> anyhow::Result<()> {
     println!("Cleaning cache...");
     cache.clear()?;
     println!("Cache cleared");
     Ok(())
 }
 
-pub fn handle_review(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    use chrono::Utc;
-
-    let Commands::Review {
-        run_id,
-        dimension,
-        notes,
-    } = command
-    else {
-        return Err(anyhow::anyhow!("Expected Review command"));
-    };
-
+pub fn handle_review_command(
+    run_id: &str,
+    dimension: &[(String, f64)],
+    notes: &Option<String>,
+    results_db: &ResultsDB,
+) -> anyhow::Result<()> {
     let record = results_db.load_by_id(&run_id)?;
     match record {
         Some(_) => {
-            let dimensions_map: HashMap<String, f64> = dimension
-                .iter()
-                .map(|(k, v): &(String, f64)| (k.clone(), *v))
-                .collect();
+            let dimensions_map: std::collections::HashMap<String, f64> =
+                dimension.iter().map(|(k, v)| (k.clone(), *v)).collect();
             let human_review = crate::results::HumanReviewRecord {
                 dimensions: dimensions_map,
                 notes: notes.clone(),
@@ -339,272 +299,98 @@ pub fn handle_review(command: &Commands, results_db: &ResultsDB) -> anyhow::Resu
     Ok(())
 }
 
-pub fn handle_baseline(command: &Commands, results_db: &ResultsDB) -> anyhow::Result<()> {
-    use crate::cli::BaselineAction;
-
-    let Commands::Baseline { action } = command else {
-        return Err(anyhow::anyhow!("Expected Baseline command"));
-    };
-
-    match action {
-        BaselineAction::Set { run_id } => {
-            let record = results_db
-                .load_by_id(run_id)?
-                .ok_or_else(|| anyhow::anyhow!("Run not found: {}", run_id))?;
-
-            results_db.set_baseline(&record.scenario_id, &record.tool, run_id)?;
+pub fn handle_baseline_set_command(run_id: &str, results_db: &ResultsDB) -> anyhow::Result<()> {
+    let record = results_db.load_by_id(run_id)?;
+    match record {
+        Some(r) => {
+            results_db.set_baseline(&r.scenario_id, &r.tool, run_id)?;
             println!(
                 "Baseline set: {} for scenario '{}' with tool '{}'",
-                run_id, record.scenario_id, record.tool
+                run_id, r.scenario_id, r.tool
             );
         }
-        BaselineAction::Show { scenario, tool } => {
-            match results_db.get_baseline(scenario, tool)? {
-                Some(run_id) => {
-                    let record = results_db.load_by_id(&run_id)?;
-                    match record {
-                        Some(r) => {
-                            println!(
-                                "Baseline for {} / {}: {} ({})",
-                                scenario,
-                                tool,
-                                run_id,
-                                r.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
-                            );
-                        }
-                        None => println!("Baseline record not found: {}", run_id),
-                    }
-                }
-                None => println!("No baseline set for {} / {}", scenario, tool),
-            }
-        }
-        BaselineAction::Unset { scenario, tool } => {
-            results_db.unset_baseline(scenario, tool)?;
-            println!("Baseline removed for {} / {}", scenario, tool);
-        }
+        None => anyhow::bail!("Run not found: {}", run_id),
     }
     Ok(())
 }
 
-fn build_tool_matrix(
-    cli_tools: &Option<String>,
-    cli_models: &Option<String>,
-    cli_tool: &str,
-    cli_model: &Option<String>,
-    scenario_matrix: &Option<Vec<ToolConfig>>,
-) -> Vec<ToolModelConfig> {
-    if let (Some(tools_str), Some(models_str)) = (cli_tools, cli_models) {
-        let tools: Vec<String> = tools_str.split(',').map(|s| s.trim().to_string()).collect();
-        let models: Vec<String> = models_str
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .collect();
+pub fn handle_baseline_clear_command(
+    scenario_id: &str,
+    tool: &str,
+    results_db: &ResultsDB,
+) -> anyhow::Result<()> {
+    results_db.clear_baseline(scenario_id, tool)?;
+    println!(
+        "Baseline cleared for scenario '{}' with tool '{}'",
+        scenario_id, tool
+    );
+    Ok(())
+}
 
-        let mut matrix = Vec::new();
-        for tool in &tools {
-            for model in &models {
-                matrix.push(ToolModelConfig {
-                    tool: tool.clone(),
-                    model: model.clone(),
-                });
-            }
-        }
-        matrix
-    } else if let Some(scenario_matrix) = scenario_matrix {
-        let mut matrix = Vec::new();
-        for config in scenario_matrix {
-            let models = if config.models.is_empty() {
-                vec!["default".to_string()]
-            } else {
-                config.models.clone()
-            };
-            for model in models {
-                matrix.push(ToolModelConfig {
-                    tool: config.tool.clone(),
-                    model,
-                });
-            }
-        }
-        matrix
+pub fn handle_baseline_list_command(results_db: &ResultsDB) -> anyhow::Result<()> {
+    let baselines = results_db.list_baselines()?;
+    if baselines.is_empty() {
+        println!("No baselines configured");
     } else {
-        vec![ToolModelConfig {
-            tool: cli_tool.to_string(),
-            model: cli_model.as_deref().unwrap_or("default").to_string(),
-        }]
+        println!("Configured baselines ({}):", baselines.len());
+        for (key, run_id) in baselines {
+            println!("  {} -> {}", key, run_id);
+        }
     }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn assert_matrix_contains(matrix: &[ToolModelConfig], tool: &str, model: &str) {
-        assert!(
-            matrix.iter().any(|c| c.tool == tool && c.model == model),
-            "Matrix should contain ({}, {}), got: {:?}",
-            tool,
-            model,
-            matrix
-        );
-    }
-
     #[test]
-    fn test_build_tool_matrix_cli_both() {
-        let result = build_tool_matrix(
-            &Some("opencode,amp".to_string()),
-            &Some("gpt-4o,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
+    fn test_find_scenarios() {
+        let temp_dir = std::path::PathBuf::from("/tmp/test_scenarios_find");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
 
-        assert_eq!(result.len(), 4);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
-    }
+        let sub_dir = temp_dir.join("subdir");
+        std::fs::create_dir_all(&sub_dir).unwrap();
 
-    #[test]
-    fn test_build_tool_matrix_cli_whitespace_handling() {
-        let result = build_tool_matrix(
-            &Some(" opencode , amp ".to_string()),
-            &Some(" gpt-4o , claude-sonnet ".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
+        let yaml1 = temp_dir.join("scenario1.yaml");
+        let yaml2 = sub_dir.join("scenario2.yaml");
+        let txt = temp_dir.join("not_a_scenario.txt");
 
-        assert_eq!(result.len(), 4);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
-    }
+        let scenario1_content = r#"
+name: test1
+description: "Test scenario 1"
+fixture: qipu
+task:
+  prompt: "Test"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
+        let scenario2_content = r#"
+name: test2
+description: "Test scenario 2"
+fixture: qipu
+task:
+  prompt: "Test"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+"#;
 
-    #[test]
-    fn test_build_tool_matrix_scenario_matrix_with_models() {
-        let scenario_matrix = vec![
-            ToolConfig {
-                tool: "opencode".to_string(),
-                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
-            },
-            ToolConfig {
-                tool: "amp".to_string(),
-                models: vec!["default".to_string()],
-            },
-        ];
+        std::fs::write(&yaml1, scenario1_content).unwrap();
+        std::fs::write(&yaml2, scenario2_content).unwrap();
+        std::fs::write(&txt, "not a scenario").unwrap();
 
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+        let mut scenarios = Vec::new();
+        find_scenarios(&temp_dir, &mut scenarios);
 
-        assert_eq!(result.len(), 3);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "default");
-    }
+        assert_eq!(scenarios.len(), 2);
+        assert!(scenarios.iter().any(|(name, _)| name == "test1"));
+        assert!(scenarios.iter().any(|(name, _)| name == "test2"));
 
-    #[test]
-    fn test_build_tool_matrix_scenario_matrix_empty_models() {
-        let scenario_matrix = vec![
-            ToolConfig {
-                tool: "opencode".to_string(),
-                models: vec![],
-            },
-            ToolConfig {
-                tool: "amp".to_string(),
-                models: vec![],
-            },
-        ];
-
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
-
-        assert_eq!(result.len(), 2);
-        assert_matrix_contains(&result, "opencode", "default");
-        assert_matrix_contains(&result, "amp", "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_single_tool_default_model() {
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &None);
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_single_tool_with_model() {
-        let result = build_tool_matrix(
-            &None,
-            &None,
-            "opencode",
-            &Some("claude-sonnet".to_string()),
-            &None,
-        );
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "claude-sonnet");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_scenario_matrix_empty() {
-        let scenario_matrix: Vec<ToolConfig> = vec![];
-
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
-
-        assert_eq!(result.len(), 0);
-    }
-
-    #[test]
-    fn test_build_tool_matrix_cli_tools_only() {
-        let result = build_tool_matrix(
-            &Some("opencode,amp".to_string()),
-            &None,
-            "opencode",
-            &None,
-            &None,
-        );
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_cli_models_only() {
-        let result = build_tool_matrix(
-            &None,
-            &Some("gpt-4o,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_single_tool_empty_strings() {
-        let result = build_tool_matrix(
-            &Some("opencode,,amp".to_string()),
-            &Some("gpt-4o,,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
-
-        assert_eq!(result.len(), 9);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "", "gpt-4o");
-        assert_matrix_contains(&result, "", "");
-        assert_matrix_contains(&result, "", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

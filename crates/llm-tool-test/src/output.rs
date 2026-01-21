@@ -1,16 +1,18 @@
 use crate::evaluation::ScoreTier;
-use crate::results::{RegressionReport, ResultRecord};
-use std::collections::HashMap;
+use crate::results::RegressionReport;
+use crate::results::ResultRecord;
 
-pub fn print_matrix_summary(
-    results: &[(
-        crate::commands::ToolModelConfig,
-        anyhow::Result<ResultRecord>,
-    )],
-) {
+#[derive(Debug, Clone)]
+pub struct ToolModelConfig {
+    pub tool: String,
+    pub model: String,
+}
+
+pub fn print_matrix_summary(results: &[(ToolModelConfig, anyhow::Result<ResultRecord>)]) {
     println!("\n--- Matrix Summary ---");
 
-    let mut table: HashMap<String, HashMap<String, String>> = HashMap::new();
+    let mut table: std::collections::HashMap<String, std::collections::HashMap<String, String>> =
+        std::collections::HashMap::new();
 
     for (config, result) in results {
         let outcome = match result {

@@ -143,5 +143,52 @@ Provide `qipu doctor` checks for:
 
 **Note paths are flat.** Notes are stored directly in `notes/` without date partitioning. This keeps paths stable (no moves when dates change), simplifies ID-to-path resolution, and avoids empty directory hierarchies. For stores with thousands of notes, the SQLite index handles listing/filtering efficiently.
 
+## Store discovery
+
+When no explicit `--store` path is provided, qipu searches for an existing store by walking up the directory tree from the current working directory (or `--root` if specified).
+
+### Discovery algorithm
+
+1. Starting from the search root, check for `.qipu/` or `qipu/` directories
+2. If found, use that store
+3. If not found, move to the parent directory and repeat
+4. Stop searching when reaching a **project boundary** or the filesystem root
+
+### Project boundaries
+
+To prevent accidental discovery of unrelated stores in parent directories, the search stops after passing a project root marker. Project markers include:
+
+- `.git/` — Git repository root
+- `.hg/` — Mercurial repository root
+- `.svn/` — Subversion working copy
+- `Cargo.toml` — Rust project
+- `package.json` — Node.js project
+- `go.mod` — Go module
+- `pyproject.toml` — Python project
+
+The search checks the current directory for a store first, then checks for project markers. If a project marker is found, qipu will not search above that directory.
+
+### Rationale
+
+- **Security**: Prevents malicious stores in shared parent directories from being used
+- **Predictability**: Users won't accidentally use a store from an unrelated project
+- **Test isolation**: Stray stores in `/tmp` or `/home` won't pollute test runs
+- **Explicit over implicit**: If a store exists above a project root, use `--store` to reference it explicitly
+
+### Examples
+
+```
+/home/user/
+  .qipu/                    # Personal store (won't be found from project)
+  projects/
+    myapp/
+      .git/                 # Project boundary - search stops here
+      .qipu/                # Project store - will be found
+      src/
+        main.rs             # Search starts here
+```
+
+Running `qipu list` from `src/` will find `myapp/.qipu/` and stop. It will not traverse above `.git/` to find `/home/user/.qipu/`.
+
 ## Open questions
 - Should attachments be per-note folders (`attachments/<id>/...`)?

@@ -216,7 +216,7 @@ fn collect_notes_with_traversal(
 fn collect_links(
     index: &Index,
     selected_notes: &[Note],
-    options: &DumpOptions,
+    _options: &DumpOptions,
 ) -> Result<Vec<PackLink>> {
     let selected_ids: std::collections::HashSet<_> =
         selected_notes.iter().map(|n| n.id()).collect();
@@ -225,25 +225,8 @@ fn collect_links(
     for edge in &index.edges {
         // Only include links between selected notes
         if selected_ids.contains(edge.from.as_str()) && selected_ids.contains(edge.to.as_str()) {
-            // Apply link type filters
-            if !options.type_include.is_empty()
-                && !options
-                    .type_include
-                    .iter()
-                    .any(|t| t == edge.link_type.as_str())
-            {
-                continue;
-            }
-
             // Determine if this is an inline link based on source
             let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
-
-            if !is_inline && options.inline_only {
-                continue;
-            }
-            if is_inline && options.typed_only {
-                continue;
-            }
 
             links.push(PackLink {
                 from: edge.from.clone(),

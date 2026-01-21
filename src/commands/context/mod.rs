@@ -71,10 +71,9 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
     };
 
-    let mut insert_selected = |resolved_id: String, via_source: Option<String>| -> Result<()> {
-        if let Some(via_id) = via_source {
-            via_map.entry(resolved_id.clone()).or_insert(via_id);
-        }
+    // Selection by explicit note IDs
+    for id in options.note_ids {
+        let resolved_id = resolve_id(id)?;
 
         if seen_ids.insert(resolved_id.clone()) {
             let note =
@@ -83,16 +82,12 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                     .ok_or_else(|| QipuError::NoteNotFound {
                         id: resolved_id.clone(),
                     })?;
-            selected_notes.push(SelectedNote { note, via: None });
+            selected_notes.push(SelectedNote {
+                note,
+                via: None,
+                link_type: None,
+            });
         }
-
-        Ok(())
-    };
-
-    // Selection by explicit note IDs
-    for id in options.note_ids {
-        let resolved_id = resolve_id(id)?;
-        insert_selected(resolved_id, None)?;
     }
 
     // Selection by tag
@@ -100,16 +95,42 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         let notes_with_tag = store.db().list_notes(None, Some(tag_name), None)?;
         for note in &notes_with_tag {
             let resolved_id = resolve_id(&note.id)?;
-            insert_selected(resolved_id, None)?;
+
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note,
+                    via: None,
+                    link_type: None,
+                });
+            }
         }
     }
 
     // Selection by MOC
     if let Some(moc) = options.moc_id {
         let linked_ids = select::get_moc_linked_ids(store.db(), moc, options.transitive)?;
-        for id in linked_ids {
+        for (id, link_type) in linked_ids {
             let resolved_id = resolve_id(&id)?;
-            insert_selected(resolved_id, None)?;
+
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note,
+                    via: None,
+                    link_type,
+                });
+            }
         }
     }
 
@@ -123,13 +144,30 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             } else {
                 None
             };
-            insert_selected(resolved_id, via_source)?;
+
+            if let Some(via_id) = via_source {
+                via_map.entry(resolved_id.clone()).or_insert(via_id);
+            }
+
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note,
+                    via: None,
+                    link_type: None,
+                });
+            }
         }
     }
 
     // Backlink expansion
     if options.backlinks {
-        let mut backlink_notes: Vec<(String, String)> = Vec::new();
+        let mut backlink_notes: Vec<(String, String, crate::lib::note::LinkType)> = Vec::new();
 
         for selected_note in &selected_notes {
             let note_id = selected_note.note.id();
@@ -137,12 +175,12 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
             for backlink in backlinks {
                 if !seen_ids.contains(&backlink.from) {
-                    backlink_notes.push((backlink.from, note_id.to_string()));
+                    backlink_notes.push((backlink.from, note_id.to_string(), backlink.link_type));
                 }
             }
         }
 
-        for (backlink_id, source_id) in backlink_notes {
+        for (backlink_id, source_id, link_type) in backlink_notes {
             let resolved_id = resolve_id(&backlink_id)?;
             via_map
                 .entry(resolved_id.clone())
@@ -154,7 +192,11 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                         .ok_or_else(|| QipuError::NoteNotFound {
                             id: resolved_id.clone(),
                         })?;
-                selected_notes.push(SelectedNote { note, via: None });
+                selected_notes.push(SelectedNote {
+                    note,
+                    via: None,
+                    link_type: Some(link_type),
+                });
             }
         }
     }
@@ -219,6 +261,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 selected_notes.push(SelectedNote {
                     note,
                     via: Some(related_id.clone()),
+                    link_type: None,
                 });
             }
         }
@@ -249,14 +292,48 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         ));
     }
 
-    // Sort notes: Prioritize verified notes, then by created date, then by id
+    // Apply min-value filter (notes without explicit value default to 50)
+    if let Some(min_value) = options.min_value {
+        let before_count = selected_notes.len();
+        selected_notes.retain(|selected| {
+            let note_value = selected.note.frontmatter.value.unwrap_or(50);
+            note_value >= min_value
+        });
+        let after_count = selected_notes.len();
+
+        if cli.verbose && before_count > after_count {
+            tracing::debug!(
+                min_value,
+                before_count,
+                after_count,
+                filtered = before_count - after_count,
+                "min_value_filter"
+            );
+        }
+    }
+
+    // Sort notes: Prioritize verified notes, then typed links (especially part-of and supports) over related, then by created date, then by id
     selected_notes.sort_by(|a, b| {
         // b.cmp(a) for verified because we want true (1) before false (0)
         let a_verified = a.note.frontmatter.verified.unwrap_or(false);
         let b_verified = b.note.frontmatter.verified.unwrap_or(false);
 
+        // Helper function to get link priority: lower number = higher priority
+        let link_priority = |link_type: &Option<crate::lib::note::LinkType>| -> u8 {
+            match link_type {
+                Some(lt) if lt.as_str() == "part-of" || lt.as_str() == "supports" => 0,
+                Some(lt) if lt.as_str() != "related" => 1,
+                Some(_) => 2, // related
+                None => 1,    // directly selected, same priority as other typed links
+            }
+        };
+
+        let a_priority = link_priority(&a.link_type);
+        let b_priority = link_priority(&b.link_type);
+
         b_verified
             .cmp(&a_verified)
+            .then_with(|| a_priority.cmp(&b_priority))
             .then_with(
                 || match (&a.note.frontmatter.created, &b.note.frontmatter.created) {
                     (Some(a_created), Some(b_created)) => a_created.cmp(b_created),

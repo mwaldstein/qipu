@@ -2,6 +2,7 @@ name: capture_basic
 description: "Basic note capture scenario"
 fixture: qipu
 tier: 1
+tags: [capture, smoke]
 task:
   prompt: "Create a note about quantum entanglement with some basic facts."
 evaluation:

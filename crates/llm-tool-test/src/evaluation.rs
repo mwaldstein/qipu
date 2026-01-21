@@ -569,6 +569,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
 
         let metrics = evaluate(&scenario_fail, &env_root).unwrap();
@@ -598,6 +599,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -619,6 +621,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -639,6 +642,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -668,6 +672,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&scenario_note_exists, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -689,6 +694,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -712,6 +718,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&link_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -774,6 +781,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -795,6 +803,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&tag_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -829,6 +838,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -851,6 +861,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&content_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -873,6 +884,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -894,6 +906,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&command_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -915,6 +928,7 @@ mod tests {
             tier: 0,
             tool_matrix: None,
             setup: None,
+            tags: vec![],
         };
         let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);

@@ -156,5 +156,14 @@ impl Database {
     }
 }
 
+impl Drop for Database {
+    fn drop(&mut self) {
+        // Ensure all WAL changes are checkpointed before closing
+        // This is critical for test reliability when database connections
+        // are opened and closed rapidly
+        let _ = self.conn.pragma_update(None, "wal_checkpoint", "TRUNCATE");
+    }
+}
+
 #[cfg(test)]
 mod tests;

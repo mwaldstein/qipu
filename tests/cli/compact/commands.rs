@@ -197,6 +197,13 @@ This is UPDATED note 1 content."#,
     )
     .unwrap();
 
+    // Reindex to update database with the modified note
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
     // Report should now detect staleness
     let output = qipu()
         .current_dir(dir.path())

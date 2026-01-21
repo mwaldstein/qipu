@@ -57,7 +57,7 @@ impl super::Database {
 
                     existing_paths.insert(path.to_path_buf());
 
-                    if mtime > last_sync {
+                    if mtime >= last_sync {
                         tracing::debug!(
                             path = %path.display(),
                             "File changed since last sync, re-parsing"

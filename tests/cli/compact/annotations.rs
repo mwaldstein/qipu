@@ -52,6 +52,12 @@ fn test_compaction_annotations() {
         }
     }
 
+    // Reindex to update database with the manually edited content
+    qipu()
+        .args(["--store", store_path.to_str().unwrap(), "index"])
+        .assert()
+        .success();
+
     let note2_output = qipu()
         .args([
             "--store",

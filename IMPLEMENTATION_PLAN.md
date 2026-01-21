@@ -76,9 +76,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Removed `.reverse()` from HeapEntry::cmp implementation; the Reverse<HeapEntry> wrapper already provides min-heap semantics for BinaryHeap; the reverse was causing max-heap behavior instead of min-heap
 
 ### Structured Logging (`specs/structured-logging.md`)
-- [ ] Debug logs are gated by `--verbose` even when `--log-level debug` is set.
+- [x] Debug logs are gated by `--verbose` even when `--log-level debug` is set.
   - `src/commands/dispatch/notes.rs:23-26`
   - `src/commands/search.rs:36-45`
+  - Learnings: Removed `if cli.verbose` guards from debug!() calls in dispatch and search handlers; tracing's log level filter now controls whether debug logs appear, allowing `--log-level debug` to work independently of `--verbose`
+  - Note: Pre-existing flaky tests discovered using `.trim()` instead of `extract_id()` in `tests/cli/inbox.rs`, `tests/cli/capture.rs`, `tests/cli/provenance.rs`, and `tests/cli/workspace.rs` - not related to this fix
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
 - [ ] Guard rails (LLM_TOOL_TEST_ENABLED) are missing before running scenarios.

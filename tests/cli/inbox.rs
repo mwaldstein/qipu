@@ -91,7 +91,7 @@ fn test_inbox_exclude_linked() {
         .get_output()
         .stdout
         .clone();
-    let moc_id = String::from_utf8_lossy(&moc_output).trim().to_string();
+    let moc_id = extract_id(&moc_output);
 
     // Create two fleeting notes
     let fleeting1_output = qipu()
@@ -102,9 +102,7 @@ fn test_inbox_exclude_linked() {
         .get_output()
         .stdout
         .clone();
-    let fleeting1_id = String::from_utf8_lossy(&fleeting1_output)
-        .trim()
-        .to_string();
+    let fleeting1_id = extract_id(&fleeting1_output);
 
     qipu()
         .current_dir(dir.path())

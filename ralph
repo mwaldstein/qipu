@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# ralph - Run ActAstra iteration loops
+# ralph - Agentic iteration loop runner
+#
+# VERSION: 0.2.0
+# CHANGELOG:
+#   0.2.0 - Fix second SIGINT to properly kill opencode process group
+#   0.1.0 - Initial version with vision-expand, reorg, plan, build modes
+#
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,7 +27,7 @@ request_stop() {
         echo ""
         log_warn "Forcing immediate stop"
         if [[ -n "$OPENCODE_PID" ]] && kill -0 "$OPENCODE_PID" 2>/dev/null; then
-            kill -INT "$OPENCODE_PID" 2>/dev/null || true
+            kill -INT -"$OPENCODE_PID" 2>/dev/null || true
         fi
         exit 130
     fi

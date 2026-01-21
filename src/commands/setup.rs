@@ -5,6 +5,14 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::QipuError;
+use std::path::PathBuf;
+
+fn get_agents_md_path(cli: &Cli) -> PathBuf {
+    match &cli.root {
+        Some(root) => root.join("AGENTS.md"),
+        None => PathBuf::from("AGENTS.md"),
+    }
+}
 
 const AGENTS_MD_CONTENT: &str = r#"# Qipu Agent Integration
 
@@ -205,7 +213,7 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     }
 
     // Check if AGENTS.md already exists
-    let agents_md_path = std::path::Path::new("AGENTS.md");
+    let agents_md_path = get_agents_md_path(cli);
     if agents_md_path.exists() {
         return match cli.format {
             OutputFormat::Json => {
@@ -281,7 +289,7 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
         )));
     }
 
-    let agents_md_path = std::path::Path::new("AGENTS.md");
+    let agents_md_path = get_agents_md_path(cli);
     let exists = agents_md_path.exists();
 
     match cli.format {
@@ -289,7 +297,7 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
             let output = serde_json::json!({
                 "integration": "agents-md",
                 "installed": exists,
-                "path": if exists { Some("AGENTS.md") } else { None }
+                "path": if exists { Some(agents_md_path.display().to_string()) } else { None }
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
@@ -330,7 +338,7 @@ fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
         )));
     }
 
-    let agents_md_path = std::path::Path::new("AGENTS.md");
+    let agents_md_path = get_agents_md_path(cli);
 
     if !agents_md_path.exists() {
         return match cli.format {
@@ -384,8 +392,12 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_cli(format: OutputFormat) -> Cli {
+        create_cli_with_root(format, None)
+    }
+
+    fn create_cli_with_root(format: OutputFormat, root: Option<PathBuf>) -> Cli {
         Cli {
-            root: None,
+            root,
             store: None,
             format,
             quiet: false,
@@ -447,9 +459,8 @@ mod tests {
 
     #[test]
     fn test_execute_install_success() {
-        let cli = create_cli(OutputFormat::Human);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_install(&cli, "agents-md");
         assert!(result.is_ok());
@@ -460,38 +471,30 @@ mod tests {
         let content = fs::read_to_string(&agents_md_path).unwrap();
         assert!(content.contains("Qipu is a Zettelkasten-inspired"));
         assert!(content.contains("Quick Start"));
-
-        fs::remove_file(agents_md_path).unwrap();
     }
 
     #[test]
     fn test_execute_install_json() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_install(&cli, "agents-md");
         assert!(result.is_ok());
 
         let agents_md_path = temp_dir.path().join("AGENTS.md");
         assert!(agents_md_path.exists());
-
-        fs::remove_file(agents_md_path).unwrap();
     }
 
     #[test]
     fn test_execute_install_records() {
-        let cli = create_cli(OutputFormat::Records);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_install(&cli, "agents-md");
         assert!(result.is_ok());
 
         let agents_md_path = temp_dir.path().join("AGENTS.md");
         assert!(agents_md_path.exists());
-
-        fs::remove_file(agents_md_path).unwrap();
     }
 
     #[test]
@@ -511,9 +514,8 @@ mod tests {
 
     #[test]
     fn test_execute_install_already_exists() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let path = temp_dir.path().join("AGENTS.md");
         fs::write(&path, "Some content").unwrap();
@@ -528,9 +530,8 @@ mod tests {
 
     #[test]
     fn test_execute_check_installed() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let path = temp_dir.path().join("AGENTS.md");
         fs::write(&path, "Some content").unwrap();
@@ -541,9 +542,8 @@ mod tests {
 
     #[test]
     fn test_execute_check_not_installed() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_check(&cli, "agents-md");
         assert!(result.is_ok());
@@ -551,9 +551,8 @@ mod tests {
 
     #[test]
     fn test_execute_check_human() {
-        let cli = create_cli(OutputFormat::Human);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_check(&cli, "agents-md");
         assert!(result.is_ok());
@@ -575,9 +574,8 @@ mod tests {
 
     #[test]
     fn test_execute_remove_success() {
-        let cli = create_cli(OutputFormat::Human);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
         let path = temp_dir.path().join("AGENTS.md");
         fs::write(&path, "Some content").unwrap();
@@ -589,9 +587,8 @@ mod tests {
 
     #[test]
     fn test_execute_remove_json() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let path = temp_dir.path().join("AGENTS.md");
         fs::write(&path, "Some content").unwrap();
@@ -603,9 +600,8 @@ mod tests {
 
     #[test]
     fn test_execute_remove_not_found() {
-        let cli = create_cli(OutputFormat::Json);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
 
         let result = execute_remove(&cli, "agents-md");
         assert!(result.is_ok());
@@ -613,9 +609,8 @@ mod tests {
 
     #[test]
     fn test_execute_remove_records() {
-        let cli = create_cli(OutputFormat::Records);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
 
         let path = temp_dir.path().join("AGENTS.md");
         fs::write(&path, "Some content").unwrap();

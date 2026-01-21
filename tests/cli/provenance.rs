@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -29,7 +29,7 @@ fn test_create_with_provenance() {
         .output()
         .unwrap();
 
-    let id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let id = extract_id(&output);
 
     // Verify metadata in JSON output
     qipu()
@@ -57,7 +57,7 @@ fn test_verify_command() {
         .output()
         .unwrap();
 
-    let id = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let id = extract_id(&output);
 
     // Toggle verify
     qipu()

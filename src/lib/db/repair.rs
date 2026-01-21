@@ -75,6 +75,12 @@ impl super::Database {
             }
         }
 
+        // Collect IDs from database and changed notes for edge resolution
+        let mut all_ids: std::collections::HashSet<String> = self.list_note_ids()?.into_iter().collect();
+        for note in &changed_notes {
+            all_ids.insert(note.id().to_string());
+        }
+
         let tx = self
             .conn
             .unchecked_transaction()
@@ -83,7 +89,7 @@ impl super::Database {
         if !changed_notes.is_empty() {
             for note in &changed_notes {
                 Self::insert_note_internal(&tx, note)?;
-                Self::insert_edges_internal(&tx, note, store_root)?;
+                Self::insert_edges_internal(&tx, note, &all_ids)?;
                 tracing::debug!(id = %note.id(), "Updated note in database");
             }
         }

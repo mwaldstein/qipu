@@ -196,7 +196,7 @@ fn test_link_tree_max_hops() {
             .args(["create", &format!("Node {}", i)])
             .output()
             .unwrap();
-        ids.push(String::from_utf8_lossy(&output.stdout).trim().to_string());
+        ids.push(extract_id(&output));
     }
 
     // Link them in a chain
@@ -380,7 +380,7 @@ fn test_link_tree_max_hops_reports_truncation() {
             .args(["create", &format!("Node {}", i)])
             .output()
             .unwrap();
-        ids.push(String::from_utf8_lossy(&output.stdout).trim().to_string());
+        ids.push(extract_id(&output));
     }
 
     // Link them in a chain
@@ -451,9 +451,7 @@ fn test_link_tree_spanning_tree_ordering() {
         .args(["create", "Root"])
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout)
-        .trim()
-        .to_string();
+    let id_root = extract_id(&output_root);
 
     // Create children with IDs that would sort differently by ID vs type
     let output_a = qipu()
@@ -550,27 +548,21 @@ fn test_link_tree_type_filter() {
         .args(["create", "Root"])
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout)
-        .trim()
-        .to_string();
+    let id_root = extract_id(&output_root);
 
     let output_child1 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 1"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
-        .trim()
-        .to_string();
+    let id_child1 = extract_id(&output_child1);
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 2"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
-        .trim()
-        .to_string();
+    let id_child2 = extract_id(&output_child2);
 
     // Add typed links with different types
     qipu()
@@ -616,27 +608,21 @@ fn test_link_tree_exclude_type_filter() {
         .args(["create", "Root"])
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout)
-        .trim()
-        .to_string();
+    let id_root = extract_id(&output_root);
 
     let output_child1 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 1"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
-        .trim()
-        .to_string();
+    let id_child1 = extract_id(&output_child1);
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Child 2"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
-        .trim()
-        .to_string();
+    let id_child2 = extract_id(&output_child2);
 
     qipu()
         .current_dir(dir.path())
@@ -681,18 +667,14 @@ fn test_link_tree_typed_only() {
         .args(["create", "Typed Child"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
-        .trim()
-        .to_string();
+    let id_child1 = extract_id(&output_child1);
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Inline Child"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
-        .trim()
-        .to_string();
+    let id_child2 = extract_id(&output_child2);
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -700,9 +682,7 @@ fn test_link_tree_typed_only() {
         .write_stdin(format!("See [[{}]]", id_child2))
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout)
-        .trim()
-        .to_string();
+    let id_root = extract_id(&output_root);
 
     qipu()
         .current_dir(dir.path())
@@ -740,18 +720,14 @@ fn test_link_tree_inline_only() {
         .args(["create", "Typed Child"])
         .output()
         .unwrap();
-    let id_child1 = String::from_utf8_lossy(&output_child1.stdout)
-        .trim()
-        .to_string();
+    let id_child1 = extract_id(&output_child1);
 
     let output_child2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Inline Child"])
         .output()
         .unwrap();
-    let id_child2 = String::from_utf8_lossy(&output_child2.stdout)
-        .trim()
-        .to_string();
+    let id_child2 = extract_id(&output_child2);
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -759,9 +735,7 @@ fn test_link_tree_inline_only() {
         .write_stdin(format!("See [[{}]]", id_child2))
         .output()
         .unwrap();
-    let id_root = String::from_utf8_lossy(&output_root.stdout)
-        .trim()
-        .to_string();
+    let id_root = extract_id(&output_root);
 
     qipu()
         .current_dir(dir.path())

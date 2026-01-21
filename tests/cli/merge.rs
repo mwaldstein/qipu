@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -14,29 +14,19 @@ fn test_merge_notes_basic() {
         .success();
 
     // 2. Create two notes
-    let id1 = String::from_utf8(
-        qipu()
-            .current_dir(dir.path())
-            .args(["create", "--tag", "tag1", "Note One"])
-            .output()
-            .unwrap()
-            .stdout,
-    )
-    .unwrap()
-    .trim()
-    .to_string();
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "tag1", "Note One"])
+        .output()
+        .unwrap();
+    let id1 = extract_id(&output1);
 
-    let id2 = String::from_utf8(
-        qipu()
-            .current_dir(dir.path())
-            .args(["create", "--tag", "tag2", "Note Two"])
-            .output()
-            .unwrap()
-            .stdout,
-    )
-    .unwrap()
-    .trim()
-    .to_string();
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "tag2", "Note Two"])
+        .output()
+        .unwrap();
+    let id2 = extract_id(&output2);
 
     // 3. Create a third note that links to id1
     qipu()

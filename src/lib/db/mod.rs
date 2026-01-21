@@ -128,6 +128,9 @@ impl Database {
             }
         }
 
+        // Collect all IDs from the notes we're about to insert
+        let ids: std::collections::HashSet<String> = notes.iter().map(|n| n.id().to_string()).collect();
+
         let tx = self
             .conn
             .unchecked_transaction()
@@ -144,7 +147,7 @@ impl Database {
 
         for note in notes {
             Self::insert_note_internal(&tx, &note)?;
-            Self::insert_edges_internal(&tx, &note, store_root)?;
+            Self::insert_edges_internal(&tx, &note, &ids)?;
         }
 
         tx.commit()

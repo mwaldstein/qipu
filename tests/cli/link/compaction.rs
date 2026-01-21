@@ -127,9 +127,7 @@ fn test_link_tree_with_compaction() {
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output_digest.stdout)
-        .trim()
-        .to_string();
+    let digest_id = extract_id(&output_digest);
 
     // Add links: note1 -> note2 -> note3
     qipu()
@@ -213,36 +211,28 @@ fn test_link_path_with_compaction() {
         .args(["create", "Start Note"])
         .output()
         .unwrap();
-    let start_id = String::from_utf8_lossy(&output_start.stdout)
-        .trim()
-        .to_string();
+    let start_id = extract_id(&output_start);
 
     let output_middle = qipu()
         .current_dir(dir.path())
         .args(["create", "Middle Note"])
         .output()
         .unwrap();
-    let middle_id = String::from_utf8_lossy(&output_middle.stdout)
-        .trim()
-        .to_string();
+    let middle_id = extract_id(&output_middle);
 
     let output_end = qipu()
         .current_dir(dir.path())
         .args(["create", "End Note"])
         .output()
         .unwrap();
-    let end_id = String::from_utf8_lossy(&output_end.stdout)
-        .trim()
-        .to_string();
+    let end_id = extract_id(&output_end);
 
     let output_digest = qipu()
         .current_dir(dir.path())
         .args(["create", "Digest Note"])
         .output()
         .unwrap();
-    let digest_id = String::from_utf8_lossy(&output_digest.stdout)
-        .trim()
-        .to_string();
+    let digest_id = extract_id(&output_digest);
 
     // Add links: start -> middle -> end
     qipu()

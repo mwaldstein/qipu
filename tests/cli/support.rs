@@ -15,3 +15,13 @@ pub fn extract_id(output: &Output) -> String {
         .map(|s| s.to_string())
         .unwrap_or_default()
 }
+
+/// Extract note ID from stdout bytes (first line only)
+/// Use when you have raw stdout bytes from a command
+pub fn extract_id_from_bytes(stdout: &[u8]) -> String {
+    String::from_utf8_lossy(stdout)
+        .lines()
+        .next()
+        .map(|s| s.to_string())
+        .unwrap_or_default()
+}

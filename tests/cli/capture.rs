@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
@@ -176,7 +176,7 @@ fn test_capture_content_preservation() {
         .stdout
         .clone();
 
-    let note_id = String::from_utf8(output).unwrap().trim().to_string();
+    let note_id = extract_id_from_bytes(&output);
 
     // Read the note back and verify content
     let show_output = qipu()
@@ -320,7 +320,7 @@ fn test_capture_with_provenance() {
         .stdout
         .clone();
 
-    let note_id = String::from_utf8(output).unwrap().trim().to_string();
+    let note_id = extract_id_from_bytes(&output);
 
     // Verify provenance fields are saved
     let note_path = dir.path().join(".qipu").join("notes");

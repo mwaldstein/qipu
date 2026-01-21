@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -163,7 +163,7 @@ fn test_workspace_new_from_note() {
         .stdout
         .clone();
 
-    let note_id = String::from_utf8(note_id).unwrap().trim().to_string();
+    let note_id = extract_id_from_bytes(&note_id);
 
     qipu()
         .current_dir(dir.path())

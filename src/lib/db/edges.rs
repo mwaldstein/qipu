@@ -2,92 +2,87 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::{Edge, LinkSource};
 use crate::lib::note::{LinkType, Note};
 use rusqlite::{params, Connection};
-use std::path::Path;
+use std::collections::HashSet;
 
 impl super::Database {
-    pub fn insert_edges(&self, note: &Note) -> Result<()> {
+    pub fn insert_edges(&self, note: &Note, existing_ids: &HashSet<String>) -> Result<()> {
         use crate::lib::index::links;
-        use std::collections::{HashMap, HashSet};
+        use std::collections::HashMap;
 
         let mut unresolved = HashSet::new();
         let path_to_id = HashMap::new();
 
         if note.path.is_some() {
-            let parent_path = note.path.as_ref().unwrap().parent().unwrap();
+            let edges = links::extract_links(
+                note,
+                existing_ids,
+                &mut unresolved,
+                note.path.as_deref(),
+                &path_to_id,
+            );
 
-            if let Ok(existing_ids) = crate::lib::store::Store::discover(parent_path) {
-                let ids = existing_ids.existing_ids().unwrap_or_default();
-                let edges = links::extract_links(
-                    note,
-                    &ids,
-                    &mut unresolved,
-                    note.path.as_deref(),
-                    &path_to_id,
-                );
+            // Delete all existing edges for this note before inserting new ones
+            self.conn
+                .execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
+                .map_err(|e| {
+                    QipuError::Other(format!(
+                        "failed to delete edges for note {}: {}",
+                        note.id(),
+                        e
+                    ))
+                })?;
 
-                // Delete all existing edges for this note before inserting new ones
-                self.conn
-                    .execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
-                    .map_err(|e| {
-                        QipuError::Other(format!(
-                            "failed to delete edges for note {}: {}",
-                            note.id(),
-                            e
-                        ))
-                    })?;
+            for (position, edge) in edges.iter().enumerate() {
+                let link_type_str = edge.link_type.to_string();
+                let inline_flag =
+                    if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
+                        1
+                    } else {
+                        0
+                    };
+                let position = position as i64;
 
-                for (position, edge) in edges.iter().enumerate() {
-                    let link_type_str = edge.link_type.to_string();
-                    let inline_flag =
-                        if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
-                            1
-                        } else {
-                            0
-                        };
-                    let position = position as i64;
-
-                    self.conn
-                        .execute(
-                            "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
-                            params![edge.from, edge.to, link_type_str, inline_flag, position],
-                        )
-                        .map_err(|e| {
-                            QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
-                        })?;
-                }
-
-                // Force WAL checkpoint to ensure changes are written to disk
-                let _ = self.conn.pragma_update(None, "wal_checkpoint", "TRUNCATE");
-
-                // Delete all existing unresolved references for this note
                 self.conn
                     .execute(
-                        "DELETE FROM unresolved WHERE source_id = ?1",
-                        params![note.id()],
+                        "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
+                        params![edge.from, edge.to, link_type_str, inline_flag, position],
+                    )
+                    .map_err(|e| {
+                        QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
+                    })?;
+            }
+
+            // Force WAL checkpoint to ensure changes are written to disk
+            let _ = self.conn.pragma_update(None, "wal_checkpoint", "TRUNCATE");
+
+            // Delete all existing unresolved references for this note
+            self.conn
+                .execute(
+                    "DELETE FROM unresolved WHERE source_id = ?1",
+                    params![note.id()],
+                )
+                .map_err(|e| {
+                    QipuError::Other(format!(
+                        "failed to delete unresolved refs for note {}: {}",
+                        note.id(),
+                        e
+                    ))
+                })?;
+
+            for unresolved_ref in unresolved {
+                self.conn
+                    .execute(
+                        "INSERT INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
+                        params![note.id(), unresolved_ref],
                     )
                     .map_err(|e| {
                         QipuError::Other(format!(
-                            "failed to delete unresolved refs for note {}: {}",
+                            "failed to insert unresolved ref '{}' for note {}: {}",
+                            unresolved_ref,
                             note.id(),
                             e
                         ))
                     })?;
-
-                for unresolved_ref in unresolved {
-                    self.conn
-                        .execute(
-                            "INSERT INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
-                            params![note.id(), unresolved_ref],
-                        )
-                        .map_err(|e| {
-                            QipuError::Other(format!(
-                                "failed to insert unresolved ref '{}' for note {}: {}",
-                                unresolved_ref,
-                                note.id(),
-                                e
-                            ))
-                        })?;
-                }
             }
         }
 
@@ -97,7 +92,7 @@ impl super::Database {
     pub(super) fn insert_edges_internal(
         conn: &Connection,
         note: &Note,
-        _store_root: &Path,
+        ids: &std::collections::HashSet<String>,
     ) -> Result<()> {
         use crate::lib::index::links;
         use std::collections::HashMap;
@@ -107,75 +102,70 @@ impl super::Database {
         let path_to_id = HashMap::new();
 
         if note.path.is_some() {
-            let parent_path = note.path.as_ref().unwrap().parent().unwrap();
+            let edges = links::extract_links(
+                note,
+                ids,
+                &mut unresolved,
+                note.path.as_deref(),
+                &path_to_id,
+            );
 
-            if let Ok(existing_ids) = crate::lib::store::Store::discover(parent_path) {
-                let ids = existing_ids.existing_ids().unwrap_or_default();
-                let edges = links::extract_links(
-                    note,
-                    &ids,
-                    &mut unresolved,
-                    note.path.as_deref(),
-                    &path_to_id,
-                );
-
-                // Delete all existing edges for this note before inserting new ones
-                conn.execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
-                    .map_err(|e| {
-                        QipuError::Other(format!(
-                            "failed to delete edges for note {}: {}",
-                            note.id(),
-                            e
-                        ))
-                    })?;
-
-                for (position, edge) in edges.iter().enumerate() {
-                    let link_type_str = edge.link_type.to_string();
-                    let inline_flag =
-                        if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
-                            1
-                        } else {
-                            0
-                        };
-                    let position = position as i64;
-
-                    conn.execute(
-                        "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
-                        params![edge.from, edge.to, link_type_str, inline_flag, position],
-                    )
-                    .map_err(|e| {
-                        QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
-                    })?;
-                }
-
-                // Delete all existing unresolved references for this note
-                conn.execute(
-                    "DELETE FROM unresolved WHERE source_id = ?1",
-                    params![note.id()],
-                )
+            // Delete all existing edges for this note before inserting new ones
+            conn.execute("DELETE FROM edges WHERE source_id = ?1", params![note.id()])
                 .map_err(|e| {
                     QipuError::Other(format!(
-                        "failed to delete unresolved for note {}: {}",
+                        "failed to delete edges for note {}: {}",
                         note.id(),
                         e
                     ))
                 })?;
 
-                // Insert unresolved references
-                for target_ref in unresolved {
-                    conn.execute(
-                        "INSERT OR IGNORE INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
-                        params![note.id(), target_ref],
-                    )
-                    .map_err(|e| {
-                        QipuError::Other(format!(
-                            "failed to insert unresolved {} -> {}: {}",
-                            note.id(),
-                            target_ref,
-                            e
-                        ))
-                    })?;
-                }
+            for (position, edge) in edges.iter().enumerate() {
+                let link_type_str = edge.link_type.to_string();
+                let inline_flag =
+                    if matches!(edge.source, crate::lib::index::types::LinkSource::Inline) {
+                        1
+                    } else {
+                        0
+                    };
+                let position = position as i64;
+
+                conn.execute(
+                    "INSERT INTO edges (source_id, target_id, link_type, inline, position) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![edge.from, edge.to, link_type_str, inline_flag, position],
+                )
+                .map_err(|e| {
+                    QipuError::Other(format!("failed to insert edge {} -> {}: {}", edge.from, edge.to, e))
+                })?;
+            }
+
+            // Delete all existing unresolved references for this note
+            conn.execute(
+                "DELETE FROM unresolved WHERE source_id = ?1",
+                params![note.id()],
+            )
+            .map_err(|e| {
+                QipuError::Other(format!(
+                    "failed to delete unresolved for note {}: {}",
+                    note.id(),
+                    e
+                ))
+            })?;
+
+            // Insert unresolved references
+            for target_ref in unresolved {
+                conn.execute(
+                    "INSERT OR IGNORE INTO unresolved (source_id, target_ref) VALUES (?1, ?2)",
+                    params![note.id(), target_ref],
+                )
+                .map_err(|e| {
+                    QipuError::Other(format!(
+                        "failed to insert unresolved {} -> {}: {}",
+                        note.id(),
+                        target_ref,
+                        e
+                    ))
+                })?;
             }
         }
 

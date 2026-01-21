@@ -61,7 +61,8 @@ impl Store {
         note.path = Some(file_path);
 
         self.db.insert_note(&note)?;
-        self.db.insert_edges(&note)?;
+        let ids = self.existing_ids().unwrap_or_default();
+        self.db.insert_edges(&note, &ids)?;
 
         Ok(note)
     }
@@ -113,7 +114,8 @@ impl Store {
         note.path = Some(file_path);
 
         self.db.insert_note(&note)?;
-        self.db.insert_edges(&note)?;
+        let ids = self.existing_ids().unwrap_or_default();
+        self.db.insert_edges(&note, &ids)?;
 
         Ok(note)
     }
@@ -168,7 +170,8 @@ impl Store {
 
             // Update database after file write to maintain consistency
             self.db.insert_note(note)?;
-            self.db.insert_edges(note)?;
+            let ids = self.existing_ids().unwrap_or_default();
+            self.db.insert_edges(note, &ids)?;
         }
 
         Ok(())

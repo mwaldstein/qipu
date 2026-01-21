@@ -184,6 +184,55 @@ pub fn run_single_scenario(
         Ok(record)
     } else {
         println!("Dry run - skipping execution");
-        anyhow::bail!("Dry run not supported in matrix mode");
+
+        let record = ResultRecord {
+            id: crate::results::generate_run_id(),
+            scenario_id: s.name.clone(),
+            scenario_hash: cache_key.scenario_hash.clone(),
+            tool: tool.to_string(),
+            model: model.to_string(),
+            qipu_commit: qipu_version.clone(),
+            timestamp: chrono::Utc::now(),
+            duration_secs: 0.0,
+            cost_usd: 0.0,
+            gates_passed: true,
+            metrics: EvaluationMetricsRecord {
+                gates_passed: 0,
+                gates_total: 0,
+                note_count: 0,
+                link_count: 0,
+                details: vec![],
+                efficiency: EfficiencyMetricsRecord {
+                    total_commands: 0,
+                    unique_commands: 0,
+                    error_count: 0,
+                    retry_count: 0,
+                    help_invocations: 0,
+                    first_try_success_rate: 0.0,
+                    iteration_ratio: 0.0,
+                },
+                quality: QualityMetricsRecord {
+                    avg_title_length: 0.0,
+                    avg_body_length: 0.0,
+                    avg_tags_per_note: 0.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 0,
+                    link_type_diversity: 0,
+                    type_distribution: std::collections::HashMap::new(),
+                    total_notes: 0,
+                    total_links: 0,
+                },
+                composite_score: 0.0,
+            },
+            judge_score: None,
+            outcome: "Dry run".to_string(),
+            transcript_path: String::new(),
+            cache_key: Some(cache_key.as_string()),
+            human_review: None,
+        };
+
+        output::print_result_summary(&record);
+        Ok(record)
     }
 }

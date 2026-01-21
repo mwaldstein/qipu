@@ -83,11 +83,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Note: Pre-existing flaky tests discovered using `.trim()` instead of `extract_id()` in `tests/cli/inbox.rs`, `tests/cli/capture.rs`, `tests/cli/provenance.rs`, and `tests/cli/workspace.rs` - not related to this fix
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
-- [x] Guard rails (LLM_TOOL_TEST_ENABLED) are missing before running scenarios.
-  - `crates/llm-tool-test/src/commands.rs:28-48`
-  - Learnings: Added check at start of handle_run_command to require LLM_TOOL_TEST_ENABLED environment variable; returns clear error message if not set; prevents accidental execution of LLM test scenarios
-- [ ] `--dry-run` errors even for single-scenario runs.
-  - `crates/llm-tool-test/src/run.rs:90-93`
+ - [x] Guard rails (LLM_TOOL_TEST_ENABLED) are missing before running scenarios.
+   - `crates/llm-tool-test/src/commands.rs:28-48`
+   - Learnings: Added check at start of handle_run_command to require LLM_TOOL_TEST_ENABLED environment variable; returns clear error message if not set; prevents accidental execution of LLM test scenarios
+ - [x] `--dry-run` errors even for single-scenario runs.
+   - `crates/llm-tool-test/src/run.rs:185-188`
+   - Learnings: Replaced bail!("Dry run not supported in matrix mode") with returning a mock ResultRecord; dry-run now creates a dummy record with zero metrics and "Dry run" outcome; allows previewing what would run without execution
 
 ---
 

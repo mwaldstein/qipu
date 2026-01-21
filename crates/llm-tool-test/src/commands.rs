@@ -42,6 +42,12 @@ pub fn handle_run_command(
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<()> {
+    if std::env::var("LLM_TOOL_TEST_ENABLED").is_err() {
+        anyhow::bail!(
+            "LLM testing is disabled for safety. Set LLM_TOOL_TEST_ENABLED=1 to run scenarios."
+        );
+    }
+
     if let Some(model) = judge_model {
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }

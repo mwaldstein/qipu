@@ -12,6 +12,24 @@ MODEL=""
 PROMPT_FILE=""
 DRY_RUN=false
 DELAY=5
+STOP_REQUESTED=false
+OPENCODE_PID=""
+
+request_stop() {
+    if [[ "$STOP_REQUESTED" == "true" ]]; then
+        # Second interrupt - kill opencode immediately
+        echo ""
+        log_warn "Forcing immediate stop"
+        if [[ -n "$OPENCODE_PID" ]] && kill -0 "$OPENCODE_PID" 2>/dev/null; then
+            kill -INT "$OPENCODE_PID" 2>/dev/null || true
+        fi
+        exit 130
+    fi
+    STOP_REQUESTED=true
+    echo ""
+    log_warn "Stop requested - will exit after current iteration (Ctrl+C again to force)"
+}
+trap request_stop SIGINT SIGTERM
 
 usage() {
     cat <<'EOF'
@@ -70,6 +88,13 @@ log_error() {
     local ts
     ts="$(timestamp)"
     echo -e "${RED}[${ts}] [ralph] [${MODE}]${NC} $*" >&2
+}
+
+log_debug() {
+    [[ "${RALPH_DEBUG:-}" != "1" ]] && return 0
+    local ts
+    ts="$(timestamp)"
+    echo -e "${BLUE}[${ts}] [ralph] [${MODE}] DEBUG:${NC} $*"
 }
 
 if [[ $# -gt 0 ]] && [[ "$1" != -* ]]; then
@@ -272,7 +297,32 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     log "--- Iteration $ITERATION of $MAX_ITERATIONS ---"
 
     TEMP_OUTPUT="$(mktemp)"
-    if "${OPENCODE_CMD[@]}" "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"; then
+    # Run opencode with SIGINT ignored via signal mask inheritance
+    # Using setsid to create new process group so parent's SIGINT doesn't reach child
+    FIFO="$(mktemp -u)"
+    mkfifo "$FIFO"
+    tee "$TEMP_OUTPUT" < "$FIFO" &
+    TEE_PID=$!
+    
+    # Use setsid to put opencode in its own process group, isolating it from terminal SIGINT
+    log_debug "Starting opencode"
+    setsid "${OPENCODE_CMD[@]}" "$PROMPT_CONTENT" > "$FIFO" 2>&1 &
+    OPENCODE_PID=$!
+    log_debug "opencode started with PID $OPENCODE_PID (new session)"
+    
+    # wait in loop - it returns early on trapped signals
+    while kill -0 "$OPENCODE_PID" 2>/dev/null; do
+        log_debug "waiting for PID $OPENCODE_PID..."
+        wait "$OPENCODE_PID" 2>/dev/null || true
+    done
+    wait "$OPENCODE_PID" 2>/dev/null
+    OPENCODE_EXIT=$?
+    log_debug "opencode exited with code $OPENCODE_EXIT"
+    
+    OPENCODE_PID=""
+    wait "$TEE_PID" 2>/dev/null || true
+    rm -f "$FIFO"
+    if [[ $OPENCODE_EXIT -eq 0 ]]; then
         cp "$TEMP_OUTPUT" "$LOG_FILE"
 
         HAS_CHANGES="$(working_tree_changed)"
@@ -301,6 +351,11 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     fi
 
     rm -f "$TEMP_OUTPUT"
+
+    if [[ "$STOP_REQUESTED" == "true" ]]; then
+        log_success "Stopping as requested after iteration $ITERATION"
+        exit 0
+    fi
 
     if [[ $ITERATION -lt $MAX_ITERATIONS ]]; then
         if [[ "$DELAY" -gt 0 ]]; then

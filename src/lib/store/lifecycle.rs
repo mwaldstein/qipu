@@ -222,7 +222,6 @@ impl Store {
         }
     }
 
-    #[allow(dead_code)]
     pub fn delete_note(&self, note_id: &str) -> Result<()> {
         let note = self.get_note(note_id)?;
         let path = note

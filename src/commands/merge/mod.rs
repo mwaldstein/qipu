@@ -5,7 +5,6 @@ use crate::lib::index::IndexBuilder;
 use crate::lib::note::TypedLink;
 use crate::lib::store::Store;
 use std::collections::HashSet;
-use std::fs;
 
 /// Execute the merge command
 pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -> Result<()> {
@@ -124,10 +123,8 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
     note2.body = new_body;
     store.save_note(&mut note2)?;
 
-    // 7. Delete Source Note
-    if let Some(path) = &note1.path {
-        fs::remove_file(path)?;
-    }
+    // 7. Delete Source Note (from both filesystem and database)
+    store.delete_note(&id1)?;
 
     println!("Merge complete. {} has been merged into {}.", id1, id2);
 

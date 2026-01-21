@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: 462 tests pass (223 unit + 239 integration), 3 failures tracked in P1 below
+- Test baseline: 469 tests pass (223 unit + 246 integration), 2 failures tracked in P1 below
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -122,25 +122,17 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - **Fix**: Modified both functions to check the `inline` column and only add edges with `inline=0` to the frontmatter. Inline links remain in the note body and are extracted dynamically during indexing. Also updated deduplication logic to prefer typed links over inline links when both exist to the same target with the same type.
    - **Learnings**: The database correctly distinguishes inline and typed links via the `inline` column. The bug was in the note retrieval logic that wasn't respecting this distinction. The PRIMARY KEY constraint on (source_id, target_id, link_type) is correct and doesn't need UPSERT - we just needed to prevent creating duplicate edges by not adding inline links to frontmatter.
 
-### Miscellaneous Test Failures (3 tests)
+### Miscellaneous Test Failures (2 tests)
 
- - [ ] **Doctor broken link detection test expects wrong exit code**
-   - Failing test: `test_doctor_broken_link_detection`
-   - Test expects exit code 3 but gets 0 with "Consistency check failed" warning
-   - `tests/cli/doctor.rs` - Test writes a note with a broken link, but the consistency check runs before doctor logic
-   - **Approach**: Investigate why the test creates a note with broken link but doctor reports healthy. May need to add broken link to database or ensure index is run after creating the broken link file.
+ - [x] **Doctor broken link detection test expects wrong exit code**
+   - `src/lib/db/mod.rs:89-93` - Removed auto-repair on consistency check failure
+   - `src/commands/merge/mod.rs:127-129` - Fixed merge command to use Store::delete_note() instead of just removing file
+   - `src/lib/store/lifecycle.rs:225` - Removed #[allow(dead_code)] from delete_note method
+   - **Root Cause**: Database::open was running incremental_repair when consistency check failed, removing missing files from database before doctor could detect them. This was masking the issue.
+   - **Fix**: Removed auto-repair from Database::open. Consistency check now only logs warnings. Doctor command detects missing files and reports them with exit code 3. Fixed merge command to properly delete notes from both filesystem and database.
+   - **Learnings**: Auto-repair should only happen when explicitly requested (via index command or doctor --fix). Commands that delete files (like merge) must also delete from database to maintain consistency.
 
- - [ ] **Dump typed-only test assertion mismatch**
-   - Failing test: `test_dump_typed_only_excludes_inline_links`
-   - Expects 2 notes but gets 1
-   - `tests/cli/dump.rs` - Test logic may need updating after edge insertion fixes
-   - **Approach**: Debug the test to verify that typed links are being created and the dump command is traversing them correctly.
 
- - [ ] **Export MOC order test failure**
-   - Failing test: `test_export_bundle_preserves_moc_order`
-   - Assertion on body content fails
-   - `tests/cli/export.rs` - Test expects specific ordering in export bundle
-   - **Approach**: Debug the test to see what order is being produced vs expected. May be related to edge position tracking.
 
 ---
 

@@ -86,11 +86,9 @@ impl Database {
                 db.rebuild(store_root)?;
             }
         } else {
-            let is_consistent = db.validate_consistency(store_root)?;
-            if !is_consistent {
-                tracing::info!("Database validation failed, running incremental repair...");
-                db.incremental_repair(store_root)?;
-            }
+            // Just validate consistency and warn if issues found
+            // Doctor command will check and optionally fix with --fix flag
+            let _ = db.validate_consistency(store_root)?;
         }
 
         Ok(db)
@@ -129,7 +127,8 @@ impl Database {
         }
 
         // Collect all IDs from the notes we're about to insert
-        let ids: std::collections::HashSet<String> = notes.iter().map(|n| n.id().to_string()).collect();
+        let ids: std::collections::HashSet<String> =
+            notes.iter().map(|n| n.id().to_string()).collect();
 
         let tx = self
             .conn

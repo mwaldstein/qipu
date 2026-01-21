@@ -76,7 +76,8 @@ impl super::Database {
         }
 
         // Collect IDs from database and changed notes for edge resolution
-        let mut all_ids: std::collections::HashSet<String> = self.list_note_ids()?.into_iter().collect();
+        let mut all_ids: std::collections::HashSet<String> =
+            self.list_note_ids()?.into_iter().collect();
         for note in &changed_notes {
             all_ids.insert(note.id().to_string());
         }

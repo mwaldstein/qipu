@@ -93,6 +93,91 @@ impl<'a> SimilarityEngine<'a> {
         duplicates
     }
 
+    /// Find notes that share tags with the given note
+    pub fn find_by_shared_tags(&self, note_id: &str, limit: usize) -> Vec<SimilarityResult> {
+        let mut results = Vec::new();
+
+        let tags = match self.index.get_metadata(note_id) {
+            Some(meta) => &meta.tags,
+            None => return results,
+        };
+
+        if tags.is_empty() {
+            return results;
+        }
+
+        for (other_id, other_meta) in &self.index.metadata {
+            if other_id == note_id {
+                continue;
+            }
+
+            // Count shared tags
+            let shared_count = tags.iter().filter(|t| other_meta.tags.contains(t)).count();
+
+            if shared_count > 0 {
+                // Score based on Jaccard similarity: intersection / union
+                let union_count = tags.len() + other_meta.tags.len() - shared_count;
+                let score = shared_count as f64 / union_count as f64;
+
+                results.push(SimilarityResult {
+                    id: other_id.clone(),
+                    score,
+                });
+            }
+        }
+
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.truncate(limit);
+        results
+    }
+
+    /// Find notes within 2 hops in the link graph
+    pub fn find_by_2hop_neighborhood(&self, note_id: &str, limit: usize) -> Vec<SimilarityResult> {
+        let mut results = Vec::new();
+        let mut neighbor_counts: HashMap<String, usize> = HashMap::new();
+
+        // Get 1-hop neighbors
+        let outbound = self.index.get_outbound_edges(note_id);
+        let inbound = self.index.get_inbound_edges(note_id);
+
+        let mut one_hop = std::collections::HashSet::new();
+        for edge in outbound {
+            one_hop.insert(edge.to.clone());
+        }
+        for edge in inbound {
+            one_hop.insert(edge.from.clone());
+        }
+
+        // Get 2-hop neighbors (linked to 1-hop neighbors)
+        for neighbor_id in &one_hop {
+            let outbound = self.index.get_outbound_edges(neighbor_id);
+            let inbound = self.index.get_inbound_edges(neighbor_id);
+
+            for edge in outbound {
+                if edge.to != note_id && !one_hop.contains(&edge.to) {
+                    *neighbor_counts.entry(edge.to.clone()).or_insert(0) += 1;
+                }
+            }
+            for edge in inbound {
+                if edge.from != note_id && !one_hop.contains(&edge.from) {
+                    *neighbor_counts.entry(edge.from.clone()).or_insert(0) += 1;
+                }
+            }
+        }
+
+        // Convert to results, score based on number of 2-hop paths
+        for (id, count) in neighbor_counts {
+            results.push(SimilarityResult {
+                id,
+                score: count as f64,
+            });
+        }
+
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.truncate(limit);
+        results
+    }
+
     /// Calculate cosine similarity between two weighted vectors
     fn cosine_similarity(&self, vec_a: &HashMap<String, f64>, vec_b: &HashMap<String, f64>) -> f64 {
         let mut dot_product = 0.0;
@@ -286,5 +371,173 @@ mod tests {
             score > 0.0,
             "Similarity should be > 0 when sharing stemmed terms"
         );
+    }
+
+    #[test]
+    fn test_find_by_shared_tags() {
+        let mut index = Index::new();
+
+        // Note 1: tags = ["rust", "programming"]
+        index.metadata.insert(
+            "qp-1".to_string(),
+            NoteMetadata {
+                id: "qp-1".to_string(),
+                title: "Note 1".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec!["rust".to_string(), "programming".to_string()],
+                path: "1.md".to_string(),
+                created: None,
+                updated: None,
+                value: None,
+            },
+        );
+
+        // Note 2: tags = ["rust", "systems"] - shares "rust"
+        index.metadata.insert(
+            "qp-2".to_string(),
+            NoteMetadata {
+                id: "qp-2".to_string(),
+                title: "Note 2".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec!["rust".to_string(), "systems".to_string()],
+                path: "2.md".to_string(),
+                created: None,
+                updated: None,
+                value: None,
+            },
+        );
+
+        // Note 3: tags = ["rust", "programming", "systems"] - shares both tags with Note 1
+        index.metadata.insert(
+            "qp-3".to_string(),
+            NoteMetadata {
+                id: "qp-3".to_string(),
+                title: "Note 3".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec![
+                    "rust".to_string(),
+                    "programming".to_string(),
+                    "systems".to_string(),
+                ],
+                path: "3.md".to_string(),
+                created: None,
+                updated: None,
+                value: None,
+            },
+        );
+
+        // Note 4: tags = ["python", "programming"] - shares only "programming"
+        index.metadata.insert(
+            "qp-4".to_string(),
+            NoteMetadata {
+                id: "qp-4".to_string(),
+                title: "Note 4".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec!["python".to_string(), "programming".to_string()],
+                path: "4.md".to_string(),
+                created: None,
+                updated: None,
+                value: None,
+            },
+        );
+
+        // Note 5: tags = ["java"] - shares nothing
+        index.metadata.insert(
+            "qp-5".to_string(),
+            NoteMetadata {
+                id: "qp-5".to_string(),
+                title: "Note 5".to_string(),
+                note_type: NoteType::Permanent,
+                tags: vec!["java".to_string()],
+                path: "5.md".to_string(),
+                created: None,
+                updated: None,
+                value: None,
+            },
+        );
+
+        let engine = SimilarityEngine::new(&index);
+        let results = engine.find_by_shared_tags("qp-1", 100);
+
+        // Should find qp-2, qp-3, and qp-4 (all share at least one tag)
+        assert_eq!(results.len(), 3);
+
+        // qp-3 should have the highest score (Jaccard = 2/3 = 0.666...)
+        assert_eq!(results[0].id, "qp-3");
+        assert!((results[0].score - 2.0 / 3.0).abs() < 1e-9);
+
+        // qp-2 and qp-4 should have equal scores (each Jaccard = 1/3 = 0.333...)
+        assert!(results
+            .iter()
+            .any(|r| r.id == "qp-2" && (r.score - 1.0 / 3.0).abs() < 1e-9));
+        assert!(results
+            .iter()
+            .any(|r| r.id == "qp-4" && (r.score - 1.0 / 3.0).abs() < 1e-9));
+
+        // qp-5 should not be in results (no shared tags)
+        assert!(!results.iter().any(|r| r.id == "qp-5"));
+    }
+
+    #[test]
+    fn test_find_by_2hop_neighborhood() {
+        let mut index = Index::new();
+
+        // Create a graph:
+        // qp-1 -> qp-2 -> qp-3
+        // qp-1 -> qp-4 -> qp-3
+        // qp-5 is isolated
+
+        index.edges.push(crate::lib::index::types::Edge {
+            from: "qp-1".to_string(),
+            to: "qp-2".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
+            source: crate::lib::index::types::LinkSource::Inline,
+        });
+        index.edges.push(crate::lib::index::types::Edge {
+            from: "qp-2".to_string(),
+            to: "qp-3".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
+            source: crate::lib::index::types::LinkSource::Inline,
+        });
+        index.edges.push(crate::lib::index::types::Edge {
+            from: "qp-1".to_string(),
+            to: "qp-4".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
+            source: crate::lib::index::types::LinkSource::Inline,
+        });
+        index.edges.push(crate::lib::index::types::Edge {
+            from: "qp-4".to_string(),
+            to: "qp-3".to_string(),
+            link_type: crate::lib::note::LinkType::from("related"),
+            source: crate::lib::index::types::LinkSource::Inline,
+        });
+
+        // Add metadata for all notes
+        for id in ["qp-1", "qp-2", "qp-3", "qp-4", "qp-5"] {
+            index.metadata.insert(
+                id.to_string(),
+                NoteMetadata {
+                    id: id.to_string(),
+                    title: format!("Note {}", id),
+                    note_type: NoteType::Permanent,
+                    tags: vec![],
+                    path: format!("{}.md", id),
+                    created: None,
+                    updated: None,
+                    value: None,
+                },
+            );
+        }
+
+        let engine = SimilarityEngine::new(&index);
+        let results = engine.find_by_2hop_neighborhood("qp-1", 100);
+
+        // qp-3 is 2 hops away (via qp-2 and via qp-4), so score = 2
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "qp-3");
+        assert_eq!(results[0].score, 2.0);
+
+        // qp-5 is isolated, should not be in results
+        assert!(!results.iter().any(|r| r.id == "qp-5"));
     }
 }

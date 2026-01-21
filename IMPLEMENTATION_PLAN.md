@@ -109,10 +109,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Indexing/Search (`specs/indexing-search.md`)
 - [x] Ignore qp-style links outside the store (currently treated as resolved).
-   - `src/lib/index/links.rs:80-94`
-   - Learnings: Added `continue` statement after adding to unresolved set for typed links, wiki links, and markdown links. This ensures that links to non-existent notes are ignored (not added to edges) while still being tracked in unresolved for doctor reporting. Updated `test_unresolved_links` test to reflect new behavior (edges.len() should be 0, not 1).
-- [ ] Related-notes feature (shared tags / 2-hop) is missing.
-  - `src/lib/index/builder.rs:24-132`
+    - `src/lib/index/links.rs:80-94`
+    - Learnings: Added `continue` statement after adding to unresolved set for typed links, wiki links, and markdown links. This ensures that links to non-existent notes are ignored (not added to edges) while still being tracked in unresolved for doctor reporting. Updated `test_unresolved_links` test to reflect new behavior (edges.len() should be 0, not 1).
+ - [x] Related-notes feature (shared tags / 2-hop) is missing.
+   - `src/lib/similarity/mod.rs:95-163`
+   - `src/commands/context/mod.rs:230-268`
+   - Learnings: Added `find_by_shared_tags()` method that uses Jaccard similarity (intersection/union) to find notes sharing tags. Added `find_by_2hop_neighborhood()` method that finds notes within 2 hops in the link graph, scoring by number of 2-hop paths. Updated context command to use all three relatedness methods (TF-IDF, shared tags, 2-hop) when `--related` flag is specified. Added tests for both new methods.
 
 ### Storage Format (`specs/storage-format.md`)
 - [ ] Configurable store root is not supported in config.

@@ -227,30 +227,52 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             }
         }
 
-        // Find similar notes and collect them first
-        let mut similar_notes: Vec<(String, f64)> = Vec::new();
+        // Find related notes using multiple methods
+        let mut related_notes: Vec<(String, f64, String)> = Vec::new();
+
         for selected_note in &selected_notes {
             let note_id = selected_note.note.id();
-            let related = engine.find_similar(note_id, 100, threshold);
-            for sim in related {
-                // Exclude: already selected, directly linked
+
+            // Method 1: TF-IDF similarity
+            let similar = engine.find_similar(note_id, 100, threshold);
+            for sim in similar {
                 if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
-                    similar_notes.push((sim.id, sim.score));
+                    related_notes.push((sim.id, sim.score, "similarity".to_string()));
+                }
+            }
+
+            // Method 2: Shared tags
+            let shared_tags = engine.find_by_shared_tags(note_id, 100);
+            for sim in shared_tags {
+                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                    related_notes.push((sim.id, sim.score, "shared-tags".to_string()));
+                }
+            }
+
+            // Method 3: 2-hop neighborhoods
+            let two_hop = engine.find_by_2hop_neighborhood(note_id, 100);
+            for sim in two_hop {
+                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                    related_notes.push((sim.id, sim.score, "2hop".to_string()));
                 }
             }
         }
 
-        // Add similar notes to selection, sorted by similarity score
-        similar_notes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-        for (related_id, score) in similar_notes {
+        // Deduplicate and sort by score
+        related_notes.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.partial_cmp(&a.1).unwrap()));
+        related_notes.dedup_by(|a, b| a.0 == b.0);
+        related_notes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+        // Add related notes to selection
+        for (related_id, score, method) in related_notes {
             if seen_ids.contains(&related_id) {
                 continue;
             }
             let resolved_id = resolve_id(&related_id)?;
-            // Mark as added via similarity
+            // Mark as added via relatedness
             via_map
                 .entry(resolved_id.clone())
-                .or_insert_with(|| format!("similarity:{:.2}", score));
+                .or_insert_with(|| format!("{}:{:.2}", method, score));
             if seen_ids.insert(resolved_id.clone()) {
                 let note =
                     note_map

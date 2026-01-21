@@ -330,12 +330,17 @@ impl super::super::Database {
                 {
                     let target_id: String = row.get(0)?;
                     let link_type_str: String = row.get(1)?;
+                    let inline: i64 = row.get(2)?;
 
-                    let link_type = crate::lib::note::LinkType::from(link_type_str);
-                    links.push(crate::lib::note::TypedLink {
-                        id: target_id,
-                        link_type,
-                    });
+                    // Only include typed links (inline=0) in frontmatter
+                    // Inline links (inline=1) exist only in the note body
+                    if inline == 0 {
+                        let link_type = crate::lib::note::LinkType::from(link_type_str);
+                        links.push(crate::lib::note::TypedLink {
+                            id: target_id,
+                            link_type,
+                        });
+                    }
                 }
 
                 let compacts: Vec<String> =
@@ -489,7 +494,7 @@ impl super::super::Database {
 
             let mut edge_stmt = self
                 .conn
-                .prepare("SELECT target_id, link_type FROM edges WHERE source_id = ?1")
+                .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
                 .map_err(|e| QipuError::Other(format!("failed to prepare edge query: {}", e)))?;
 
             let mut links = Vec::new();
@@ -503,12 +508,17 @@ impl super::super::Database {
             {
                 let target_id: String = row.get(0)?;
                 let link_type_str: String = row.get(1)?;
+                let inline: i64 = row.get(2)?;
 
-                let link_type = crate::lib::note::LinkType::from(link_type_str);
-                links.push(crate::lib::note::TypedLink {
-                    id: target_id,
-                    link_type,
-                });
+                // Only include typed links (inline=0) in frontmatter
+                // Inline links (inline=1) exist only in the note body
+                if inline == 0 {
+                    let link_type = crate::lib::note::LinkType::from(link_type_str);
+                    links.push(crate::lib::note::TypedLink {
+                        id: target_id,
+                        link_type,
+                    });
+                }
             }
 
             let compacts: Vec<String> = serde_json::from_str(&compacts_json).unwrap_or_default();

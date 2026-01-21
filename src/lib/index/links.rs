@@ -141,13 +141,11 @@ pub(crate) fn extract_links(
         });
     }
 
-    // Deduplicate edges (same from, to, type, source)
-    edges.sort_by(|a, b| {
-        a.to.cmp(&b.to)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| format!("{:?}", a.source).cmp(&format!("{:?}", b.source)))
-    });
-    edges.dedup_by(|a, b| a.to == b.to && a.link_type == b.link_type && a.source == b.source);
+    // Deduplicate edges by (to, link_type) only, keeping the first occurrence
+    // This ensures typed links from frontmatter take precedence over inline links
+    // when both exist to the same target with the same type
+    edges.sort_by(|a, b| a.to.cmp(&b.to).then_with(|| a.link_type.cmp(&b.link_type)));
+    edges.dedup_by(|a, b| a.to == b.to && a.link_type == b.link_type);
 
     edges
 }

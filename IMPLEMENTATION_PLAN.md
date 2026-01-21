@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: 458 tests pass (223 unit + 235 integration), 9 failures tracked in P1 below
+- Test baseline: 462 tests pass (223 unit + 239 integration), 3 failures tracked in P1 below
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -114,11 +114,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 **Root Cause**: When a note is created with inline wiki-links `[[id]]`, edges are inserted. If a test then tries to add a typed link to the same target with `link add`, it fails with UNIQUE constraint violation because inline links create edges with `link_type='related'`.
 
- - [ ] **Use UPSERT for edge insertion to handle duplicates gracefully**
-   - Failing tests: `test_link_path_inline_only`, `test_link_path_typed_only`, `test_link_tree_inline_only`, `test_link_tree_typed_only`
-   - `src/lib/db/edges.rs:47-56,136-148` - Change INSERT to INSERT OR REPLACE
-   - **Approach**: Change edge INSERT statements to use `INSERT OR REPLACE INTO edges ...` or `INSERT INTO edges ... ON CONFLICT DO UPDATE SET ...`. This allows typed links to override inline links to the same target, or vice versa. Consider which semantics are correct: should typed links override inline, or should we keep both with different link_types?
-   - **Alternative**: Fix the tests to not create duplicate edges. The tests create inline links via `capture` then try to add typed links with the same `related` type. Tests could use a different link type for the typed link.
+ - [x] **Prevent inline links from being stored as typed links in frontmatter**
+   - Failing tests (now fixed): `test_link_path_inline_only`, `test_link_path_typed_only`, `test_link_tree_inline_only`, `test_link_tree_typed_only`
+   - `src/lib/index/links.rs:144-148` - Fixed deduplication to remove duplicates by (to, link_type) only, ensuring typed links take precedence
+   - `src/lib/db/notes/read.rs:327-343,505-522` - Fixed `get_note` and `list_notes_full` to only include typed links (inline=0) in frontmatter
+   - **Root Cause**: When loading notes from the database, both `get_note` and `list_notes_full` were adding ALL edges (including inline links with inline=1) to the frontmatter as typed links. This caused inline links to be persisted as typed links when the note was saved, creating duplicates.
+   - **Fix**: Modified both functions to check the `inline` column and only add edges with `inline=0` to the frontmatter. Inline links remain in the note body and are extracted dynamically during indexing. Also updated deduplication logic to prefer typed links over inline links when both exist to the same target with the same type.
+   - **Learnings**: The database correctly distinguishes inline and typed links via the `inline` column. The bug was in the note retrieval logic that wasn't respecting this distinction. The PRIMARY KEY constraint on (source_id, target_id, link_type) is correct and doesn't need UPSERT - we just needed to prevent creating duplicate edges by not adding inline links to frontmatter.
 
 ### Miscellaneous Test Failures (3 tests)
 

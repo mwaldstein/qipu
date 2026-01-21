@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 pub fn export_outline(
     notes: &[Note],
     store: &Store,
-    index: &Index,
+    _index: &Index,
     options: &ExportOptions,
     cli: &Cli,
     compaction_ctx: &CompactionContext,
@@ -51,22 +51,7 @@ pub fn export_outline(
 
     let mut seen_ids = HashSet::new();
 
-    for target_id in
-        ordered_ids
-            .into_iter()
-            .chain(
-                index
-                    .get_outbound_edges(moc.id())
-                    .into_iter()
-                    .filter_map(|edge| {
-                        if resolve_compaction {
-                            compaction_ctx.canon(&edge.to).ok()
-                        } else {
-                            Some(edge.to.clone())
-                        }
-                    }),
-            )
-    {
+    for target_id in ordered_ids {
         if !seen_ids.insert(target_id.clone()) {
             continue;
         }

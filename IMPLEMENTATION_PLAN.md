@@ -133,8 +133,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Added `get_ids_from_all_branches()` function to git module that scans all git branches (local and remote) for note files and extracts IDs from filenames. Updated `Store::existing_ids()` to query both current database and all git branches when generating new IDs. Added `find_repo_root()` helper to locate git repository root. This provides additional collision protection for multi-branch/multi-agent workflows beyond the cryptographic collision resistance already provided by timestamp+random hash generation.
 
 ### Export (`specs/export.md`)
-- [ ] Outline export appends outbound edges beyond MOC body ordering.
-  - `src/commands/export/emit/outline.rs:54-68`
+- [x] Outline export appends outbound edges beyond MOC body ordering.
+  - `src/commands/export/emit/outline.rs:54`
+  - Learnings: Removed `.chain()` call that was appending database outbound edges after MOC body ordering; outline export now strictly follows MOC body link order as per spec
 - [ ] Query export caps results at 200 notes.
   - `src/commands/export/plan.rs:54-59`
 - [ ] Outline export falls back to bundle when `--moc` is missing.

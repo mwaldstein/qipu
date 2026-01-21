@@ -25,9 +25,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/store/query.rs:14-52`
   - `src/lib/store/query.rs:66-101`
   - Learnings: Added `list_note_ids()` method to Database module; replaced filesystem scanning in `existing_ids()` with database query
-- [ ] Trigger incremental repair when startup validation fails.
+- [x] Trigger incremental repair when startup validation fails.
   - `src/lib/db/mod.rs:84-85`
   - `src/lib/db/repair.rs:6-141`
+  - Learnings: Changed validation to check result; call incremental_repair when false; removed #[allow(dead_code)] attribute from incremental_repair
 - [ ] Auto-rebuild the database when schema mismatches are detected.
   - `src/lib/db/schema.rs:94-112`
   - `src/lib/db/tests.rs:911-925`

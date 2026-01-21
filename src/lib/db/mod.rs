@@ -81,7 +81,11 @@ impl Database {
                 db.rebuild(store_root)?;
             }
         } else {
-            db.validate_consistency(store_root)?;
+            let is_consistent = db.validate_consistency(store_root)?;
+            if !is_consistent {
+                tracing::info!("Database validation failed, running incremental repair...");
+                db.incremental_repair(store_root)?;
+            }
         }
 
         Ok(db)

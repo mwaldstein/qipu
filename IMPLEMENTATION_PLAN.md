@@ -53,11 +53,13 @@
   - Fixed: Added `tags` field to Scenario struct, implemented filtering logic in handle_run_command and handle_list_command
   - Filtering semantics: `--tags` filters to scenarios that contain ALL specified tags (AND logic)
 
-- [ ] `--tier` flag parsed but ignored in run command
+- [x] `--tier` flag parsed but ignored in run command
   - Spec (line 445): Should filter scenarios by tier
   - CLI: `crates/llm-tool-test/src/cli.rs:26-28` defines argument
   - Code: `crates/llm-tool-test/src/main.rs:81` marks `tier: _` (explicitly ignored)
   - Impact: Tier filtering doesn't work
+  - Fixed: Implemented tier filtering logic in handle_run_command and handle_list_command
+  - Filtering semantics: `--tier` filters to scenarios with tier <= specified value
 
 - [ ] `--max-usd` flag parsed but ignored (no cost enforcement)
   - Spec (lines 446, 476-479): Per-run and session budget enforcement

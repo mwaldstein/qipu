@@ -75,11 +75,13 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     let (loaded_notes_count, loaded_ids, new_ids) = load_notes(store, &pack_data.notes, &strategy)?;
 
     // Load links
+    // Get current existing IDs (including newly loaded notes) for edge resolution
+    let all_existing_ids = store.existing_ids()?;
     // With skip strategy, only load links between newly loaded notes
     let loaded_links_count = if matches!(strategy, LoadStrategy::Skip) {
-        load_links(store, &pack_data.links, &new_ids)?
+        load_links(store, &pack_data.links, &new_ids, &all_existing_ids)?
     } else {
-        load_links(store, &pack_data.links, &loaded_ids)?
+        load_links(store, &pack_data.links, &loaded_ids, &all_existing_ids)?
     };
 
     // Load attachments
@@ -129,7 +131,7 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     Ok(())
 }
 
-fn write_note_preserving_updated(store: &Store, note: &Note) -> Result<()> {
+fn write_note_preserving_updated(store: &Store, note: &Note, existing_ids: &HashSet<String>) -> Result<()> {
     let path = note
         .path
         .as_ref()
@@ -150,6 +152,8 @@ fn write_note_preserving_updated(store: &Store, note: &Note) -> Result<()> {
 
         // Update database after file write to maintain consistency
         store.db().insert_note(note)?;
+        // Also insert edges to ensure links are stored in the database
+        store.db().insert_edges(note, existing_ids)?;
     }
 
     Ok(())
@@ -285,7 +289,7 @@ fn load_notes(
 
         if should_load {
             // Save note without overwriting pack timestamps
-            write_note_preserving_updated(store, &note)?;
+            write_note_preserving_updated(store, &note, &existing_ids)?;
             loaded_count += 1;
             loaded_ids.insert(note.id().to_string());
             // Track newly loaded notes (notes that didn't exist before)
@@ -306,6 +310,7 @@ fn load_links(
     store: &Store,
     pack_links: &[PackLink],
     loaded_ids: &HashSet<String>,
+    existing_ids: &HashSet<String>,
 ) -> Result<usize> {
     let mut loaded_count = 0;
 
@@ -356,7 +361,7 @@ fn load_links(
                 }
             }
 
-            write_note_preserving_updated(store, &source_note)?;
+            write_note_preserving_updated(store, &source_note, existing_ids)?;
         }
     }
 

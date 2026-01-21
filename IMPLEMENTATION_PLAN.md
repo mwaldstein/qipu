@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: 480 tests pass (223 unit + 249 integration + 6 golden + 4 pack), 2 pre-existing pack test failures (database location bug)
+- Test baseline: 490 tests pass (223 unit + 249 integration + 6 golden + 6 pack + 6 perf), 1 pre-existing workspace test failure
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -58,7 +58,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] `load --strategy skip` drops all links, even for newly loaded notes.
   - Learnings: Added `new_ids` return value to track newly loaded notes (notes that didn't exist before); changed skip strategy to only load links between newly loaded notes (using `new_ids` instead of `loaded_ids`)
   - Fixes P1 correctness bug where skip strategy was dropping ALL links, even for newly loaded notes. Now only loads links where both source AND target notes are newly loaded, preventing any mutation of skipped existing notes.
-   - Blocked by: Separate database location bug when using `QIPU_STORE` environment variable causes tests to fail (database created in wrong location: `store_root/.qipu/qipu.db` instead of `.qipu/qipu.db`)
+- [x] `load --strategy merge-links` doesn't insert edges into database.
+  - `src/commands/load/mod.rs:132-158,77-85,306-312,362` - Updated `write_note_preserving_updated` to accept `existing_ids` and call `insert_edges` after `insert_note`; updated all callers to pass the IDs needed for edge resolution
+  - **Root Cause**: The `insert_note` function only updates the notes, FTS, and tags tables - it does not insert edges. When notes were loaded/modified during pack load, edges were written to the note file frontmatter but not to the database edges table.
+  - **Learnings**: Database consistency requires calling both `insert_note` AND `insert_edges`. The `Store` methods (`create_note`, `update_note`, `save_note`) do this correctly, but the pack load command had its own write function that was missing the edge insertion.
 ### Records Output (`specs/records-output.md`)
 - [x] Link records omit `path=` in `N` records for tree/path/list outputs.
    - `src/commands/link/records.rs:65-71`

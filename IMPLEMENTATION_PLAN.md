@@ -60,9 +60,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Fixes P1 correctness bug where skip strategy was dropping ALL links, even for newly loaded notes. Now only loads links where both source AND target notes are newly loaded, preventing any mutation of skipped existing notes.
    - Blocked by: Separate database location bug when using `QIPU_STORE` environment variable causes tests to fail (database created in wrong location: `store_root/.qipu/qipu.db` instead of `.qipu/qipu.db`)
 ### Records Output (`specs/records-output.md`)
-- [ ] Link records omit `path=` in `N` records for tree/path/list outputs.
-  - `src/commands/link/records.rs:65-71`
-  - `src/commands/link/tree.rs:293-299`
+- [x] Link records omit `path=` in `N` records for tree/path/list outputs.
+   - `src/commands/link/records.rs:65-71`
+   - `src/commands/link/tree.rs:293-299`
+   - Learnings: Added `path=` field to N records in both `append_note_metadata_lines` (for link tree/list) and `output_path_records` (for link path) functions; both NoteMetadata and TreeNote structs already had path fields available
 
 ### Value Model (`specs/value-model.md`)
 - [ ] `--min-value` accepts values outside 0-100 without validation.

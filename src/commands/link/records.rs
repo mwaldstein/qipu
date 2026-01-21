@@ -63,11 +63,12 @@ fn append_note_metadata_lines(
                 meta.tags.join(",")
             };
             lines.push(format!(
-                "N {} {} \"{}\" tags={}",
+                "N {} {} \"{}\" tags={} path={}",
                 link_id,
                 meta.note_type,
                 escape_quotes(&meta.title),
-                tags_csv
+                tags_csv,
+                meta.path
             ));
 
             // Add summary line if available
@@ -222,11 +223,12 @@ pub fn output_path_records(
                 note.tags.join(",")
             };
             lines.push(format!(
-                "N {} {} \"{}\" tags={}",
+                "N {} {} \"{}\" tags={} path={}",
                 note.id,
                 note.note_type,
                 escape_quotes(&note.title),
-                tags_csv
+                tags_csv,
+                note.path
             ));
 
             if cli.with_compaction_ids {

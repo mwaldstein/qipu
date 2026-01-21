@@ -242,9 +242,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/link/list.rs:148-175` - Build note_map for compaction percentage calculation
   - `src/commands/link/path.rs:71-103` - Build note_map for compaction percentage calculation
   - **Learnings**: Compaction annotations (compacts=N and compaction=P%) are now shown for digest nodes in all link command outputs (list, tree, path) across all formats (human, records). The compaction percentage requires building a note_map (HashMap<&str, &Note>) to look up note data for size estimation. The annotations appear directly on the N record line for records format, and as a separate line after the node for human format.
-- [ ] JSON outputs ignore compaction truncation flags.
-  - `src/commands/search.rs:212-226`
-  - `src/commands/show.rs:97-107`
+- [x] JSON outputs ignore compaction truncation flags.
+  - `src/commands/search.rs:212-232` - Added `compacted_ids_truncated` flag to JSON output when truncation occurs
+  - `src/commands/show.rs:97-113` - Added `compacted_ids_truncated` flag to JSON output when truncation occurs
+  - **Learnings**: Both search and show JSON outputs now properly respect the `truncated` flag from `get_compacted_ids()` and include a `compacted_ids_truncated: true` field in JSON when compaction IDs are truncated by `--compaction-max-nodes`. This matches the behavior already implemented in context JSON output.
 - [ ] `compact show` ignores `--compaction-max-nodes` and truncation.
   - `src/commands/compact/show.rs:75-105`
 

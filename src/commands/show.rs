@@ -98,12 +98,18 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                     // Per spec (specs/compaction.md line 131)
                     if cli.with_compaction_ids {
                         let depth = cli.compaction_depth.unwrap_or(1);
-                        if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
+                        if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
                             &note.frontmatter.id,
                             depth,
                             cli.compaction_max_nodes,
                         ) {
                             obj.insert("compacted_ids".to_string(), serde_json::json!(ids));
+                            if truncated {
+                                obj.insert(
+                                    "compacted_ids_truncated".to_string(),
+                                    serde_json::json!(true),
+                                );
+                            }
                         }
                     }
                 }

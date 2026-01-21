@@ -213,7 +213,7 @@ pub fn execute(
                                 // Per spec (specs/compaction.md line 131)
                                 if cli.with_compaction_ids {
                                     let depth = cli.compaction_depth.unwrap_or(1);
-                                    if let Some((ids, _truncated)) = ctx.get_compacted_ids(
+                                    if let Some((ids, truncated)) = ctx.get_compacted_ids(
                                         &r.id,
                                         depth,
                                         cli.compaction_max_nodes,
@@ -222,6 +222,12 @@ pub fn execute(
                                             "compacted_ids".to_string(),
                                             serde_json::json!(ids),
                                         );
+                                        if truncated {
+                                            obj_mut.insert(
+                                                "compacted_ids_truncated".to_string(),
+                                                serde_json::json!(true),
+                                            );
+                                        }
                                     }
                                 }
                             }

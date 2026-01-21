@@ -70,12 +70,12 @@ pub enum LinkCommands {
         #[arg(long, default_value = "3")]
         max_hops: u32,
 
-        /// Include only these link types (can be repeated)
-        #[arg(long, short = 'T', action = clap::ArgAction::Append)]
+        /// Include only these link types (can be repeated, or use CSV with --types)
+        #[arg(long, short = 'T', alias = "types", action = clap::ArgAction::Append, value_delimiter = ',')]
         r#type: Vec<String>,
 
-        /// Exclude these link types (can be repeated)
-        #[arg(long, action = clap::ArgAction::Append)]
+        /// Exclude these link types (can be repeated, or use CSV with --exclude-types)
+        #[arg(long, alias = "exclude-types", action = clap::ArgAction::Append, value_delimiter = ',')]
         exclude_type: Vec<String>,
 
         /// Show only typed links (from frontmatter)
@@ -127,12 +127,12 @@ pub enum LinkCommands {
         #[arg(long, default_value = "10")]
         max_hops: u32,
 
-        /// Include only these link types (can be repeated)
-        #[arg(long, short = 'T', action = clap::ArgAction::Append)]
+        /// Include only these link types (can be repeated, or use CSV with --types)
+        #[arg(long, short = 'T', alias = "types", action = clap::ArgAction::Append, value_delimiter = ',')]
         r#type: Vec<String>,
 
-        /// Exclude these link types (can be repeated)
-        #[arg(long, action = clap::ArgAction::Append)]
+        /// Exclude these link types (can be repeated, or use CSV with --exclude-types)
+        #[arg(long, alias = "exclude-types", action = clap::ArgAction::Append, value_delimiter = ',')]
         exclude_type: Vec<String>,
 
         /// Show only typed links (from frontmatter)

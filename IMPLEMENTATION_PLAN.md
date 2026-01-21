@@ -44,9 +44,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] `link path` defaults to weighted Dijkstra instead of shortest-hop traversal.
   - `src/cli/link.rs:154-156`
   - Learnings: Changed default_value for ignore_value flag from false to true in link path CLI definition; this makes link path use unweighted BFS (shortest-hop traversal) by default
-- [ ] `link tree/path` flags do not support CSV-style `--types/--exclude-types` (only repeatable `--type`/`--exclude-type`).
+- [x] `link tree/path` flags do not support CSV-style `--types/--exclude-types` (only repeatable `--type`/`--exclude-type`).
   - `src/cli/link.rs:73-79`
   - `src/cli/link.rs:130-136`
+  - Learnings: Added `alias` and `value_delimiter` attributes to both `r#type` and `exclude_type` fields in Tree and Path commands; this allows both `--type/--exclude-type` (repeatable) and `--types/--exclude-types` (CSV) forms as specified in the spec
 
 ### Knowledge Model (`specs/knowledge-model.md`)
 - [ ] Context traversal does not preserve MOC ordering as a “reading path” (unordered outbound edges).

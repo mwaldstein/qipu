@@ -345,4 +345,44 @@ mod tests {
         assert!(store.templates_dir().join("fleeting.md").exists());
         assert!(store.templates_dir().join("permanent.md").exists());
     }
+
+    #[test]
+    fn test_discover_with_custom_store_path() {
+        let dir = tempdir().unwrap();
+        let project_root = dir.path();
+        let default_store = project_root.join(DEFAULT_STORE_DIR);
+        let custom_store = project_root.join("custom_notes");
+
+        fs::create_dir_all(&default_store).unwrap();
+        fs::create_dir_all(custom_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(custom_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(custom_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(custom_store.join(TEMPLATES_DIR)).unwrap();
+
+        let config_path = default_store.join(CONFIG_FILE);
+        let mut config = StoreConfig::default();
+        config.store_path = Some("custom_notes".to_string());
+        config.save(&config_path).unwrap();
+
+        let loaded_config = StoreConfig::load(&config_path).unwrap();
+        assert_eq!(loaded_config.store_path, Some("custom_notes".to_string()));
+
+        let discovered = paths::discover_store(project_root).unwrap();
+        assert_eq!(discovered, custom_store);
+    }
+
+    #[test]
+    fn test_discover_without_custom_store_path() {
+        let dir = tempdir().unwrap();
+        let project_root = dir.path();
+        let default_store = project_root.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(default_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(default_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(default_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(default_store.join(TEMPLATES_DIR)).unwrap();
+
+        let discovered = paths::discover_store(project_root).unwrap();
+        assert_eq!(discovered, default_store);
+    }
 }

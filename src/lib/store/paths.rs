@@ -1,3 +1,4 @@
+use crate::lib::config::StoreConfig;
 use crate::lib::error::{QipuError, Result};
 use std::path::{Path, PathBuf};
 
@@ -37,7 +38,22 @@ const PROJECT_MARKERS: &[&str] = &[
 ];
 
 fn is_project_root(dir: &Path) -> bool {
-    PROJECT_MARKERS.iter().any(|marker| dir.join(marker).exists())
+    PROJECT_MARKERS
+        .iter()
+        .any(|marker| dir.join(marker).exists())
+}
+
+/// Try to load config and check for custom store_path
+fn check_config_for_custom_path(store_dir: &Path) -> Option<PathBuf> {
+    let config_path = store_dir.join(CONFIG_FILE);
+    if config_path.exists() {
+        if let Ok(config) = StoreConfig::load(&config_path) {
+            if let Some(ref store_path) = config.store_path {
+                return Some(PathBuf::from(store_path));
+            }
+        }
+    }
+    None
 }
 
 pub fn discover_store(root: &Path) -> Result<PathBuf> {
@@ -48,12 +64,34 @@ pub fn discover_store(root: &Path) -> Result<PathBuf> {
         // Check for default hidden store
         let store_path = current.join(DEFAULT_STORE_DIR);
         if store_path.is_dir() {
+            if let Some(custom_path) = check_config_for_custom_path(&store_path) {
+                let resolved_path = if custom_path.is_absolute() {
+                    custom_path.clone()
+                } else {
+                    // Relative path is relative to the project root (current directory)
+                    current.join(&custom_path)
+                };
+                if resolved_path.is_dir() {
+                    return Ok(resolved_path);
+                }
+            }
             return Ok(store_path);
         }
 
         // Check for visible store
         let visible_path = current.join(VISIBLE_STORE_DIR);
         if visible_path.is_dir() {
+            if let Some(custom_path) = check_config_for_custom_path(&visible_path) {
+                let resolved_path = if custom_path.is_absolute() {
+                    custom_path.clone()
+                } else {
+                    // Relative path is relative to the project root (current directory)
+                    current.join(&custom_path)
+                };
+                if resolved_path.is_dir() {
+                    return Ok(resolved_path);
+                }
+            }
             return Ok(visible_path);
         }
 

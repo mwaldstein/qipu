@@ -117,8 +117,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: Added `find_by_shared_tags()` method that uses Jaccard similarity (intersection/union) to find notes sharing tags. Added `find_by_2hop_neighborhood()` method that finds notes within 2 hops in the link graph, scoring by number of 2-hop paths. Updated context command to use all three relatedness methods (TF-IDF, shared tags, 2-hop) when `--related` flag is specified. Added tests for both new methods.
 
 ### Storage Format (`specs/storage-format.md`)
-- [ ] Configurable store root is not supported in config.
+- [x] Configurable store root is not supported in config.
   - `src/lib/config.rs:14-117`
+  - `src/lib/store/paths.rs:46-115`
+  - Learnings: Added `store_path` field to StoreConfig (optional, relative or absolute path); modified discover_store() to check config for custom path; relative paths are resolved relative to project root (directory containing .qipu/); added tests for both relative and absolute store paths
 - [ ] Optional wiki-link rewrite/canonicalization is not implemented.
   - `src/lib/index/links.rs:35-137`
 - [ ] No cross-branch ID collision avoidance.

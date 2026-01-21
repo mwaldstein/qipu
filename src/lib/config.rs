@@ -37,6 +37,10 @@ pub struct StoreConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch: Option<String>,
 
+    /// Custom store root path (optional, overrides default discovery)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub store_path: Option<String>,
+
     /// Graph configuration
     #[serde(default)]
     pub graph: GraphConfig,
@@ -112,6 +116,7 @@ impl Default for StoreConfig {
             id_scheme: IdScheme::default(),
             editor: None,
             branch: None,
+            store_path: None,
             graph: GraphConfig::default(),
         }
     }
@@ -129,6 +134,7 @@ mod tests {
         assert_eq!(config.default_note_type, NoteType::Fleeting);
         assert_eq!(config.id_scheme, IdScheme::Hash);
         assert!(config.editor.is_none());
+        assert!(config.store_path.is_none());
     }
 
     #[test]
@@ -142,5 +148,35 @@ mod tests {
         let loaded = StoreConfig::load(&path).unwrap();
         assert_eq!(loaded.version, config.version);
         assert_eq!(loaded.default_note_type, config.default_note_type);
+        assert!(loaded.store_path.is_none());
+    }
+
+    #[test]
+    fn test_save_and_load_with_store_path() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let mut config = StoreConfig::default();
+        config.store_path = Some("data/notes".to_string());
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert_eq!(loaded.store_path, Some("data/notes".to_string()));
+    }
+
+    #[test]
+    fn test_save_and_load_with_absolute_store_path() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let mut config = StoreConfig::default();
+        config.store_path = Some("/absolute/path/to/store".to_string());
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert_eq!(
+            loaded.store_path,
+            Some("/absolute/path/to/store".to_string())
+        );
     }
 }

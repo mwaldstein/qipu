@@ -1,6 +1,7 @@
 #![allow(clippy::unnecessary_unwrap)]
 
 use super::types::{Edge, LinkSource};
+use crate::lib::error::Result;
 use crate::lib::note::Note;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -149,4 +150,52 @@ pub(crate) fn extract_links(
     edges.dedup_by(|a, b| a.to == b.to && a.link_type == b.link_type && a.source == b.source);
 
     edges
+}
+
+/// Rewrite wiki-links [[id]] and [[id|label]] to markdown links [label](qp-id.md)
+pub fn rewrite_wiki_links(note: &mut Note) -> Result<bool> {
+    let wiki_link_re = match Regex::new(r"\[\[([^\]]+)\]\]") {
+        Ok(re) => re,
+        Err(e) => {
+            warn!(error = %e, "Failed to compile wiki link regex");
+            return Ok(false);
+        }
+    };
+
+    let mut modified = false;
+    let mut last_end = 0;
+    let mut new_body = String::new();
+
+    for cap in wiki_link_re.captures_iter(&note.body) {
+        let content = cap[1].trim();
+        if content.is_empty() {
+            continue;
+        }
+
+        let (id, label) = if content.contains('|') {
+            let parts: Vec<&str> = content.splitn(2, '|').collect();
+            (parts[0].trim().to_string(), parts[1].trim().to_string())
+        } else {
+            (content.to_string(), content.to_string())
+        };
+
+        if id.is_empty() {
+            continue;
+        }
+
+        let md_link = format!("[{}]({}.md)", label, id);
+
+        let full_match = cap.get(0).unwrap();
+        new_body.push_str(&note.body[last_end..full_match.start()]);
+        new_body.push_str(&md_link);
+        last_end = full_match.end();
+        modified = true;
+    }
+
+    if modified {
+        new_body.push_str(&note.body[last_end..]);
+        note.body = new_body;
+    }
+
+    Ok(modified)
 }

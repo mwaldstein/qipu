@@ -8,17 +8,33 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
+use crate::lib::index::links;
 use crate::lib::store::Store;
 
 /// Execute the index command
-pub fn execute(cli: &Cli, store: &Store, rebuild: bool) -> Result<()> {
+pub fn execute(cli: &Cli, store: &Store, rebuild: bool, rewrite_wiki_links: bool) -> Result<()> {
+    let mut notes = store.list_notes()?;
+
+    if rewrite_wiki_links {
+        let mut rewritten_count = 0;
+        for note in &mut notes {
+            if links::rewrite_wiki_links(note)? {
+                store.save_note(note)?;
+                rewritten_count += 1;
+            }
+        }
+        if !cli.quiet && rewritten_count > 0 {
+            eprintln!("Rewrote wiki-links in {} notes", rewritten_count);
+        }
+    }
+
     if rebuild {
         store.db().rebuild(store.root())?;
     } else {
         store.db().incremental_repair(store.root())?;
     }
 
-    let notes_count = store.list_notes()?.len();
+    let notes_count = notes.len();
 
     match cli.format {
         OutputFormat::Json => {

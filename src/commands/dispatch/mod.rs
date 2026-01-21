@@ -87,7 +87,10 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             start,
         ),
 
-        Some(Commands::Index { rebuild }) => maintenance::handle_index(cli, &root, *rebuild, start),
+        Some(Commands::Index {
+            rebuild,
+            rewrite_wiki_links,
+        }) => maintenance::handle_index(cli, &root, *rebuild, *rewrite_wiki_links, start),
 
         Some(Commands::Search {
             query,

@@ -70,12 +70,18 @@ pub(super) fn handle_sync(
     Ok(())
 }
 
-pub(super) fn handle_index(cli: &Cli, root: &PathBuf, rebuild: bool, start: Instant) -> Result<()> {
+pub(super) fn handle_index(
+    cli: &Cli,
+    root: &PathBuf,
+    rebuild: bool,
+    rewrite_wiki_links: bool,
+    start: Instant,
+) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::index::execute(cli, &store, rebuild)?;
+    commands::index::execute(cli, &store, rebuild, rewrite_wiki_links)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

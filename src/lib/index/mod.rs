@@ -199,4 +199,55 @@ mod tests {
         // Should not extract any edges from external URLs or anchors
         assert_eq!(edges.len(), 0);
     }
+
+    #[test]
+    fn test_rewrite_wiki_links_simple() {
+        let mut note = make_note("qp-a1", "Test", "See [[qp-b2]]");
+        note.frontmatter.links = vec![];
+
+        let modified = links::rewrite_wiki_links(&mut note).unwrap();
+
+        assert!(modified);
+        assert_eq!(note.body, "See [qp-b2](qp-b2.md)");
+    }
+
+    #[test]
+    fn test_rewrite_wiki_links_with_label() {
+        let mut note = make_note("qp-a1", "Test", "See [[qp-b2|Another Note]]");
+        note.frontmatter.links = vec![];
+
+        let modified = links::rewrite_wiki_links(&mut note).unwrap();
+
+        assert!(modified);
+        assert_eq!(note.body, "See [Another Note](qp-b2.md)");
+    }
+
+    #[test]
+    fn test_rewrite_wiki_links_multiple() {
+        let mut note = make_note(
+            "qp-a1",
+            "Test",
+            "See [[qp-b2]] and [[qp-c3|Note C]] and [[qp-d4]]",
+        );
+        note.frontmatter.links = vec![];
+
+        let modified = links::rewrite_wiki_links(&mut note).unwrap();
+
+        assert!(modified);
+        assert_eq!(
+            note.body,
+            "See [qp-b2](qp-b2.md) and [Note C](qp-c3.md) and [qp-d4](qp-d4.md)"
+        );
+    }
+
+    #[test]
+    fn test_rewrite_wiki_links_no_links() {
+        let mut note = make_note("qp-a1", "Test", "No links here");
+        note.frontmatter.links = vec![];
+
+        let modified = links::rewrite_wiki_links(&mut note).unwrap();
+
+        assert!(!modified);
+        assert_eq!(note.body, "No links here");
+    }
 }

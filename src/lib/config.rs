@@ -41,6 +41,10 @@ pub struct StoreConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub store_path: Option<String>,
 
+    /// Rewrite wiki-links to markdown links during index (optional; opt-in)
+    #[serde(default)]
+    pub rewrite_wiki_links: bool,
+
     /// Graph configuration
     #[serde(default)]
     pub graph: GraphConfig,
@@ -117,6 +121,7 @@ impl Default for StoreConfig {
             editor: None,
             branch: None,
             store_path: None,
+            rewrite_wiki_links: false,
             graph: GraphConfig::default(),
         }
     }
@@ -135,6 +140,7 @@ mod tests {
         assert_eq!(config.id_scheme, IdScheme::Hash);
         assert!(config.editor.is_none());
         assert!(config.store_path.is_none());
+        assert!(!config.rewrite_wiki_links);
     }
 
     #[test]

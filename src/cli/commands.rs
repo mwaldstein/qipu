@@ -115,6 +115,10 @@ pub enum Commands {
         /// Drop and regenerate indexes from scratch
         #[arg(long)]
         rebuild: bool,
+
+        /// Rewrite wiki-links to markdown links (optional; opt-in)
+        #[arg(long)]
+        rewrite_wiki_links: bool,
     },
 
     /// Search notes by title and body

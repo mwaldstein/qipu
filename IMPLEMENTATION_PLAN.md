@@ -121,8 +121,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/config.rs:14-117`
   - `src/lib/store/paths.rs:46-115`
   - Learnings: Added `store_path` field to StoreConfig (optional, relative or absolute path); modified discover_store() to check config for custom path; relative paths are resolved relative to project root (directory containing .qipu/); added tests for both relative and absolute store paths
-- [ ] Optional wiki-link rewrite/canonicalization is not implemented.
-  - `src/lib/index/links.rs:35-137`
+- [x] Optional wiki-link rewrite/canonicalization is not implemented.
+  - `src/lib/index/links.rs:155-200`
+  - `src/cli/commands.rs:114-119`
+  - `src/commands/index.rs:13-68`
+  - `src/lib/config.rs:44-45`
+  - Learnings: Added `rewrite_wiki_links` function to convert `[[id]]` and `[[id|label]]` to `[label](id.md)`. Added `--rewrite-wiki-links` flag to index command. Added `rewrite_wiki_links` config field to StoreConfig (default false). Added tests for simple links, labeled links, multiple links, and integration test. Feature is opt-in via CLI flag.
 - [ ] No cross-branch ID collision avoidance.
   - `src/lib/store/lifecycle.rs:31-34`
   - `src/lib/store/lifecycle.rs:77-88`

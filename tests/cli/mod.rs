@@ -15,6 +15,7 @@ mod merge;
 mod misc;
 mod prime;
 mod provenance;
+mod rewrite_links;
 mod search;
 mod setup;
 mod show;

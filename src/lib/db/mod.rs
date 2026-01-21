@@ -61,10 +61,15 @@ impl Database {
         conn.pragma_update(None, "journal_mode", "WAL")
             .map_err(|e| QipuError::Other(format!("failed to enable WAL mode: {}", e)))?;
 
-        create_schema(&conn)
+        let needs_rebuild = create_schema(&conn)
             .map_err(|e| QipuError::Other(format!("failed to create database schema: {}", e)))?;
 
         let db = Database { conn };
+
+        if needs_rebuild == schema::SchemaCreateResult::NeedsRebuild {
+            tracing::info!("Rebuilding database after schema update...");
+            db.rebuild(store_root)?;
+        }
 
         let note_count: i64 = db
             .conn

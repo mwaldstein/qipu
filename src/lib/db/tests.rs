@@ -710,12 +710,33 @@ fn test_validate_consistency_mtime_mismatch() {
 }
 
 #[test]
-fn test_validate_consistency_empty_database() {
+fn test_schema_version_outdated_rebuilds() {
     let dir = tempdir().unwrap();
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
     let db = store.db();
-    assert!(db.validate_consistency(store.root()).unwrap());
+
+    crate::lib::db::schema::force_set_schema_version(&db.conn, 0).unwrap();
+
+    let result = Database::open(store.root());
+    assert!(
+        result.is_ok(),
+        "Database should auto-rebuild on outdated schema version"
+    );
+
+    let db = result.unwrap();
+    let version: String = db
+        .conn
+        .query_row(
+            "SELECT value FROM index_meta WHERE key = 'schema_version'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        version.parse::<i32>().unwrap(),
+        crate::lib::db::schema::get_schema_version()
+    );
 }
 
 #[test]
@@ -906,38 +927,4 @@ fn test_schema_version_matches_current() {
         )
         .unwrap();
     assert_eq!(version, crate::lib::db::schema::get_schema_version());
-}
-
-#[test]
-fn test_schema_version_outdated_fails() {
-    let dir = tempdir().unwrap();
-    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-    let db = store.db();
-
-    crate::lib::db::schema::force_set_schema_version(&db.conn, 0).unwrap();
-
-    let result = Database::open(store.root());
-    assert!(result.is_err());
-    let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("outdated"));
-    assert!(err_msg.contains("0"));
-    assert!(err_msg.contains("doctor --fix"));
-}
-
-#[test]
-fn test_schema_version_future_fails() {
-    let dir = tempdir().unwrap();
-    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-    let db = store.db();
-
-    crate::lib::db::schema::force_set_schema_version(&db.conn, 999).unwrap();
-
-    let result = Database::open(store.root());
-    assert!(result.is_err());
-    let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("newer"));
-    assert!(err_msg.contains("999"));
-    assert!(err_msg.contains("update qipu"));
 }

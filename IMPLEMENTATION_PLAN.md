@@ -25,13 +25,15 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/store/query.rs:14-52`
   - `src/lib/store/query.rs:66-101`
   - Learnings: Added `list_note_ids()` method to Database module; replaced filesystem scanning in `existing_ids()` with database query
-- [x] Trigger incremental repair when startup validation fails.
-  - `src/lib/db/mod.rs:84-85`
-  - `src/lib/db/repair.rs:6-141`
-  - Learnings: Changed validation to check result; call incremental_repair when false; removed #[allow(dead_code)] attribute from incremental_repair
-- [ ] Auto-rebuild the database when schema mismatches are detected.
-  - `src/lib/db/schema.rs:94-112`
-  - `src/lib/db/tests.rs:911-925`
+ - [x] Trigger incremental repair when startup validation fails.
+   - `src/lib/db/mod.rs:84-85`
+   - `src/lib/db/repair.rs:6-141`
+   - Learnings: Changed validation to check result; call incremental_repair when false; removed #[allow(dead_code)] attribute from incremental_repair
+- [x] Auto-rebuild the database when schema mismatches are detected.
+   - `src/lib/db/schema.rs:19-21,74-91,94-127`
+   - `src/lib/db/mod.rs:64-69`
+   - `src/lib/db/tests.rs:713-752,938-987`
+   - Learnings: Added SchemaCreateResult enum to signal when rebuild is needed; create_schema now drops all tables and returns NeedsRebuild on schema mismatch; Database::open checks this flag and calls rebuild(); updated tests to verify auto-rebuild behavior
 
 ### Indexing/Search (`specs/indexing-search.md`)
 - [ ] `qipu index --rebuild` is a no-op (always rebuilds); wire incremental indexing.

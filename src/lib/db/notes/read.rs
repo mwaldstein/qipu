@@ -223,7 +223,7 @@ impl super::super::Database {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, title, type, path, created, updated, body, value FROM notes WHERE id = ?1",
+                "SELECT id, title, type, path, created, updated, body, value, compacts FROM notes WHERE id = ?1",
             )
             .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
 
@@ -236,6 +236,7 @@ impl super::super::Database {
             let updated: Option<String> = row.get(5)?;
             let body: String = row.get(6)?;
             let value: Option<i64> = row.get(7)?;
+            let compacts_json: String = row.get(8)?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -248,12 +249,20 @@ impl super::super::Database {
             let value_opt = value.and_then(|v| u8::try_from(v).ok());
 
             Ok((
-                id, title, note_type, path, created_dt, updated_dt, body, value_opt,
+                id,
+                title,
+                note_type,
+                path,
+                created_dt,
+                updated_dt,
+                body,
+                value_opt,
+                compacts_json,
             ))
         });
 
         match note_opt {
-            Ok((id, title, note_type, path, created, updated, body, value)) => {
+            Ok((id, title, note_type, path, created, updated, body, value, compacts_json)) => {
                 let mut tag_stmt = self
                     .conn
                     .prepare("SELECT tag FROM tags WHERE note_id = ?1")
@@ -300,6 +309,9 @@ impl super::super::Database {
                     });
                 }
 
+                let compacts: Vec<String> =
+                    serde_json::from_str(&compacts_json).unwrap_or_default();
+
                 let frontmatter = NoteFrontmatter {
                     id: id.clone(),
                     title,
@@ -310,7 +322,7 @@ impl super::super::Database {
                     sources: Vec::new(),
                     links,
                     summary: None,
-                    compacts: Vec::new(),
+                    compacts,
                     source: None,
                     author: None,
                     generated_by: None,
@@ -347,7 +359,7 @@ impl super::super::Database {
 
     pub fn list_notes_full(&self) -> Result<Vec<Note>> {
         let sql = r#"
-            SELECT id, title, type, path, created, updated, body, value
+            SELECT id, title, type, path, created, updated, body, value, compacts
             FROM notes
             ORDER BY created DESC, id
         "#;
@@ -391,6 +403,9 @@ impl super::super::Database {
             let value: Option<i64> = row
                 .get(7)
                 .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
+            let compacts_json: String = row
+                .get(8)
+                .map_err(|e| QipuError::Other(format!("failed to get compacts: {}", e)))?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -446,6 +461,8 @@ impl super::super::Database {
                 });
             }
 
+            let compacts: Vec<String> = serde_json::from_str(&compacts_json).unwrap_or_default();
+
             let frontmatter = NoteFrontmatter {
                 id: id.clone(),
                 title,
@@ -456,7 +473,7 @@ impl super::super::Database {
                 sources: Vec::new(),
                 links,
                 summary: None,
-                compacts: Vec::new(),
+                compacts,
                 source: None,
                 author: None,
                 generated_by: None,

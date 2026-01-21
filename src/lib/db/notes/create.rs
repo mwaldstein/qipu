@@ -16,10 +16,12 @@ impl super::super::Database {
             .unwrap_or(0);
 
         let tags_str = note.frontmatter.tags.join(" ");
+        let compacts_json =
+            serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
 
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                 params![
                     note.id(),
                     note.frontmatter.title,
@@ -30,6 +32,7 @@ impl super::super::Database {
                     &note.body,
                     mtime,
                     note.frontmatter.value.or(Some(50)),
+                    compacts_json,
                 ],
             )
             .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
@@ -95,9 +98,12 @@ impl super::super::Database {
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
 
+        let compacts_json =
+            serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
+
         conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 note.id(),
                 note.title(),
@@ -108,6 +114,7 @@ impl super::super::Database {
                 &note.body,
                 mtime,
                 note.frontmatter.value.or(Some(50)),
+                compacts_json,
             ],
         )
         .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;

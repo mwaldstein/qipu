@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: 449 tests pass (223 unit + 226 integration), 22 failures tracked in P1 below
+- Test baseline: 458 tests pass (223 unit + 235 integration), 9 failures tracked in P1 below
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -90,7 +90,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - `crates/llm-tool-test/src/run.rs:185-188`
    - Learnings: Replaced bail!("Dry run not supported in matrix mode") with returning a mock ResultRecord; dry-run now creates a dummy record with zero metrics and "Dry run" outcome; allows previewing what would run without execution
 
-### Database Schema - Missing Fields (22 test failures)
+### Database Schema - Missing Fields (originally 22 test failures, now 2 remain)
 
 **Root Cause**: Several frontmatter fields are stored in note files but NOT in the database schema. When notes are retrieved via `list_notes_full()` or `get_note()`, these fields are hardcoded to empty/null values instead of being read from the database.
 
@@ -102,13 +102,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - **Status**: Core functionality complete. 9 compaction tests now pass (test_compact_show, test_compact_status, test_context_expand_compaction_*, test_link_*_with_compaction). 2 integration tests still fail (test_compact_report, test_compaction_annotations) due to schema migration interaction with manual file creation in tests - these are test infrastructure issues, not implementation bugs.
    - **Learnings**: Schema version bump from 3 to 4 triggers full database rebuild. All unit tests pass. Integration test failures occur when tests manually create files then trigger schema migration, causing temporary inconsistency between database and filesystem.
 
- - [ ] **Provenance fields not stored in database** (4 tests)
-   - Failing tests: `test_context_prioritizes_verified`, `test_create_with_provenance`, `test_context_json_with_provenance`, `test_context_records_with_body_and_sources`
-   - Missing fields: `author`, `verified`, `source`, `sources`, `generated_by`, `prompt_hash`
-   - `src/lib/db/schema.rs` - Add columns for provenance fields
-   - `src/lib/db/notes/write.rs` - Store provenance fields
-   - `src/lib/db/notes/read.rs:303-320,449-466` - Read provenance fields
-   - **Approach**: Add columns: `author TEXT`, `verified INTEGER` (boolean), `source TEXT`, `sources TEXT` (JSON array), `generated_by TEXT`, `prompt_hash TEXT`. Update insert/read functions. Bump schema version.
+ - [x] **Provenance fields not stored in database** (4 tests - all fixed)
+   - `src/lib/db/schema.rs:6,28-46` - Added columns: `author TEXT`, `verified INTEGER`, `source TEXT`, `sources TEXT DEFAULT '[]'`, `generated_by TEXT`, `prompt_hash TEXT`. Bumped schema version to 5
+   - `src/lib/db/notes/create.rs:18-47,101-129` - Serialize sources to JSON, convert verified to integer in both `insert_note` and `insert_note_internal`
+   - `src/lib/db/notes/read.rs:222-343,360-490` - Deserialize provenance fields from database in both `get_note` and `list_notes_full`
+   - `src/lib/db/tests.rs:911` - Updated schema version test expectation from 4 to 5
+   - **Status**: Complete. All 4 provenance tests now pass (test_context_prioritizes_verified, test_create_with_provenance, test_context_json_with_provenance, test_context_records_with_body_and_sources).
+   - **Learnings**: Schema version bump from 4 to 5 triggers full database rebuild. The verified boolean is stored as INTEGER (0/1) in SQLite. Sources is serialized as JSON array. All provenance fields are properly nullable.
 
 ### Edge Insertion - Duplicate Edge Handling (4 tests)
 

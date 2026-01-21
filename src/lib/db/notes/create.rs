@@ -18,10 +18,13 @@ impl super::super::Database {
         let tags_str = note.frontmatter.tags.join(" ");
         let compacts_json =
             serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
+        let sources_json =
+            serde_json::to_string(&note.frontmatter.sources).unwrap_or_else(|_| "[]".to_string());
+        let verified_int = note.frontmatter.verified.map(|b| if b { 1 } else { 0 });
 
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts, author, verified, source, sources, generated_by, prompt_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
                 params![
                     note.id(),
                     note.frontmatter.title,
@@ -33,6 +36,12 @@ impl super::super::Database {
                     mtime,
                     note.frontmatter.value.or(Some(50)),
                     compacts_json,
+                    note.frontmatter.author.as_ref(),
+                    verified_int,
+                    note.frontmatter.source.as_ref(),
+                    sources_json,
+                    note.frontmatter.generated_by.as_ref(),
+                    note.frontmatter.prompt_hash.as_ref(),
                 ],
             )
             .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
@@ -100,10 +109,13 @@ impl super::super::Database {
 
         let compacts_json =
             serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
+        let sources_json =
+            serde_json::to_string(&note.frontmatter.sources).unwrap_or_else(|_| "[]".to_string());
+        let verified_int = note.frontmatter.verified.map(|b| if b { 1 } else { 0 });
 
         conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts, author, verified, source, sources, generated_by, prompt_hash)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 note.id(),
                 note.title(),
@@ -115,6 +127,12 @@ impl super::super::Database {
                 mtime,
                 note.frontmatter.value.or(Some(50)),
                 compacts_json,
+                note.frontmatter.author.as_ref(),
+                verified_int,
+                note.frontmatter.source.as_ref(),
+                sources_json,
+                note.frontmatter.generated_by.as_ref(),
+                note.frontmatter.prompt_hash.as_ref(),
             ],
         )
         .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;

@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 4;
+pub const CURRENT_SCHEMA_VERSION: i32 = 5;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -37,7 +37,13 @@ CREATE TABLE IF NOT EXISTS notes (
     body TEXT,
     mtime INTEGER,
     value INTEGER DEFAULT 50,
-    compacts TEXT DEFAULT '[]'
+    compacts TEXT DEFAULT '[]',
+    author TEXT,
+    verified INTEGER,
+    source TEXT,
+    sources TEXT DEFAULT '[]',
+    generated_by TEXT,
+    prompt_hash TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_notes_value ON notes(value);
 

@@ -223,7 +223,7 @@ impl super::super::Database {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, title, type, path, created, updated, body, value, compacts FROM notes WHERE id = ?1",
+                "SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash FROM notes WHERE id = ?1",
             )
             .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
 
@@ -237,6 +237,12 @@ impl super::super::Database {
             let body: String = row.get(6)?;
             let value: Option<i64> = row.get(7)?;
             let compacts_json: String = row.get(8)?;
+            let author: Option<String> = row.get(9)?;
+            let verified: Option<i64> = row.get(10)?;
+            let source: Option<String> = row.get(11)?;
+            let sources_json: String = row.get(12)?;
+            let generated_by: Option<String> = row.get(13)?;
+            let prompt_hash: Option<String> = row.get(14)?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -247,6 +253,7 @@ impl super::super::Database {
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
                 .map(|dt| dt.with_timezone(&chrono::Utc));
             let value_opt = value.and_then(|v| u8::try_from(v).ok());
+            let verified_opt = verified.map(|v| v != 0);
 
             Ok((
                 id,
@@ -258,11 +265,33 @@ impl super::super::Database {
                 body,
                 value_opt,
                 compacts_json,
+                author,
+                verified_opt,
+                source,
+                sources_json,
+                generated_by,
+                prompt_hash,
             ))
         });
 
         match note_opt {
-            Ok((id, title, note_type, path, created, updated, body, value, compacts_json)) => {
+            Ok((
+                id,
+                title,
+                note_type,
+                path,
+                created,
+                updated,
+                body,
+                value,
+                compacts_json,
+                author,
+                verified,
+                source,
+                sources_json,
+                generated_by,
+                prompt_hash,
+            )) => {
                 let mut tag_stmt = self
                     .conn
                     .prepare("SELECT tag FROM tags WHERE note_id = ?1")
@@ -311,6 +340,8 @@ impl super::super::Database {
 
                 let compacts: Vec<String> =
                     serde_json::from_str(&compacts_json).unwrap_or_default();
+                let sources: Vec<crate::lib::note::Source> =
+                    serde_json::from_str(&sources_json).unwrap_or_default();
 
                 let frontmatter = NoteFrontmatter {
                     id: id.clone(),
@@ -319,15 +350,15 @@ impl super::super::Database {
                     created,
                     updated,
                     tags,
-                    sources: Vec::new(),
+                    sources,
                     links,
                     summary: None,
                     compacts,
-                    source: None,
-                    author: None,
-                    generated_by: None,
-                    prompt_hash: None,
-                    verified: None,
+                    source,
+                    author,
+                    generated_by,
+                    prompt_hash,
+                    verified,
                     value,
                 };
 
@@ -359,7 +390,7 @@ impl super::super::Database {
 
     pub fn list_notes_full(&self) -> Result<Vec<Note>> {
         let sql = r#"
-            SELECT id, title, type, path, created, updated, body, value, compacts
+            SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash
             FROM notes
             ORDER BY created DESC, id
         "#;
@@ -406,6 +437,24 @@ impl super::super::Database {
             let compacts_json: String = row
                 .get(8)
                 .map_err(|e| QipuError::Other(format!("failed to get compacts: {}", e)))?;
+            let author: Option<String> = row
+                .get(9)
+                .map_err(|e| QipuError::Other(format!("failed to get author: {}", e)))?;
+            let verified: Option<i64> = row
+                .get(10)
+                .map_err(|e| QipuError::Other(format!("failed to get verified: {}", e)))?;
+            let source: Option<String> = row
+                .get(11)
+                .map_err(|e| QipuError::Other(format!("failed to get source: {}", e)))?;
+            let sources_json: String = row
+                .get(12)
+                .map_err(|e| QipuError::Other(format!("failed to get sources: {}", e)))?;
+            let generated_by: Option<String> = row
+                .get(13)
+                .map_err(|e| QipuError::Other(format!("failed to get generated_by: {}", e)))?;
+            let prompt_hash: Option<String> = row
+                .get(14)
+                .map_err(|e| QipuError::Other(format!("failed to get prompt_hash: {}", e)))?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -416,6 +465,7 @@ impl super::super::Database {
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
                 .map(|dt| dt.with_timezone(&chrono::Utc));
             let value_opt = value.and_then(|v| u8::try_from(v).ok());
+            let verified_opt = verified.map(|v| v != 0);
 
             let mut tag_stmt = self
                 .conn
@@ -462,6 +512,8 @@ impl super::super::Database {
             }
 
             let compacts: Vec<String> = serde_json::from_str(&compacts_json).unwrap_or_default();
+            let sources: Vec<crate::lib::note::Source> =
+                serde_json::from_str(&sources_json).unwrap_or_default();
 
             let frontmatter = NoteFrontmatter {
                 id: id.clone(),
@@ -470,15 +522,15 @@ impl super::super::Database {
                 created: created_dt,
                 updated: updated_dt,
                 tags,
-                sources: Vec::new(),
+                sources,
                 links,
                 summary: None,
                 compacts,
-                source: None,
-                author: None,
-                generated_by: None,
-                prompt_hash: None,
-                verified: None,
+                source,
+                author,
+                generated_by,
+                prompt_hash,
+                verified: verified_opt,
                 value: value_opt,
             };
 

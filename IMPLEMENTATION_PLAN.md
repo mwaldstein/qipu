@@ -100,8 +100,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Changed note_count from 2000 to 10000 and renamed test from test_search_performance_2k_notes to test_search_performance_10k_notes; actual performance is 186ms for 10k notes, well within spec target of <1s
 
 ### Operational Database (`specs/operational-database.md`)
-- [ ] Search ranking boosts don’t align with spec weights.
+- [x] Search ranking boosts don't align with spec weights.
   - `src/lib/db/search.rs:68-105`
+  - Learnings: Updated BM25 column weights to match spec (Title 2.0x, Body 1.0x, Tags 1.5x). Added separate queries for title-only matches (+2.0 boost) and tag-only matches (+3.0 boost) to ensure they rank above body matches. Simplified query from three separate queries with constant boosts to single query with BM25 column weights plus two additional queries for title/tag boosts.
 - [ ] Tag frequency statistics are missing.
   - `src/lib/db/schema.rs:19-72`
 

@@ -45,11 +45,13 @@
 
 ### llm-user-validation.md
 
-- [ ] `--tags` flag parsed but ignored in run command
+- [x] `--tags` flag parsed but ignored in run command
   - Spec (line 444): `--tags capture,links` should filter scenarios by tags
   - CLI: `crates/llm-tool-test/src/cli.rs:22-24` defines argument
   - Code: `crates/llm-tool-test/src/main.rs:80` marks `tags: _` (explicitly ignored)
   - Impact: Tag filtering doesn't work
+  - Fixed: Added `tags` field to Scenario struct, implemented filtering logic in handle_run_command and handle_list_command
+  - Filtering semantics: `--tags` filters to scenarios that contain ALL specified tags (AND logic)
 
 - [ ] `--tier` flag parsed but ignored in run command
   - Spec (line 445): Should filter scenarios by tier

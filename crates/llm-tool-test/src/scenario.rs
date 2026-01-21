@@ -14,6 +14,8 @@ pub struct Scenario {
     pub tool_matrix: Option<Vec<ToolConfig>>,
     #[serde(default)]
     pub setup: Option<Vec<SetupStep>>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

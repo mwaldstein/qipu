@@ -28,6 +28,8 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
 pub fn handle_run_command(
     scenario: &Option<String>,
     all: bool,
+    tags: &[String],
+    tier: &usize,
     tool: &str,
     model: &Option<String>,
     tools: &Option<String>,
@@ -50,7 +52,24 @@ pub fn handle_run_command(
         if fixtures_dir.exists() {
             find_scenarios(&fixtures_dir, &mut scenarios);
         }
-        scenarios
+
+        let mut filtered_scenarios = Vec::new();
+        for (name, path) in scenarios {
+            let s = load(&path)?;
+
+            let tags_match = if tags.is_empty() {
+                true
+            } else {
+                tags.iter().all(|tag| s.tags.contains(tag))
+            };
+
+            let tier_match = &s.tier <= tier;
+
+            if tags_match && tier_match {
+                filtered_scenarios.push((name, path));
+            }
+        }
+        filtered_scenarios
     } else if let Some(path) = scenario {
         let s = load(path)?;
         vec![(s.name.clone(), PathBuf::from(path))]
@@ -98,6 +117,7 @@ pub fn handle_run_command(
 }
 
 pub fn handle_list_command(
+    tags: &[String],
     tier: &usize,
     pending_review: bool,
     results_db: &ResultsDB,
@@ -117,7 +137,10 @@ pub fn handle_list_command(
 
     let mut scenarios = Vec::new();
 
-    fn find_scenarios(dir: &std::path::Path, scenarios: &mut Vec<(String, usize, String)>) {
+    fn find_scenarios(
+        dir: &std::path::Path,
+        scenarios: &mut Vec<(PathBuf, String, usize, String, Vec<String>)>,
+    ) {
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
@@ -125,7 +148,13 @@ pub fn handle_list_command(
                     if let Some(ext) = path.extension() {
                         if ext == "yaml" {
                             if let Ok(s) = load(&path) {
-                                scenarios.push((s.name.clone(), s.tier, s.description));
+                                scenarios.push((
+                                    path,
+                                    s.name.clone(),
+                                    s.tier,
+                                    s.description,
+                                    s.tags,
+                                ));
                             }
                         }
                     }
@@ -141,7 +170,18 @@ pub fn handle_list_command(
         find_scenarios(&fixtures_dir, &mut scenarios);
     }
 
-    scenarios.sort_by(|a, b| a.1.cmp(&b.1));
+    let filtered_scenarios: Vec<_> = scenarios
+        .iter()
+        .filter(|(_, _, scenario_tier, _, scenario_tags)| {
+            let tier_match = scenario_tier <= tier;
+            let tags_match = if tags.is_empty() {
+                true
+            } else {
+                tags.iter().all(|tag| scenario_tags.contains(tag))
+            };
+            tier_match && tags_match
+        })
+        .collect();
 
     let tier_label = match *tier {
         0 => "smoke",
@@ -151,8 +191,13 @@ pub fn handle_list_command(
         _ => "unknown",
     };
     println!("Available scenarios (tier {}):", tier_label);
-    for (name, _tier, description) in &scenarios {
-        println!("  [{}] {} - {}", tier_label, name, description);
+    for (_path, name, _scenario_tier, description, scenario_tags) in &filtered_scenarios {
+        let tags_str = if scenario_tags.is_empty() {
+            String::new()
+        } else {
+            format!(" [{}]", scenario_tags.join(", "))
+        };
+        println!("  [{}] {}{} - {}", tier_label, name, tags_str, description);
     }
 
     Ok(())

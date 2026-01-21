@@ -77,8 +77,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Run {
             scenario,
             all,
-            tags: _,
-            tier: _,
+            tags,
+            tier,
             tool,
             model,
             tools,
@@ -94,6 +94,8 @@ fn main() -> anyhow::Result<()> {
                 commands::handle_run_command(
                     scenario,
                     *all,
+                    tags,
+                    tier,
                     tool,
                     model,
                     tools,
@@ -110,6 +112,8 @@ fn main() -> anyhow::Result<()> {
                 commands::handle_run_command(
                     scenario,
                     *all,
+                    tags,
+                    tier,
                     tool,
                     model,
                     tools,
@@ -127,11 +131,11 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Scenarios {
-            tags: _,
+            tags,
             tier,
             pending_review,
         } => {
-            commands::handle_list_command(tier, *pending_review, &results_db)?;
+            commands::handle_list_command(tags, tier, *pending_review, &results_db)?;
         }
         Commands::Show { name } => {
             commands::handle_show_command(name, &results_db)?;

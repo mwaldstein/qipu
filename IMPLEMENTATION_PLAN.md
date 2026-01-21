@@ -3,9 +3,9 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_PLAN.md`](FUTURE_PLAN.md).
 
 ## Status
-- Test baseline: `cargo test` passes (note: 33 pre-existing test failures unrelated to P1/P2 fixes)
+- Test baseline: 449 tests pass (223 unit + 226 integration), 22 failures tracked in P1 below
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` passes
-- Audit Date: 2026-01-20
+- Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
 ---
@@ -89,6 +89,55 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
  - [x] `--dry-run` errors even for single-scenario runs.
    - `crates/llm-tool-test/src/run.rs:185-188`
    - Learnings: Replaced bail!("Dry run not supported in matrix mode") with returning a mock ResultRecord; dry-run now creates a dummy record with zero metrics and "Dry run" outcome; allows previewing what would run without execution
+
+### Database Schema - Missing Fields (22 test failures)
+
+**Root Cause**: Several frontmatter fields are stored in note files but NOT in the database schema. When notes are retrieved via `list_notes_full()` or `get_note()`, these fields are hardcoded to empty/null values instead of being read from the database.
+
+ - [ ] **Compacts field not stored in database** (11 tests)
+   - Failing tests: `test_compaction_annotations`, `test_compact_report`, `test_compact_show`, `test_compact_status`, `test_context_expand_compaction_*`, `test_link_*_with_compaction`
+   - `src/lib/db/schema.rs` - Add `compacts TEXT` column (JSON array or comma-separated)
+   - `src/lib/db/notes/write.rs` - Store compacts when inserting/updating notes
+   - `src/lib/db/notes/read.rs:303-320,449-466` - Read compacts field in `get_note()` and `list_notes_full()`
+   - **Approach**: Add a `compacts` TEXT column to notes table (store as JSON array string). Update `insert_note_internal` to serialize `frontmatter.compacts` to JSON. Update `get_note` and `list_notes_full` to deserialize back to `Vec<String>`. Bump schema version.
+
+ - [ ] **Provenance fields not stored in database** (4 tests)
+   - Failing tests: `test_context_prioritizes_verified`, `test_create_with_provenance`, `test_context_json_with_provenance`, `test_context_records_with_body_and_sources`
+   - Missing fields: `author`, `verified`, `source`, `sources`, `generated_by`, `prompt_hash`
+   - `src/lib/db/schema.rs` - Add columns for provenance fields
+   - `src/lib/db/notes/write.rs` - Store provenance fields
+   - `src/lib/db/notes/read.rs:303-320,449-466` - Read provenance fields
+   - **Approach**: Add columns: `author TEXT`, `verified INTEGER` (boolean), `source TEXT`, `sources TEXT` (JSON array), `generated_by TEXT`, `prompt_hash TEXT`. Update insert/read functions. Bump schema version.
+
+### Edge Insertion - Duplicate Edge Handling (4 tests)
+
+**Root Cause**: When a note is created with inline wiki-links `[[id]]`, edges are inserted. If a test then tries to add a typed link to the same target with `link add`, it fails with UNIQUE constraint violation because inline links create edges with `link_type='related'`.
+
+ - [ ] **Use UPSERT for edge insertion to handle duplicates gracefully**
+   - Failing tests: `test_link_path_inline_only`, `test_link_path_typed_only`, `test_link_tree_inline_only`, `test_link_tree_typed_only`
+   - `src/lib/db/edges.rs:47-56,136-148` - Change INSERT to INSERT OR REPLACE
+   - **Approach**: Change edge INSERT statements to use `INSERT OR REPLACE INTO edges ...` or `INSERT INTO edges ... ON CONFLICT DO UPDATE SET ...`. This allows typed links to override inline links to the same target, or vice versa. Consider which semantics are correct: should typed links override inline, or should we keep both with different link_types?
+   - **Alternative**: Fix the tests to not create duplicate edges. The tests create inline links via `capture` then try to add typed links with the same `related` type. Tests could use a different link type for the typed link.
+
+### Miscellaneous Test Failures (3 tests)
+
+ - [ ] **Doctor broken link detection test expects wrong exit code**
+   - Failing test: `test_doctor_broken_link_detection`
+   - Test expects exit code 3 but gets 0 with "Consistency check failed" warning
+   - `tests/cli/doctor.rs` - Test writes a note with a broken link, but the consistency check runs before doctor logic
+   - **Approach**: Investigate why the test creates a note with broken link but doctor reports healthy. May need to add broken link to database or ensure index is run after creating the broken link file.
+
+ - [ ] **Dump typed-only test assertion mismatch**
+   - Failing test: `test_dump_typed_only_excludes_inline_links`
+   - Expects 2 notes but gets 1
+   - `tests/cli/dump.rs` - Test logic may need updating after edge insertion fixes
+   - **Approach**: Debug the test to verify that typed links are being created and the dump command is traversing them correctly.
+
+ - [ ] **Export MOC order test failure**
+   - Failing test: `test_export_bundle_preserves_moc_order`
+   - Assertion on body content fails
+   - `tests/cli/export.rs` - Test expects specific ordering in export bundle
+   - **Approach**: Debug the test to see what order is being produced vs expected. May be related to edge position tracking.
 
 ---
 

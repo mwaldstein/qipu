@@ -19,6 +19,7 @@ pub fn output_human(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     max_chars: Option<usize>,
+    excluded_notes: &[&SelectedNote],
 ) {
     let start = Instant::now();
 
@@ -31,8 +32,16 @@ pub fn output_human(
 
     let mut final_truncated = truncated;
     let mut note_count = notes.len();
+    let total_notes = notes.len() + excluded_notes.len();
 
     loop {
+        // Calculate currently excluded notes
+        let current_excluded: Vec<&SelectedNote> = notes[note_count..]
+            .iter()
+            .copied()
+            .chain(excluded_notes.iter().copied())
+            .collect();
+
         let output = build_human_output(
             cli,
             store_path,
@@ -43,6 +52,7 @@ pub fn output_human(
             compaction_ctx,
             note_map,
             all_notes,
+            &current_excluded,
         );
 
         if max_chars.is_none() || output.len() <= max_chars.unwrap() {
@@ -80,6 +90,7 @@ fn build_human_output(
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
+    excluded_notes: &[&SelectedNote],
 ) -> String {
     let mut output = String::new();
 
@@ -216,6 +227,20 @@ fn build_human_output(
         }
 
         output.push('\n');
+    }
+
+    // Add per-note truncation markers for excluded notes
+    if !excluded_notes.is_empty() {
+        output.push_str("---\n\n");
+        output.push_str(&format!("## Excluded Notes ({})\n\n", excluded_notes.len()));
+        output.push_str("The following notes were excluded due to budget constraints:\n\n");
+        for excluded in excluded_notes {
+            output.push_str(&format!(
+                "- {} ({})\n",
+                excluded.note.title(),
+                excluded.note.id()
+            ));
+        }
     }
 
     output

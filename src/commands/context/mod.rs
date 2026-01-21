@@ -368,8 +368,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     });
 
     // Apply budgeting (records format handles its own exact budget)
-    let (truncated, notes_to_output) = match cli.format {
-        OutputFormat::Records => (false, selected_notes.iter().collect()),
+    let (truncated, notes_to_output, excluded_notes) = match cli.format {
+        OutputFormat::Records => (false, selected_notes.iter().collect(), Vec::new()),
         _ => budget::apply_budget(
             &selected_notes,
             options.max_chars,
@@ -394,6 +394,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &note_map,
                 &all_notes,
                 options.max_chars,
+                &excluded_notes,
             )?;
         }
         OutputFormat::Human => {
@@ -408,6 +409,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &note_map,
                 &all_notes,
                 options.max_chars,
+                &excluded_notes,
             );
         }
         OutputFormat::Records => {

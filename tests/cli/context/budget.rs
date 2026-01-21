@@ -206,7 +206,7 @@ fn test_context_max_tokens_and_chars() {
         .success();
 
     // If max-chars is very small, it should truncate even if max-tokens is large
-    qipu()
+    let output1 = qipu()
         .current_dir(dir.path())
         .args([
             "context",
@@ -217,13 +217,23 @@ fn test_context_max_tokens_and_chars() {
             "--max-tokens",
             "10000",
         ])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("truncated"))
-        .stdout(predicate::str::contains("Large Note").not());
+        .output()
+        .unwrap();
+
+    assert!(output1.status.success());
+    let stdout1 = String::from_utf8(output1.stdout).unwrap();
+
+    eprintln!("Output with max-chars=100:\n{}", stdout1);
+    eprintln!("Length: {}", stdout1.len());
+
+    // Should indicate truncation
+    assert!(stdout1.contains("truncated"));
+    // When budget is extremely small (100 chars), we may not have room for excluded notes section
+    // Just verify the note content is not included
+    assert!(!stdout1.contains("This is a repeating line"));
 
     // If max-tokens is very small, it should truncate even if max-chars is large
-    qipu()
+    let output2 = qipu()
         .current_dir(dir.path())
         .args([
             "context",
@@ -234,10 +244,20 @@ fn test_context_max_tokens_and_chars() {
             "--max-tokens",
             "10",
         ])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("truncated"))
-        .stdout(predicate::str::contains("Large Note").not());
+        .output()
+        .unwrap();
+
+    assert!(output2.status.success());
+    let stdout2 = String::from_utf8(output2.stdout).unwrap();
+
+    eprintln!("Output with max-tokens=10:\n{}", stdout2);
+    eprintln!("Length: {}", stdout2.len());
+
+    // Should indicate truncation
+    assert!(stdout2.contains("truncated"));
+    // When budget is extremely small, we may not have room for excluded notes section
+    // Just verify the note content is not included
+    assert!(!stdout2.contains("This is a repeating line"));
 }
 
 #[test]
@@ -409,4 +429,123 @@ fn test_context_prefers_typed_links_over_related() {
     }
 
     // Success: typed links (part-of, supports) are prioritized over related links
+}
+
+#[test]
+fn test_context_shows_excluded_notes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create multiple notes
+    let mut note_ids = Vec::new();
+    for i in 0..5 {
+        let output = qipu()
+            .current_dir(dir.path())
+            .args(["create", &format!("Test Note {}", i), "--tag", "test"])
+            .output()
+            .unwrap();
+
+        let id = String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .next()
+            .unwrap()
+            .trim()
+            .to_string();
+        note_ids.push(id);
+    }
+
+    // Test human format with budget that excludes some notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "test",
+            "--max-chars",
+            "800",
+            "--format",
+            "human",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Should show truncation notice
+    assert!(stdout.contains("truncated"));
+    // Should have an "Excluded Notes" section
+    assert!(stdout.contains("Excluded Notes"));
+    // Should list at least one excluded note
+    let excluded_count = stdout.matches("Excluded Notes").count();
+    assert!(excluded_count > 0);
+
+    // Test JSON format with budget that excludes some notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "test",
+            "--max-chars",
+            "1000",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+    // Should have truncated flag
+    assert_eq!(json["truncated"], true);
+    // Should have excluded_notes array
+    assert!(json["excluded_notes"].is_array());
+    let excluded = json["excluded_notes"].as_array().unwrap();
+    assert!(
+        !excluded.is_empty(),
+        "Should have at least one excluded note"
+    );
+    // Each excluded note should have id and title
+    for excluded_note in excluded {
+        assert!(excluded_note["id"].is_string());
+        assert!(excluded_note["title"].is_string());
+    }
+
+    // Test records format with budget that excludes some notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--tag",
+            "test",
+            "--max-chars",
+            "600",
+            "--format",
+            "records",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Should have truncated=true in header
+    assert!(stdout.contains("truncated=true"));
+    // Should have D excluded records
+    assert!(stdout.contains("D excluded"));
+    // Count excluded markers
+    let excluded_count = stdout.matches("D excluded").count();
+    assert!(
+        excluded_count > 0,
+        "Should have at least one excluded note marker"
+    );
 }

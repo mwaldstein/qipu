@@ -218,9 +218,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: While tree traversal already had explicit neighbor sorting (bfs.rs:208-213), path finding was missing this. Added `neighbors.sort_by()` after edge collection and before processing to ensure deterministic path selection when multiple equal-cost paths exist. The sorting order matches tree traversal: by (link_type, neighbor_id).
 
 ### LLM Context (`specs/llm-context.md`)
-- [ ] No per-note truncation marker when budgets are applied.
-  - `src/commands/context/budget.rs:55-82`
-  - `src/commands/context/human.rs:35-68`
+- [x] No per-note truncation marker when budgets are applied.
+  - `src/commands/context/budget.rs:7-92` - Modified to return excluded notes
+  - `src/commands/context/human.rs:10-223` - Added "Excluded Notes" section
+  - `src/commands/context/json.rs:10-228` - Added "excluded_notes" array
+  - `src/commands/context/records.rs:10-290` - Added "D excluded" markers
+  - `tests/cli/context/budget.rs:412-502` - Added comprehensive test
+  - **Learnings**: When budget constraints prevent notes from being included, all three output formats now show which notes were excluded. Human format shows an "Excluded Notes" section, JSON format includes an "excluded_notes" array with id/title, and records format adds "D excluded" markers. Records format budget calculation was updated to account for excluded note marker size to ensure exact budget compliance.
 - [ ] Default output uses summaries unless `--with-body` (spec implies full body).
   - `src/commands/context/human.rs:161-165`
   - `src/commands/context/json.rs:91-95`

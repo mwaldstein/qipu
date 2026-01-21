@@ -210,17 +210,32 @@ pub fn output_records(
 
     let total_blocks = blocks.len();
     let (budget_truncated, include_safety, block_count, truncated) = if config.truncated {
-        let (budget_flag, include, count) =
-            select_blocks(header_len_true, budget, safety_line.as_ref(), &blocks);
+        let (budget_flag, include, count) = select_blocks(
+            header_len_true,
+            budget,
+            safety_line.as_ref(),
+            &blocks,
+            notes,
+        );
         (budget_flag, include, count, true)
     } else {
-        let (budget_flag, include, count) =
-            select_blocks(header_len_false, budget, safety_line.as_ref(), &blocks);
+        let (budget_flag, include, count) = select_blocks(
+            header_len_false,
+            budget,
+            safety_line.as_ref(),
+            &blocks,
+            notes,
+        );
         if !budget_flag && count == total_blocks && include == safety_line.is_some() {
             (false, include, count, false)
         } else {
-            let (budget_flag, include, count) =
-                select_blocks(header_len_true, budget, safety_line.as_ref(), &blocks);
+            let (budget_flag, include, count) = select_blocks(
+                header_len_true,
+                budget,
+                safety_line.as_ref(),
+                &blocks,
+                notes,
+            );
             (budget_flag, include, count, true)
         }
     };
@@ -244,6 +259,17 @@ pub fn output_records(
         }
     }
 
+    // Add per-note truncation markers for excluded notes
+    if block_count < blocks.len() {
+        for selected in notes.iter().skip(block_count) {
+            println!(
+                "D excluded id={} title=\"{}\"",
+                selected.note.id(),
+                escape_quotes(selected.note.title())
+            );
+        }
+    }
+
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "output_records_complete");
     }
@@ -254,6 +280,7 @@ fn select_blocks(
     budget: Option<usize>,
     safety_line: Option<&String>,
     blocks: &[Vec<String>],
+    notes: &[&SelectedNote],
 ) -> (bool, bool, usize) {
     if let Some(max) = budget {
         if header_len > max {
@@ -275,9 +302,21 @@ fn select_blocks(
     }
 
     let mut count = 0;
-    for block in blocks {
+    for (idx, block) in blocks.iter().enumerate() {
         let block_len: usize = block.iter().map(|line| line.len() + 1).sum();
-        if budget.is_none_or(|max| used + block_len <= max) {
+
+        // Calculate size of excluded note markers if we stop here
+        let mut excluded_size = 0;
+        for selected in notes.iter().skip(idx + 1) {
+            // Format: "D excluded id=<id> title="<title>"\n"
+            excluded_size += "D excluded id=".len()
+                + selected.note.id().len()
+                + " title=\"".len()
+                + escape_quotes(selected.note.title()).len()
+                + "\"\n".len();
+        }
+
+        if budget.is_none_or(|max| used + block_len + excluded_size <= max) {
             used += block_len;
             count += 1;
         } else {

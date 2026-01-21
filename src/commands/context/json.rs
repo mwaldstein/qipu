@@ -19,6 +19,7 @@ pub fn output_json(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     max_chars: Option<usize>,
+    excluded_notes: &[&SelectedNote],
 ) -> Result<()> {
     let start = Instant::now();
 
@@ -42,6 +43,7 @@ pub fn output_json(
             compaction_ctx,
             note_map,
             all_notes,
+            excluded_notes,
         );
 
         let output_str = serde_json::to_string_pretty(&output)?;
@@ -82,8 +84,9 @@ fn build_json_output(
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
+    excluded_notes: &[&SelectedNote],
 ) -> serde_json::Value {
-    serde_json::json!({
+    let mut output = serde_json::json!({
         "store": store_path,
         "truncated": truncated,
         "notes": notes.iter().map(|selected| {
@@ -200,5 +203,23 @@ fn build_json_output(
 
             json
         }).collect::<Vec<_>>(),
-    })
+    });
+
+    // Add excluded notes if any
+    if !excluded_notes.is_empty() {
+        if let Some(obj) = output.as_object_mut() {
+            obj.insert(
+                "excluded_notes".to_string(),
+                serde_json::json!(excluded_notes
+                    .iter()
+                    .map(|selected| serde_json::json!({
+                        "id": selected.note.id(),
+                        "title": selected.note.title(),
+                    }))
+                    .collect::<Vec<_>>()),
+            );
+        }
+    }
+
+    output
 }

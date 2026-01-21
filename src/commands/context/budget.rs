@@ -4,14 +4,14 @@ use std::time::Instant;
 use tiktoken_rs::get_bpe_from_model;
 
 /// Apply character and token budget to notes
-/// Returns (truncated, notes_to_output)
+/// Returns (truncated, notes_to_output, excluded_notes)
 pub fn apply_budget<'a>(
     notes: &'a [SelectedNote<'a>],
     max_chars: Option<usize>,
     max_tokens: Option<usize>,
     model: &str,
     with_body: bool,
-) -> (bool, Vec<&'a SelectedNote<'a>>) {
+) -> (bool, Vec<&'a SelectedNote<'a>>, Vec<&'a SelectedNote<'a>>) {
     let start = Instant::now();
 
     tracing::debug!(
@@ -24,7 +24,7 @@ pub fn apply_budget<'a>(
     );
 
     if max_chars.is_none() && max_tokens.is_none() {
-        return (false, notes.iter().collect());
+        return (false, notes.iter().collect(), Vec::new());
     }
 
     let bpe = if max_tokens.is_some() {
@@ -52,6 +52,8 @@ pub fn apply_budget<'a>(
     used_chars += header_estimate_chars;
     used_tokens += header_estimate_tokens;
 
+    let mut excluded = Vec::new();
+
     for note in notes {
         let note_size_chars = estimate_note_size(note.note, with_body);
         let note_size_tokens = if let Some(ref bpe) = bpe {
@@ -77,18 +79,19 @@ pub fn apply_budget<'a>(
             used_tokens += note_size_tokens_with_buffer;
         } else {
             truncated = true;
-            break;
+            excluded.push(note);
         }
     }
 
     tracing::debug!(
         output_notes = result.len(),
+        excluded_notes = excluded.len(),
         truncated,
         elapsed = ?start.elapsed(),
         "apply_budget_complete"
     );
 
-    (truncated, result)
+    (truncated, result, excluded)
 }
 
 /// Estimate the output size of a note in tokens

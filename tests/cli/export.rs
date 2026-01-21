@@ -339,3 +339,33 @@ fn test_export_anchor_links_point_to_existing_anchors() {
         );
     }
 }
+
+#[test]
+fn test_export_outline_fallback_to_bundle_without_moc() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(&note_b_path, "---\nid: qp-bbbb\ntitle: Note B\n---\nBody B").unwrap();
+
+    // Export with outline mode but without --moc flag should fallback to bundle mode
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "export", "--note", "qp-aaaa", "--note", "qp-bbbb", "--mode", "outline",
+        ])
+        .assert()
+        .success()
+        // Should produce bundle-style output (with "## Note:" prefix)
+        .stdout(predicate::str::contains("## Note: Note A (qp-aaaa)"))
+        .stdout(predicate::str::contains("## Note: Note B (qp-bbbb)"))
+        .stdout(predicate::str::contains("Body A"))
+        .stdout(predicate::str::contains("Body B"));
+}

@@ -183,8 +183,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Query export caps results at 200 notes.
   - `src/commands/export/plan.rs:54`
   - Learnings: Increased query result limit from 200 to 10,000 notes for export command; export is a deliberate bulk operation that should not arbitrarily cap results; 10,000 is 50x the previous limit and handles most realistic use cases while providing safety bound
-- [ ] Outline export falls back to bundle when `--moc` is missing.
+- [x] Outline export falls back to bundle when `--moc` is missing.
   - `src/commands/export/emit/outline.rs:23-28`
+  - `tests/cli/export.rs:344-377`
+  - Learnings: Fallback logic was already implemented; added test coverage to verify outline mode falls back to bundle output when --moc flag is not provided
 
 ### Semantic Graph (`specs/semantic-graph.md`)
 - [ ] Context selection doesn’t prefer typed links over `related` when constrained.

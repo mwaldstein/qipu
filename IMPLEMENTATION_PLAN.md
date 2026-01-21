@@ -213,9 +213,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - **Learnings**: Semantic validation runs at database level using typed edges (inline=0). All validations produce warnings (not errors) since these are semantic issues that don't break functionality. The validation integrates seamlessly with existing doctor checks.
 
 ### Records Output (`specs/records-output.md`)
-- [ ] Link tree/path records rely on traversal order (no explicit ordering).
-  - `src/commands/link/tree.rs:287-340`
-  - `src/commands/link/records.rs:217-315`
+- [x] Link tree/path records rely on traversal order (no explicit ordering).
+   - `src/lib/graph/bfs.rs:798-806,928-936` - Added explicit neighbor sorting in both unweighted BFS and weighted Dijkstra path finding
+   - Learnings: While tree traversal already had explicit neighbor sorting (bfs.rs:208-213), path finding was missing this. Added `neighbors.sort_by()` after edge collection and before processing to ensure deterministic path selection when multiple equal-cost paths exist. The sorting order matches tree traversal: by (link_type, neighbor_id).
 
 ### LLM Context (`specs/llm-context.md`)
 - [ ] No per-note truncation marker when budgets are applied.

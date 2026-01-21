@@ -795,6 +795,13 @@ pub fn bfs_find_path(
                 }
             }
 
+            // Sort for determinism
+            neighbors.sort_by(|a, b| {
+                a.1.link_type
+                    .cmp(&b.1.link_type)
+                    .then_with(|| a.0.cmp(&b.0))
+            });
+
             for (neighbor_id, edge) in neighbors {
                 // Canonicalize edge endpoints if using compaction
                 let canonical_from = if let Some(ctx) = compaction_ctx {
@@ -917,6 +924,13 @@ pub fn bfs_find_path(
                     }
                 }
             }
+
+            // Sort for determinism
+            neighbors.sort_by(|a, b| {
+                a.1.link_type
+                    .cmp(&b.1.link_type)
+                    .then_with(|| a.0.cmp(&b.0))
+            });
 
             for (neighbor_id, edge) in neighbors {
                 // Canonicalize edge endpoints if using compaction

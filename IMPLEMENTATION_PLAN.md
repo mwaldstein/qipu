@@ -235,9 +235,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - **Learnings**: The implementation already follows best practices for clean output by omitting empty metadata fields. Type is always shown since every note has a type.
 
 ### Compaction (`specs/compaction.md`)
-- [ ] Link outputs omit `compacts=`/`compaction=` annotations for digest nodes.
-  - `src/commands/link/human.rs:30-53`
-  - `src/commands/link/tree.rs:183-205`
+- [x] Link outputs omit `compacts=`/`compaction=` annotations for digest nodes.
+  - `src/commands/link/human.rs:1-110` - Added compacts=/compaction= annotations to link list and link path human output
+  - `src/commands/link/tree.rs:133-374` - Added compacts=/compaction= annotations to link tree human and records output
+  - `src/commands/link/records.rs:1-370` - Added compacts=/compaction= annotations to link list and link path records output
+  - `src/commands/link/list.rs:148-175` - Build note_map for compaction percentage calculation
+  - `src/commands/link/path.rs:71-103` - Build note_map for compaction percentage calculation
+  - **Learnings**: Compaction annotations (compacts=N and compaction=P%) are now shown for digest nodes in all link command outputs (list, tree, path) across all formats (human, records). The compaction percentage requires building a note_map (HashMap<&str, &Note>) to look up note data for size estimation. The annotations appear directly on the N record line for records format, and as a separate line after the node for human format.
 - [ ] JSON outputs ignore compaction truncation flags.
   - `src/commands/search.rs:212-226`
   - `src/commands/show.rs:97-107`

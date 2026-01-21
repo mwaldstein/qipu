@@ -78,16 +78,39 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
         )?
     };
 
+    // Build note map for compaction percentage calculation
+    // Per spec (specs/compaction.md lines 104-109)
+    let note_map = if compaction_ctx.is_some() {
+        let map: HashMap<&str, &crate::lib::note::Note> =
+            all_notes.iter().map(|n| (n.id(), n)).collect();
+        Some(map)
+    } else {
+        None
+    };
+
     // Output
     match cli.format {
         OutputFormat::Json => {
             output_tree_json(cli, &result, compaction_ctx.as_ref())?;
         }
         OutputFormat::Human => {
-            output_tree_human(cli, &result, &index, compaction_ctx.as_ref());
+            output_tree_human(
+                cli,
+                &result,
+                &index,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+            );
         }
         OutputFormat::Records => {
-            output_tree_records(&result, store, &opts, cli, compaction_ctx.as_ref());
+            output_tree_records(
+                &result,
+                store,
+                &opts,
+                cli,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+            );
         }
     }
 
@@ -136,6 +159,7 @@ fn output_tree_human(
     result: &TreeResult,
     index: &Index,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &crate::lib::note::Note>>,
 ) {
     if result.notes.is_empty() {
         if !cli.quiet {
@@ -156,6 +180,7 @@ fn output_tree_human(
         is_last: bool,
         cli: &'a Cli,
         compaction_ctx: Option<&'a CompactionContext>,
+        note_map: Option<&'a HashMap<&'a str, &'a crate::lib::note::Note>>,
     }
 
     // Print tree recursively
@@ -179,7 +204,30 @@ fn output_tree_human(
             "├── "
         };
 
+        // Build compaction annotations for digest nodes
+        // Per spec (specs/compaction.md lines 113-122)
+        let mut annotations = String::new();
+        if let Some(ctx) = config.compaction_ctx {
+            let compacts_count = ctx.get_compacts_count(id);
+            if compacts_count > 0 {
+                annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                // Calculate compaction percentage if we have note data
+                if let Some(map) = config.note_map {
+                    if let Some(note) = map.get(id) {
+                        if let Some(pct) = ctx.get_compaction_pct(note, map) {
+                            annotations.push_str(&format!(" compaction={:.0}%", pct));
+                        }
+                    }
+                }
+            }
+        }
+
         println!("{}{}{} \"{}\"", config.prefix, connector, id, title);
+
+        if !annotations.is_empty() {
+            println!("{}  {}", config.prefix, annotations.trim_start());
+        }
 
         // Show compacted IDs if --with-compaction-ids is set
         if config.cli.with_compaction_ids {
@@ -237,6 +285,7 @@ fn output_tree_human(
                         is_last: is_last_child,
                         cli: config.cli,
                         compaction_ctx: config.compaction_ctx,
+                        note_map: config.note_map,
                     };
                     print_tree(&entry.to, children, index, &new_visited, &child_config);
                 }
@@ -251,6 +300,7 @@ fn output_tree_human(
         is_last: true,
         cli,
         compaction_ctx,
+        note_map,
     };
     print_tree(
         &result.root,
@@ -279,6 +329,7 @@ fn output_tree_records(
     opts: &TreeOptions,
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &crate::lib::note::Note>>,
 ) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
@@ -289,12 +340,33 @@ fn output_tree_records(
         } else {
             note.tags.join(",")
         };
+
+        // Build compaction annotations for digest nodes
+        // Per spec (specs/compaction.md lines 113-122)
+        let mut annotations = String::new();
+        if let Some(ctx) = compaction_ctx {
+            let compacts_count = ctx.get_compacts_count(&note.id);
+            if compacts_count > 0 {
+                annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                // Calculate compaction percentage if we have note data
+                if let Some(map) = note_map {
+                    if let Some(full_note) = map.get(note.id.as_str()) {
+                        if let Some(pct) = ctx.get_compaction_pct(full_note, map) {
+                            annotations.push_str(&format!(" compaction={:.0}%", pct));
+                        }
+                    }
+                }
+            }
+        }
+
         lines.push(format!(
-            "N {} {} \"{}\" tags={}",
+            "N {} {} \"{}\" tags={}{}",
             note.id,
             note.note_type,
             escape_quotes(&note.title),
-            tags_csv
+            tags_csv,
+            annotations
         ));
 
         if cli.with_compaction_ids {

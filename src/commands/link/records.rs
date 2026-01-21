@@ -3,8 +3,10 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::graph::PathResult;
 use crate::lib::index::Index;
+use crate::lib::note::Note;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
+use std::collections::HashMap;
 
 /// Output in records format
 #[allow(clippy::too_many_arguments)]
@@ -16,12 +18,21 @@ pub fn output_records(
     direction: Direction,
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &Note>>,
     max_chars: Option<usize>,
 ) {
     let mut lines = Vec::new();
 
     // Generate note metadata lines
-    append_note_metadata_lines(&mut lines, entries, store, index, cli, compaction_ctx);
+    append_note_metadata_lines(
+        &mut lines,
+        entries,
+        store,
+        index,
+        cli,
+        compaction_ctx,
+        note_map,
+    );
 
     // Generate edge lines
     append_edge_lines(&mut lines, entries, display_id);
@@ -44,6 +55,7 @@ fn collect_unique_note_ids(entries: &[LinkEntry]) -> Vec<String> {
 }
 
 /// Append note metadata lines including summaries and compaction info
+#[allow(clippy::too_many_arguments)]
 fn append_note_metadata_lines(
     lines: &mut Vec<String>,
     entries: &[LinkEntry],
@@ -51,24 +63,45 @@ fn append_note_metadata_lines(
     index: &Index,
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &Note>>,
 ) {
     let unique_ids = collect_unique_note_ids(entries);
 
     for link_id in &unique_ids {
         if let Some(meta) = index.get_metadata(link_id) {
-            // Add note metadata line
+            // Add note metadata line with compaction annotations
+            // Per spec (specs/compaction.md lines 113-122)
             let tags_csv = if meta.tags.is_empty() {
                 "-".to_string()
             } else {
                 meta.tags.join(",")
             };
+
+            let mut annotations = String::new();
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(link_id);
+                if compacts_count > 0 {
+                    annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                    // Calculate compaction percentage if we have note data
+                    if let Some(map) = note_map {
+                        if let Some(note) = map.get(link_id.as_str()) {
+                            if let Some(pct) = ctx.get_compaction_pct(note, map) {
+                                annotations.push_str(&format!(" compaction={:.0}%", pct));
+                            }
+                        }
+                    }
+                }
+            }
+
             lines.push(format!(
-                "N {} {} \"{}\" tags={} path={}",
+                "N {} {} \"{}\" tags={} path={}{}",
                 link_id,
                 meta.note_type,
                 escape_quotes(&meta.title),
                 tags_csv,
-                meta.path
+                meta.path,
+                annotations
             ));
 
             // Add summary line if available
@@ -211,6 +244,7 @@ pub fn output_path_records(
     opts: &TreeOptions,
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &Note>>,
 ) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
@@ -222,13 +256,34 @@ pub fn output_path_records(
             } else {
                 note.tags.join(",")
             };
+
+            // Build compaction annotations for digest nodes
+            // Per spec (specs/compaction.md lines 113-122)
+            let mut annotations = String::new();
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&note.id);
+                if compacts_count > 0 {
+                    annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                    // Calculate compaction percentage if we have note data
+                    if let Some(map) = note_map {
+                        if let Some(full_note) = map.get(note.id.as_str()) {
+                            if let Some(pct) = ctx.get_compaction_pct(full_note, map) {
+                                annotations.push_str(&format!(" compaction={:.0}%", pct));
+                            }
+                        }
+                    }
+                }
+            }
+
             lines.push(format!(
-                "N {} {} \"{}\" tags={} path={}",
+                "N {} {} \"{}\" tags={} path={}{}",
                 note.id,
                 note.note_type,
                 escape_quotes(&note.title),
                 tags_csv,
-                note.path
+                note.path,
+                annotations
             ));
 
             if cli.with_compaction_ids {

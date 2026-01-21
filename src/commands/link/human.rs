@@ -2,6 +2,8 @@ use super::LinkEntry;
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::graph::PathResult;
+use crate::lib::note::Note;
+use std::collections::HashMap;
 
 /// Output in human-readable format
 pub fn output_human(
@@ -9,6 +11,7 @@ pub fn output_human(
     entries: &[LinkEntry],
     display_id: &str,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &Note>>,
 ) {
     if entries.is_empty() {
         if !cli.quiet {
@@ -26,10 +29,34 @@ pub fn output_human(
                 .as_ref()
                 .map(|t| format!(" \"{}\"", t))
                 .unwrap_or_default();
+
+            // Build compaction annotations for digest nodes
+            // Per spec (specs/compaction.md lines 113-122)
+            let mut annotations = String::new();
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&entry.id);
+                if compacts_count > 0 {
+                    annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                    // Calculate compaction percentage if we have note data
+                    if let Some(map) = note_map {
+                        if let Some(note) = map.get(entry.id.as_str()) {
+                            if let Some(pct) = ctx.get_compaction_pct(note, map) {
+                                annotations.push_str(&format!(" compaction={:.0}%", pct));
+                            }
+                        }
+                    }
+                }
+            }
+
             println!(
-                "{} {} {} [{}] ({})",
+                "{} {}{} [{}] ({})",
                 dir_arrow, entry.id, title_part, entry.link_type, entry.source
             );
+
+            if !annotations.is_empty() {
+                println!("  {}", annotations.trim_start());
+            }
 
             // Show compacted IDs if --with-compaction-ids is set
             if cli.with_compaction_ids {
@@ -61,6 +88,7 @@ pub fn output_path_human(
     cli: &Cli,
     result: &PathResult,
     compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&HashMap<&str, &Note>>,
 ) {
     if !result.found {
         if !cli.quiet {
@@ -79,7 +107,31 @@ pub fn output_path_human(
                 println!("  v");
             }
         }
+
+        // Build compaction annotations for digest nodes
+        // Per spec (specs/compaction.md lines 113-122)
+        let mut annotations = String::new();
+        if let Some(ctx) = compaction_ctx {
+            let compacts_count = ctx.get_compacts_count(&note.id);
+            if compacts_count > 0 {
+                annotations.push_str(&format!(" compacts={}", compacts_count));
+
+                // Calculate compaction percentage if we have note data
+                if let Some(map) = note_map {
+                    if let Some(full_note) = map.get(note.id.as_str()) {
+                        if let Some(pct) = ctx.get_compaction_pct(full_note, map) {
+                            annotations.push_str(&format!(" compaction={:.0}%", pct));
+                        }
+                    }
+                }
+            }
+        }
+
         println!("{} \"{}\"", note.id, note.title);
+
+        if !annotations.is_empty() {
+            println!("  {}", annotations.trim_start());
+        }
 
         // Show compacted IDs if --with-compaction-ids is set
         if cli.with_compaction_ids {

@@ -145,13 +145,29 @@ pub fn execute(
     entries
         .dedup_by(|a, b| a.direction == b.direction && a.link_type == b.link_type && a.id == b.id);
 
+    // Build note map for compaction percentage calculation
+    // Per spec (specs/compaction.md lines 104-109)
+    let note_map = if compaction_ctx.is_some() {
+        let map: std::collections::HashMap<&str, &crate::lib::note::Note> =
+            all_notes.iter().map(|n| (n.id(), n)).collect();
+        Some(map)
+    } else {
+        None
+    };
+
     // Output
     match cli.format {
         OutputFormat::Json => {
             json::output_json(cli, &entries, compaction_ctx.as_ref())?;
         }
         OutputFormat::Human => {
-            human::output_human(cli, &entries, &display_id, compaction_ctx.as_ref());
+            human::output_human(
+                cli,
+                &entries,
+                &display_id,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+            );
         }
         OutputFormat::Records => {
             records::output_records(
@@ -162,6 +178,7 @@ pub fn execute(
                 direction,
                 cli,
                 compaction_ctx.as_ref(),
+                note_map.as_ref(),
                 max_chars,
             );
         }

@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 494 tests pass (223 unit + 249 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge)
+- Test baseline: 625 tests pass (223 unit + 250 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -196,8 +196,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Fallback logic was already implemented; added test coverage to verify outline mode falls back to bundle output when --moc flag is not provided
 
 ### Semantic Graph (`specs/semantic-graph.md`)
-- [ ] Context selection doesn’t prefer typed links over `related` when constrained.
-  - `src/commands/context/mod.rs:162-225`
+- [x] Context selection doesn't prefer typed links over `related` when constrained.
+  - `src/commands/context/mod.rs:337-368`
+  - `tests/cli/context/budget.rs:244-391`
+  - **Status**: Already implemented. Context selection sorts notes by: (1) verified status, (2) link type priority (`part-of` and `supports` get highest priority 0, other typed links get priority 1, `related` gets priority 2), (3) created date, (4) ID. This ensures typed links are preferred over `related` when budget constraints are applied.
+  - **Learnings**: Added comprehensive test that verifies typed links appear before `related` links in output and are prioritized when budget constraints force selection. The sorting happens before budget application in `apply_budget()`.
 - [ ] Doctor does not validate semantic misuse of standard link types.
   - `src/commands/doctor/database.rs:56-77`
 

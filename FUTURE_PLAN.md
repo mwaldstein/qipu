@@ -107,6 +107,15 @@ For specification status, see [`specs/README.md`](specs/README.md).
 
 ### LLM Integration & Context
 
+#### Beads Usage Audit
+- **Source:** Research task
+- **Description:** Audit how beads (`bd`) is used by LLM agents compared to qipu. Key questions:
+  - How do agents discover and use `bd prime` vs `qipu prime`?
+  - What patterns emerge for task tracking (beads) vs knowledge retrieval (qipu)?
+  - Should qipu adopt any beads patterns (e.g., hooks, onboarding flow)?
+  - How do agents combine beads + qipu in practice (task tracking + knowledge)?
+- **Status:** Research needed - observe real agent workflows
+
 #### Automatic Summarization (Without LLM)
 - **Source:** `specs/llm-context.md` (Open Questions, line 120)
 - **Description:** Should qipu support lightweight automatic summarization (without an LLM) for long notes?

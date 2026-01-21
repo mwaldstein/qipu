@@ -54,8 +54,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Context typed-link preference + doctor validation missing |
 | `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | `link path` weighted default; CSV flags missing; tests incomplete |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Default related threshold/opt-out missing; boosts hardcoded |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | `prime` max-chars missing; link records omit path |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation + prime budgeting missing; empty headers omitted |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link records rely on traversal order |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation missing; empty headers omitted |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness partial; guard/dry-run/gates/artifacts missing |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults + web capture defaults missing |
 | `export.md` | ✅ | ⚠️ | ⚠️ | Outline ordering + query cap; tests missing; optional formats |
@@ -105,8 +105,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `storage-format.md` | Feature gaps | Config store root + rewrite + collision guards missing |
 | `semantic-graph.md` | Feature gaps | Typed-link preference + doctor validation missing |
 | `graph-traversal.md` | Feature gaps/tests | CSV flags missing; inversion + truncation tests missing |
-| `records-output.md` | Feature gaps/tests | `prime` max-chars missing; tree/path trunc tests missing |
-| `llm-context.md` | Feature gaps | Per-note truncation + prime budgeting missing; empty headers omitted |
+| `records-output.md` | Feature gaps/tests | Link records rely on traversal order; tree/path trunc tests missing |
+| `llm-context.md` | Feature gaps | Per-note truncation missing; empty headers omitted |
 | `llm-user-validation.md` | Feature gaps | Schema/gates/budget/artifacts/tool-trait gaps |
 | `provenance.md` | Feature gaps | Verified defaults + web capture defaults missing |
 | `export.md` | Feature gaps/tests | Outline ordering + query cap; tests missing; optional formats |

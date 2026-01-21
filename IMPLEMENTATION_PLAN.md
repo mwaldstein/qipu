@@ -146,9 +146,6 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/doctor/database.rs:56-77`
 
 ### Records Output (`specs/records-output.md`)
-- [ ] `prime` records output lacks `--max-chars` budgeting.
-  - `src/commands/prime.rs:190-196`
-  - `src/cli/commands.rs:167-168`
 - [ ] Link tree/path records rely on traversal order (no explicit ordering).
   - `src/commands/link/tree.rs:287-340`
   - `src/commands/link/records.rs:217-315`
@@ -160,8 +157,6 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] Default output uses summaries unless `--with-body` (spec implies full body).
   - `src/commands/context/human.rs:161-165`
   - `src/commands/context/json.rs:91-95`
-- [ ] `prime` is count-capped only; no explicit token/char budgeting.
-  - `src/commands/prime.rs:15-20`
 - [ ] Bundle output omits empty metadata headers (`Path`, `Tags`, `Sources`) when values are absent.
   - `src/commands/context/human.rs:105-157`
 

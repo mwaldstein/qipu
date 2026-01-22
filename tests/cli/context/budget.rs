@@ -460,7 +460,7 @@ fn test_context_shows_excluded_notes() {
         note_ids.push(id);
     }
 
-    // Test human format with budget that excludes some notes
+    // Test human format with budget that truncates some notes
     let output = qipu()
         .current_dir(dir.path())
         .args([
@@ -480,13 +480,14 @@ fn test_context_shows_excluded_notes() {
 
     // Should show truncation notice
     assert!(stdout.contains("truncated"));
-    // Should have an "Excluded Notes" section
-    assert!(stdout.contains("Excluded Notes"));
-    // Should list at least one excluded note
-    let excluded_count = stdout.matches("Excluded Notes").count();
-    assert!(excluded_count > 0);
+    // Should have per-note truncation marker
+    assert!(stdout.contains("…[truncated]"));
+    // Should list all notes (some may be truncated)
+    assert!(stdout.contains("Test Note 0"));
+    assert!(stdout.contains("Test Note 1"));
+    assert!(stdout.contains("Test Note 2"));
 
-    // Test JSON format with budget that excludes some notes
+    // Test JSON format with budget that truncates some notes
     let output = qipu()
         .current_dir(dir.path())
         .args([
@@ -507,20 +508,24 @@ fn test_context_shows_excluded_notes() {
 
     // Should have truncated flag
     assert_eq!(json["truncated"], true);
-    // Should have excluded_notes array
-    assert!(json["excluded_notes"].is_array());
-    let excluded = json["excluded_notes"].as_array().unwrap();
-    assert!(
-        !excluded.is_empty(),
-        "Should have at least one excluded note"
-    );
-    // Each excluded note should have id and title
-    for excluded_note in excluded {
-        assert!(excluded_note["id"].is_string());
-        assert!(excluded_note["title"].is_string());
+    // Should have notes array (not excluded_notes)
+    assert!(json["notes"].is_array());
+    let notes = json["notes"].as_array().unwrap();
+    assert!(!notes.is_empty(), "Should have at least one note");
+    // At least one note should have content_truncated=true
+    let has_truncated = notes.iter().any(|note| {
+        note.get("content_truncated")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    });
+    assert!(has_truncated, "Should have at least one truncated note");
+    // Each note should have id and title
+    for note in notes {
+        assert!(note["id"].is_string());
+        assert!(note["title"].is_string());
     }
 
-    // Test records format with budget that excludes some notes
+    // Test records format with budget that truncates some notes
     let output = qipu()
         .current_dir(dir.path())
         .args([
@@ -540,12 +545,8 @@ fn test_context_shows_excluded_notes() {
 
     // Should have truncated=true in header
     assert!(stdout.contains("truncated=true"));
-    // Should have D excluded records
-    assert!(stdout.contains("D excluded"));
-    // Count excluded markers
-    let excluded_count = stdout.matches("D excluded").count();
-    assert!(
-        excluded_count > 0,
-        "Should have at least one excluded note marker"
-    );
+    // Should have "truncated" annotation in note headers
+    assert!(stdout.contains("truncated"));
+    // Should have truncation marker in body content
+    assert!(stdout.contains("…[truncated]"));
 }

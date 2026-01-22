@@ -200,17 +200,8 @@ pub fn run_single_scenario(
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
     let qipu_version = crate::results::get_qipu_version()?;
-    let cache_key = CacheKey::compute(&scenario_yaml, &prompt, tool, model, &qipu_version);
 
-    if !no_cache {
-        if let Some(cached) = cache.get(&cache_key) {
-            println!("Cache HIT! Using cached result: {}", cached.id);
-            output::print_result_summary(&cached);
-            return Ok(cached);
-        }
-    }
-
-    // Budget enforcement: check max_usd from CLI and scenario
+    // Budget enforcement: check max_usd from CLI and scenario BEFORE setting up fixture
     let effective_max_usd = match (cli_max_usd, s.cost.as_ref().and_then(|c| c.max_usd)) {
         (Some(cli), Some(scenario)) => Some(cli.min(scenario)),
         (Some(cli), None) => Some(*cli),
@@ -228,6 +219,33 @@ pub fn run_single_scenario(
         println!("Budget limit: ${:.4}", max_usd);
     }
 
+    // Set up fixture to get prime output for cache key
+    println!("Setting up environment for fixture: {}", s.fixture);
+    let env = crate::fixture::TestEnv::new(&s.name)?;
+    env.setup_fixture(&s.fixture)?;
+    println!("Environment created at: {:?}", env.root);
+
+    // Get prime output for cache key (empty string if no store yet)
+    let prime_output = env.get_prime_output();
+
+    // Compute cache key with prime output hash
+    let cache_key = CacheKey::compute(
+        &scenario_yaml,
+        &prompt,
+        &prime_output,
+        tool,
+        model,
+        &qipu_version,
+    );
+
+    if !no_cache {
+        if let Some(cached) = cache.get(&cache_key) {
+            println!("Cache HIT! Using cached result: {}", cached.id);
+            output::print_result_summary(&cached);
+            return Ok(cached);
+        }
+    }
+
     let adapter: Box<dyn ToolAdapter> = match tool {
         "amp" => Box::new(AmpAdapter),
         "claude-code" => Box::new(ClaudeCodeAdapter),
@@ -241,11 +259,6 @@ pub fn run_single_scenario(
         if let Err(e) = adapter.check_availability() {
             anyhow::bail!("Tool unavailable: {}", e);
         }
-
-        println!("Setting up environment for fixture: {}", s.fixture);
-        let env = crate::fixture::TestEnv::new(&s.name)?;
-        env.setup_fixture(&s.fixture)?;
-        println!("Environment created at: {:?}", env.root);
 
         if let Some(setup_steps) = &s.setup {
             println!("Running {} setup step(s)...", setup_steps.len());

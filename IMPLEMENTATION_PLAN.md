@@ -325,8 +325,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/graph/types.rs:48-53`
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
-- [ ] Include prime output hash in cache key.
-  - `crates/llm-tool-test/src/results.rs:233-272`
+- [x] Include prime output hash in cache key.
+  - `crates/llm-tool-test/src/results.rs:267-310` - Added `prime_output_hash` field to CacheKey struct
+  - `crates/llm-tool-test/src/fixture.rs:30-45` - Added `get_prime_output()` method to TestEnv
+  - `crates/llm-tool-test/src/run.rs:204-221` - Updated run_single_scenario to get prime output after fixture setup and include in cache key
+  - `crates/llm-tool-test/src/results.rs:586-844` - Updated all test cases to include prime_output parameter
+  - `crates/llm-tool-test/src/adapter/mock.rs:479-482,542-548,588-594,628-634` - Updated error message checks to handle both old and new error formats
+  - **Learnings**: Cache key now includes prime output hash to invalidate cache when fixture content changes; prime output is obtained after fixture setup but before cache check; budget validation moved before fixture setup for faster failure; empty string used for prime output if qipu command fails (e.g., no store yet or binary not found)
 - [ ] Fix MinLinks gate no-op in mock adapter.
   - `crates/llm-tool-test/src/adapter/mock.rs:60-61`
 - [ ] Avoid error-swallowing defaults in evaluation metrics.

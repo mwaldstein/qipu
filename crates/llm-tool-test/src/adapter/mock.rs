@@ -475,7 +475,10 @@ evaluation:
                 assert!(db_path.exists(), "Qipu database should be created");
             }
             Err(e) => {
-                if e.to_string().contains("doesn't exist on the filesystem") {
+                let err_str = e.to_string();
+                if err_str.contains("doesn't exist on the filesystem")
+                    || err_str.contains("No such file or directory")
+                {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_scenario_execution");
                     return;
@@ -533,7 +536,10 @@ evaluation:
                 );
             }
             Err(e) => {
-                if e.to_string().contains("doesn't exist on the filesystem") {
+                let err_str = e.to_string();
+                if err_str.contains("doesn't exist on the filesystem")
+                    || err_str.contains("No such file or directory")
+                {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_with_search_and_tags");
                     return;
@@ -574,7 +580,10 @@ evaluation:
                 assert!(output.contains("qipu create"), "Should create a note");
             }
             Err(e) => {
-                if e.to_string().contains("doesn't exist on the filesystem") {
+                let err_str = e.to_string();
+                if err_str.contains("doesn't exist on the filesystem")
+                    || err_str.contains("No such file or directory")
+                {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_command_succeeds_gate");
                     return;
@@ -612,7 +621,10 @@ evaluation:
                 assert!(cost < 1.0, "Mock adapter cost should be very low");
             }
             Err(e) => {
-                if e.to_string().contains("doesn't exist on the filesystem") {
+                let err_str = e.to_string();
+                if err_str.contains("doesn't exist on the filesystem")
+                    || err_str.contains("No such file or directory")
+                {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_cost_estimation");
                     return;

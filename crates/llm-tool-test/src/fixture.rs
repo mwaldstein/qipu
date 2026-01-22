@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 pub struct TestEnv {
     pub root: PathBuf,
@@ -24,6 +25,23 @@ impl TestEnv {
         }
         copy_dir_recursive(&fixture_src, &self.root)?;
         Ok(())
+    }
+
+    /// Run `qipu prime` in the test environment and return its output.
+    /// Returns empty string if the command fails (e.g., no .qipu store yet).
+    pub fn get_prime_output(&self) -> String {
+        // Run qipu prime in the test environment directory
+        let output = Command::new("qipu")
+            .arg("prime")
+            .current_dir(&self.root)
+            .output();
+
+        match output {
+            Ok(output) if output.status.success() => {
+                String::from_utf8_lossy(&output.stdout).to_string()
+            }
+            _ => String::new(), // Return empty string if prime fails or store doesn't exist yet
+        }
     }
 }
 

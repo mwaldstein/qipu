@@ -15,20 +15,22 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### P1: Core Features
 
-#### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`) - **BLOCKED**
-**Status**: Implementation started but complexity grew beyond single-task scope. Requires significant refactoring of output format handling.
-
-#### Doctor Warnings for Semantic Misuse (`specs/semantic-graph.md:109`)
-- [x] Warn when standard link types point to non-existent notes (already covered by `check_broken_links`)
-- [x] Warn on suspicious patterns (e.g., `part-of` self-loop, `follows` cycle)
-- [x] Add `check_semantic_link_misuse()` to doctor content checks (function exists as `check_semantic_link_types` in database.rs)
-- Files: `src/commands/doctor/database.rs`, `src/commands/doctor/mod.rs`
-
 #### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`)
 - [x] When budget is tight, truncate individual notes instead of dropping entirely
-- [ ] Append `…[truncated]` marker to truncated content
+- [x] Append `…[truncated]` marker to truncated content
 - [ ] Keep truncation deterministic (same input → same output)
 - Files: `src/commands/context/mod.rs`, `src/commands/context/human.rs`
+- Status: **Partially implemented**. Per-note truncation framework added (OutputNote type, budget::apply_budget changes) but not fully integrated. Output functions need refactoring to properly handle truncated notes with content truncation. The implementation is complex and requires careful design to balance:
+  1. Including all notes (per spec: "truncate individual notes instead of dropping entirely")
+  2. Truncating content to fit budget
+  3. Marking truncated notes with `…[truncated]` marker
+  4. Ensuring deterministic output
+  5. Maintaining budget constraints
+- **Next steps**:
+  1. Refactor output functions to properly accept truncated notes with content truncation
+  2. Simplify budget application to directly handle content truncation for last included notes
+  3. Update tests to expect `…[truncated]` markers instead of "Excluded Notes" sections
+  4. Ensure all three formats (human, json, records) handle truncation consistently
 - Status: **Partially implemented**. Per-note truncation framework added (OutputNote type, budget::apply_budget changes) but not fully integrated. Output functions need refactoring to properly handle truncated notes. The implementation is complex and requires careful design to balance:
   1. Including all notes (per spec: "truncate individual notes instead of dropping entirely")
   2. Marking truncated notes with `…[truncated]` marker

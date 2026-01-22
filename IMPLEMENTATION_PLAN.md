@@ -162,9 +162,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/list.rs:112-310` - Added 4 comprehensive tests for list --min-value (all match, some match, none match, defaults)
   - `tests/cli/context/basic.rs:647-784` - Added comprehensive test for context --min-value with multiple value thresholds
   - Learnings: Tests were already fully implemented; verified all tests pass with cargo test
-- [ ] Add tests for `--ignore-value` traversal ordering.
-  - `src/commands/link/tree.rs:61-78`
-  - `src/commands/link/path.rs:71-95`
+- [x] Add tests for `--ignore-value` traversal ordering.
+  - `tests/cli/link/ignore_value.rs:1-502` - Added comprehensive tests for --ignore-value flag
+  - Added 5 tests covering weighted vs unweighted traversal for both link tree and link path commands
+  - Tests verify: default weighted behavior, --ignore-value unweighted behavior, hop count differences, and edge cost calculations
+  - Learnings: The --ignore-value flag switches from Dijkstra (weighted, default) to BFS (unweighted) traversal. The implementation at `src/lib/graph/bfs.rs:299-310` correctly applies value-based costs when ignore_value=false and uniform costs when ignore_value=true
 - [ ] Add CLI coverage for `--unweighted`/`--weighted` aliases (spec names vs current flags).
   - `src/cli/link.rs:105-111`
 

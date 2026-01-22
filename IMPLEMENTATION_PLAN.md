@@ -282,9 +282,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
      - Learnings: Created `tags.rs` module with `find_by_shared_tags()` public function; exported from mod.rs; updated SimilarityEngine.find_by_shared_tags to delegate to module function; moved test_find_by_shared_tags to tags.rs; all 668 tests pass (10 similarity + 38 context + others)
 
 ### CLI Commands (`src/commands`)
-- [ ] Refactor `src/commands/list.rs` (758 lines).
+- [x] Refactor `src/commands/list.rs` (758 lines).
   - Extract filtering logic to `src/lib/query/filter.rs` or similar.
   - Extract formatting logic to `src/commands/list/format.rs`.
+  - Learnings: Created `src/lib/query/mod.rs` with `NoteFilter` struct providing fluent API for filtering notes; extracted formatting to `src/commands/list/format/` with human.rs, json.rs, and records.rs modules; refactored `src/commands/list.rs` to `src/commands/list/mod.rs`; all 376 list tests pass; filter module provides reusable filtering logic for tag, type, since, min-value, custom metadata, and compaction visibility
 - [ ] Refactor `src/commands/search.rs` (725 lines).
   - Extract search execution logic to `src/lib/search/`.
   - Extract result formatting to `src/commands/search/format.rs`.

@@ -244,14 +244,24 @@ fn load_notes(
             value: pack_note.value,
         };
 
-        // Create note
+        // Create note with path from pack if available
+        let pack_path = pack_note.path.as_ref().map(|p| {
+            let path = std::path::Path::new(p);
+            if path.is_absolute() {
+                path.to_path_buf()
+            } else {
+                // Resolve relative paths against store root
+                store.root().join(path)
+            }
+        });
+
         let mut note = Note {
             frontmatter,
             body: pack_note.content.clone(),
-            path: None,
+            path: pack_path.clone(),
         };
 
-        // Determine target directory
+        // Determine target directory for fallback path generation
         let target_dir = match note_type {
             NoteType::Moc => store.mocs_dir(),
             _ => store.notes_dir(),
@@ -269,6 +279,7 @@ fn load_notes(
             }
 
             // Determine target directory and filename if not already set
+            // Only generate a path if pack didn't provide one
             if note.path.is_none() {
                 let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
                 note.path = Some(target_dir.join(&file_name));
@@ -315,9 +326,11 @@ fn load_notes(
                 }
             }
         } else {
-            // New note - determine filename
-            let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
-            note.path = Some(target_dir.join(&file_name));
+            // New note - determine filename if not provided by pack
+            if note.path.is_none() {
+                let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
+                note.path = Some(target_dir.join(&file_name));
+            }
             true
         };
 

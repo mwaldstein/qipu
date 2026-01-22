@@ -43,11 +43,11 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
         debug!(note_count = all_notes.len(), "build_compaction_context");
     }
 
-    // Get direct compacted notes
-    let direct_compacts = ctx
-        .get_compacted_notes(digest_id)
-        .cloned()
-        .unwrap_or_default();
+    // Get direct compacted notes with truncation support
+    // Use depth=1 for direct compaction only when getting the main list
+    let (direct_compacts, truncated) = ctx
+        .get_compacted_ids(digest_id, 1, cli.compaction_max_nodes)
+        .unwrap_or_else(|| (Vec::new(), false));
 
     if direct_compacts.is_empty() {
         match cli.format {
@@ -88,7 +88,14 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
     };
 
     let depth_tree = if depth > 1 {
-        build_compaction_tree(&store, &ctx, digest_id, 0, depth)?
+        let mut tree = build_compaction_tree(&store, &ctx, digest_id, 0, depth)?;
+        // Apply max_nodes limit to tree if specified
+        if let Some(max) = cli.compaction_max_nodes {
+            if tree.len() > max {
+                tree.truncate(max);
+            }
+        }
+        tree
     } else {
         Vec::new()
     };
@@ -110,6 +117,14 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
         crate::lib::format::OutputFormat::Human => {
             println!("Digest: {}", digest_id);
             println!("Direct compaction count: {}", direct_compacts.len());
+            if truncated {
+                let total_count = ctx.get_compacts_count(digest_id);
+                println!(
+                    "  (truncated: showing {} of {} notes)",
+                    cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
+                    total_count
+                );
+            }
             println!("Compaction: {:.1}%", compaction_pct);
             println!();
             println!("Compacted notes:");
@@ -129,7 +144,7 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
             }
         }
         crate::lib::format::OutputFormat::Json => {
-            let output = serde_json::json!({
+            let mut output = serde_json::json!({
                 "digest_id": digest_id,
                 "compacts": direct_compacts,
                 "count": direct_compacts.len(),
@@ -137,6 +152,17 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
                 "depth": depth,
                 "tree": depth_tree,
             });
+
+            // Add truncated flag if applicable
+            if truncated {
+                if let Some(obj) = output.as_object_mut() {
+                    obj.insert(
+                        "compacted_ids_truncated".to_string(),
+                        serde_json::json!(true),
+                    );
+                }
+            }
+
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         crate::lib::format::OutputFormat::Records => {
@@ -150,6 +176,17 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
             for id in &direct_compacts {
                 println!("D compacted {}", id);
             }
+
+            // Add truncation marker if applicable
+            if truncated {
+                let total_count = ctx.get_compacts_count(digest_id);
+                println!(
+                    "D compacted_truncated max={} total={}",
+                    cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
+                    total_count
+                );
+            }
+
             if depth > 1 {
                 for entry in depth_tree {
                     println!(

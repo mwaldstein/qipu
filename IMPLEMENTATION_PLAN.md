@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 630 tests pass (228 unit + 250 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
+- Test baseline: 633 tests pass (228 unit + 252 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-21
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -246,8 +246,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/search.rs:212-232` - Added `compacted_ids_truncated` flag to JSON output when truncation occurs
   - `src/commands/show.rs:97-113` - Added `compacted_ids_truncated` flag to JSON output when truncation occurs
   - **Learnings**: Both search and show JSON outputs now properly respect the `truncated` flag from `get_compacted_ids()` and include a `compacted_ids_truncated: true` field in JSON when compaction IDs are truncated by `--compaction-max-nodes`. This matches the behavior already implemented in context JSON output.
-- [ ] `compact show` ignores `--compaction-max-nodes` and truncation.
-  - `src/commands/compact/show.rs:75-105`
+- [x] `compact show` ignores `--compaction-max-nodes` and truncation.
+  - `src/commands/compact/show.rs:46-50,110-123,133-150,153-165,90-98` - Changed to use `get_compacted_ids()` with `compaction_max_nodes` parameter; added truncation indicators to all three output formats
+  - `tests/cli/compact/commands.rs:578-725` - Added comprehensive test for `--compaction-max-nodes` truncation behavior
+  - **Root Cause**: The `compact show` command was directly accessing `ctx.get_compacted_notes()` which returns a raw Vec<String> without truncation support.
+  - **Fix**: Changed to use `ctx.get_compacted_ids()` which accepts the `max_nodes` parameter and returns a tuple with (ids, truncated). Added truncation indicators to all formats: human shows "(truncated: showing X of Y notes)", JSON adds `compacted_ids_truncated: true`, and records adds `D compacted_truncated max=X total=Y`. Also applied limit to nested tree when depth > 1.
+  - **Learnings**: The `get_compacted_ids()` method is the correct API for getting compacted IDs with truncation support. All output formats should indicate when truncation occurs to maintain transparency per spec requirements. Test count increased to 633 tests (252 integration tests, +1 from baseline).
 
 ### Pack (`specs/pack.md`)
 - [ ] `merge-links` only applies when targets were loaded (skips existing notes).

@@ -181,9 +181,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/export.rs:639-895` - Added 7 comprehensive tests for bibliography mode
   - Tests cover: basic bibliography export, empty sources case, multiple notes with sources, deterministic ordering (sorted by URL), source format variations (with/without title/accessed date), tag selection, and "bib" alias
   - Learnings: Bibliography mode extracts sources from selected notes and produces markdown output with sources sorted alphabetically by URL; implementation at `src/commands/export/emit/bibliography.rs:4-41` correctly handles all source field combinations and references back to originating notes
-- [ ] Add tests for `--link-mode markdown` and `--link-mode preserve`.
-  - `src/commands/export/mod.rs:47-69`
-  - `tests/cli/export.rs:7-341`
+- [x] Add tests for `--link-mode markdown` and `--link-mode preserve`.
+  - `tests/cli/export.rs:957-1280` - Added 6 comprehensive tests for link-mode variations
+  - Tests cover: preserve mode (keeps wiki links unchanged), markdown mode with basic links, markdown mode with labels, markdown mode with multiple cross-referenced notes, preserve mode with MOC, and markdown mode with MOC
+  - Learnings: The `preserve` mode keeps wiki links as-is (`[[qp-xxx]]`); the `markdown` mode converts wiki links to markdown file links using absolute paths (`[label](path/to/qp-xxx.md)`); labels are preserved during conversion; both modes work correctly with MOC-driven exports
 
 ### Graph Traversal Tests (`specs/graph-traversal.md`)
 - [ ] Add tests for semantic inversion in `link tree`/`link path`.

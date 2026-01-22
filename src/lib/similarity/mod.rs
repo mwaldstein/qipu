@@ -4,6 +4,8 @@ mod tfidf;
 
 mod duplicates;
 
+mod tags;
+
 pub use duplicates::find_all_duplicates;
 
 use crate::lib::index::types::Index;
@@ -82,40 +84,7 @@ impl<'a> SimilarityEngine<'a> {
 
     /// Find notes that share tags with the given note
     pub fn find_by_shared_tags(&self, note_id: &str, limit: usize) -> Vec<SimilarityResult> {
-        let mut results = Vec::new();
-
-        let tags = match self.index.get_metadata(note_id) {
-            Some(meta) => &meta.tags,
-            None => return results,
-        };
-
-        if tags.is_empty() {
-            return results;
-        }
-
-        for (other_id, other_meta) in &self.index.metadata {
-            if other_id == note_id {
-                continue;
-            }
-
-            // Count shared tags
-            let shared_count = tags.iter().filter(|t| other_meta.tags.contains(t)).count();
-
-            if shared_count > 0 {
-                // Score based on Jaccard similarity: intersection / union
-                let union_count = tags.len() + other_meta.tags.len() - shared_count;
-                let score = shared_count as f64 / union_count as f64;
-
-                results.push(SimilarityResult {
-                    id: other_id.clone(),
-                    score,
-                });
-            }
-        }
-
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        results.truncate(limit);
-        results
+        tags::find_by_shared_tags(self.index, note_id, limit)
     }
 
     /// Find notes within 2 hops in the link graph
@@ -314,111 +283,6 @@ mod tests {
             score > 0.0,
             "Similarity should be > 0 when sharing stemmed terms"
         );
-    }
-
-    #[test]
-    fn test_find_by_shared_tags() {
-        let mut index = Index::new();
-
-        // Note 1: tags = ["rust", "programming"]
-        index.metadata.insert(
-            "qp-1".to_string(),
-            NoteMetadata {
-                id: "qp-1".to_string(),
-                title: "Note 1".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec!["rust".to_string(), "programming".to_string()],
-                path: "1.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Note 2: tags = ["rust", "systems"] - shares "rust"
-        index.metadata.insert(
-            "qp-2".to_string(),
-            NoteMetadata {
-                id: "qp-2".to_string(),
-                title: "Note 2".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec!["rust".to_string(), "systems".to_string()],
-                path: "2.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Note 3: tags = ["rust", "programming", "systems"] - shares both tags with Note 1
-        index.metadata.insert(
-            "qp-3".to_string(),
-            NoteMetadata {
-                id: "qp-3".to_string(),
-                title: "Note 3".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec![
-                    "rust".to_string(),
-                    "programming".to_string(),
-                    "systems".to_string(),
-                ],
-                path: "3.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Note 4: tags = ["python", "programming"] - shares only "programming"
-        index.metadata.insert(
-            "qp-4".to_string(),
-            NoteMetadata {
-                id: "qp-4".to_string(),
-                title: "Note 4".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec!["python".to_string(), "programming".to_string()],
-                path: "4.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Note 5: tags = ["java"] - shares nothing
-        index.metadata.insert(
-            "qp-5".to_string(),
-            NoteMetadata {
-                id: "qp-5".to_string(),
-                title: "Note 5".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec!["java".to_string()],
-                path: "5.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        let engine = SimilarityEngine::new(&index);
-        let results = engine.find_by_shared_tags("qp-1", 100);
-
-        // Should find qp-2, qp-3, and qp-4 (all share at least one tag)
-        assert_eq!(results.len(), 3);
-
-        // qp-3 should have the highest score (Jaccard = 2/3 = 0.666...)
-        assert_eq!(results[0].id, "qp-3");
-        assert!((results[0].score - 2.0 / 3.0).abs() < 1e-9);
-
-        // qp-2 and qp-4 should have equal scores (each Jaccard = 1/3 = 0.333...)
-        assert!(results
-            .iter()
-            .any(|r| r.id == "qp-2" && (r.score - 1.0 / 3.0).abs() < 1e-9));
-        assert!(results
-            .iter()
-            .any(|r| r.id == "qp-4" && (r.score - 1.0 / 3.0).abs() < 1e-9));
-
-        // qp-5 should not be in results (no shared tags)
-        assert!(!results.iter().any(|r| r.id == "qp-5"));
     }
 
     #[test]

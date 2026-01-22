@@ -585,6 +585,122 @@ mod tests {
     }
 
     #[test]
+    fn test_doctor_semantic_link_part_of_self_loop() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with part-of self-loop
+        let mut note = store.create_note("Note 1", None, &[], None).unwrap();
+        note.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::PART_OF),
+            id: note.frontmatter.id.clone(),
+        }];
+
+        store.save_note(&mut note).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find part-of self-loop
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "semantic-link-misuse"
+                && i.message.contains("self-referential 'part-of'")));
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_follows_cycle() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create three notes that form a follows cycle: A -> B -> C -> A
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let mut note1_mut = note1.clone();
+        note1_mut.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::FOLLOWS),
+            id: note2.frontmatter.id.clone(),
+        }];
+        store.save_note(&mut note1_mut).unwrap();
+
+        let mut note2_mut = note2.clone();
+        note2_mut.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::FOLLOWS),
+            id: note3.frontmatter.id.clone(),
+        }];
+        store.save_note(&mut note2_mut).unwrap();
+
+        let mut note3_mut = note3.clone();
+        note3_mut.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::FOLLOWS),
+            id: note1.frontmatter.id.clone(),
+        }];
+        store.save_note(&mut note3_mut).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should find follows cycle
+        assert!(result.warning_count >= 1);
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.category == "semantic-link-misuse"
+                    && i.message.contains("'follows' cycle"))
+        );
+    }
+
+    #[test]
+    fn test_doctor_semantic_link_follows_no_cycle() {
+        use crate::lib::note::{LinkType, TypedLink};
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create three notes with follows links that don't form a cycle: A -> B -> C
+        let note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let note2 = store.create_note("Note 2", None, &[], None).unwrap();
+        let note3 = store.create_note("Note 3", None, &[], None).unwrap();
+
+        let mut note1_mut = note1.clone();
+        note1_mut.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::FOLLOWS),
+            id: note2.frontmatter.id.clone(),
+        }];
+        store.save_note(&mut note1_mut).unwrap();
+
+        let mut note2_mut = note2.clone();
+        note2_mut.frontmatter.links = vec![TypedLink {
+            link_type: LinkType::from(LinkType::FOLLOWS),
+            id: note3.frontmatter.id.clone(),
+        }];
+        store.save_note(&mut note2_mut).unwrap();
+
+        let mut result = DoctorResult::new();
+        checks::check_semantic_link_types(&store, &mut result);
+
+        // Should NOT find follows cycle
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "semantic-link-misuse"
+                    && i.message.contains("'follows' cycle"))
+                .count(),
+            0
+        );
+    }
+
+    #[test]
     fn test_doctor_bare_link_lists() {
         let dir = tempdir().unwrap();
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();

@@ -1,5 +1,6 @@
 use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::store::Store;
+use std::collections::{HashMap, HashSet};
 
 pub fn check_duplicate_ids(store: &Store, result: &mut DoctorResult) {
     let db = store.db();
@@ -85,7 +86,6 @@ pub fn check_broken_links(store: &Store, result: &mut DoctorResult) {
 
 pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
     use crate::lib::note::LinkType;
-    use std::collections::{HashMap, HashSet};
 
     let db = store.db();
 
@@ -168,6 +168,30 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
                     }
                     alias_of_targets.insert(target_id);
                 }
+                LinkType::PART_OF => {
+                    // Check for part-of self-loop
+                    if source_id == target_id {
+                        let path = match db.get_note_metadata(source_id) {
+                            Ok(Some(metadata)) => Some(metadata.path),
+                            _ => None,
+                        };
+
+                        result.add_issue(Issue {
+                            severity: Severity::Warning,
+                            category: "semantic-link-misuse".to_string(),
+                            message: format!(
+                                "Note '{}' has self-referential 'part-of' link",
+                                source_id
+                            ),
+                            note_id: Some(source_id.clone()),
+                            path,
+                            fixable: false,
+                        });
+                    }
+                }
+                LinkType::FOLLOWS => {
+                    // Will check for cycles in a separate pass
+                }
                 _ => {}
             }
         }
@@ -223,6 +247,89 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
             }
         }
     }
+
+    // Check for follows cycles
+    check_follows_cycles(&edges, db, result);
+}
+
+fn check_follows_cycles(
+    edges: &[(String, String, String)],
+    db: &crate::lib::db::Database,
+    result: &mut DoctorResult,
+) {
+    use crate::lib::note::LinkType;
+
+    // Build adjacency list for follows links
+    let mut follows_graph: HashMap<String, Vec<String>> = HashMap::new();
+    for (source_id, target_id, link_type) in edges {
+        if link_type == LinkType::FOLLOWS {
+            follows_graph
+                .entry(source_id.clone())
+                .or_default()
+                .push(target_id.clone());
+        }
+    }
+
+    // DFS to detect cycles
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut rec_stack: HashSet<String> = HashSet::new();
+
+    for node in follows_graph.keys() {
+        if !visited.contains(node) {
+            if let Some(cycle) =
+                dfs_cycle_detect(node, &follows_graph, &mut visited, &mut rec_stack)
+            {
+                let path = match db.get_note_metadata(&cycle[0]) {
+                    Ok(Some(metadata)) => Some(metadata.path),
+                    _ => None,
+                };
+
+                result.add_issue(Issue {
+                    severity: Severity::Warning,
+                    category: "semantic-link-misuse".to_string(),
+                    message: format!("Detected 'follows' cycle: {}", cycle.join(" -> ")),
+                    note_id: Some(cycle[0].clone()),
+                    path,
+                    fixable: false,
+                });
+            }
+        }
+    }
+}
+
+fn dfs_cycle_detect(
+    node: &str,
+    graph: &HashMap<String, Vec<String>>,
+    visited: &mut HashSet<String>,
+    rec_stack: &mut HashSet<String>,
+) -> Option<Vec<String>> {
+    visited.insert(node.to_string());
+    rec_stack.insert(node.to_string());
+
+    if let Some(neighbors) = graph.get(node) {
+        for neighbor in neighbors {
+            if !visited.contains(neighbor) {
+                if let Some(cycle) = dfs_cycle_detect(neighbor, graph, visited, rec_stack) {
+                    if cycle.is_empty() || cycle.last() == Some(&node.to_string()) {
+                        let mut new_cycle = cycle.clone();
+                        new_cycle.push(node.to_string());
+                        return Some(new_cycle);
+                    }
+                    return Some(cycle);
+                }
+            } else if rec_stack.contains(neighbor) {
+                // Found a cycle
+                let mut cycle = vec![neighbor.to_string()];
+                if node != neighbor {
+                    cycle.push(node.to_string());
+                }
+                return Some(cycle);
+            }
+        }
+    }
+
+    rec_stack.remove(node);
+    None
 }
 
 #[allow(dead_code)]

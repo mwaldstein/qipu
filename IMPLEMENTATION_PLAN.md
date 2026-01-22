@@ -16,10 +16,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### P1: Core Features
 
 #### Doctor Warnings for Semantic Misuse (`specs/semantic-graph.md:109`)
-- [ ] Warn when standard link types point to non-existent notes
-- [ ] Warn on suspicious patterns (e.g., `part-of` self-loop, `follows` cycle)
-- [ ] Add `check_semantic_link_misuse()` to doctor content checks
-- Files: `src/commands/doctor/content.rs`, `src/commands/doctor/mod.rs`
+- [x] Warn when standard link types point to non-existent notes (already covered by `check_broken_links`)
+- [x] Warn on suspicious patterns (e.g., `part-of` self-loop, `follows` cycle)
+- [x] Add `check_semantic_link_misuse()` to doctor content checks (function exists as `check_semantic_link_types` in database.rs)
+- Files: `src/commands/doctor/database.rs`, `src/commands/doctor/mod.rs`
 
 #### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`)
 - [ ] When budget is tight, truncate individual notes instead of dropping entirely

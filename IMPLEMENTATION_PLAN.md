@@ -146,9 +146,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/search.rs:619-937` - Added `test_search_with_min_value_filter`, `test_search_sort_by_value`, `test_search_sort_by_value_with_defaults`, `test_search_min_value_and_sort_combined` for min-value and sort testing
   - `tests/cli/search.rs:939-1214` - Added `test_search_exclude_mocs`, `test_search_exclude_mocs_no_results`, `test_search_exclude_mocs_with_filters`, `test_search_exclude_mocs_with_min_value` for exclude-mocs testing
   - Learnings: All three flags (`--exclude-mocs`, `--min-value`, `--sort`) work correctly; MOC filtering happens after sorting; tests verify JSON output format uses `"type"` field not `"note_type"`
-- [ ] Add tests for `compact apply --from-stdin` and `--notes-file`.
-  - `src/cli/compact.rs:18-24`
-  - `tests/cli/compact/commands.rs:9-659`
+- [x] Add tests for `compact apply --from-stdin` and `--notes-file`.
+  - `tests/cli/compact/commands.rs:830-1248` - Added test_compact_apply_from_stdin, test_compact_apply_notes_file, test_compact_apply_mixed_sources, test_compact_apply_no_sources_error
+  - Learnings: Both flags work correctly; --from-stdin reads note IDs from stdin (one per line); --notes-file reads from a file path; multiple sources (--note flags, --from-stdin, --notes-file) can be combined and are deduplicated; empty lines and whitespace are trimmed; all three output formats (human, json, records) are tested; error handling verified when no sources provided
 
 ### Value Model Tests (`specs/value-model.md`)
 - [ ] Add tests for `qipu value set/show` output + validation.

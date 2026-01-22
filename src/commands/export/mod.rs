@@ -79,6 +79,7 @@ pub struct ExportOptions<'a> {
     pub mode: ExportMode,
     pub with_attachments: bool,
     pub link_mode: LinkMode,
+    pub bib_format: emit::bibliography::BibFormat,
 }
 
 /// Execute the export command
@@ -141,7 +142,9 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
                     !cli.no_resolve_compaction,
                     &all_notes,
                 )?,
-                ExportMode::Bibliography => emit::export_bibliography(&selected_notes)?,
+                ExportMode::Bibliography => {
+                    emit::export_bibliography(&selected_notes, options.bib_format)?
+                }
             }
         }
         OutputFormat::Json => {

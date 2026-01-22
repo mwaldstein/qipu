@@ -292,8 +292,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Checksum verification is integrated into both installers; Unix uses shasum, Windows uses Get-FileHash; installation fails if checksums don't match; both checksums and binaries are uploaded as release assets
 
 ### Export (`specs/export.md`)
-- [ ] Add optional BibTeX/CSL JSON outputs.
-  - `src/commands/export/emit/bibliography.rs:4-37`
+- [x] Add optional BibTeX/CSL JSON outputs.
+  - `src/commands/export/emit/bibliography.rs:1-198` - Added BibFormat enum with Markdown, BibTeX, and CslJson variants
+  - `src/cli/commands.rs:352-354` - Added --bib-format CLI flag with markdown default
+  - `src/commands/dispatch/io.rs:17-56` - Updated handler to accept and parse bib_format parameter
+  - `src/commands/export/mod.rs:82,145` - Added bib_format to ExportOptions and passed to export_bibliography
+  - `tests/cli/export.rs:1294-1527` - Added 6 comprehensive tests for BibTeX and CSL JSON formats
+  - Learnings: BibTeX format uses @misc entries with citation keys generated from URL domains; CSL JSON format uses webpage type with date-parts array for accessed dates; both formats support empty source lists with appropriate empty outputs; deterministic ordering by URL maintained across all formats
 - [ ] Add transitive export traversal (depth-limited).
   - `src/commands/export/plan.rs:112-209`
 - [ ] Add pandoc/PDF integration (future).

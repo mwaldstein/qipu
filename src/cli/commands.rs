@@ -348,6 +348,10 @@ pub enum Commands {
         /// Link handling: preserve, markdown, anchors
         #[arg(long, default_value = "preserve")]
         link_mode: String,
+
+        /// Bibliography format: markdown, bibtex, csl-json (only used with --mode bibliography)
+        #[arg(long, default_value = "markdown")]
+        bib_format: String,
     },
 
     /// Manage note compaction (digest-first navigation)

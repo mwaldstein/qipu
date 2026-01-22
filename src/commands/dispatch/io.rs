@@ -14,6 +14,7 @@ use crate::lib::error::{QipuError, Result};
 use super::discover_or_open_store;
 
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_export(
     cli: &Cli,
     root: &PathBuf,
@@ -25,6 +26,7 @@ pub(super) fn handle_export(
     mode: &str,
     with_attachments: bool,
     link_mode: &str,
+    bib_format: &str,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -33,6 +35,7 @@ pub(super) fn handle_export(
     }
     let export_mode = commands::export::ExportMode::parse(mode)?;
     let link_mode = commands::export::LinkMode::parse(link_mode)?;
+    let bib_format = commands::export::emit::bibliography::BibFormat::parse(bib_format)?;
     commands::export::execute(
         cli,
         &store,
@@ -45,6 +48,7 @@ pub(super) fn handle_export(
             mode: export_mode,
             with_attachments,
             link_mode,
+            bib_format,
         },
     )?;
     if cli.verbose {

@@ -198,6 +198,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             mode,
             with_attachments,
             link_mode,
+            bib_format,
         }) => io::handle_export(
             cli,
             &root,
@@ -209,6 +210,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             mode,
             *with_attachments,
             link_mode,
+            bib_format,
             start,
         ),
 

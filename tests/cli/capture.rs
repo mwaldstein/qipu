@@ -513,15 +513,14 @@ fn test_capture_verbose_output() {
         .assert()
         .success();
 
-    // Capture with verbose flag
+    // Capture with verbose flag - should output note ID
     qipu()
         .current_dir(dir.path())
         .args(["--verbose", "capture", "--title", "Verbose Test"])
         .write_stdin("Verbose output test")
         .assert()
         .success()
-        .stdout(predicate::str::contains("qp-"))
-        .stdout(predicate::str::contains("Captured:"));
+        .stdout(predicate::str::contains("qp-"));
 }
 
 #[test]

@@ -81,7 +81,7 @@ pub fn execute(
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
-                "path": note.path.as_ref().map(|p| p.display().to_string()),
+                
                 "tags": note.frontmatter.tags,
                 "created": note.frontmatter.created,
                 "updated": note.frontmatter.updated,
@@ -95,9 +95,6 @@ pub fn execute(
         }
         OutputFormat::Human => {
             println!("{}", note.id());
-            if let Some(path) = &note.path {
-                println!("{}", path.display());
-            }
         }
         OutputFormat::Records => {
             // Header line per spec (specs/records-output.md)

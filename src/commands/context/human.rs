@@ -212,9 +212,6 @@ fn build_human_output(
                         compacted_note.id()
                     ));
 
-                    if let Some(path) = &compacted_note.path {
-                        output.push_str(&format!("Path: {}\n", path.display()));
-                    }
                     output.push_str(&format!("Type: {}\n", compacted_note.note_type()));
 
                     if !compacted_note.frontmatter.tags.is_empty() {

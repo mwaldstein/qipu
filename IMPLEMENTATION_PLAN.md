@@ -55,6 +55,17 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### P3: Optional Enhancements
 
+#### Beads/Qipu CLI Alignment Review
+- [ ] Compare `bd init`/`bd setup`/`bd onboard`/`bd prime` patterns vs qipu equivalents
+- [ ] Evaluate `bd onboard` approach: minimal AGENTS.md snippet pointing to `prime`
+- [ ] Consider merging `qipu init` + `qipu setup` or adding `qipu onboard`
+- [ ] Review beads' `--stealth` flag (combines init + gitignore + agent setup)
+- [ ] Assess if qipu help is too verbose for agent discovery of key commands
+- [ ] Discourage direct file reading of `.qipu/notes/` - agents should use CLI
+  - Options: AGENTS.md guidance, directory naming, or tooling hints
+  - Intent: CLI provides consistent formatting, budget control, and graph context
+- Reference: `bd --help`, `bd onboard --help`, `bd init --help`
+
 #### Tag Aliases (`specs/knowledge-model.md:53`)
 - [ ] Add `aliases` field to config for tag mappings (e.g., `ml: machine-learning`)
 - [ ] Resolve aliases during indexing and querying

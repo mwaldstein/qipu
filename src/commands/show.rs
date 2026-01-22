@@ -62,7 +62,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "title": note.title(),
                 "type": note.note_type().to_string(),
                 "tags": note.frontmatter.tags,
-                "path": note.path.as_ref().map(|p| p.display().to_string()),
+                
                 "created": note.frontmatter.created,
                 "updated": note.frontmatter.updated,
                 "sources": note.frontmatter.sources,

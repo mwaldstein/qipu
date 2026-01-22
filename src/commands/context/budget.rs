@@ -100,9 +100,6 @@ pub fn estimate_note_tokens(note: &Note, with_body: bool, bpe: &tiktoken_rs::Cor
 
     // Rough approximation of the markdown output format
     text.push_str(&format!("## Note: {} ({})\n", note.title(), note.id()));
-    if let Some(path) = &note.path {
-        text.push_str(&format!("Path: {}\n", path.display()));
-    }
     text.push_str(&format!("Type: {}\n", note.note_type()));
     if !note.frontmatter.tags.is_empty() {
         text.push_str(&format!("Tags: {}\n", note.frontmatter.tags.join(", ")));
@@ -140,13 +137,6 @@ pub fn estimate_note_size(note: &Note, with_body: bool) -> usize {
         size += note.frontmatter.tags.join(",").len() + 20; // "tags=..." overhead
     } else {
         size += 10; // "tags=-"
-    }
-
-    // Path
-    if let Some(path) = &note.path {
-        size += path.display().to_string().len() + 20; // "Path: " or "path=" overhead
-    } else {
-        size += 10; // "path=-" or no path
     }
 
     // Sources - account for markdown/JSON/records formatting

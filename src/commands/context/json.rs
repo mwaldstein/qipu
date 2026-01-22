@@ -1,6 +1,5 @@
 use super::types::SelectedNote;
 use crate::cli::Cli;
-use crate::commands::context::path_relative_to_cwd;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
@@ -105,7 +104,7 @@ fn build_json_output(
                 "title": note.title(),
                 "type": note.note_type().to_string(),
                 "tags": note.frontmatter.tags,
-                "path": note.path.as_ref().map(|p| path_relative_to_cwd(p)),
+                
                 "content": content,
                 "sources": note.frontmatter.sources.iter().map(|s| {
                     let mut obj = serde_json::json!({
@@ -189,7 +188,7 @@ fn build_json_output(
                                                 "title": n.title(),
                                                 "type": n.note_type().to_string(),
                                                 "tags": n.frontmatter.tags,
-                                                "path": n.path.as_ref().map(|p| p.display().to_string()),
+                                                
                                                 "content": n.body,
                                                 "sources": n.frontmatter.sources.iter().map(|s| {
                                                     let mut obj = serde_json::json!({

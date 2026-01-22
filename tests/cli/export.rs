@@ -235,7 +235,7 @@ fn test_export_bundle_preserves_moc_order() {
         .stdout(predicate::str::contains("## Note: Note C (qp-cccc)"))
         .stdout(predicate::str::contains("## Note: Note A (qp-aaaa)"))
         .stdout(predicate::str::contains(
-            "## Note: Note B (qp-bbbb)\n\n**Type:** fleeting\n\n**Path:",
+            "## Note: Note B (qp-bbbb)\n\n**Type:** fleeting",
         ))
         .stdout(predicate::str::contains("Body B\n\n---\n\n## Note: Note C"))
         .stdout(predicate::str::contains("Body C\n\n---\n\n## Note: Note A"));

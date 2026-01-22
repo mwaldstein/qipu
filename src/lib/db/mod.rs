@@ -86,6 +86,11 @@ impl Database {
                 db.rebuild(store_root)?;
             }
         } else {
+            // Checkpoint WAL to ensure we see all committed changes from other processes
+            // before validating consistency. Without this, rapid sequential commands may
+            // see stale data in WAL mode.
+            let _ = db.conn.pragma_update(None, "wal_checkpoint", "PASSIVE");
+
             // Just validate consistency and warn if issues found
             // Doctor command will check and optionally fix with --fix flag
             let _ = db.validate_consistency(store_root)?;

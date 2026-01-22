@@ -92,7 +92,7 @@ fn export_notes_json(
                     "title": note.title(),
                     "type": note.note_type().to_string(),
                     "tags": note.frontmatter.tags,
-                    "path": note.path.as_ref().map(|p| p.display().to_string()),
+                    
                     "created": note.frontmatter.created,
                     "updated": note.frontmatter.updated,
                     "content": note.body,

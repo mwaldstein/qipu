@@ -184,18 +184,25 @@ fn test_hidden_store_preferred_over_visible() {
         .success();
 
     // Create a note in hidden store to verify it's being used
-    let output = qipu()
+    qipu()
         .current_dir(dir.path())
         .args(["create", "Test in hidden store"])
         .assert()
         .success()
-        .get_output()
-        .stdout
-        .clone();
+        .stdout(predicate::str::starts_with("qp-"));
 
-    let output_str = String::from_utf8_lossy(&output);
-    // Verify the note was created in the hidden store
-    assert!(output_str.contains(".qipu"));
+    // Verify the note was created in the hidden store (not visible)
+    let hidden_notes: Vec<_> = std::fs::read_dir(hidden_path.join("notes"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .collect();
+    let visible_notes: Vec<_> = std::fs::read_dir(visible_path.join("notes"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .collect();
+
+    assert_eq!(hidden_notes.len(), 1);
+    assert_eq!(visible_notes.len(), 0);
 }
 
 #[test]

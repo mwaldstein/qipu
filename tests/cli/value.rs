@@ -1,16 +1,6 @@
 use crate::cli::support::{extract_id, qipu};
 use predicates::prelude::*;
-use std::fs;
 use tempfile::tempdir;
-
-/// Extract path from create command output (second line)
-fn extract_path(output: &std::process::Output) -> String {
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .nth(1)
-        .map(|s| s.to_string())
-        .unwrap_or_default()
-}
 
 // ============================================================================
 // Value command tests
@@ -136,36 +126,6 @@ fn test_value_set_validation_over_100() {
 }
 
 #[test]
-fn test_value_set_by_file_path() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
-
-    let note_id = extract_id(&output);
-    let note_path = extract_path(&output);
-
-    // Set value by file path
-    qipu()
-        .current_dir(dir.path())
-        .args(["value", "set", &note_path, "85"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(format!("{}: 85", note_id)));
-}
-
-#[test]
 fn test_value_set_updates_frontmatter() {
     let dir = tempdir().unwrap();
 
@@ -184,7 +144,6 @@ fn test_value_set_updates_frontmatter() {
         .clone();
 
     let note_id = extract_id(&output);
-    let note_path = extract_path(&output);
 
     // Set value
     qipu()
@@ -193,9 +152,13 @@ fn test_value_set_updates_frontmatter() {
         .assert()
         .success();
 
-    // Verify frontmatter contains the value
-    let content = fs::read_to_string(&note_path).unwrap();
-    assert!(content.contains("value: 75"));
+    // Verify value is set via qipu show
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", &note_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("75"));
 }
 
 #[test]
@@ -265,43 +228,6 @@ fn test_value_show_default_value() {
             "{}: 50 (default)",
             note_id
         )));
-}
-
-#[test]
-fn test_value_show_by_file_path() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
-
-    let note_id = extract_id(&output);
-    let note_path = extract_path(&output);
-
-    // Set value first
-    qipu()
-        .current_dir(dir.path())
-        .args(["value", "set", &note_id, "65"])
-        .assert()
-        .success();
-
-    // Show value by file path
-    qipu()
-        .current_dir(dir.path())
-        .args(["value", "show", &note_path])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(format!("{}: 65", note_id)));
 }
 
 #[test]

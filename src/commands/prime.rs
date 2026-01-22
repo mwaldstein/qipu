@@ -95,7 +95,7 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
                         "id": n.id(),
                         "title": n.title(),
                         "tags": n.frontmatter.tags,
-                        "path": n.path.as_ref().map(|p| p.display().to_string()),
+                        
                     })
                 }).collect::<Vec<_>>(),
                 "recent_notes": recent_notes.iter().map(|n| {

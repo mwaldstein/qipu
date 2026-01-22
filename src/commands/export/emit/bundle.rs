@@ -53,10 +53,6 @@ pub fn export_bundle(
             output.push_str(&format!("**Created:** {}\n\n", created.to_rfc3339()));
         }
 
-        if let Some(path) = &note.path {
-            output.push_str(&format!("**Path:** {}\n\n", path.display()));
-        }
-
         // Compaction annotations for digest notes
         add_compaction_metadata(&mut output, note, cli, compaction_ctx, &note_map);
 

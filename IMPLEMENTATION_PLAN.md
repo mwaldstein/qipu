@@ -142,9 +142,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Add tests for `list --tag`, `list --since`, and `list --format records`.
   - `tests/cli/list.rs:313-571` - Added test_list_filter_by_tag, test_list_filter_by_tag_no_matches, test_list_filter_by_since, test_list_filter_by_since_no_matches, test_list_records_format, test_list_records_format_empty, test_list_records_format_multiple_notes
   - Learnings: Tags are alphabetically sorted in output; --since accepts RFC3339 timestamps; records format includes header with note count and mode=list
-- [ ] Add tests for `search --exclude-mocs`, `--min-value`, and `--sort`.
-  - `src/cli/commands.rs:132-142`
-  - `tests/cli/search.rs:10-616`
+- [x] Add tests for `search --exclude-mocs`, `--min-value`, and `--sort`.
+  - `tests/cli/search.rs:619-937` - Added `test_search_with_min_value_filter`, `test_search_sort_by_value`, `test_search_sort_by_value_with_defaults`, `test_search_min_value_and_sort_combined` for min-value and sort testing
+  - `tests/cli/search.rs:939-1214` - Added `test_search_exclude_mocs`, `test_search_exclude_mocs_no_results`, `test_search_exclude_mocs_with_filters`, `test_search_exclude_mocs_with_min_value` for exclude-mocs testing
+  - Learnings: All three flags (`--exclude-mocs`, `--min-value`, `--sort`) work correctly; MOC filtering happens after sorting; tests verify JSON output format uses `"type"` field not `"note_type"`
 - [ ] Add tests for `compact apply --from-stdin` and `--notes-file`.
   - `src/cli/compact.rs:18-24`
   - `tests/cli/compact/commands.rs:9-659`

@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 733 tests pass (233 unit + 320 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
+- Test baseline: 605 tests pass (233 unit + 336 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -202,9 +202,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Tests cover no truncation (large budget), truncation (small budget), and header-only output (minimal budget ~120-140 chars); verified budget enforcement and truncated flag in header; all tests verify exact character count limits
 
 ### Workspaces Tests (`specs/workspaces.md`)
-- [ ] Add tests for `workspace merge --dry-run`, `skip`, and `overwrite` strategies.
-  - `src/commands/workspace/merge.rs:20-149`
-  - `tests/workspace_merge_test.rs:55-205`
+- [x] Add tests for `workspace merge --dry-run`, `skip`, and `overwrite` strategies.
+   - `tests/workspace_merge_test.rs:218-502`
+   - Added `test_workspace_merge_dry_run()` to verify dry-run shows changes without making them
+   - Added `test_workspace_merge_skip_strategy()` to verify skip keeps target notes unchanged
+   - Added `test_workspace_merge_overwrite_strategy()` to verify overwrite replaces target notes with workspace versions
+   - Learnings: Tests verify that dry-run mode reports conflicts and additions without modifying stores; skip strategy preserves target notes while adding new notes; overwrite strategy replaces conflicting notes with incoming versions
 
 ### Semantic Graph Tests (`specs/semantic-graph.md`)
 - [ ] Add tests for additional standard types and custom inverses.

@@ -153,15 +153,21 @@ qipu list --tag api --custom priority=1 --min-value 70
 qipu context --moc qp-sprint-23 --custom-filter assignee="alice@example.com"
 ```
 
-### Including Custom Metadata in Context
+### Including Custom Metadata in Output
 
-By default, custom fields are **excluded** from `qipu context` output. To include them:
+By default, custom fields are **excluded** from `qipu context` and `qipu show` output. To include them:
 
 ```bash
+# Include custom in context bundles
 qipu context --note qp-a1b2 --custom
+
+# Include custom when viewing a single note
+qipu show qp-a1b2 --custom --format json
 ```
 
 This opt-in design prevents LLMs from seeing (and potentially hallucinating about) your application's internal metadata.
+
+**Note:** `qipu show --format json` always includes the `value` field (when set), but custom metadata requires the explicit `--custom` flag.
 
 ## Teaching LLMs About Custom Properties
 

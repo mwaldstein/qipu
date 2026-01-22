@@ -56,9 +56,11 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             start,
         ),
 
-        Some(Commands::Show { id_or_path, links }) => {
-            notes::handle_show(cli, &root, id_or_path, *links, start)
-        }
+        Some(Commands::Show {
+            id_or_path,
+            links,
+            custom,
+        }) => notes::handle_show(cli, &root, id_or_path, *links, *custom, start),
 
         Some(Commands::Inbox { exclude_linked }) => {
             notes::handle_inbox(cli, &root, *exclude_linked, start)

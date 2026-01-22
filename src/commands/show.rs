@@ -17,7 +17,13 @@ use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
 /// Execute the show command
-pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> Result<()> {
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    id_or_path: &str,
+    show_links: bool,
+    show_custom: bool,
+) -> Result<()> {
     // Try to interpret as path first
     let mut note = if Path::new(id_or_path).exists() {
         let content = fs::read_to_string(id_or_path)?;
@@ -62,9 +68,10 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                 "title": note.title(),
                 "type": note.note_type().to_string(),
                 "tags": note.frontmatter.tags,
-                
+
                 "created": note.frontmatter.created,
                 "updated": note.frontmatter.updated,
+                "value": note.frontmatter.value,
                 "sources": note.frontmatter.sources,
                 "links": note.frontmatter.links,
                 "source": note.frontmatter.source,
@@ -78,6 +85,17 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
             if let Some(via_id) = &via {
                 if let Some(obj) = output.as_object_mut() {
                     obj.insert("via".to_string(), serde_json::json!(via_id));
+                }
+            }
+
+            // Add custom metadata if requested (opt-in)
+            if show_custom && !note.frontmatter.custom.is_empty() {
+                if let Some(obj) = output.as_object_mut() {
+                    obj.insert(
+                        "custom".to_string(),
+                        serde_json::to_value(&note.frontmatter.custom)
+                            .unwrap_or(serde_json::json!({})),
+                    );
                 }
             }
 
@@ -136,6 +154,11 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
             } else {
                 note.frontmatter.tags.join(",")
             };
+            let value_str = note
+                .frontmatter
+                .value
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".to_string());
 
             // Build compaction annotations for digest notes
             let mut annotations = String::new();
@@ -152,11 +175,12 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
             }
 
             println!(
-                "N {} {} \"{}\" tags={}{}",
+                "N {} {} \"{}\" tags={} value={}{}",
                 note.id(),
                 note.note_type(),
                 escape_quotes(note.title()),
                 tags_csv,
+                value_str,
                 annotations
             );
 
@@ -179,6 +203,19 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, show_links: bool) -> 
                             compacts_count
                         );
                     }
+                }
+            }
+
+            // Custom metadata lines if requested (opt-in)
+            if show_custom && !note.frontmatter.custom.is_empty() {
+                for (key, value) in &note.frontmatter.custom {
+                    let value_str = match value {
+                        serde_yaml::Value::String(s) => format!("\"{}\"", escape_quotes(s)),
+                        serde_yaml::Value::Number(n) => n.to_string(),
+                        serde_yaml::Value::Bool(b) => b.to_string(),
+                        _ => format!("{:?}", value),
+                    };
+                    println!("C {} {}={}", note.id(), key, value_str);
                 }
             }
 
@@ -412,7 +449,7 @@ mod tests {
         let id = note.id();
 
         let cli = make_default_cli();
-        let result = execute(&cli, &store, id, false);
+        let result = execute(&cli, &store, id, false, false);
         assert!(result.is_ok(), "Show by ID should succeed");
     }
 
@@ -431,7 +468,7 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
         let cli = make_default_cli();
 
-        let result = execute(&cli, &store, file_path.to_str().unwrap(), false);
+        let result = execute(&cli, &store, file_path.to_str().unwrap(), false, false);
         match result {
             Ok(_) => {}
             Err(e) => panic!("Show by file path failed: {}", e),
@@ -444,7 +481,7 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         let cli = make_default_cli();
-        let result = execute(&cli, &store, "qp-nonexistent", false);
+        let result = execute(&cli, &store, "qp-nonexistent", false, false);
         assert!(result.is_err(), "Show nonexistent ID should fail");
     }
 
@@ -466,7 +503,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Json;
 
-        let result = execute(&cli, &store, id, false);
+        let result = execute(&cli, &store, id, false, false);
         assert!(result.is_ok(), "Show with JSON format should succeed");
     }
 
@@ -485,7 +522,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Records;
 
-        let result = execute(&cli, &store, id, false);
+        let result = execute(&cli, &store, id, false, false);
         assert!(result.is_ok(), "Show with records format should succeed");
     }
 
@@ -505,7 +542,7 @@ mod tests {
             .unwrap();
 
         let cli = make_default_cli();
-        let result = execute(&cli, &store, source_note.id(), false);
+        let result = execute(&cli, &store, source_note.id(), false, false);
         assert!(
             result.is_ok(),
             "Show with compaction resolution should succeed"
@@ -530,7 +567,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.no_resolve_compaction = true;
 
-        let result = execute(&cli, &store, source_note.id(), false);
+        let result = execute(&cli, &store, source_note.id(), false, false);
         assert!(
             result.is_ok(),
             "Show with no resolve compaction should succeed"
@@ -548,7 +585,7 @@ mod tests {
         let id = note.id();
 
         let cli = make_default_cli();
-        let result = execute(&cli, &store, id, true);
+        let result = execute(&cli, &store, id, true, false);
         assert!(result.is_ok(), "Show links mode should succeed");
     }
 
@@ -565,7 +602,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Json;
 
-        let result = execute(&cli, &store, id, true);
+        let result = execute(&cli, &store, id, true, false);
         assert!(result.is_ok(), "Show links with JSON format should succeed");
     }
 
@@ -582,7 +619,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.format = OutputFormat::Records;
 
-        let result = execute(&cli, &store, id, true);
+        let result = execute(&cli, &store, id, true, false);
         assert!(
             result.is_ok(),
             "Show links with records format should succeed"
@@ -605,7 +642,7 @@ mod tests {
         cli.format = OutputFormat::Json;
         cli.with_compaction_ids = true;
 
-        let result = execute(&cli, &store, id, false);
+        let result = execute(&cli, &store, id, false, false);
         assert!(result.is_ok(), "Show with compaction IDs should succeed");
     }
 
@@ -622,7 +659,7 @@ mod tests {
         let mut cli = make_default_cli();
         cli.verbose = true;
 
-        let result = execute(&cli, &store, id, false);
+        let result = execute(&cli, &store, id, false, false);
         assert!(result.is_ok(), "Show with verbose should succeed");
     }
 }

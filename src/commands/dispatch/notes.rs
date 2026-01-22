@@ -79,13 +79,14 @@ pub(super) fn handle_show(
     root: &PathBuf,
     id_or_path: &str,
     links: bool,
+    show_custom: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::show::execute(cli, &store, id_or_path, links)?;
+    commands::show::execute(cli, &store, id_or_path, links, show_custom)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

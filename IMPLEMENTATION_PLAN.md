@@ -34,10 +34,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Test coverage: 11 new tests in `tests/cli/value.rs` and 12 new tests in `tests/cli/custom.rs` covering all JSON output shapes and error cases.
 
 #### `qipu show --format json` includes core metadata (`specs/cli-interface.md`, `specs/custom-metadata.md`)
-- [ ] Include `value` in `qipu show --format json` output
-- [ ] Add `qipu show --custom` (opt-in) to include custom metadata as `custom: { ... }`
-- [ ] Add tests covering default omission and opt-in inclusion of `custom`
+- [x] Include `value` in `qipu show --format json` output
+- [x] Add `qipu show --custom` (opt-in) to include custom metadata as `custom: { ... }`
+- [x] Add tests covering default omission and opt-in inclusion of `custom`
 - Context: `qipu-integration-feedback.md` item (3) (excluding `path`)
+- Status: **Complete**. Added `value` to JSON and records output for `qipu show`. Added `--custom` flag (opt-in) that includes `custom` object in JSON output and `C` lines in records format. Tests verify value is always included and custom is omitted by default but included with `--custom` flag.
 
 #### Fix `qipu context --min-value` default mismatch (`specs/value-model.md`, `specs/cli-interface.md`)
 - [ ] Decide semantics: either (a) apply an actual default filter for `context --min-value`, or (b) remove any implied default from help text and docs

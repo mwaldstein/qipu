@@ -67,6 +67,10 @@ pub enum Commands {
         /// Show links for the note (inline + typed links, both directions)
         #[arg(long)]
         links: bool,
+
+        /// Include custom metadata in output (opt-in)
+        #[arg(long)]
+        custom: bool,
     },
 
     /// List unprocessed notes (fleeting/literature)

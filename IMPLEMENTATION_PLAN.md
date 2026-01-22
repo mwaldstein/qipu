@@ -392,8 +392,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - **Learnings**: Errors during gate evaluation (e.g., qipu command failures, file I/O errors) are now shown in gate result messages with "Evaluation error:" prefix instead of being silently treated as test failures; supplementary metrics (efficiency, quality) gracefully fall back to zero values if computation fails; this distinguishes between "test condition not met" and "could not evaluate test"
 
 ### Knowledge Model (`specs/knowledge-model.md`)
-- [ ] Add quality bar / rationale validation and duplicate detection (future).
-  - `src/commands/doctor/content.rs:109-127`
+- [x] Add quality bar / rationale validation and duplicate detection (future).
+  - `src/commands/doctor/content.rs:260-332` - Added `check_bare_link_lists()` and `check_note_complexity()` functions
+  - `src/commands/doctor/mod.rs:81-91` - Integrated new quality checks into doctor execution flow
+  - Added comprehensive tests for bare link lists and note complexity warnings
+  - Learnings: Quality bar checks detect (1) bare link lists (links without descriptive context) and (2) overly complex notes (excessive word count or paragraphs). These help maintain knowledge model best practices like "one idea per note" and "explain *why* links exist". Duplicate detection was already implemented via `check_near_duplicates()`.
 
 ---
 

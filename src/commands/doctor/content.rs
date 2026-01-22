@@ -256,3 +256,79 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
         }
     }
 }
+
+pub fn check_bare_link_lists(notes: &[Note], result: &mut DoctorResult) {
+    let wiki_link_re = Regex::new(r"\[\[([^\]]+)\]\]").expect("Invalid wiki link regex pattern");
+
+    for note in notes {
+        let lines: Vec<&str> = note.body.lines().collect();
+
+        for (line_idx, line) in lines.iter().enumerate() {
+            let trimmed = line.trim();
+
+            if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+                let line_without_marker = trimmed[2..].trim();
+                let links: Vec<&str> = wiki_link_re
+                    .find_iter(line_without_marker)
+                    .map(|m| m.as_str())
+                    .collect();
+
+                if links.len() >= 1 {
+                    let non_link_content = wiki_link_re.replace_all(line_without_marker, "");
+                    let non_link_content = non_link_content.trim();
+
+                    if non_link_content.is_empty() || non_link_content.len() < 20 {
+                        result.add_issue(Issue {
+                            severity: Severity::Warning,
+                            category: "bare-link-list".to_string(),
+                            message: format!(
+                                "Note '{}' contains bare link list at line {}: links should include descriptive text explaining why they are relevant",
+                                note.id(),
+                                line_idx + 1
+                            ),
+                            note_id: Some(note.id().to_string()),
+                            path: note.path.as_ref().map(|p| p.display().to_string()),
+                            fixable: false,
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
+    const MAX_WORDS: usize = 1500;
+    const MAX_PARAGRAPHS: usize = 50;
+
+    for note in notes {
+        let word_count = note.body.split_whitespace().count();
+        let paragraph_count = note
+            .body
+            .split("\n\n")
+            .filter(|p| !p.trim().is_empty())
+            .count();
+
+        if word_count > MAX_WORDS || paragraph_count > MAX_PARAGRAPHS {
+            let reason = if word_count > MAX_WORDS {
+                format!("{} words", word_count)
+            } else {
+                format!("{} paragraphs", paragraph_count)
+            };
+
+            result.add_issue(Issue {
+                severity: Severity::Warning,
+                category: "note-complexity".to_string(),
+                message: format!(
+                    "Note '{}' may be too long ({}) - consider splitting into multiple notes (prefer 'one idea per note')",
+                    note.id(),
+                    reason
+                ),
+                note_id: Some(note.id().to_string()),
+                path: note.path.as_ref().map(|p| p.display().to_string()),
+                fixable: false,
+            });
+        }
+    }
+}

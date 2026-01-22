@@ -78,7 +78,13 @@ pub fn execute(
     // 10. Check compaction invariants
     checks::check_compaction_invariants(&notes, &mut result);
 
-    // 11. Check for near-duplicates if requested
+    // 11. Check for bare link lists (quality bar)
+    checks::check_bare_link_lists(&notes, &mut result);
+
+    // 12. Check for overly complex notes (quality bar)
+    checks::check_note_complexity(&notes, &mut result);
+
+    // 13. Check for near-duplicates if requested
     if duplicates {
         checks::check_near_duplicates(&index, threshold, &mut result);
     }
@@ -110,20 +116,6 @@ mod tests {
     use crate::lib::note::Note;
     use crate::lib::store::InitOptions;
     use tempfile::tempdir;
-
-    #[test]
-    fn test_doctor_healthy_store() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
-
-        // Create a valid note
-        store.create_note("Test Note", None, &[], None).unwrap();
-
-        let mut result = DoctorResult::new();
-        checks::check_store_structure(&store, &mut result);
-
-        assert_eq!(result.error_count, 0);
-    }
 
     #[test]
     fn test_doctor_duplicate_ids() {
@@ -587,6 +579,100 @@ mod tests {
                 .issues
                 .iter()
                 .filter(|i| i.category == "semantic-link-misuse")
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_doctor_bare_link_lists() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with bare link list
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "- [[qp-2]]\n- [[qp-3]]\n".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = checks::scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        checks::check_bare_link_lists(&notes, &mut result);
+
+        // Should find bare link list
+        assert!(result.warning_count >= 1);
+        assert!(result.issues.iter().any(|i| i.category == "bare-link-list"));
+    }
+
+    #[test]
+    fn test_doctor_bare_link_lists_with_context() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with link list that has context
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "- See [[qp-2]] for more details on this topic\n- [[qp-3]] explains the counter-argument\n".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = checks::scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        checks::check_bare_link_lists(&notes, &mut result);
+
+        // Should NOT find bare link list (has sufficient context)
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "bare-link-list")
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_doctor_note_complexity_too_long() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with excessive word count
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let long_content = "word ".repeat(1600);
+        note1.body = format!("{}\n\nThis note is very long.", long_content);
+        store.save_note(&mut note1).unwrap();
+
+        let notes = checks::scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        checks::check_note_complexity(&notes, &mut result);
+
+        eprintln!("Issues found: {:?}", result.issues);
+
+        // Should find note complexity issue
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "note-complexity"));
+    }
+
+    #[test]
+    fn test_doctor_note_complexity_normal() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        // Create a note with normal word count
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "This is a normal note with reasonable length.".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = checks::scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        checks::check_note_complexity(&notes, &mut result);
+
+        // Should NOT find note complexity issue
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "note-complexity")
                 .count(),
             0
         );

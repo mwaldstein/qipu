@@ -309,3 +309,283 @@ fn test_list_filter_by_min_value_with_defaults() {
         .stdout(predicate::str::contains("Explicit High Value"))
         .stdout(predicate::str::contains("Default Value Note"));
 }
+
+#[test]
+fn test_list_filter_by_tag() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different tags
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--tag",
+            "rust",
+            "--tag",
+            "programming",
+            "Rust Note",
+        ])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--tag",
+            "python",
+            "--tag",
+            "programming",
+            "Python Note",
+        ])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "meeting", "Meeting Notes"])
+        .assert()
+        .success();
+
+    // Filter by tag - should show only notes with 'rust' tag
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--tag", "rust"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Rust Note"))
+        .stdout(predicate::str::contains("Python Note").not())
+        .stdout(predicate::str::contains("Meeting Notes").not());
+
+    // Filter by tag - should show notes with 'programming' tag
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--tag", "programming"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Rust Note"))
+        .stdout(predicate::str::contains("Python Note"))
+        .stdout(predicate::str::contains("Meeting Notes").not());
+}
+
+#[test]
+fn test_list_filter_by_tag_no_matches() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "work", "Work Note"])
+        .assert()
+        .success();
+
+    // Filter by non-existent tag
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--tag", "nonexistent"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes found"));
+}
+
+#[test]
+fn test_list_filter_by_since() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create first note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Old Note"])
+        .assert()
+        .success();
+
+    // Wait a moment to ensure different timestamps
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // Capture the timestamp for filtering
+    let since_time = chrono::Utc::now().to_rfc3339();
+
+    // Wait again to ensure the new note is after the timestamp
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // Create second note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Recent Note"])
+        .assert()
+        .success();
+
+    // Filter by since - should show only the recent note
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--since", &since_time])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Recent Note"))
+        .stdout(predicate::str::contains("Old Note").not());
+}
+
+#[test]
+fn test_list_filter_by_since_no_matches() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Past Note"])
+        .assert()
+        .success();
+
+    // Use a future timestamp - no notes should match
+    let future_time = (chrono::Utc::now() + chrono::Duration::days(1)).to_rfc3339();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--since", &future_time])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes found"));
+}
+
+#[test]
+fn test_list_records_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "test", "--tag", "example", "Test Note"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "list"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Verify header line
+    assert!(stdout.contains("H qipu=1 records=1"));
+    assert!(stdout.contains("mode=list"));
+    assert!(stdout.contains("notes=1"));
+
+    // Verify note record
+    assert!(stdout.contains("N qp-"));
+    assert!(stdout.contains("\"Test Note\""));
+    // Tags are alphabetically sorted
+    assert!(stdout.contains("tags=example,test"));
+}
+
+#[test]
+fn test_list_records_format_empty() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "list"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Verify header line shows zero notes
+    assert!(stdout.contains("H qipu=1 records=1"));
+    assert!(stdout.contains("mode=list"));
+    assert!(stdout.contains("notes=0"));
+}
+
+#[test]
+fn test_list_records_format_multiple_notes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--type",
+            "fleeting",
+            "--tag",
+            "urgent",
+            "Fleeting Note",
+        ])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "permanent", "Permanent Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "moc", "MOC Note"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "list"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Verify header shows correct count
+    assert!(stdout.contains("notes=3"));
+
+    // Verify all note types are present
+    assert!(stdout.contains("fleeting"));
+    assert!(stdout.contains("permanent"));
+    assert!(stdout.contains("moc"));
+
+    // Verify note titles are quoted
+    assert!(stdout.contains("\"Fleeting Note\""));
+    assert!(stdout.contains("\"Permanent Note\""));
+    assert!(stdout.contains("\"MOC Note\""));
+
+    // Verify tag handling
+    assert!(stdout.contains("tags=urgent"));
+    assert!(stdout.matches("tags=-").count() >= 2); // Notes without tags show "-"
+}

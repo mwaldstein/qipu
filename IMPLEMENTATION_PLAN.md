@@ -139,9 +139,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Add tests for `create` alias `new`, `--open`, and `--id`.
    - `tests/cli/create.rs:172-266` - Added test_new_alias, test_create_with_custom_id, test_create_with_open_flag
    - Learnings: The `new` alias works correctly; custom ID via `--id` flag creates notes with specified IDs; `--open` flag accepts EDITOR env var to launch editor (tested with `true` command to avoid blocking in CI)
-- [ ] Add tests for `list --tag`, `list --since`, and `list --format records`.
-  - `src/cli/commands.rs:39-49`
-  - `tests/cli/list.rs:10-109`
+- [x] Add tests for `list --tag`, `list --since`, and `list --format records`.
+  - `tests/cli/list.rs:313-571` - Added test_list_filter_by_tag, test_list_filter_by_tag_no_matches, test_list_filter_by_since, test_list_filter_by_since_no_matches, test_list_records_format, test_list_records_format_empty, test_list_records_format_multiple_notes
+  - Learnings: Tags are alphabetically sorted in output; --since accepts RFC3339 timestamps; records format includes header with note count and mode=list
 - [ ] Add tests for `search --exclude-mocs`, `--min-value`, and `--sort`.
   - `src/cli/commands.rs:132-142`
   - `tests/cli/search.rs:10-616`

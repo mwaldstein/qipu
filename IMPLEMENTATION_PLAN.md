@@ -87,14 +87,18 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Append `…[truncated]` marker to truncated content
 - [x] Keep truncation deterministic (same input → same output)
 - Files: `src/commands/context/mod.rs`, `src/commands/context/human.rs`
-- Status: **Partially Complete**. All notes are now included regardless of budget. The `budget::apply_budget` function was updated to return all notes and indicate if truncation is needed. Output formatters (human, json, records) were updated to handle content truncation for the last note when budget is exceeded. The implementation ensures:
-    1. All notes are included (per spec: "truncate individual notes instead of dropping entirely")
-    2. Truncation is deterministic - same input produces same output due to stable sorting
-    3. Content truncation with `…[truncated]` marker is added when budget is exceeded
-- **Learnings**: The budget calculation and output generation happen separately, making it difficult to precisely control character count. A better approach would be to calculate exact character budget before generating output and build the output string to match, or to track character count as output is built and truncate content dynamically.
-- **Blocker**: Content truncation with `…[truncated]` marker is not working correctly in output formatters. The budget calculation uses estimates that don't match actual output size exactly, leading to scenarios where the marker is never added because the budget appears to already be exceeded. This requires a refactor to either:
-   1. Pre-calculate exact output size and build output to match, OR
-   2. Track character count during output building and truncate content dynamically based on remaining budget
+- Status: **Partially Complete**. The output formatters (human) were updated to track `used_chars` and stop adding notes when budget is exceeded. The last note's content is truncated with `…[truncated]` marker. However, the budget enforcement is still not precise:
+    1. Break condition `used_chars >= budget` triggers after adding header, potentially adding content that exceeds budget
+    2. Need to check budget BEFORE adding each note header to ensure we don't exceed
+    3. JSON format needs similar budget tracking (currently uses hardcoded offset)
+- **Learnings**: The budget calculation and output generation happen separately, making it difficult to precisely control character count. A better approach would be to:
+   1. Track cumulative character count during output generation (`used_chars`)
+   2. Check budget BEFORE adding each note's header to stop early
+   3. For JSON, track actual JSON structure size (not just content size)
+- **Next Steps**: 
+   1. Change break condition to check BEFORE adding header: `if used_chars + estimated_header_size >= budget { break; }`
+   2. Implement similar tracking for JSON output format
+   3. Ensure truncation marker is always added when budget is exceeded
 
 #### Breadcrumb `via=<id>` in Search Results (`specs/compaction.md:118-120,255`)
 - [x] When search hits a compacted note, annotate result with `via=<matching-source-id>`

@@ -68,9 +68,11 @@ fn build_human_output(
     include_custom: bool,
 ) -> String {
     let mut output = String::new();
+    let mut used_chars = 0;
 
     output.push_str("# Qipu Context Bundle\n");
     output.push_str(&format!("Store: {}\n", store_path));
+    used_chars = output.len();
 
     if truncated {
         output.push('\n');
@@ -84,13 +86,18 @@ fn build_human_output(
 
     output.push('\n');
 
-    let last_note_index = if notes.is_empty() { 0 } else { notes.len() - 1 };
-
     for (idx, selected) in notes.iter().enumerate() {
         let note = selected.note;
-        let is_last_note = idx == last_note_index;
+        let is_last_note = idx == notes.len() - 1;
+
+        if let Some(budget) = max_chars {
+            if used_chars >= budget {
+                break;
+            }
+        }
 
         output.push_str(&format!("## Note: {} ({})\n", note.title(), note.id()));
+        used_chars = output.len();
 
         if let Some(path) = &note.path {
             output.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
@@ -159,6 +166,7 @@ fn build_human_output(
 
         output.push('\n');
         output.push_str("---\n");
+        used_chars = output.len();
 
         let content = if with_body {
             note.body.trim().to_string()
@@ -167,26 +175,19 @@ fn build_human_output(
         };
 
         if is_last_note && max_chars.is_some() {
-            let output_len_before_content = output.len();
             let separator_len = "\n---\n\n".len();
+            let marker = "…[truncated]";
+            let marker_len = marker.len();
 
             if let Some(budget) = max_chars {
-                let remaining = budget.saturating_sub(output_len_before_content + separator_len);
-                let marker = "\n…[truncated]";
-                let marker_len = marker.len();
+                let total_len = used_chars + content.len() + separator_len;
 
-                if remaining < content.len() {
-                    let truncated_len = if remaining > marker_len {
-                        remaining - marker_len
-                    } else if remaining > 0 {
-                        remaining
-                    } else {
-                        0
-                    };
-
-                    if truncated_len > 0 {
-                        let truncated_content = &content[..truncated_len];
-                        output.push_str(truncated_content);
+                if total_len > budget {
+                    let remaining_for_content =
+                        budget.saturating_sub(used_chars + marker_len + separator_len);
+                    if remaining_for_content > 0 {
+                        let truncated_len = remaining_for_content.min(content.len());
+                        output.push_str(&content[..truncated_len]);
                         output.push_str(marker);
                     } else {
                         output.push_str(marker);
@@ -201,6 +202,7 @@ fn build_human_output(
         output.push('\n');
         output.push_str("---\n");
         output.push('\n');
+        used_chars = output.len();
     }
 
     output

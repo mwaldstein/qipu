@@ -167,3 +167,100 @@ fn test_create_json_with_provenance() {
     assert!(json["id"].as_str().unwrap().starts_with("qp-"));
     assert_eq!(json["title"], "Provenance Test");
 }
+
+#[test]
+fn test_new_alias() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Test that 'new' works as an alias for 'create'
+    qipu()
+        .current_dir(dir.path())
+        .args(["new", "Note via New Command"])
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("qp-"));
+}
+
+#[test]
+fn test_create_with_custom_id() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create note with custom ID
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--id", "qp-custom123", "Custom ID Note"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(
+        output_str.contains("qp-custom123"),
+        "Output should contain custom ID"
+    );
+
+    // Verify the note was created with the specified ID by reading directory
+    let notes_dir = dir.path().join(".qipu/notes");
+    let entries: Vec<_> = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+
+    assert!(
+        entries.iter().any(|name| name.contains("qp-custom123")),
+        "Note file with custom ID should exist. Found files: {:?}",
+        entries
+    );
+}
+
+#[test]
+fn test_create_with_open_flag() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Test that --open flag is accepted by setting EDITOR to a no-op command
+    // This verifies the flag works without actually opening an editor
+    let output = qipu()
+        .current_dir(dir.path())
+        .env("EDITOR", "true") // 'true' is a command that always succeeds immediately
+        .args(["create", "--open", "Open Flag Test"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    assert!(
+        output_str.starts_with("qp-"),
+        "Output should contain note ID"
+    );
+
+    // Verify the note was created
+    let notes_dir = dir.path().join(".qipu/notes");
+    let entries = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .count();
+    assert_eq!(entries, 1, "Exactly one note should be created");
+}

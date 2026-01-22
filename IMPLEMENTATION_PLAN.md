@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 678 tests pass (233 unit + 265 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
+- Test baseline: 681 tests pass (233 unit + 268 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -136,10 +136,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Golden tests now cover the key deterministic commands mentioned in the spec (context, search, inbox, show, link list/tree/path); all outputs are normalized to use `<STORE_PATH>` placeholder for path-independence
 
 ### CLI Interface Tests (`specs/cli-interface.md`)
-- [ ] Add tests for `create` alias `new`, `--open`, and `--id`.
-  - `src/cli/commands.rs:31-36`
-  - `src/cli/args.rs:18-20`
-  - `src/cli/args.rs:42-44`
+- [x] Add tests for `create` alias `new`, `--open`, and `--id`.
+   - `tests/cli/create.rs:172-266` - Added test_new_alias, test_create_with_custom_id, test_create_with_open_flag
+   - Learnings: The `new` alias works correctly; custom ID via `--id` flag creates notes with specified IDs; `--open` flag accepts EDITOR env var to launch editor (tested with `true` command to avoid blocking in CI)
 - [ ] Add tests for `list --tag`, `list --since`, and `list --format records`.
   - `src/cli/commands.rs:39-49`
   - `tests/cli/list.rs:10-109`

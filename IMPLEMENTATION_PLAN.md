@@ -258,10 +258,15 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## P3: Unimplemented Optional / Future
 
 ### Custom Metadata (`specs/custom-metadata.md`)
-- [ ] Implement custom frontmatter, DB storage, and CLI/filter/output support.
-  - Add `custom: HashMap<String, serde_yaml::Value>` field to NoteFrontmatter (`src/lib/note/frontmatter.rs:7-54`)
-  - Add `custom_json TEXT DEFAULT '{}'` column to notes table (`src/lib/db/schema.rs:19-60`)
-  - Implement CLI commands with type detection:
+- [x] Add custom frontmatter field and DB storage (foundation).
+  - `src/lib/note/frontmatter.rs:3,56-57,79` - Added `custom: HashMap<String, serde_yaml::Value>` field
+  - `src/lib/db/schema.rs:6,47` - Bumped schema to v6; added `custom_json TEXT DEFAULT '{}'` column
+  - `src/lib/db/notes/create.rs:24,29,46` - Serialize custom HashMap to JSON during insert
+  - `src/lib/db/notes/read.rs:226,245,271,352,404,472,533` - Deserialize custom JSON when loading notes
+  - `src/commands/load/mod.rs:245` - Initialize custom field in pack load
+  - `src/lib/db/tests.rs:911` - Updated schema version test
+  - Learnings: Schema version bump triggers auto-rebuild; custom fields round-trip through JSON storage; empty HashMap serializes to `{}`; all existing tests pass with new field
+- [ ] Implement CLI commands with type detection:
     - `qipu custom set <id> <key> <value>` - Parse value using `serde_yaml::from_str()` for automatic type detection
     - `qipu custom get <id> <key>` - Display single field value
     - `qipu custom show <id>` - Display all custom fields for a note

@@ -1,6 +1,7 @@
 use super::types::{NoteType, Source, TypedLink};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Note frontmatter (YAML header)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +52,9 @@ pub struct NoteFrontmatter {
     /// Note importance/quality score (0-100, default 50)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<u8>,
+    /// Custom metadata for downstream applications
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub custom: HashMap<String, serde_yaml::Value>,
 }
 
 impl NoteFrontmatter {
@@ -73,6 +77,7 @@ impl NoteFrontmatter {
             prompt_hash: None,
             verified: None,
             value: None,
+            custom: HashMap::new(),
         }
     }
 

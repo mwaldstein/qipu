@@ -223,7 +223,7 @@ impl super::super::Database {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash FROM notes WHERE id = ?1",
+                "SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash, custom_json FROM notes WHERE id = ?1",
             )
             .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
 
@@ -243,6 +243,7 @@ impl super::super::Database {
             let sources_json: String = row.get(12)?;
             let generated_by: Option<String> = row.get(13)?;
             let prompt_hash: Option<String> = row.get(14)?;
+            let custom_json: String = row.get(15)?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -271,6 +272,7 @@ impl super::super::Database {
                 sources_json,
                 generated_by,
                 prompt_hash,
+                custom_json,
             ))
         });
 
@@ -291,6 +293,7 @@ impl super::super::Database {
                 sources_json,
                 generated_by,
                 prompt_hash,
+                custom_json,
             )) => {
                 let mut tag_stmt = self
                     .conn
@@ -347,6 +350,8 @@ impl super::super::Database {
                     serde_json::from_str(&compacts_json).unwrap_or_default();
                 let sources: Vec<crate::lib::note::Source> =
                     serde_json::from_str(&sources_json).unwrap_or_default();
+                let custom: std::collections::HashMap<String, serde_yaml::Value> =
+                    serde_json::from_str(&custom_json).unwrap_or_default();
 
                 let frontmatter = NoteFrontmatter {
                     id: id.clone(),
@@ -365,6 +370,7 @@ impl super::super::Database {
                     prompt_hash,
                     verified,
                     value,
+                    custom,
                 };
 
                 Ok(Some(Note {
@@ -395,7 +401,7 @@ impl super::super::Database {
 
     pub fn list_notes_full(&self) -> Result<Vec<Note>> {
         let sql = r#"
-            SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash
+            SELECT id, title, type, path, created, updated, body, value, compacts, author, verified, source, sources, generated_by, prompt_hash, custom_json
             FROM notes
             ORDER BY created DESC, id
         "#;
@@ -460,6 +466,9 @@ impl super::super::Database {
             let prompt_hash: Option<String> = row
                 .get(14)
                 .map_err(|e| QipuError::Other(format!("failed to get prompt_hash: {}", e)))?;
+            let custom_json: String = row
+                .get(15)
+                .map_err(|e| QipuError::Other(format!("failed to get custom_json: {}", e)))?;
 
             let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
 
@@ -524,6 +533,8 @@ impl super::super::Database {
             let compacts: Vec<String> = serde_json::from_str(&compacts_json).unwrap_or_default();
             let sources: Vec<crate::lib::note::Source> =
                 serde_json::from_str(&sources_json).unwrap_or_default();
+            let custom: std::collections::HashMap<String, serde_yaml::Value> =
+                serde_json::from_str(&custom_json).unwrap_or_default();
 
             let frontmatter = NoteFrontmatter {
                 id: id.clone(),
@@ -542,6 +553,7 @@ impl super::super::Database {
                 prompt_hash,
                 verified: verified_opt,
                 value: value_opt,
+                custom,
             };
 
             results.push(Note {

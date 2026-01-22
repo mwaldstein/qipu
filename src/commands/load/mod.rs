@@ -242,6 +242,7 @@ fn load_notes(
             prompt_hash: pack_note.prompt_hash.clone(),
             verified: pack_note.verified,
             value: pack_note.value,
+            custom: std::collections::HashMap::new(),
         };
 
         // Create note with path from pack if available

@@ -280,9 +280,11 @@ pub enum Commands {
         #[arg(long)]
         safety_banner: bool,
 
-        /// Add related notes using similarity expansion (threshold: 0.0-1.0)
-        #[arg(long)]
-        related: Option<f64>,
+        /// Add related notes using similarity expansion (threshold: 0.0-1.0, default: 0.3)
+        ///
+        /// Set to 0 to disable related-note expansion
+        #[arg(long, default_value = "0.3")]
+        related: f64,
 
         /// Include backlinks for selected notes
         #[arg(long)]

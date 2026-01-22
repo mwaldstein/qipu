@@ -77,10 +77,10 @@ fn test_context_by_tag() {
         .assert()
         .success();
 
-    // Get context by tag
+    // Get context by tag (disable related-note expansion to test selection only)
     qipu()
         .current_dir(dir.path())
-        .args(["context", "--tag", "research"])
+        .args(["context", "--tag", "research", "--related", "0"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Research Note"))
@@ -116,10 +116,10 @@ fn test_context_by_query() {
         .assert()
         .success();
 
-    // Get context by query
+    // Get context by query (disable related-note expansion to test selection only)
     qipu()
         .current_dir(dir.path())
-        .args(["context", "--query", "rust"])
+        .args(["context", "--query", "rust", "--related", "0"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Rust Programming"))

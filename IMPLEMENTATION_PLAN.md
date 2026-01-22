@@ -116,8 +116,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Set parent_id to "(primary)" for all newly created workspaces since they are always created from the primary store; workspace identity uses names not IDs
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
-- [ ] Related-note expansion only runs with explicit `--related`.
-  - `src/commands/context/mod.rs:162-165`
+- [x] Related-note expansion only runs with explicit `--related`.
+  - `src/cli/commands.rs:283-287` - Changed `--related` to default to 0.3 instead of being optional
+  - `src/commands/dispatch/notes.rs:317,340` - Updated handler to convert `related` threshold of 0.0 to None (disabled)
+  - `tests/cli/context/basic.rs:81-88,120-127` - Updated tests to explicitly disable related expansion with `--related 0` when testing selection-only behavior
+  - Learnings: Related-note expansion now runs by default with threshold 0.3 per spec; users can disable with `--related 0` or customize threshold; existing tests needed updating to disable expansion when testing selection behavior only
 - [ ] Stemming is always enabled; there is no opt-out.
   - `src/lib/index/builder.rs:49-62`
 - [ ] Search ranking boosts are hardcoded (do not match spec weights).

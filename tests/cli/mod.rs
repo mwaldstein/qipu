@@ -21,4 +21,5 @@ mod setup;
 mod show;
 pub mod support;
 mod sync;
+mod value;
 mod workspace;

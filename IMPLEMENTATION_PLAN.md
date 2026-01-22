@@ -151,9 +151,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Both flags work correctly; --from-stdin reads note IDs from stdin (one per line); --notes-file reads from a file path; multiple sources (--note flags, --from-stdin, --notes-file) can be combined and are deduplicated; empty lines and whitespace are trimmed; all three output formats (human, json, records) are tested; error handling verified when no sources provided
 
 ### Value Model Tests (`specs/value-model.md`)
-- [ ] Add tests for `qipu value set/show` output + validation.
-  - `src/cli/value.rs:5-18`
-  - `src/commands/dispatch/mod.rs:319-365`
+- [x] Add tests for `qipu value set/show` output + validation.
+  - `tests/cli/value.rs:1-402` - Added comprehensive tests for value set/show commands
+  - `src/lib/db/notes/create.rs:37,128` - Fixed database insert to preserve None values instead of defaulting to 50
+  - Learnings: Value field was being defaulted to 50 during database insert (`.or(Some(50))`), preventing distinction between "unset" (None) and "explicitly set to 50" (Some(50)). This broke the `value show` command's "(default)" label. Fixed by removing the default conversion and relying on SQLite to store NULL for None values. Tests cover: basic set/show, min/max boundaries (0-100), validation (>100 rejected), file path operations, default value display with "(default)" label, frontmatter persistence, and error handling for nonexistent notes.
 - [ ] Add tests for `search --sort value`.
   - `src/commands/search.rs:138-145`
 - [ ] Add tests for `list --min-value` and `context --min-value`.

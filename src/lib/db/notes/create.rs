@@ -34,7 +34,7 @@ impl super::super::Database {
                     updated_str,
                     &note.body,
                     mtime,
-                    note.frontmatter.value.or(Some(50)),
+                    note.frontmatter.value,
                     compacts_json,
                     note.frontmatter.author.as_ref(),
                     verified_int,

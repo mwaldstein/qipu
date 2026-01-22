@@ -1,0 +1,388 @@
+use crate::cli::support::{extract_id, qipu};
+use predicates::prelude::*;
+use std::fs;
+use tempfile::tempdir;
+
+/// Extract path from create command output (second line)
+fn extract_path(output: &std::process::Output) -> String {
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .nth(1)
+        .map(|s| s.to_string())
+        .unwrap_or_default()
+}
+
+// ============================================================================
+// Value command tests
+// ============================================================================
+
+#[test]
+fn test_value_set_basic() {
+    let dir = tempdir().unwrap();
+
+    // Init and create a note
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Set value to 90
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "90"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 90", note_id)));
+}
+
+#[test]
+fn test_value_set_min_value() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Set value to 0 (minimum)
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "0"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 0", note_id)));
+}
+
+#[test]
+fn test_value_set_max_value() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Set value to 100 (maximum)
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "100"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 100", note_id)));
+}
+
+#[test]
+fn test_value_set_validation_over_100() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Try to set value over 100 - should fail
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "101"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Value score must be between 0 and 100",
+        ));
+}
+
+#[test]
+fn test_value_set_by_file_path() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+    let note_path = extract_path(&output);
+
+    // Set value by file path
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_path, "85"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 85", note_id)));
+}
+
+#[test]
+fn test_value_set_updates_frontmatter() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+    let note_path = extract_path(&output);
+
+    // Set value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "75"])
+        .assert()
+        .success();
+
+    // Verify frontmatter contains the value
+    let content = fs::read_to_string(&note_path).unwrap();
+    assert!(content.contains("value: 75"));
+}
+
+#[test]
+fn test_value_show_explicit_value() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Set value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "80"])
+        .assert()
+        .success();
+
+    // Show value - should display explicit value without "(default)"
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", &note_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 80", note_id)))
+        .stdout(predicate::str::contains("(default)").not());
+}
+
+#[test]
+fn test_value_show_default_value() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Show value without setting - should display default value with "(default)"
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", &note_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!(
+            "{}: 50 (default)",
+            note_id
+        )));
+}
+
+#[test]
+fn test_value_show_by_file_path() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+    let note_path = extract_path(&output);
+
+    // Set value first
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "65"])
+        .assert()
+        .success();
+
+    // Show value by file path
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", &note_path])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 65", note_id)));
+}
+
+#[test]
+fn test_value_show_nonexistent_note() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Try to show value for nonexistent note
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", "qp-nonexistent"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
+
+#[test]
+fn test_value_set_nonexistent_note() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Try to set value for nonexistent note
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", "qp-nonexistent", "80"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
+
+#[test]
+fn test_value_set_multiple_times() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    // Set value to 70
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "70"])
+        .assert()
+        .success();
+
+    // Update to 90
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "90"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 90", note_id)));
+
+    // Verify show displays the updated value
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "show", &note_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("{}: 90", note_id)))
+        .stdout(predicate::str::contains("(default)").not());
+}

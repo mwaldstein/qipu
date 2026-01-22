@@ -303,8 +303,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/scenario.rs:743-785` - Added YAML deserialization tests
   - `crates/llm-tool-test/src/evaluation.rs:1159-1254` - Added comprehensive tests for both gates
   - **Learnings**: DoctorPasses gate runs `qipu doctor` and checks exit code. NoTranscriptErrors gate reads `artifacts/transcript.raw.txt` and uses TranscriptAnalyzer to count command errors (exit code != 0). Both gates return false if the underlying check fails or if required artifacts are missing. All 144 llm-tool-test tests pass.
-- [ ] `--max-usd` is parsed but unused (no budget enforcement).
-  - `crates/llm-tool-test/src/commands.rs:23-36`
+- [x] `--max-usd` is parsed but unused (no budget enforcement).
+  - `crates/llm-tool-test/src/main.rs:86` - Pass CLI max_usd to handle_run_command
+  - `crates/llm-tool-test/src/commands.rs:44` - Pass cli_max_usd to run_single_scenario
+  - `crates/llm-tool-test/src/run.rs:167,186-202,260-268` - Implement budget enforcement logic
+  - `crates/llm-tool-test/src/run.rs:13-158` - Added comprehensive tests for budget enforcement
+  - **Learnings**: Budget enforcement checks both CLI `--max-usd` and scenario `cost.max_usd` fields, taking the minimum if both are set. When budget is zero or negative, the run fails immediately with "Budget exhausted" error before fixture setup. After run completes, a warning is printed if actual cost exceeded budget. Added 3 tests verifying: CLI budget enforcement, scenario budget enforcement, and minimum selection when both are set.
 - [ ] Artifact set is incomplete (missing `run.json`, `report.md`, snapshots).
   - `crates/llm-tool-test/src/run.rs:89-114`
 - [ ] Tool adapter trait diverges from spec (`execute_task`/`ToolStatus` missing).

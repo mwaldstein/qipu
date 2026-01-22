@@ -58,11 +58,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 #### JSON stdout must be clean (no logs/warnings/ANSI) (`specs/cli-tool.md`)
 - [x] Add regression tests that run key commands with `--format json` and assert stdout is valid JSON (and stderr may contain logs)
-- [ ] Ensure all logging and warnings are routed to stderr when `--format json` is selected
-- [ ] Ensure ANSI color is disabled in non-TTY contexts and never appears on stdout
+- [x] Ensure all logging and warnings are routed to stderr when `--format json` is selected
+- [x] Ensure ANSI color is disabled in non-TTY contexts and never appears on stdout
 - Context: `qipu-integration-feedback.md` item (6)
-- Status: **Partially complete**. Added 16 comprehensive regression tests in `tests/cli/misc.rs` that validate stdout is valid JSON for key commands: init, create, list, show, search, context, value (set/show), custom (set/get/show/unset), capture, index, doctor, and export. Each test creates necessary data, runs the command with `--format json`, and parses stdout to ensure it's valid JSON using `serde_json::from_str()`. These tests will catch any future regressions where logs, warnings, or other pollution appear on stdout when using JSON format.
-- **Learnings**: The tests cover all major commands that support `--format json`. The pattern is consistent: create necessary test data, run command with `--format json`, extract stdout, parse as JSON, and assert basic JSON structure (object or array). The tests focus on JSON validity rather than specific content, which is covered by other command-specific tests.
+- Status: **Complete**. All logging (via tracing_subscriber) already writes to stderr by default. All warnings and errors use `eprintln!()` for stderr output. ANSI color codes are now explicitly disabled in tracing configuration by adding `.with_ansi(false)` to fmt layer. This ensures no ANSI escape codes appear in logging output when using JSON format or piping output. The 16 regression tests in `tests/cli/misc.rs` continue to pass, validating that stdout remains clean JSON.
+- **Learnings**: Tracing output already writes to stderr, so the main concern was ANSI color codes appearing in stderr logs. These codes were being added automatically by tracing_subscriber's default configuration. The fix is to explicitly disable ANSI with `.with_ansi(false)` in the fmt layer. This ensures clean log output in all contexts, especially when piping output or using JSON format where consumers might parse both stdout and stderr.
 
 #### Allow `context` selection via `--custom-filter` and `--min-value` (`specs/llm-context.md`, `specs/cli-interface.md`, `specs/custom-metadata.md`)
 - [ ] Treat `--min-value` as a selector when no other selectors are provided (select notes by `value >= n`)

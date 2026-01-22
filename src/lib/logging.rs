@@ -31,10 +31,12 @@ fn init_with_level(level: &str, log_json: bool) -> Result<(), Box<dyn std::error
     let registry = tracing_subscriber::registry().with(filter);
 
     if log_json {
-        registry.with(fmt::layer().json()).try_init()?;
+        registry
+            .with(fmt::layer().json().with_ansi(false))
+            .try_init()?;
     } else {
         registry
-            .with(fmt::layer().compact().with_target(false))
+            .with(fmt::layer().compact().with_target(false).with_ansi(false))
             .try_init()?;
     }
 

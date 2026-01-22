@@ -16,6 +16,7 @@ pub mod logging;
 pub mod note;
 pub mod query;
 pub mod records;
+pub mod search;
 pub mod similarity;
 pub mod store;
 pub mod text;

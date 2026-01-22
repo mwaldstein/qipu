@@ -286,9 +286,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Extract filtering logic to `src/lib/query/filter.rs` or similar.
   - Extract formatting logic to `src/commands/list/format.rs`.
   - Learnings: Created `src/lib/query/mod.rs` with `NoteFilter` struct providing fluent API for filtering notes; extracted formatting to `src/commands/list/format/` with human.rs, json.rs, and records.rs modules; refactored `src/commands/list.rs` to `src/commands/list/mod.rs`; all 376 list tests pass; filter module provides reusable filtering logic for tag, type, since, min-value, custom metadata, and compaction visibility
-- [ ] Refactor `src/commands/search.rs` (725 lines).
+- [x] Refactor `src/commands/search.rs` (726 lines).
   - Extract search execution logic to `src/lib/search/`.
   - Extract result formatting to `src/commands/search/format.rs`.
+  - Learnings: Created `src/lib/search/mod.rs` with `process_search_results()` function for high-level search post-processing (compaction resolution, value sorting, MOC filtering, notes caching); extracted formatting to `src/commands/search/format/` with human.rs, json.rs, and records.rs modules; refactored `src/commands/search.rs` to `src/commands/search/mod.rs`; all 668 tests pass; search module provides reusable post-processing logic separating database search from result transformation and presentation
 
 ## P3: Unimplemented Optional / Future
 

@@ -303,7 +303,10 @@ fn perform_simple_traversal(
 
                 if !visited.contains(neighbor_id) {
                     visited.insert(neighbor_id.clone());
-                    let edge_cost = crate::lib::graph::get_link_type_cost(edge.link_type.as_str());
+                    let edge_cost = crate::lib::graph::get_link_type_cost(
+                        edge.link_type.as_str(),
+                        store.config(),
+                    );
                     queue.push_back((neighbor_id.clone(), accumulated_cost + edge_cost));
 
                     // Add note if not already in selection

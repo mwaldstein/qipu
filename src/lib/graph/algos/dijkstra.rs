@@ -297,14 +297,14 @@ pub fn dijkstra_traverse(
                 // Calculate new accumulated cost for this edge
                 let edge_cost = if opts.ignore_value {
                     // Unweighted: all edges cost 1.0
-                    get_link_type_cost(edge.link_type.as_str())
+                    get_link_type_cost(edge.link_type.as_str(), store.config())
                 } else {
                     // Weighted: use get_edge_cost with target note's value
                     if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
                         let value = meta.value.unwrap_or(50);
-                        get_edge_cost(edge.link_type.as_str(), value)
+                        get_edge_cost(edge.link_type.as_str(), value, store.config())
                     } else {
-                        get_link_type_cost(edge.link_type.as_str())
+                        get_link_type_cost(edge.link_type.as_str(), store.config())
                     }
                 };
                 let new_cost = accumulated_cost + edge_cost;

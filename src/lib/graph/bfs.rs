@@ -195,7 +195,7 @@ pub fn bfs_find_path(
                         (current_id.clone(), canonical_edge),
                     );
                     // Calculate new accumulated cost
-                    let edge_cost = get_link_type_cost(edge.link_type.as_str());
+                    let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
                     let new_cost = accumulated_cost + edge_cost;
                     best_costs.insert(canonical_neighbor.clone(), new_cost);
                     queue.push_back((canonical_neighbor, new_cost));
@@ -314,9 +314,9 @@ pub fn bfs_find_path(
                 // Calculate new accumulated cost for this edge
                 let edge_cost = if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
                     let value = meta.value.unwrap_or(50);
-                    get_edge_cost(edge.link_type.as_str(), value)
+                    get_edge_cost(edge.link_type.as_str(), value, store.config())
                 } else {
-                    get_link_type_cost(edge.link_type.as_str())
+                    get_link_type_cost(edge.link_type.as_str(), store.config())
                 };
                 let new_cost = accumulated_cost + edge_cost;
 

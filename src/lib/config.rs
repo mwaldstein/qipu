@@ -72,6 +72,10 @@ pub struct LinkTypeConfig {
     /// Human-readable description
     #[serde(default)]
     pub description: Option<String>,
+
+    /// Hop cost for traversing this link type (default 1.0)
+    #[serde(default = "default_link_cost")]
+    pub cost: f32,
 }
 
 impl StoreConfig {
@@ -88,6 +92,32 @@ impl StoreConfig {
         crate::lib::note::LinkType::new(link_type)
             .inverse()
             .to_string()
+    }
+
+    /// Get the hop cost for a link type
+    /// Returns user-defined cost, or standard type cost, or default (1.0)
+    pub fn get_link_cost(&self, link_type: &str) -> f32 {
+        // 1. Check user-defined costs
+        if let Some(type_config) = self.graph.types.get(link_type) {
+            return type_config.cost;
+        }
+
+        // 2. Check standard type costs
+        if let Some(cost) = get_standard_link_cost(link_type) {
+            return cost;
+        }
+
+        // 3. Default cost
+        1.0
+    }
+
+    /// Set a custom cost for a link type
+    pub fn set_link_cost(&mut self, link_type: &str, cost: f32) {
+        self.graph
+            .types
+            .entry(link_type.to_string())
+            .or_insert_with(LinkTypeConfig::default)
+            .cost = cost;
     }
 
     /// Load configuration from a file
@@ -118,6 +148,29 @@ fn default_version() -> u32 {
 
 fn default_stemming() -> bool {
     true
+}
+
+fn default_link_cost() -> f32 {
+    1.0
+}
+
+/// Get the standard cost for a known link type
+/// Returns None for unknown/custom types (use default 1.0)
+fn get_standard_link_cost(link_type: &str) -> Option<f32> {
+    match link_type {
+        // Structural types (reduced cost for strong cohesion)
+        "part-of" | "has-part" | "follows" | "precedes" => Some(0.5),
+
+        // Identity types (reduced cost for unification)
+        "same-as" | "alias-of" | "has-alias" => Some(0.5),
+
+        // Argumentative types (standard cost)
+        "supports" | "supported-by" | "contradicts" | "contradicted-by" | "answers"
+        | "answered-by" | "refines" | "refined-by" | "related" => Some(1.0),
+
+        // Unknown types - use default
+        _ => None,
+    }
 }
 
 impl Default for StoreConfig {
@@ -213,5 +266,67 @@ mod tests {
 
         let loaded = StoreConfig::load(&path).unwrap();
         assert!(!loaded.stemming);
+    }
+
+    #[test]
+    fn test_get_link_cost_default() {
+        let config = StoreConfig::default();
+        assert_eq!(config.get_link_cost("supports"), 1.0);
+        assert_eq!(config.get_link_cost("unknown"), 1.0);
+    }
+
+    #[test]
+    fn test_get_link_cost_standard_structural() {
+        let config = StoreConfig::default();
+        assert_eq!(config.get_link_cost("part-of"), 0.5);
+        assert_eq!(config.get_link_cost("has-part"), 0.5);
+        assert_eq!(config.get_link_cost("follows"), 0.5);
+        assert_eq!(config.get_link_cost("precedes"), 0.5);
+    }
+
+    #[test]
+    fn test_get_link_cost_identity() {
+        let config = StoreConfig::default();
+        assert_eq!(config.get_link_cost("same-as"), 0.5);
+        assert_eq!(config.get_link_cost("alias-of"), 0.5);
+        assert_eq!(config.get_link_cost("has-alias"), 0.5);
+    }
+
+    #[test]
+    fn test_get_link_cost_argumentative() {
+        let config = StoreConfig::default();
+        assert_eq!(config.get_link_cost("supports"), 1.0);
+        assert_eq!(config.get_link_cost("supported-by"), 1.0);
+        assert_eq!(config.get_link_cost("contradicts"), 1.0);
+        assert_eq!(config.get_link_cost("answers"), 1.0);
+        assert_eq!(config.get_link_cost("refines"), 1.0);
+        assert_eq!(config.get_link_cost("related"), 1.0);
+    }
+
+    #[test]
+    fn test_set_link_cost() {
+        let mut config = StoreConfig::default();
+        config.set_link_cost("custom-type", 0.8);
+        assert_eq!(config.get_link_cost("custom-type"), 0.8);
+    }
+
+    #[test]
+    fn test_set_link_cost_overrides_standard() {
+        let mut config = StoreConfig::default();
+        config.set_link_cost("part-of", 0.9);
+        assert_eq!(config.get_link_cost("part-of"), 0.9);
+    }
+
+    #[test]
+    fn test_link_cost_serialization() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let mut config = StoreConfig::default();
+        config.set_link_cost("custom", 0.7);
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert_eq!(loaded.get_link_cost("custom"), 0.7);
     }
 }

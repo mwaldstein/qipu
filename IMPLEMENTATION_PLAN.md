@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 655 tests pass (653 passing + 2 ignored PDF tests requiring pandoc)
+- Test baseline: 699 tests pass (697 passing + 2 ignored)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` reduced from 25 to 20 errors (5 fixed)
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -367,8 +367,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: All three use cases from the spec are fully implemented: (A) Related Notes context expansion with 0.3 threshold, (B) Duplicate detection via doctor command with 0.85 threshold, (C) Search ranking via FTS5 BM25. The spec explicitly marks clustering for MOC generation as "Implementation Plan (Future)" (lines 46-48), so this feature is complete relative to current spec requirements
 
 ### Semantic Graph (`specs/semantic-graph.md`)
-- [ ] Support per-link-type hop costs (currently hardcoded to 1.0).
-  - `src/lib/graph/types.rs:48-53`
+- [x] Support per-link-type hop costs (currently hardcoded to 1.0).
+   - `src/lib/config.rs:75-77,112-135` - Added `cost` field to LinkTypeConfig; added `get_link_cost()` and `set_link_cost()` methods to StoreConfig
+   - `src/lib/config.rs:140-164` - Added `get_standard_link_cost()` function with default costs: 0.5 for structural/identity types, 1.0 for argumentative types
+   - `src/lib/graph/types.rs:48-53` - Updated `get_link_type_cost()` and `get_edge_cost()` to accept config parameter
+   - Updated all callers to pass config: `src/lib/graph/algos/bfs.rs`, `src/lib/graph/algos/dijkstra.rs`, `src/lib/graph/bfs.rs`, `src/commands/dump/mod.rs`
+   - Learnings: Default costs use 0.5 for structural/identity types (part-of, same-as, etc.) to enable stronger cohesion; argumentative types (supports, contradicts, etc.) use 1.0; user-defined costs via config file override standard costs; all graph traversal functions now pass store.config() to cost functions
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
 - [x] Include prime output hash in cache key.

@@ -254,7 +254,7 @@ pub fn bfs_traverse(
                 visited.insert(canonical_neighbor.clone());
 
                 // Calculate new accumulated cost for this edge
-                let edge_cost = get_link_type_cost(edge.link_type.as_str());
+                let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
                 let new_cost = accumulated_cost + edge_cost;
 
                 // Add to spanning tree (first discovery, use canonical IDs)

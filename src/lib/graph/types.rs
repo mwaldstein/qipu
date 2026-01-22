@@ -46,10 +46,9 @@ impl From<u32> for HopCost {
 }
 
 /// Get the hop cost for a given link type
-/// Returns 1.0 for all types in v1, but designed for future
-/// per-link-type cost configuration
-pub fn get_link_type_cost(_link_type: &str) -> HopCost {
-    HopCost::DEFAULT
+/// Uses config for per-type costs, with defaults for standard types
+pub fn get_link_type_cost(link_type: &str, config: &crate::lib::config::StoreConfig) -> HopCost {
+    HopCost::new(config.get_link_cost(link_type))
 }
 
 /// Get the edge cost for traversing to a target note
@@ -61,11 +60,16 @@ pub fn get_link_type_cost(_link_type: &str) -> HopCost {
 /// # Arguments
 /// * `link_type` - The type of link being traversed
 /// * `target_value` - The value of the target note (0-100)
+/// * `config` - Store configuration for per-type costs
 ///
 /// # Returns
 /// The total cost to traverse this edge
-pub fn get_edge_cost(link_type: &str, target_value: u8) -> HopCost {
-    let link_cost = get_link_type_cost(link_type);
+pub fn get_edge_cost(
+    link_type: &str,
+    target_value: u8,
+    config: &crate::lib::config::StoreConfig,
+) -> HopCost {
+    let link_cost = get_link_type_cost(link_type, config);
     let value_multiplier = 1.0 + (100 - target_value) as f32 / 100.0;
     HopCost(link_cost.value() * value_multiplier)
 }
@@ -107,43 +111,64 @@ mod tests {
 
     #[test]
     fn test_get_link_type_cost_default() {
-        let cost = get_link_type_cost("supports");
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_link_type_cost("supports", &config);
         assert_eq!(cost.value(), 1.0);
     }
 
     #[test]
     fn test_get_link_type_cost_unknown() {
-        let cost = get_link_type_cost("unknown-type");
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_link_type_cost("unknown-type", &config);
         assert_eq!(cost.value(), 1.0);
     }
 
     #[test]
+    fn test_get_link_type_cost_standard_structural() {
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_link_type_cost("part-of", &config);
+        assert_eq!(cost.value(), 0.5);
+    }
+
+    #[test]
+    fn test_get_link_type_cost_identity() {
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_link_type_cost("same-as", &config);
+        assert_eq!(cost.value(), 0.5);
+    }
+
+    #[test]
     fn test_get_edge_cost_max_value() {
-        let cost = get_edge_cost("supports", 100);
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_edge_cost("supports", 100, &config);
         assert_eq!(cost.value(), 1.0);
     }
 
     #[test]
     fn test_get_edge_cost_mid_value() {
-        let cost = get_edge_cost("supports", 50);
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_edge_cost("supports", 50, &config);
         assert_eq!(cost.value(), 1.5);
     }
 
     #[test]
     fn test_get_edge_cost_min_value() {
-        let cost = get_edge_cost("supports", 0);
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_edge_cost("supports", 0, &config);
         assert_eq!(cost.value(), 2.0);
     }
 
     #[test]
     fn test_get_edge_cost_custom_link_type() {
-        let cost = get_edge_cost("part-of", 75);
-        assert_eq!(cost.value(), 1.25);
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_edge_cost("part-of", 75, &config);
+        assert_eq!(cost.value(), 0.625); // 0.5 * 1.25
     }
 
     #[test]
     fn test_get_edge_cost_boundary() {
-        let cost = get_edge_cost("supports", 1);
+        let config = crate::lib::config::StoreConfig::default();
+        let cost = get_edge_cost("supports", 1, &config);
         let expected = 1.0 + (100.0 - 1.0) / 100.0;
         assert!((cost.value() - expected).abs() < 0.001);
     }
@@ -177,6 +202,30 @@ mod tests {
             ..Default::default()
         };
         assert!(opts.ignore_value);
+    }
+
+    #[test]
+    fn test_custom_link_cost() {
+        let mut config = crate::lib::config::StoreConfig::default();
+        config.set_link_cost("custom-type", 0.8);
+        let cost = get_link_type_cost("custom-type", &config);
+        assert_eq!(cost.value(), 0.8);
+    }
+
+    #[test]
+    fn test_custom_link_cost_overrides_default() {
+        let mut config = crate::lib::config::StoreConfig::default();
+        config.set_link_cost("part-of", 0.9); // Override default 0.5
+        let cost = get_link_type_cost("part-of", &config);
+        assert_eq!(cost.value(), 0.9);
+    }
+
+    #[test]
+    fn test_get_edge_cost_with_custom_type() {
+        let mut config = crate::lib::config::StoreConfig::default();
+        config.set_link_cost("custom", 0.8);
+        let cost = get_edge_cost("custom", 50, &config);
+        assert_eq!(cost.value(), 1.2); // 0.8 * 1.5
     }
 }
 

@@ -284,6 +284,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
     - `src/commands/doctor/content.rs:151-172` - Added check_custom_metadata() to validate custom fields
     - `src/commands/doctor/mod.rs:71` - Integrated custom metadata check into doctor command
     - Learnings: Type detection using `serde_yaml::from_str()` provides intuitive CLI experience (numbers, booleans, strings, arrays, objects); custom filter uses simple key=value format with type-aware comparison; doctor validation warns on >10KB custom blocks; all 642 tests pass
+- [ ] Implement `--custom` context output for markdown, JSON, and records formats.
+    - `src/commands/context/human.rs` - Add Custom section to markdown output (opt-in via include_custom flag)
+    - `src/commands/context/json.rs` - Include custom metadata in JSON output when include_custom is true
+    - `src/commands/context/records.rs` - Add Custom.* fields to records output when include_custom is true
+    - `src/commands/context/output.rs` - Pass include_custom flag to all output functions
 
 ### Distribution (`specs/distribution.md`)
 - [x] Add release automation and install scripts (GitHub releases + installers).

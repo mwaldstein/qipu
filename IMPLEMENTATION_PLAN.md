@@ -29,11 +29,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    1. Pre-calculate exact output size and build output to match, OR
    2. Track character count during output building and truncate content dynamically based on remaining budget
 
-#### Breadcrumb `via=<id>` in Traversal Outputs (`specs/compaction.md:118-120,255`)
-- [ ] When search/traversal hits a compacted note, annotate result with `via=<matching-source-id>`
-- [ ] Add `via` field to link tree/path outputs (human, JSON, records formats)
-- [ ] Track which compacted source triggered the match
-- Files: `src/commands/link/tree.rs`, `src/commands/link/path.rs`, `src/commands/search/mod.rs`
+#### Breadcrumb `via=<id>` in Search Results (`specs/compaction.md:118-120,255`)
+- [x] When search hits a compacted note, annotate result with `via=<matching-source-id>`
+- [x] Add `via` field to search outputs (human, JSON, records formats)
+- [x] Track which compacted source triggered the match
+- Files: `src/commands/search/mod.rs`, `src/commands/search/format/*.rs`
+- Status: **Implemented**. The `SearchResult` struct has a `via` field that is set when a compacted note is resolved to its digest. All three output formats (JSON, human, records) display the `via` field. The `show` and `context` commands also support `via` annotations (verified by test_compaction_annotations).
+- **Note**: Per spec (lines 260-267), traversal outputs (tree/path) do NOT use `via`. Traversals operate on the contracted graph and use `--with-compaction-ids` flag to display compacted notes instead.
 
 ### P2: LLM Tool Test Enhancements
 

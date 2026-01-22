@@ -77,26 +77,27 @@ fn build_json_output(
                 note.summary()
             };
 
-            let (final_content, content_truncated) = if is_last_note {
+            let (final_content, content_truncated) = if is_last_note && truncated {
+                let marker = "…[truncated]";
                 if let Some(budget) = max_chars {
-                    let marker = "…[truncated]";
                     if content.len() > marker.len() + 10 {
                         let available = budget.saturating_sub(1000);
                         if available > marker.len() && content.len() > available {
                             let truncated = &content[..available.saturating_sub(marker.len())];
                             (format!("{} {}", truncated, marker), true)
                         } else {
-                            (content, false)
+                            (format!("{}", marker), true)
                         }
                     } else {
-                        (content, false)
+                        (format!("{}", marker), true)
                     }
                 } else {
-                    (content, false)
+                    (format!("{}", marker), true)
                 }
             } else {
                 (content, false)
             };
+
 
             let mut json = serde_json::json!({
                 "id": note.id(),

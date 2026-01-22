@@ -188,6 +188,8 @@ fn build_human_output(
                         let truncated_content = &content[..truncated_len];
                         output.push_str(truncated_content);
                         output.push_str(marker);
+                    } else {
+                        output.push_str(marker);
                     }
                 } else {
                     output.push_str(&content);

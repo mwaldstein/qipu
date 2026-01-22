@@ -241,9 +241,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Added `test_pack_no_attachments_flag()` - Verifies `--no-attachments` flag excludes attachments from pack and they are not restored on load
   - Added `test_pack_attachments_multiple_notes()` - Verifies multiple notes can reference attachments, including shared attachments referenced by multiple notes
   - Learnings: Attachments are discovered by parsing markdown link syntax (`![alt](path)`) in note body; note body must be reindexed after manual file updates for database to reflect changes; attachment data is base64-encoded in pack records format
-- [ ] Add tests for pack version/store version compatibility errors.
-  - `src/commands/load/mod.rs:58-72`
-  - `tests/pack_tests.rs:8-855`
+- [x] Add tests for pack version/store version compatibility errors.
+  - `tests/pack_tests.rs:1266-1411` - Added 3 comprehensive tests for version compatibility
+  - Added `test_pack_unsupported_version_error()` - Verifies loading pack with version 2.0 fails with "unsupported pack version" error
+  - Added `test_pack_store_version_too_high()` - Verifies loading pack with store_version=999 fails with "please upgrade qipu" error
+  - Added `test_pack_store_version_backward_compatible()` - Verifies loading pack with store_version=0 succeeds (backward compatible)
+  - Learnings: Version validation at `src/commands/load/mod.rs:59-72` correctly rejects unsupported pack versions (only 1.0 supported) and store versions higher than STORE_FORMAT_VERSION (currently 1); lower store versions are accepted for backward compatibility per spec requirement
 
 ### Provenance Tests (`specs/provenance.md`)
 - [ ] Add tests for default `verified=false` behavior on LLM-origin notes.

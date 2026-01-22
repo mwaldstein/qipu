@@ -111,8 +111,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] `workspace list` omits last-updated metadata.
   - `src/commands/workspace/list.rs:12-21,49,72,96,111,126`
   - Learnings: Feature was already fully implemented; `get_last_updated()` queries database for max mtime; all three output formats (human, json, records) correctly display last_updated field
-- [ ] `parent_id` is never populated.
-  - `src/commands/workspace/new.rs:55-61`
+- [x] `parent_id` is never populated.
+  - `src/commands/workspace/new.rs:58-66`
+  - Learnings: Set parent_id to "(primary)" for all newly created workspaces since they are always created from the primary store; workspace identity uses names not IDs
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
 - [ ] Related-note expansion only runs with explicit `--related`.

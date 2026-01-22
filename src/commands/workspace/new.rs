@@ -56,11 +56,12 @@ pub fn execute(
     }
 
     // Save workspace metadata
+    // All workspaces are created from the primary store, so parent_id is "(primary)"
     let metadata = WorkspaceMetadata {
         name: name.to_string(),
         created_at: chrono::Utc::now(),
         temporary: temp,
-        parent_id: None, // Could set to primary ID if we had one
+        parent_id: Some("(primary)".to_string()),
     };
     metadata.save(&workspace_path.join(WORKSPACE_FILE))?;
 

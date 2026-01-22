@@ -119,10 +119,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/db/search.rs:81-102`
 
 ### CLI Tool Tests (`specs/cli-tool.md`)
-- [ ] Add tests for visible-store discovery and `--format=json` parse errors.
-  - `src/lib/store/paths.rs:28-41`
-  - `src/main.rs:82-93`
-  - `tests/cli/misc.rs:53-114`
+- [x] Add tests for visible-store discovery and `--format=json` parse errors.
+  - `tests/cli/misc.rs:117-212` - Added `test_visible_store_discovery()` to verify discovery of non-hidden `qipu/` directory
+  - `tests/cli/misc.rs:214-280` - Added `test_hidden_store_preferred_over_visible()` to verify `.qipu/` is preferred over `qipu/` when both exist
+  - `tests/cli/misc.rs:286-308` - Added `test_missing_required_arg_json_format()` and `test_invalid_value_json_format()` for JSON error envelope tests
+  - Learnings: Visible store discovery (`qipu/` vs `.qipu/`) is checked in order with hidden preferred; JSON error envelopes are correctly emitted for all parse error types (usage errors, missing args, invalid values)
 - [ ] Expand golden determinism coverage beyond help/list/prime.
   - `tests/golden_tests.rs:94-217`
 

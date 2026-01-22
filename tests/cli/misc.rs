@@ -132,6 +132,73 @@ fn test_store_discovery_walks_up() {
 }
 
 #[test]
+fn test_visible_store_discovery() {
+    let dir = tempdir().unwrap();
+
+    // Manually create a visible "qipu/" store structure
+    let store_path = dir.path().join("qipu");
+    std::fs::create_dir_all(&store_path).unwrap();
+    std::fs::create_dir_all(store_path.join("notes")).unwrap();
+    std::fs::create_dir_all(store_path.join("mocs")).unwrap();
+    std::fs::create_dir_all(store_path.join("attachments")).unwrap();
+    std::fs::create_dir_all(store_path.join("templates")).unwrap();
+
+    // Create minimal config file
+    std::fs::write(store_path.join("config.toml"), "# Qipu configuration\n").unwrap();
+
+    // Should discover the visible "qipu/" store
+    qipu()
+        .current_dir(dir.path())
+        .arg("list")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_hidden_store_preferred_over_visible() {
+    let dir = tempdir().unwrap();
+
+    // Create both hidden and visible stores
+    let hidden_path = dir.path().join(".qipu");
+    let visible_path = dir.path().join("qipu");
+
+    std::fs::create_dir_all(&hidden_path).unwrap();
+    std::fs::create_dir_all(hidden_path.join("notes")).unwrap();
+    std::fs::create_dir_all(hidden_path.join("mocs")).unwrap();
+    std::fs::create_dir_all(hidden_path.join("attachments")).unwrap();
+    std::fs::create_dir_all(hidden_path.join("templates")).unwrap();
+    std::fs::write(hidden_path.join("config.toml"), "# Hidden config\n").unwrap();
+
+    std::fs::create_dir_all(&visible_path).unwrap();
+    std::fs::create_dir_all(visible_path.join("notes")).unwrap();
+    std::fs::create_dir_all(visible_path.join("mocs")).unwrap();
+    std::fs::create_dir_all(visible_path.join("attachments")).unwrap();
+    std::fs::create_dir_all(visible_path.join("templates")).unwrap();
+    std::fs::write(visible_path.join("config.toml"), "# Visible config\n").unwrap();
+
+    // The hidden .qipu/ should be preferred over qipu/
+    qipu()
+        .current_dir(dir.path())
+        .arg("list")
+        .assert()
+        .success();
+
+    // Create a note in hidden store to verify it's being used
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test in hidden store"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8_lossy(&output);
+    // Verify the note was created in the hidden store
+    assert!(output_str.contains(".qipu"));
+}
+
+#[test]
 fn test_explicit_store_path() {
     let dir = tempdir().unwrap();
     let store_dir = dir.path().join("custom-store");
@@ -239,6 +306,48 @@ fn test_store_flag_plain_directory_is_invalid() {
         .assert()
         .code(3)
         .stderr(predicate::str::contains("invalid store"));
+}
+
+// ============================================================================
+// JSON format parse error tests
+// ============================================================================
+
+#[test]
+fn test_missing_required_arg_json_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Missing required argument (e.g., note ID for link tree)
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format=json", "link", "tree"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"usage_error\""));
+}
+
+#[test]
+fn test_invalid_value_json_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Invalid value for a flag
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "list", "--min-value", "invalid"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"usage_error\""));
 }
 
 // ============================================================================

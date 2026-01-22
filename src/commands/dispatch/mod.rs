@@ -200,6 +200,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             link_mode,
             bib_format,
             max_hops,
+            pdf,
         }) => io::handle_export(
             cli,
             &root,
@@ -213,6 +214,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             link_mode,
             bib_format,
             *max_hops,
+            *pdf,
             start,
         ),
 

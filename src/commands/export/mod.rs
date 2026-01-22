@@ -81,6 +81,7 @@ pub struct ExportOptions<'a> {
     pub link_mode: LinkMode,
     pub bib_format: emit::bibliography::BibFormat,
     pub max_hops: u32,
+    pub pdf: bool,
 }
 
 /// Execute the export command
@@ -192,19 +193,31 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
 
     // Write output to file or stdout
     if let Some(output_path) = options.output {
-        let mut file = File::create(output_path)
-            .map_err(|e| QipuError::Other(format!("failed to create output file: {}", e)))?;
-        file.write_all(output_content.as_bytes())
-            .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
+        // If PDF conversion requested, use pandoc
+        if options.pdf {
+            convert_to_pdf(&output_content, output_path, cli)?;
+        } else {
+            let mut file = File::create(output_path)
+                .map_err(|e| QipuError::Other(format!("failed to create output file: {}", e)))?;
+            file.write_all(output_content.as_bytes())
+                .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
+        }
 
         if cli.verbose && !cli.quiet {
             tracing::info!(
                 count = selected_notes.len(),
                 path = %output_path.display(),
+                format = if options.pdf { "pdf" } else { "markdown" },
                 "exported notes"
             );
         }
     } else {
+        // PDF to stdout is not supported (requires an output file)
+        if options.pdf {
+            return Err(QipuError::Other(
+                "--pdf requires --output (PDF cannot be written to stdout)".to_string(),
+            ));
+        }
         print!("{}", output_content);
     }
 
@@ -216,6 +229,79 @@ fn rewrite_attachment_links(content: &str) -> String {
     use regex::Regex;
     let re = Regex::new(r"\.\./attachments/").expect("valid regex");
     re.replace_all(content, "./attachments/").into_owned()
+}
+
+/// Convert markdown content to PDF using pandoc
+fn convert_to_pdf(content: &str, output_path: &std::path::Path, cli: &Cli) -> Result<()> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    // Check if pandoc is available
+    let pandoc_check = Command::new("pandoc")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+
+    match pandoc_check {
+        Err(_) => {
+            return Err(QipuError::Other(
+                "pandoc not found. Please install pandoc to use --pdf flag. \
+                 Visit https://pandoc.org/installing.html for installation instructions."
+                    .to_string(),
+            ));
+        }
+        Ok(status) if !status.success() => {
+            return Err(QipuError::Other(
+                "pandoc executable found but returned error. \
+                 Please verify pandoc installation."
+                    .to_string(),
+            ));
+        }
+        Ok(_) => {
+            // pandoc is available, proceed with conversion
+        }
+    }
+
+    if cli.verbose && !cli.quiet {
+        tracing::debug!(path = %output_path.display(), "converting to PDF via pandoc");
+    }
+
+    // Run pandoc to convert markdown to PDF
+    let mut child = Command::new("pandoc")
+        .arg("-f")
+        .arg("markdown")
+        .arg("-t")
+        .arg("pdf")
+        .arg("-o")
+        .arg(output_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| QipuError::Other(format!("failed to spawn pandoc: {}", e)))?;
+
+    // Write markdown content to pandoc's stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(content.as_bytes())
+            .map_err(|e| QipuError::Other(format!("failed to write to pandoc stdin: {}", e)))?;
+    }
+
+    // Wait for pandoc to finish
+    let output = child
+        .wait_with_output()
+        .map_err(|e| QipuError::Other(format!("failed to wait for pandoc: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(QipuError::Other(format!(
+            "pandoc conversion failed: {}",
+            stderr
+        )));
+    }
+
+    Ok(())
 }
 
 /// Copy referenced attachments to the target directory

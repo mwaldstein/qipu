@@ -356,6 +356,10 @@ pub enum Commands {
         /// Expand selection by traversing links (0 = no expansion)
         #[arg(long, default_value = "0")]
         max_hops: u32,
+
+        /// Convert output to PDF using pandoc (requires pandoc to be installed)
+        #[arg(long)]
+        pdf: bool,
     },
 
     /// Manage note compaction (digest-first navigation)

@@ -313,8 +313,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/export/plan.rs:4,68-103,212-268` - Added transitive traversal logic using BFS with HopCost tracking; imports Direction, HopCost, and TreeOptions; performs bidirectional traversal from initially selected notes
   - `tests/cli/export.rs:1534-1854` - Added 6 comprehensive tests covering: no traversal (max-hops=0), one-hop expansion, two-hop expansion, tag selection with traversal, bidirectional traversal, and JSON format output
   - Learnings: Transitive traversal expands note selection by following links up to max-hops distance; traversal is bidirectional by default (Direction::Both); uses simple BFS queue with accumulated cost tracking; integrates cleanly with existing selection modes (--note, --tag, --moc, --query); all 795 tests pass
-- [ ] Add pandoc/PDF integration (future).
-  - `src/commands/export/mod.rs:13-261`
+- [x] Add pandoc/PDF integration.
+  - `src/cli/commands.rs:360-362` - Added --pdf flag to Export command
+  - `src/commands/export/mod.rs:84,194-227,221-286` - Added pdf field to ExportOptions; implemented convert_to_pdf() function that checks for pandoc availability, pipes markdown content through pandoc to generate PDF; added validation that --pdf requires --output (PDF cannot be written to stdout)
+  - `src/commands/dispatch/io.rs:30,56` - Updated handle_export to accept pdf parameter
+  - `src/commands/dispatch/mod.rs:202,217` - Updated dispatch handler to extract and pass pdf flag
+  - `tests/cli/export.rs:1857-2040` - Added 4 comprehensive tests: test_export_pdf_requires_output_file (validates --pdf requires --output), test_export_pdf_basic (basic PDF export, #[ignore] requires pandoc), test_export_pdf_bundle_mode (multi-note bundle export, #[ignore] requires pandoc), test_export_pdf_without_pandoc (validates graceful failure with helpful error message when pandoc is not installed)
+  - Learnings: Pandoc integration is opt-in via --pdf flag; checks for pandoc availability at runtime with helpful error message directing to installation docs (pandoc.org/installing.html); uses stdin/stdout piping for markdown-to-PDF conversion; validates PDF magic bytes (%PDF) in tests; gracefully degrades when pandoc is not available
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
 - [ ] Add clustering/"see also" features for MOC generation.

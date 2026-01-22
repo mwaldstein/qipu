@@ -28,6 +28,7 @@ pub(super) fn handle_export(
     link_mode: &str,
     bib_format: &str,
     max_hops: u32,
+    pdf: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -51,6 +52,7 @@ pub(super) fn handle_export(
             link_mode,
             bib_format,
             max_hops,
+            pdf,
         },
     )?;
     if cli.verbose {

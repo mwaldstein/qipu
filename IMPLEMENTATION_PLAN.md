@@ -40,10 +40,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### P2: LLM Tool Test Enhancements
 
 #### Safety Guard: `LLM_TOOL_TEST_ENABLED` (`specs/llm-user-validation.md:464`)
-- [ ] Check for `LLM_TOOL_TEST_ENABLED=1` before running any tests
-- [ ] Exit with clear error message if not set
-- [ ] Prevents accidental expensive test runs
+- [x] Check for `LLM_TOOL_TEST_ENABLED=1` before running any tests
+- [x] Exit with clear error message if not set
+- [x] Prevents accidental expensive test runs
 - Files: `crates/llm-tool-test/src/main.rs`
+- Status: **Implemented**. Added safety guard check at the beginning of `main()` function. The check uses `anyhow::bail!()` to exit with a clear error message explaining the requirement and how to enable test runs.
 
 #### Per-Scenario Timeout (`specs/llm-user-validation.md:158-159`)
 - [ ] Read `run.timeout_secs` from scenario YAML (default: 600)

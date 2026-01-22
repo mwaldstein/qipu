@@ -191,9 +191,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/link/tree.rs:1138-1377` - Added 3 comprehensive tests for link tree semantic inversion
   - `tests/cli/link/path.rs:53-355` - Added 4 comprehensive tests for link path semantic inversion
   - Learnings: Semantic inversion affects both traversal and presentation; when enabled (default), virtual inverted edges are created and followed during traversal; when disabled with `--no-semantic-inversion`, raw backlinks are used with original types retained; type filtering applies to inverted types when semantic inversion is enabled, and to original types when disabled; JSON output correctly handles both modes; all 7 new tests pass
-- [ ] Add tests for `max_nodes`, `max_edges`, and `max_fanout` truncation.
-  - `src/cli/link.rs:89-99`
-  - `tests/cli/link/tree.rs:366-435`
+- [x] Add tests for `max_nodes`, `max_edges`, and `max_fanout` truncation.
+  - `tests/cli/link/tree.rs:1457-1697` - Added 3 comprehensive tests for link tree truncation limits
+  - Learnings: All three truncation limits (`--max-nodes`, `--max-edges`, `--max-fanout`) correctly stop traversal when their respective limits are reached and report truncation in JSON output with appropriate truncation_reason field; max-fanout test uses `--direction out` to avoid counting inverted edges in bidirectional traversal; all tests verify both truncation flag and actual node/edge counts match expected limits
 
 ### Records Output Tests (`specs/records-output.md`)
 - [ ] Add `max-chars` truncation tests for link tree/path records output.

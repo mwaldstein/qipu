@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 681 tests pass (233 unit + 268 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
+- Test baseline: 686 tests pass (233 unit + 273 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -173,9 +173,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: The `--unweighted` alias now works as specified in the Value Model spec; both flags (`--ignore-value` and `--unweighted`) have identical behavior for unweighted BFS traversal
 
 ### Export Tests (`specs/export.md`)
-- [ ] Add tests for `--tag`/`--query` selection ordering.
-  - `src/commands/export/plan.rs:9-62`
-  - `tests/cli/export.rs:7-341`
+- [x] Add tests for `--tag`/`--query` selection ordering.
+  - `tests/cli/export.rs:374-624` - Added 5 comprehensive tests for deterministic ordering
+  - Tests verify tag/query exports sort by (created_at, id) and MOC exports preserve MOC order
+  - Learnings: Implementation at `src/commands/export/mod.rs:110-111` correctly sorts by (created_at, id) for non-MOC exports; MOC exports skip sorting to preserve link order as specified
 - [ ] Add tests for `--mode bibliography`.
   - `src/commands/export/emit/bibliography.rs:4-37`
   - `tests/cli/export.rs:7-341`

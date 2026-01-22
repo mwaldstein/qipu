@@ -274,10 +274,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Similarity Engine (`src/lib/similarity`)
 - [ ] Modularize `src/lib/similarity/mod.rs` (1082 lines).
-  - [x] Extract TF-IDF and vector math to `src/lib/similarity/tfidf.rs`.
-    - Learnings: Created `tfidf.rs` module with `cosine_similarity()` and `get_tfidf_vector()` public functions; updated mod.rs to import and use these functions; removed original private methods; all 10 similarity tests pass
-  - [ ] Extract duplicate detection to `src/lib/similarity/duplicates.rs`.
-  - [ ] Extract tag-based similarity to `src/lib/similarity/tags.rs`.
+   - [x] Extract TF-IDF and vector math to `src/lib/similarity/tfidf.rs`.
+     - Learnings: Created `tfidf.rs` module with `cosine_similarity()` and `get_tfidf_vector()` public functions; updated mod.rs to import and use these functions; removed original private methods; all 10 similarity tests pass
+   - [x] Extract duplicate detection to `src/lib/similarity/duplicates.rs`.
+     - Learnings: Created `duplicates.rs` module with `find_all_duplicates()` public function and private `calculate_similarity()` helper; exported `find_all_duplicates` from mod.rs; updated `check_near_duplicates` in doctor/content.rs to use new module function; removed `find_all_duplicates` method from SimilarityEngine; moved duplicate detection test to duplicates.rs; all 10 similarity tests and 32 doctor tests pass
+   - [ ] Extract tag-based similarity to `src/lib/similarity/tags.rs`.
 
 ### CLI Commands (`src/commands`)
 - [ ] Refactor `src/commands/list.rs` (758 lines).

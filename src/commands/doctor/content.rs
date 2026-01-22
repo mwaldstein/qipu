@@ -2,7 +2,6 @@ use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
-use crate::lib::similarity::SimilarityEngine;
 use crate::lib::store::paths::ATTACHMENTS_DIR;
 use crate::lib::store::Store;
 use regex::Regex;
@@ -107,8 +106,8 @@ pub fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
 }
 
 pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorResult) {
-    let engine = SimilarityEngine::new(index);
-    let duplicates = engine.find_all_duplicates(threshold);
+    use crate::lib::similarity::find_all_duplicates;
+    let duplicates = find_all_duplicates(index, threshold);
 
     for (id1, id2, score) in duplicates {
         result.add_issue(Issue {

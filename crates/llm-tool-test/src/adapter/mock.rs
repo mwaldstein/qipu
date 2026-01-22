@@ -7,6 +7,79 @@ use std::path::Path;
 pub struct MockAdapter;
 
 impl MockAdapter {
+    /// Internal helper to run commands with event logging
+    pub fn run_with_events(
+        &self,
+        scenario: &Scenario,
+        cwd: &Path,
+        model: Option<&str>,
+        timeout_secs: u64,
+        transcript_writer: &crate::transcript::TranscriptWriter,
+    ) -> anyhow::Result<(String, i32, f64)> {
+        use std::time::Instant;
+
+        let start = Instant::now();
+        let runner = SessionRunner::new();
+
+        let transcript = self.generate_transcript(scenario);
+        let mut full_output = String::new();
+
+        let commands: Vec<&str> = transcript.lines().collect();
+        let mut exit_code = 0;
+
+        // Log spawn event for initialization
+        transcript_writer.log_spawn("qipu", &["init".to_string()])?;
+        let (init_out, init_code) = runner.run_command("qipu", &["init"], cwd, timeout_secs)?;
+        transcript_writer.log_tool_result(&init_out, init_code)?;
+
+        for (i, command) in commands.iter().enumerate() {
+            let parts: Vec<&str> = command.split_whitespace().collect();
+            if parts.is_empty() || !parts[0].starts_with("qipu") {
+                continue;
+            }
+
+            let cmd_name = parts[0];
+            let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+            // Log tool_call event
+            transcript_writer.log_tool_call("bash", command)?;
+
+            let (output, code) = runner.run_command(
+                cmd_name,
+                &args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                cwd,
+                timeout_secs,
+            )?;
+
+            // Log tool_result event
+            transcript_writer.log_tool_result(&output, code)?;
+
+            if i > 0 {
+                full_output.push_str("\n");
+            }
+            full_output.push_str(command);
+            if !output.is_empty() {
+                full_output.push_str("\n");
+                full_output.push_str(&output);
+                transcript_writer.log_output(&output)?;
+            }
+
+            if code != 0 && exit_code == 0 {
+                exit_code = code;
+            }
+        }
+
+        let duration_secs = start.elapsed().as_secs_f64();
+        transcript_writer.log_complete(exit_code, duration_secs)?;
+
+        let input_chars = scenario.task.prompt.len();
+        let output_chars = full_output.len();
+        let model_name = model.unwrap_or("mock");
+        let cost = estimate_cost(model_name, input_chars, output_chars);
+
+        Ok((full_output, exit_code, cost))
+    }
+
     fn generate_transcript(&self, scenario: &Scenario) -> String {
         let mut commands = Vec::new();
 

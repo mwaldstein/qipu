@@ -1,5 +1,6 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -28,6 +29,68 @@ impl TranscriptWriter {
             .open(self.base_dir.join("events.jsonl"))?;
         writeln!(file, "{}", serde_json::to_string(event)?)?;
         Ok(())
+    }
+
+    /// Log a tool_call event (when an LLM tool invokes a command)
+    pub fn log_tool_call(&self, tool: &str, command: &str) -> anyhow::Result<()> {
+        let event = json!({
+            "ts": Self::timestamp(),
+            "event": "tool_call",
+            "tool": tool,
+            "command": command,
+        });
+        self.append_event(&event)
+    }
+
+    /// Log a tool_result event (when a command completes)
+    pub fn log_tool_result(&self, output: &str, exit_code: i32) -> anyhow::Result<()> {
+        let event = json!({
+            "ts": Self::timestamp(),
+            "event": "tool_result",
+            "output": output,
+            "exit_code": exit_code,
+        });
+        self.append_event(&event)
+    }
+
+    /// Log a spawn event (when a command is spawned)
+    pub fn log_spawn(&self, command: &str, args: &[String]) -> anyhow::Result<()> {
+        let event = json!({
+            "ts": Self::timestamp(),
+            "event": "spawn",
+            "command": command,
+            "args": args,
+        });
+        self.append_event(&event)
+    }
+
+    /// Log an output event (general output text)
+    pub fn log_output(&self, text: &str) -> anyhow::Result<()> {
+        let event = json!({
+            "ts": Self::timestamp(),
+            "event": "output",
+            "text": text,
+        });
+        self.append_event(&event)
+    }
+
+    /// Log a complete event (when the session completes)
+    pub fn log_complete(&self, exit_code: i32, duration_secs: f64) -> anyhow::Result<()> {
+        let event = json!({
+            "ts": Self::timestamp(),
+            "event": "complete",
+            "exit_code": exit_code,
+            "duration_secs": duration_secs,
+        });
+        self.append_event(&event)
+    }
+
+    fn timestamp() -> f64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64()
     }
 
     pub fn read_events(&self) -> anyhow::Result<Vec<serde_json::Value>> {

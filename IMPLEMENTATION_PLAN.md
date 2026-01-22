@@ -97,6 +97,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/main.rs:148-152` - Added command dispatch for `Report` and updated `Clean` to pass parameters
   - `crates/llm-tool-test/src/commands.rs:277-421` - Implemented `handle_report_command()` which generates summary statistics grouped by scenario and tool, plus recent runs. Implemented `parse_duration()` helper for parsing duration strings like "30d", "7d", "1h". Updated `handle_clean_command()` to accept `older_than` parameter and clean transcripts based on modification time
   - **Learnings**: The report command provides a comprehensive overview of test runs including pass rates, costs, and performance metrics aggregated by scenario and tool. The clean command now supports optional time-based filtering using standard duration formats (d/h/m) for better maintenance of large test result sets.
+- [x] Add PTY fallback and richer event logging (tool_call/tool_result).
+  - `crates/llm-tool-test/src/session.rs:22-108` - Refactored `run_command` to try PTY first, fall back to piped stdout/stderr if PTY unavailable
+  - `crates/llm-tool-test/src/session.rs:109-199` - Added `run_command_piped` method for fallback execution using std::process::Command with piped stdout/stderr
+  - `crates/llm-tool-test/src/transcript.rs:1-6,24-88` - Added structured event logging methods: `log_tool_call`, `log_tool_result`, `log_spawn`, `log_output`, `log_complete`, and `timestamp` helper
+  - `crates/llm-tool-test/src/adapter/mock.rs:11-78` - Added `run_with_events` method to MockAdapter that emits tool_call/tool_result events during command execution
+  - **Learnings**: PTY fallback ensures the test harness works in environments without PTY support (e.g., some CI systems, containers). Structured event logging provides machine-readable execution traces with explicit tool_call/tool_result events as specified in the LLM User Validation spec (lines 307-308). Events include timestamps, command strings, outputs, and exit codes for detailed analysis.
 
 ### Workspaces (`specs/workspaces.md`)
 - [x] `rename` merge strategy is not supported.
@@ -319,9 +325,6 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/graph/types.rs:48-53`
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
-- [ ] Add PTY fallback and richer event logging (tool_call/tool_result).
-  - `crates/llm-tool-test/src/session.rs:22-108`
-  - `crates/llm-tool-test/src/run.rs:91-99`
 - [ ] Include prime output hash in cache key.
   - `crates/llm-tool-test/src/results.rs:233-272`
 - [ ] Fix MinLinks gate no-op in mock adapter.

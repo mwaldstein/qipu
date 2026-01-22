@@ -26,6 +26,23 @@ impl SessionRunner {
         cwd: &Path,
         timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)> {
+        // Try PTY first, fall back to piped stdout/stderr if PTY unavailable
+        match self.run_command_pty(cmd, args, cwd, timeout_secs) {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                tracing::debug!("PTY unavailable, falling back to pipes: {}", e);
+                self.run_command_piped(cmd, args, cwd, timeout_secs)
+            }
+        }
+    }
+
+    fn run_command_pty(
+        &self,
+        cmd: &str,
+        args: &[&str],
+        cwd: &Path,
+        timeout_secs: u64,
+    ) -> anyhow::Result<(String, i32)> {
         let pair = self.pty_system.openpty(PtySize {
             rows: 24,
             cols: 80,
@@ -105,6 +122,110 @@ impl SessionRunner {
 
         let exit_code = exit_status.exit_code() as i32;
         Ok((String::from_utf8_lossy(&output).to_string(), exit_code))
+    }
+
+    fn run_command_piped(
+        &self,
+        cmd: &str,
+        args: &[&str],
+        cwd: &Path,
+        timeout_secs: u64,
+    ) -> anyhow::Result<(String, i32)> {
+        use std::process::{Command, Stdio};
+
+        let mut child = Command::new(cmd)
+            .args(args)
+            .current_dir(cwd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stdout"))?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr"))?;
+
+        let (output_tx, output_rx) = channel();
+        let (status_tx, status_rx) = channel();
+
+        // Spawn threads to read stdout and stderr
+        let stdout_thread = thread::spawn(move || {
+            use std::io::Read;
+            let mut buf = [0u8; 1024];
+            let mut output = Vec::new();
+            let mut reader = stdout;
+            while let Ok(n) = reader.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                output.extend_from_slice(&buf[..n]);
+            }
+            output
+        });
+
+        let stderr_thread = thread::spawn(move || {
+            use std::io::Read;
+            let mut buf = [0u8; 1024];
+            let mut output = Vec::new();
+            let mut reader = stderr;
+            while let Ok(n) = reader.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                output.extend_from_slice(&buf[..n]);
+            }
+            output
+        });
+
+        // Spawn thread to wait for child process
+        let wait_thread = thread::spawn(move || match child.wait() {
+            Ok(status) => {
+                let _ = status_tx.send(Ok(status));
+            }
+            Err(e) => {
+                let _ = status_tx.send(Err(e));
+            }
+        });
+
+        // Wait for status with timeout
+        let timeout_duration = Duration::from_secs(timeout_secs);
+        let wait_result = status_rx.recv_timeout(timeout_duration);
+
+        let exit_status = match wait_result {
+            Ok(Ok(status)) => status,
+            Ok(Err(_)) => {
+                return Err(anyhow::anyhow!("Failed to wait for child process"));
+            }
+            Err(_) => {
+                // Timeout occurred
+                return Err(anyhow::anyhow!(
+                    "Command timed out after {} seconds",
+                    timeout_secs
+                ));
+            }
+        };
+
+        // Collect output from both streams
+        let mut combined_output = Vec::new();
+        if let Ok(stdout_data) = stdout_thread.join() {
+            combined_output.extend_from_slice(&stdout_data);
+        }
+        if let Ok(stderr_data) = stderr_thread.join() {
+            combined_output.extend_from_slice(&stderr_data);
+        }
+
+        let _ = output_tx.send(combined_output.clone());
+        let _ = wait_thread.join();
+
+        let exit_code = exit_status.code().unwrap_or(-1);
+        Ok((
+            String::from_utf8_lossy(&combined_output).to_string(),
+            exit_code,
+        ))
     }
 }
 

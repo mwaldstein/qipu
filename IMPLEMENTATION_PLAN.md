@@ -155,8 +155,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/value.rs:1-402` - Added comprehensive tests for value set/show commands
   - `src/lib/db/notes/create.rs:37,128` - Fixed database insert to preserve None values instead of defaulting to 50
   - Learnings: Value field was being defaulted to 50 during database insert (`.or(Some(50))`), preventing distinction between "unset" (None) and "explicitly set to 50" (Some(50)). This broke the `value show` command's "(default)" label. Fixed by removing the default conversion and relying on SQLite to store NULL for None values. Tests cover: basic set/show, min/max boundaries (0-100), validation (>100 rejected), file path operations, default value display with "(default)" label, frontmatter persistence, and error handling for nonexistent notes.
-- [ ] Add tests for `search --sort value`.
-  - `src/commands/search.rs:138-145`
+- [x] Add tests for `search --sort value`.
+  - `tests/cli/search.rs:689-937` - Added comprehensive tests for search --sort value
+  - Learnings: Tests cover basic value sorting (descending order), default value handling (None treated as 50), and combined --min-value + --sort value filters. Implementation at `src/commands/search.rs:138-147` sorts by value descending with stable ID-based tiebreaker. All tests pass.
 - [ ] Add tests for `list --min-value` and `context --min-value`.
   - `src/commands/list.rs:59-63`
   - `src/commands/context/mod.rs:233-237`

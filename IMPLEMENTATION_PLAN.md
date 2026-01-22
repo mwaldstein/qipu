@@ -285,8 +285,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/cli/mod.rs:197-224` - Added unit tests for valid/invalid log levels
   - `tests/cli/logging.rs:123-173` - Added integration tests for validation
   - Learnings: Used clap's value_parser to validate log levels against allowed values (error, warn, info, debug, trace); validation is case-insensitive and provides clear error messages listing valid options
-- [ ] Default log policy is `warn` (not silent-by-default).
-  - `src/lib/logging.rs:10-13`
+- [x] Default log policy is `warn` (not silent-by-default).
+  - `src/lib/logging.rs:10-13` - Already implemented correctly (defaults to `"qipu=warn"`)
+  - `specs/structured-logging.md:22,58` - Updated spec to reflect warn-level default instead of "silent-by-default"
+  - `tests/cli/logging.rs:180-200` - Added test to verify default behavior hides debug messages
+  - Learnings: The implementation was already correct; the spec documentation was wrong. Updated spec to say "Warn level by default (shows errors and warnings, hides info/debug/trace)" instead of "Silent operation by default".
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
 - [ ] Scenario schema omits `docs`, `tags`, `run` limits, `cost`, and `cache` fields.

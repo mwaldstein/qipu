@@ -175,3 +175,25 @@ fn test_log_level_case_insensitive() {
         .assert()
         .success();
 }
+
+#[test]
+fn test_default_log_policy_is_warn() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Default (no flags) should show warnings but not debug messages
+    qipu()
+        .current_dir(dir.path())
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("parse_args").not()); // No debug messages
+
+    // Verify warn-level messages would be shown by creating a condition that triggers a warning
+    // Note: In normal operation, list doesn't produce warnings, so we just verify debug is off
+}

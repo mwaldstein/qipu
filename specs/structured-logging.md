@@ -19,7 +19,7 @@ Zero-cost when disabled, minimal overhead when enabled.
 
 - **CLI integration**: Extend existing `--verbose` flag with level control
 - **Environment variables**: Support `QIPU_LOG` environment variable
-- **Default behavior**: Maintain current quiet-by-default behavior
+- **Default behavior**: Warn level by default (shows errors and warnings, hides info/debug/trace)
 - **Output format**: Human-readable by default, JSON option for machine consumption
 
 ### CLI Flags
@@ -55,7 +55,7 @@ Zero-cost when disabled, minimal overhead when enabled.
 ## Compatibility
 
 - **Backward compatibility**: Existing `--verbose` flag behavior preserved
-- **Default behavior**: Silent operation by default (same as current)
+- **Default behavior**: Warn level by default (shows errors and warnings)
 - **Error output**: Error messages continue to stderr, with optional structured enhancement
 
 ## Success Criteria

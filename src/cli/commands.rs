@@ -306,11 +306,11 @@ pub enum Commands {
         #[arg(long)]
         backlinks: bool,
 
-        /// Filter notes by minimum value (0-100, default: 50)
+        /// Select notes by minimum value (0-100, can be used as standalone selector)
         #[arg(long, value_parser = crate::cli::parse::parse_min_value, value_name = "N")]
         min_value: Option<u8>,
 
-        /// Filter by custom metadata (format: key=value)
+        /// Select notes by custom metadata (format: key=value, can be used as standalone selector)
         #[arg(long)]
         custom_filter: Option<String>,
 

@@ -307,23 +307,37 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
     }
 
-    // Filter by min-value
-    if let Some(min_val) = options.min_value {
-        selected_notes.retain(|selected_note| {
-            let value = selected_note.note.frontmatter.value.unwrap_or(50);
-            value >= min_val
-        });
-    }
-
-    // If no selection criteria provided, return error
+    // If no selection criteria provided, check for standalone filters
     if options.note_ids.is_empty()
         && options.tag.is_none()
         && options.moc_id.is_none()
         && options.query.is_none()
     {
-        return Err(QipuError::Other(
-            "no selection criteria provided. Use --note, --tag, --moc, or --query".to_string(),
-        ));
+        // Check if min-value or custom-filter is provided as a standalone selector
+        if options.min_value.is_none() && options.custom_filter.is_none() {
+            return Err(QipuError::Other(
+                "no selection criteria provided. Use --note, --tag, --moc, --query, --min-value, or --custom-filter".to_string(),
+            ));
+        }
+
+        // Select all notes when using standalone filter
+        for note in &all_notes {
+            let resolved_id = resolve_id(note.id())?;
+
+            if seen_ids.insert(resolved_id.clone()) {
+                let note_from_map =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note: note_from_map,
+                    via: None,
+                    link_type: None,
+                });
+            }
+        }
     }
 
     // Apply min-value filter (notes without explicit value default to 50)

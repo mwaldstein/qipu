@@ -782,3 +782,209 @@ This is a note with default value (50).
     assert!(note_ids.contains(&"qp-default"));
     assert!(!note_ids.contains(&"qp-low"));
 }
+
+#[test]
+fn test_context_standalone_min_value() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with different values
+    let high_value_note = r#"---
+id: qp-high
+title: High Value Note
+type: permanent
+value: 90
+tags:
+  - important
+---
+
+This is a high-value note.
+"#;
+
+    let low_value_note = r#"---
+id: qp-low
+title: Low Value Note
+type: fleeting
+value: 30
+tags:
+  - testing
+---
+
+This is a low-value note.
+"#;
+
+    let default_value_note = r#"---
+id: qp-default
+title: Default Value Note
+type: literature
+tags:
+  - research
+---
+
+This is a note with default value (50).
+"#;
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    fs::write(
+        notes_dir.join("qp-high-high-value-note.md"),
+        high_value_note,
+    )
+    .unwrap();
+    fs::write(notes_dir.join("qp-low-low-value-note.md"), low_value_note).unwrap();
+    fs::write(
+        notes_dir.join("qp-default-default-value-note.md"),
+        default_value_note,
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test: standalone --min-value 80 should only include high-value note from all notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["context", "--min-value", "80", "--format", "json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Should include only high-value note when using standalone --min-value 80, got {}",
+        notes.len()
+    );
+    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-high");
+
+    // Test: standalone --min-value 50 should include high-value and default-value notes
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["context", "--min-value", "50", "--format", "json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        2,
+        "Should include high-value and default-value notes when using standalone --min-value 50, got {}",
+        notes.len()
+    );
+
+    let note_ids: Vec<&str> = notes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+
+    assert!(note_ids.contains(&"qp-high"));
+    assert!(note_ids.contains(&"qp-default"));
+    assert!(!note_ids.contains(&"qp-low"));
+}
+
+#[test]
+fn test_context_standalone_custom_filter() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create notes with custom metadata
+    let note1 = r#"---
+id: qp-note1
+title: Review Note
+type: permanent
+tags:
+  - important
+custom:
+  workflow_state: review
+---
+
+This note is in review.
+"#;
+
+    let note2 = r#"---
+id: qp-note2
+title: Approved Note
+type: permanent
+tags:
+  - important
+custom:
+  workflow_state: approved
+---
+
+This note is approved.
+"#;
+
+    let note3 = r#"---
+id: qp-note3
+title: No Custom Metadata Note
+type: literature
+tags:
+  - research
+---
+
+This note has no custom metadata.
+"#;
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    fs::write(notes_dir.join("qp-note1-review-note.md"), note1).unwrap();
+    fs::write(notes_dir.join("qp-note2-approved-note.md"), note2).unwrap();
+    fs::write(notes_dir.join("qp-note3-no-custom-metadata-note.md"), note3).unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test: standalone --custom-filter workflow_state=review should only include review note
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--custom-filter",
+            "workflow_state=review",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Should include only review note when using standalone --custom-filter workflow_state=review, got {}",
+        notes.len()
+    );
+    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-note1");
+}

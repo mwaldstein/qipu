@@ -41,10 +41,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Status: **Complete**. Added `value` to JSON and records output for `qipu show`. Added `--custom` flag (opt-in) that includes `custom` object in JSON output and `C` lines in records format. Tests verify value is always included and custom is omitted by default but included with `--custom` flag.
 
 #### Fix `qipu context --min-value` default mismatch (`specs/value-model.md`, `specs/cli-interface.md`)
-- [ ] Decide semantics: either (a) apply an actual default filter for `context --min-value`, or (b) remove any implied default from help text and docs
-- [ ] Update `qipu context --help` so it matches behavior
-- [ ] Add an integration test asserting `qipu context` selection is unchanged when `--min-value` is omitted
-- Context: `qipu-integration-feedback.md` item (4) note
+- [x] Decide semantics: either (a) apply an actual default filter for `context --min-value`, or (b) remove any implied default from help text and docs
+  - **Decision**: Option (a) - `--min-value` and `--custom-filter` are valid standalone selectors
+- [x] Update `qipu context --help` so it matches behavior
+  - Changed help text from "Filter notes by..." to "Select notes by..." to clarify these can be standalone selectors
+- [x] Add an integration test asserting `qipu context` selection is unchanged when `--min-value` is omitted
+  - Added test_context_standalone_min_value and test_context_standalone_custom_filter tests
+- Status: **Complete**. `--min-value` and `--custom-filter` can now be used as standalone selectors to select all notes matching the criteria. When omitted, the behavior is unchanged (requires other selectors).
+- **Learnings**: The spec at `specs/llm-context.md:56` clearly states that these flags "count as selection criteria and may be used without --note/--tag/--moc/--query". The implementation now matches this spec by selecting all notes from the store when these flags are used standalone.
 
 #### Allow negative values in `qipu custom set` positional (`specs/custom-metadata.md`)
 - [ ] Update CLI arg parsing so `qipu custom set <id> <key> -100` works without requiring `--`

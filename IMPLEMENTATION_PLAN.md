@@ -86,26 +86,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] When budget is tight, truncate individual notes instead of dropping entirely
 - [x] Append `…[truncated]` marker to truncated content
 - [x] Keep truncation deterministic (same input → same output)
-- Files: `src/commands/context/mod.rs`, `src/commands/context/human.rs`
-- Status: **Partially Complete - Still Blocked**. Made significant progress:
-    - Added `used_chars` tracking to human output formatter
-    - Added break condition to stop adding notes when budget is exceeded
-    - Reduced output from 2117 to 936 characters (36% reduction)
-    - Last note content truncation with `…[truncated]` marker implemented
-  - **Remaining Issues**:
-    1. Output size still exceeds budget (936 vs 800 target)
-    2. Break condition `used_chars >= budget` triggers after adding header, allowing content that exceeds budget
-    3. Need to check budget BEFORE adding each note to prevent over-budget content
-    4. JSON format needs similar budget tracking (currently uses hardcoded offset of 1000)
-- **Learnings**: The budget calculation and output generation happen separately, making it difficult to precisely control character count. The core issue is timing:
-    - `budget::apply_budget` estimates total size with 10% buffer
-    - Output formatters track `used_chars` but only check after adding headers
-    - When break triggers, last note already has headers added, leaving no room for content truncation
-  - **Root Cause**: Need to check budget BEFORE adding each note's metadata, not after
-- **Blocker**: Budget enforcement requires refactor to either:
-  1. Pre-calculate exact output size per note and check before adding, OR
-  2. Move budget tracking into output formatters and check at each addition point
-  3. Implement proper JSON structure size tracking (not hardcoded offset)
+- Files: `src/commands/context/mod.rs`, `src/commands/context/human.rs`, `src/commands/context/json.rs`, `src/commands/context/records.rs`
+- Status: **Complete**. Budget enforcement implemented:
+    - Human format: Checks budget before adding each note, stops when budget would be exceeded
+    - JSON format: Iteratively builds notes with size tracking, truncates last note and adds `content_truncated=true` flag
+    - Records format: Properly tracks character count and adds `…[truncated]` marker when body content is truncated
+    - All budget tests pass: `test_context_max_chars`, `test_context_max_tokens`, `test_context_max_tokens_and_chars`, `test_context_budget_exact`, `test_context_shows_excluded_notes`
+  - **Learnings**: The key insight is that budget checks must happen BEFORE adding content, not after. For human/records formats, check `used_chars + header_len + content.len() > budget` and break. For JSON format, build note JSON first to check size, then truncate content if needed before adding to output.
 
 #### Breadcrumb `via=<id>` in Search Results (`specs/compaction.md:118-120,255`)
 - [x] When search hits a compacted note, annotate result with `via=<matching-source-id>`

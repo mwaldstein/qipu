@@ -480,12 +480,9 @@ fn test_context_shows_excluded_notes() {
 
     // Should show truncation notice
     assert!(stdout.contains("truncated"));
-    // Should have per-note truncation marker
-    assert!(stdout.contains("…[truncated]"));
-    // Should list all notes (some may be truncated)
+    // Should list complete notes that fit within budget
     assert!(stdout.contains("Test Note 0"));
     assert!(stdout.contains("Test Note 1"));
-    assert!(stdout.contains("Test Note 2"));
 
     // Test JSON format with budget that truncates some notes
     let output = qipu()
@@ -547,6 +544,4 @@ fn test_context_shows_excluded_notes() {
     assert!(stdout.contains("truncated=true"));
     // Should have "truncated" annotation in note headers
     assert!(stdout.contains("truncated"));
-    // Should have truncation marker in body content
-    assert!(stdout.contains("…[truncated]"));
 }

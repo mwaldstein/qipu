@@ -18,7 +18,7 @@ pub fn output_human(
     safety_banner: bool,
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
-    all_notes: &[Note],
+    _all_notes: &[Note],
     max_chars: Option<usize>,
     _excluded_notes: &[&SelectedNote],
     include_custom: bool,
@@ -41,7 +41,7 @@ pub fn output_human(
         safety_banner,
         compaction_ctx,
         note_map,
-        all_notes,
+        _all_notes,
         max_chars,
         include_custom,
     );
@@ -63,7 +63,7 @@ fn build_human_output(
     safety_banner: bool,
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
-    all_notes: &[Note],
+    _all_notes: &[Note],
     max_chars: Option<usize>,
     include_custom: bool,
 ) -> String {
@@ -86,48 +86,52 @@ fn build_human_output(
 
     output.push('\n');
 
-    for (idx, selected) in notes.iter().enumerate() {
-        let note = selected.note;
-        let is_last_note = idx == notes.len() - 1;
-
+    for (_idx, selected) in notes.iter().enumerate() {
         if let Some(budget) = max_chars {
             if used_chars >= budget {
                 break;
             }
         }
 
-        output.push_str(&format!("## Note: {} ({})\n", note.title(), note.id()));
-        used_chars = output.len();
+        let mut note_header = String::new();
+        note_header.push_str(&format!(
+            "## Note: {} ({})\n",
+            selected.note.title(),
+            selected.note.id()
+        ));
 
-        if let Some(path) = &note.path {
-            output.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
+        if let Some(path) = &selected.note.path {
+            note_header.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
         }
-        output.push_str(&format!("Type: {}\n", note.note_type()));
+        note_header.push_str(&format!("Type: {}\n", selected.note.note_type()));
 
-        if !note.frontmatter.tags.is_empty() {
-            output.push_str(&format!("Tags: {}\n", note.frontmatter.tags.join(", ")));
+        if !selected.note.frontmatter.tags.is_empty() {
+            note_header.push_str(&format!(
+                "Tags: {}\n",
+                selected.note.frontmatter.tags.join(", ")
+            ));
         }
 
         let mut compaction_parts = Vec::new();
         if let Some(via) = &selected.via {
             compaction_parts.push(format!("via={}", via));
         }
-        let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+        let compacts_count = compaction_ctx.get_compacts_count(&selected.note.frontmatter.id);
         if compacts_count > 0 {
             compaction_parts.push(format!("compacts={}", compacts_count));
 
-            if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
+            if let Some(pct) = compaction_ctx.get_compaction_pct(selected.note, note_map) {
                 compaction_parts.push(format!("compaction={:.0}%", pct));
             }
         }
         if !compaction_parts.is_empty() {
-            output.push_str(&format!("Compaction: {}\n", compaction_parts.join(" ")));
+            note_header.push_str(&format!("Compaction: {}\n", compaction_parts.join(" ")));
         }
 
         if cli.with_compaction_ids && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
             if let Some((ids, id_truncated)) = compaction_ctx.get_compacted_ids(
-                &note.frontmatter.id,
+                &selected.note.frontmatter.id,
                 depth,
                 cli.compaction_max_nodes,
             ) {
@@ -138,71 +142,65 @@ fn build_human_output(
                 } else {
                     String::new()
                 };
-                output.push_str(&format!("Compacted: {}{}\n", ids_str, suffix));
+                note_header.push_str(&format!("Compacted: {}{}\n", ids_str, suffix));
             }
         }
 
-        if !note.frontmatter.sources.is_empty() {
-            output.push_str("Sources:\n");
-            for source in &note.frontmatter.sources {
+        if !selected.note.frontmatter.sources.is_empty() {
+            note_header.push_str("Sources:\n");
+            for source in &selected.note.frontmatter.sources {
                 if let Some(title) = &source.title {
-                    output.push_str(&format!("- {} ({})\n", title, source.url));
+                    note_header.push_str(&format!("- {} ({})\n", title, source.url));
                 } else {
-                    output.push_str(&format!("- {}\n", source.url));
+                    note_header.push_str(&format!("- {}\n", source.url));
                 }
             }
         }
 
-        if include_custom && !note.frontmatter.custom.is_empty() {
-            output.push_str("Custom:\n");
-            for (key, value) in &note.frontmatter.custom {
+        if include_custom && !selected.note.frontmatter.custom.is_empty() {
+            note_header.push_str("Custom:\n");
+            for (key, value) in &selected.note.frontmatter.custom {
                 let value_str = serde_yaml::to_string(value)
                     .unwrap_or_else(|_| "null".to_string())
                     .trim()
                     .to_string();
-                output.push_str(&format!("  {}: {}\n", key, value_str));
+                note_header.push_str(&format!("  {}: {}\n", key, value_str));
             }
         }
 
-        output.push('\n');
-        output.push_str("---\n");
-        used_chars = output.len();
+        note_header.push('\n');
+        note_header.push_str("---\n");
 
         let content = if with_body {
-            note.body.trim().to_string()
+            selected.note.body.trim().to_string()
         } else {
-            note.summary().trim().to_string()
+            selected.note.summary().trim().to_string()
         };
 
-        if is_last_note && max_chars.is_some() {
-            let separator_len = "\n---\n\n".len();
-            let marker = "…[truncated]";
-            let marker_len = marker.len();
+        let separator_len = "\n---\n\n".len();
 
-            if let Some(budget) = max_chars {
-                let total_len = used_chars + content.len() + separator_len;
+        if let Some(budget) = max_chars {
+            let header_len = note_header.len();
+            let potential_total = used_chars + header_len + content.len() + separator_len;
 
-                if total_len > budget {
-                    let remaining_for_content =
-                        budget.saturating_sub(used_chars + marker_len + separator_len);
-                    if remaining_for_content > 0 {
-                        let truncated_len = remaining_for_content.min(content.len());
-                        output.push_str(&content[..truncated_len]);
-                        output.push_str(marker);
-                    } else {
-                        output.push_str(marker);
-                    }
-                } else {
-                    output.push_str(&content);
-                }
+            if potential_total > budget {
+                break;
             }
-        } else {
+
+            output.push_str(&note_header);
             output.push_str(&content);
+            output.push('\n');
+            output.push_str("---\n");
+            output.push('\n');
+            used_chars = output.len();
+        } else {
+            output.push_str(&note_header);
+            output.push_str(&content);
+            output.push('\n');
+            output.push_str("---\n");
+            output.push('\n');
+            used_chars = output.len();
         }
-        output.push('\n');
-        output.push_str("---\n");
-        output.push('\n');
-        used_chars = output.len();
     }
 
     output

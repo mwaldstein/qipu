@@ -250,40 +250,39 @@ pub fn output_records(
         blocks.len() - 1
     };
 
+    let mut used_chars = header_len_true;
+    if let Some(line) = &safety_line {
+        used_chars += line.len() + 1;
+    }
+
     for (idx, block) in blocks.iter().enumerate() {
         let is_last_block = idx == last_block_idx;
-        let mut remaining_budget = budget;
 
-        if is_last_block {
-            let header_len = if let Some(line) = &safety_line {
-                header_len_true + line.len() + 1
-            } else {
-                header_len_true
-            };
-
-            if let Some(b) = remaining_budget {
-                remaining_budget = Some(b.saturating_sub(header_len));
-            }
-        }
+        let mut block_added = false;
 
         for (line_idx, line) in block.iter().enumerate() {
-            if is_last_block {
-                let line_len = line.len() + 1;
+            let line_len = line.len() + 1;
 
-                if let Some(rem) = remaining_budget {
-                    if rem < line_len {
-                        if line.starts_with("B ")
-                            || (line_idx > 0 && block[line_idx - 1].starts_with("B "))
-                        {
-                            println!("…[truncated]");
-                            break;
-                        }
-                        continue;
+            if let Some(b) = budget {
+                if used_chars + line_len > b {
+                    if line.starts_with("B ")
+                        || (line_idx > 0 && block[line_idx - 1].starts_with("B "))
+                    {
+                        let marker_len = "…[truncated]".len() + 1;
+                        println!("…[truncated]");
+                        used_chars += marker_len;
                     }
-                    remaining_budget = Some(rem - line_len);
+                    break;
                 }
+                used_chars += line_len;
             }
+
             println!("{}", line);
+            block_added = true;
+        }
+
+        if !block_added && is_last_block {
+            break;
         }
     }
 

@@ -57,10 +57,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Status: **Complete**. Added `#[arg(allow_hyphen_values = true)]` attribute to the `value` field in `CustomCommands::Set`. Added two comprehensive tests: `test_custom_set_negative_number` (tests negative integer) and `test_custom_set_leading_hyphen_strings` (tests negative float and strings with leading hyphens like `-verbose` and `--long-option`). All custom command tests pass.
 
 #### JSON stdout must be clean (no logs/warnings/ANSI) (`specs/cli-tool.md`)
-- [ ] Add regression tests that run key commands with `--format json` and assert stdout is valid JSON (and stderr may contain logs)
+- [x] Add regression tests that run key commands with `--format json` and assert stdout is valid JSON (and stderr may contain logs)
 - [ ] Ensure all logging and warnings are routed to stderr when `--format json` is selected
 - [ ] Ensure ANSI color is disabled in non-TTY contexts and never appears on stdout
 - Context: `qipu-integration-feedback.md` item (6)
+- Status: **Partially complete**. Added 16 comprehensive regression tests in `tests/cli/misc.rs` that validate stdout is valid JSON for key commands: init, create, list, show, search, context, value (set/show), custom (set/get/show/unset), capture, index, doctor, and export. Each test creates necessary data, runs the command with `--format json`, and parses stdout to ensure it's valid JSON using `serde_json::from_str()`. These tests will catch any future regressions where logs, warnings, or other pollution appear on stdout when using JSON format.
+- **Learnings**: The tests cover all major commands that support `--format json`. The pattern is consistent: create necessary test data, run command with `--format json`, extract stdout, parse as JSON, and assert basic JSON structure (object or array). The tests focus on JSON validity rather than specific content, which is covered by other command-specific tests.
 
 #### Allow `context` selection via `--custom-filter` and `--min-value` (`specs/llm-context.md`, `specs/cli-interface.md`, `specs/custom-metadata.md`)
 - [ ] Treat `--min-value` as a selector when no other selectors are provided (select notes by `value >= n`)

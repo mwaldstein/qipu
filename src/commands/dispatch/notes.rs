@@ -319,7 +319,7 @@ pub(super) fn handle_context(
     related: f64,
     backlinks: bool,
     min_value: Option<u8>,
-    custom_filter: Option<&str>,
+    custom_filter: &[String],
     include_custom: bool,
     start: Instant,
 ) -> Result<()> {

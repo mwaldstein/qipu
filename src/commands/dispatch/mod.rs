@@ -185,7 +185,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 *related,
                 *backlinks,
                 *min_value,
-                custom_filter.as_deref(),
+                custom_filter,
                 *custom,
                 start,
             )

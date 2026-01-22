@@ -310,9 +310,9 @@ pub enum Commands {
         #[arg(long, value_parser = crate::cli::parse::parse_min_value, value_name = "N")]
         min_value: Option<u8>,
 
-        /// Select notes by custom metadata (format: key=value, can be used as standalone selector)
-        #[arg(long)]
-        custom_filter: Option<String>,
+        /// Select notes by custom metadata (format: key=value, key, !key, key>n, key>=n, key<n, key<=n, can be used as standalone selector, can be repeated)
+        #[arg(long, action = clap::ArgAction::Append)]
+        custom_filter: Vec<String>,
 
         /// Include custom metadata in output (opt-in)
         #[arg(long)]

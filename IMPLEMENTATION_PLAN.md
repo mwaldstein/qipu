@@ -65,19 +65,21 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - **Learnings**: Tracing output already writes to stderr, so the main concern was ANSI color codes appearing in stderr logs. These codes were being added automatically by tracing_subscriber's default configuration. The fix is to explicitly disable ANSI with `.with_ansi(false)` in the fmt layer. This ensures clean log output in all contexts, especially when piping output or using JSON format where consumers might parse both stdout and stderr.
 
 #### Allow `context` selection via `--custom-filter` and `--min-value` (`specs/llm-context.md`, `specs/cli-interface.md`, `specs/custom-metadata.md`)
-- [ ] Treat `--min-value` as a selector when no other selectors are provided (select notes by `value >= n`)
-- [ ] Treat `--custom-filter` as a selector when no other selectors are provided
-- [ ] Implement minimal custom-filter expression parsing:
+- [x] Treat `--min-value` as a selector when no other selectors are provided (select notes by `value >= n`)
+- [x] Treat `--custom-filter` as a selector when no other selectors are provided
+- [x] Implement minimal custom-filter expression parsing:
   - equality: `key=value`
   - existence: `key` / `!key`
   - numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
-- [ ] Combine multiple `--custom-filter` flags with AND semantics
+- [x] Combine multiple `--custom-filter` flags with AND semantics
 - [ ] Define deterministic ordering for the selected set before budgeting (so `--max-chars` truncation is stable)
-- [ ] Add integration tests:
+- [x] Add integration tests:
   - `context --min-value N` returns only notes meeting threshold
   - `context --custom-filter ...` works with no other selectors
   - numeric comparisons and existence checks
 - Context: `qipu-integration-feedback.md` enhancement (D) and value threshold use cases
+- Status: **Partially Complete**. All custom-filter expression parsing is implemented and tested. Multiple filters work with AND semantics. The only remaining item is deterministic ordering for truncation stability, which is related to the Single-Note Truncation blocker.
+- **Learnings**: The key implementation detail is checking operators in the correct order: numeric comparison operators (>=, <=, >, <) must be checked before equality (=) to avoid `score>=80` being incorrectly parsed as equality `key=80` with key=`score>`. The parsing uses `split_once` and matches operators from most specific to least specific. Test coverage includes 3 new test functions covering existence checks, numeric comparisons, and multiple filters with AND semantics.
 
 #### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`)
 - [x] When budget is tight, truncate individual notes instead of dropping entirely

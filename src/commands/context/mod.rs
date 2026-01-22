@@ -40,6 +40,130 @@ pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
     }
 }
 
+/// Comparison operators for custom filter expressions
+#[derive(Debug)]
+enum ComparisonOp {
+    GreaterEqual,
+    Greater,
+    LessEqual,
+    Less,
+}
+
+/// Parse a custom filter expression and return a predicate function
+///
+/// Supported formats:
+/// - Equality: `key=value`
+/// - Existence: `key` (present), `!key` (absent)
+/// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+fn parse_custom_filter_expression(
+    expr: &str,
+) -> Result<Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool + '_>> {
+    let expr = expr.trim();
+
+    // Check for absence (!key)
+    if let Some(key) = expr.strip_prefix('!') {
+        let key = key.trim();
+        if key.is_empty() {
+            return Err(QipuError::Other(
+                "custom filter expression '!key' is missing key".to_string(),
+            ));
+        }
+        return Ok(Box::new(
+            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
+                !custom.contains_key(key)
+            },
+        ));
+    }
+
+    // Check for numeric comparisons (key>n, key>=n, key<n, key<=n) - must be checked before equality!
+    let (_op_str, op, key, value) = if let Some((k, v)) = expr.split_once(">=") {
+        (">=", ComparisonOp::GreaterEqual, k.trim(), v.trim())
+    } else if let Some((k, v)) = expr.split_once(">") {
+        (">", ComparisonOp::Greater, k.trim(), v.trim())
+    } else if let Some((k, v)) = expr.split_once("<=") {
+        ("<=", ComparisonOp::LessEqual, k.trim(), v.trim())
+    } else if let Some((k, v)) = expr.split_once("<") {
+        ("<", ComparisonOp::Less, k.trim(), v.trim())
+    } else if let Some((k, v)) = expr.split_once('=') {
+        // Equality check (key=value)
+        let key = k.trim();
+        let value = v.trim();
+        if key.is_empty() {
+            return Err(QipuError::Other(
+                "custom filter expression 'key=value' is missing key".to_string(),
+            ));
+        }
+        return Ok(Box::new(
+            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
+                custom
+                    .get(key)
+                    .map(|v| match v {
+                        serde_yaml::Value::String(s) => s == value,
+                        serde_yaml::Value::Number(num) => num.to_string() == value,
+                        serde_yaml::Value::Bool(b) => b.to_string() == value,
+                        _ => false,
+                    })
+                    .unwrap_or(false)
+            },
+        ));
+    } else {
+        // No comparison operator found, check for existence
+        let key = expr.trim();
+        if key.is_empty() {
+            return Err(QipuError::Other(
+                "custom filter expression is empty".to_string(),
+            ));
+        }
+        return Ok(Box::new(
+            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
+                custom.contains_key(key)
+            },
+        ));
+    };
+
+    if key.is_empty() {
+        return Err(QipuError::Other(format!(
+            "custom filter expression '{}' is missing key",
+            expr
+        )));
+    }
+    if value.is_empty() {
+        return Err(QipuError::Other(format!(
+            "custom filter expression '{}' is missing value",
+            expr
+        )));
+    }
+
+    let target_value: f64 = value.parse().map_err(|_| {
+        QipuError::Other(format!(
+            "custom filter expression '{}' has invalid numeric value '{}'",
+            expr, value
+        ))
+    })?;
+
+    let compare_fn = match op {
+        ComparisonOp::GreaterEqual => |a: f64, b: f64| a >= b,
+        ComparisonOp::Greater => |a: f64, b: f64| a > b,
+        ComparisonOp::LessEqual => |a: f64, b: f64| a <= b,
+        ComparisonOp::Less => |a: f64, b: f64| a < b,
+    };
+
+    Ok(Box::new(
+        move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
+            custom
+                .get(key)
+                .and_then(|v| match v {
+                    serde_yaml::Value::Number(num) => num.as_f64(),
+                    serde_yaml::Value::String(s) => s.parse::<f64>().ok(),
+                    serde_yaml::Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
+                    _ => None,
+                })
+                .map(|actual_value| compare_fn(actual_value, target_value))
+                .unwrap_or(false)
+        },
+    ))
+}
+
 /// Execute the context command
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
     let start = Instant::now();
@@ -314,7 +438,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         && options.query.is_none()
     {
         // Check if min-value or custom-filter is provided as a standalone selector
-        if options.min_value.is_none() && options.custom_filter.is_none() {
+        if options.min_value.is_none() && options.custom_filter.is_empty() {
             return Err(QipuError::Other(
                 "no selection criteria provided. Use --note, --tag, --moc, --query, --min-value, or --custom-filter".to_string(),
             ));
@@ -360,35 +484,36 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
     }
 
-    // Apply custom metadata filter
-    if let Some(custom_filter) = options.custom_filter {
-        if let Some((key, value)) = custom_filter.split_once('=') {
-            let before_count = selected_notes.len();
-            selected_notes.retain(|selected| {
-                selected
-                    .note
-                    .frontmatter
-                    .custom
-                    .get(key)
-                    .map(|v| match v {
-                        serde_yaml::Value::String(s) => s == value,
-                        serde_yaml::Value::Number(num) => num.to_string() == value,
-                        serde_yaml::Value::Bool(b) => b.to_string() == value,
-                        _ => false,
-                    })
-                    .unwrap_or(false)
-            });
-            let after_count = selected_notes.len();
+    // Apply custom metadata filters
+    if !options.custom_filter.is_empty() {
+        let before_count = selected_notes.len();
 
-            if cli.verbose && before_count > after_count {
-                tracing::debug!(
-                    custom_filter,
-                    before_count,
-                    after_count,
-                    filtered = before_count - after_count,
-                    "custom_filter"
-                );
-            }
+        // Parse filter expressions
+        let filters: Vec<
+            Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool>,
+        > = options
+            .custom_filter
+            .iter()
+            .map(|filter_expr| parse_custom_filter_expression(filter_expr))
+            .collect::<Result<_>>()?;
+
+        // Apply all filters with AND semantics (retain only notes that match all filters)
+        selected_notes.retain(|selected| {
+            filters
+                .iter()
+                .all(|filter| filter(&selected.note.frontmatter.custom))
+        });
+
+        let after_count = selected_notes.len();
+
+        if cli.verbose && before_count > after_count {
+            tracing::debug!(
+                filter_count = options.custom_filter.len(),
+                before_count,
+                after_count,
+                filtered = before_count - after_count,
+                "custom_filters"
+            );
         }
     }
 

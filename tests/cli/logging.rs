@@ -117,3 +117,61 @@ fn test_qipu_log_env_without_target() {
         .success()
         .stdout(predicate::str::contains("parse_args"));
 }
+
+#[test]
+fn test_invalid_log_level_rejected() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Invalid log level should be rejected
+    qipu()
+        .current_dir(dir.path())
+        .args(["--log-level", "invalid", "list"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid log level"))
+        .stderr(predicate::str::contains("error, warn, info, debug, trace"));
+}
+
+#[test]
+fn test_valid_log_levels_accepted() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Test all valid log levels
+    for level in ["error", "warn", "info", "debug", "trace"] {
+        qipu()
+            .current_dir(dir.path())
+            .args(["--log-level", level, "list"])
+            .assert()
+            .success();
+    }
+}
+
+#[test]
+fn test_log_level_case_insensitive() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Case-insensitive log level should work
+    qipu()
+        .current_dir(dir.path())
+        .args(["--log-level", "DEBUG", "list"])
+        .assert()
+        .success();
+}

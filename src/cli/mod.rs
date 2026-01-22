@@ -16,6 +16,17 @@ pub mod workspace;
 use clap::Parser;
 use std::path::PathBuf;
 
+/// Parse and validate log level argument
+fn parse_log_level(s: &str) -> Result<String, String> {
+    match s.to_lowercase().as_str() {
+        "error" | "warn" | "info" | "debug" | "trace" => Ok(s.to_lowercase()),
+        _ => Err(format!(
+            "invalid log level '{}': expected one of: error, warn, info, debug, trace",
+            s
+        )),
+    }
+}
+
 pub use args::CreateArgs;
 pub use commands::Commands;
 pub use compact::CompactCommands;
@@ -52,7 +63,7 @@ pub struct Cli {
     pub verbose: bool,
 
     /// Set log level (error, warn, info, debug, trace)
-    #[arg(long, global = true, value_name = "LEVEL")]
+    #[arg(long, global = true, value_name = "LEVEL", value_parser = parse_log_level)]
     pub log_level: Option<String>,
 
     /// Output logs in JSON format
@@ -189,5 +200,29 @@ mod tests {
     fn test_parse_format() {
         let cli = Cli::try_parse_from(["qipu", "--format", "json", "list"]).unwrap();
         assert_eq!(cli.format, OutputFormat::Json);
+    }
+
+    #[test]
+    fn test_parse_valid_log_levels() {
+        // Test all valid log levels
+        for level in ["error", "warn", "info", "debug", "trace"] {
+            let cli = Cli::try_parse_from(["qipu", "--log-level", level, "list"]).unwrap();
+            assert_eq!(cli.log_level, Some(level.to_string()));
+        }
+    }
+
+    #[test]
+    fn test_parse_log_level_case_insensitive() {
+        let cli = Cli::try_parse_from(["qipu", "--log-level", "DEBUG", "list"]).unwrap();
+        assert_eq!(cli.log_level, Some("debug".to_string()));
+    }
+
+    #[test]
+    fn test_parse_invalid_log_level() {
+        let result = Cli::try_parse_from(["qipu", "--log-level", "invalid", "list"]);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("invalid log level"));
+        assert!(err.contains("error, warn, info, debug, trace"));
     }
 }

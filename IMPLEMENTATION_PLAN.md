@@ -280,8 +280,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - **Learnings**: Per spec (specs/provenance.md), when capturing a webpage (source is provided) without explicitly providing an author, default to "Qipu Clipper" for automated captures. If both source and author are provided, use the provided author. If neither is provided, don't set author field. Added comprehensive test with 3 scenarios: source-only (defaults to Qipu Clipper), source+author (uses provided author), and no-source (no author field).
 
 ### Structured Logging (`specs/structured-logging.md`)
-- [ ] `--log-level` accepts arbitrary strings (no validation).
-  - `src/cli/mod.rs:52-54`
+- [x] `--log-level` accepts arbitrary strings (no validation).
+  - `src/cli/mod.rs:19-28,55-56` - Added `parse_log_level` validation function
+  - `src/cli/mod.rs:197-224` - Added unit tests for valid/invalid log levels
+  - `tests/cli/logging.rs:123-173` - Added integration tests for validation
+  - Learnings: Used clap's value_parser to validate log levels against allowed values (error, warn, info, debug, trace); validation is case-insensitive and provides clear error messages listing valid options
 - [ ] Default log policy is `warn` (not silent-by-default).
   - `src/lib/logging.rs:10-13`
 

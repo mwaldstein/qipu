@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 630 tests pass (239 unit + 355 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
+- Test baseline: 789 tests pass (all passing)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -280,10 +280,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
     - Learnings: Type detection using `serde_yaml::from_str()` provides intuitive CLI experience (numbers, booleans, strings, arrays, objects); custom filter uses simple key=value format with type-aware comparison; doctor validation warns on >10KB custom blocks; all 642 tests pass
 
 ### Distribution (`specs/distribution.md`)
-- [ ] Add release automation and install scripts (GitHub releases + installers).
-  - `.github/workflows/ci.yml:1-120`
-- [ ] Add checksum generation + installer verification.
-  - `tests/golden/version.txt:1`
+- [x] Add release automation and install scripts (GitHub releases + installers).
+  - `.github/workflows/release.yml:1-156` - Created release workflow with multi-platform builds (x86_64/aarch64 for Linux/macOS, x86_64 for Windows)
+  - `scripts/install.sh:1-168` - Created Unix installer with platform detection, checksum verification, and PATH setup guidance
+  - `scripts/install.ps1:1-201` - Created Windows PowerShell installer with platform detection, checksum verification, and PATH configuration
+  - Learnings: Release workflow uses cross-compilation via `cross` tool for aarch64-linux target; both installers fetch latest release from GitHub API, verify checksums, and provide PATH setup guidance; Windows installer uses Expand-Archive for zip extraction; Unix installer uses tar; checksums are verified before installation to ensure binary integrity
+- [x] Add checksum generation + installer verification.
+  - `.github/workflows/release.yml:99-116` - Checksums generated for all platform binaries (SHA256 for Unix tar.gz, SHA256 for Windows zip)
+  - `scripts/install.sh:86-99` - Unix installer verifies SHA256 checksums before installation
+  - `scripts/install.ps1:80-96` - Windows installer verifies SHA256 checksums before installation
+  - Learnings: Checksum verification is integrated into both installers; Unix uses shasum, Windows uses Get-FileHash; installation fails if checksums don't match; both checksums and binaries are uploaded as release assets
 
 ### Export (`specs/export.md`)
 - [ ] Add optional BibTeX/CSL JSON outputs.

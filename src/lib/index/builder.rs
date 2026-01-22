@@ -34,6 +34,9 @@ impl<'a> IndexBuilder<'a> {
             }
         }
 
+        // Get stemming setting from config (default: true)
+        let use_stemming = self.store.config().stemming;
+
         for note in &notes {
             let path = match &note.path {
                 Some(p) => p.clone(),
@@ -42,23 +45,23 @@ impl<'a> IndexBuilder<'a> {
 
             // TF-IDF statistics with field weighting
             // Per spec: title weight=2.0, tags weight=1.5, body weight=1.0
-            // Use stemming for better similarity matching (e.g., "graph" matches "graphs")
+            // Stemming is optional per config (e.g., "graph" matches "graphs" when enabled)
             let mut term_freqs: HashMap<String, f64> = HashMap::new();
 
             // Tokenize and weight title (weight: 2.0)
-            for term in tokenize_with_stemming(note.title(), true) {
+            for term in tokenize_with_stemming(note.title(), use_stemming) {
                 *term_freqs.entry(term).or_insert(0.0) += 2.0;
             }
 
             // Tokenize and weight tags (weight: 1.5)
             for tag in &note.frontmatter.tags {
-                for term in tokenize_with_stemming(tag, true) {
+                for term in tokenize_with_stemming(tag, use_stemming) {
                     *term_freqs.entry(term).or_insert(0.0) += 1.5;
                 }
             }
 
             // Tokenize and weight body (weight: 1.0)
-            for term in tokenize_with_stemming(&note.body, true) {
+            for term in tokenize_with_stemming(&note.body, use_stemming) {
                 *term_freqs.entry(term).or_insert(0.0) += 1.0;
             }
 

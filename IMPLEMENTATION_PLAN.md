@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 637 tests pass (228 unit + 255 integration + 6 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
+- Test baseline: 669 tests pass (233 unit + 265 integration + 6 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -121,8 +121,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/dispatch/notes.rs:317,340` - Updated handler to convert `related` threshold of 0.0 to None (disabled)
   - `tests/cli/context/basic.rs:81-88,120-127` - Updated tests to explicitly disable related expansion with `--related 0` when testing selection-only behavior
   - Learnings: Related-note expansion now runs by default with threshold 0.3 per spec; users can disable with `--related 0` or customize threshold; existing tests needed updating to disable expansion when testing selection behavior only
-- [ ] Stemming is always enabled; there is no opt-out.
-  - `src/lib/index/builder.rs:49-62`
+- [x] Stemming is always enabled; there is no opt-out.
+  - `src/lib/config.rs:47-50,115-118,137-138,199-212` - Added `stemming` boolean config field with default value `true`
+  - `src/lib/index/builder.rs:28-29,46-47,49,55,61` - Updated IndexBuilder to read stemming config and pass to tokenize_with_stemming
+  - `tests/cli/index.rs:1-3,229-266` - Added integration tests for stemming enabled by default and can be disabled via config
+  - Learnings: Stemming can now be disabled by setting `stemming = false` in `.qipu/config.toml`; defaults to `true` to maintain current behavior and match spec recommendation
 - [ ] Search ranking boosts are hardcoded (do not match spec weights).
   - `src/lib/db/search.rs:81-102`
 

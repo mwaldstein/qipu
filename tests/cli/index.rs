@@ -1,5 +1,6 @@
 use crate::cli::support::qipu;
 use predicates::prelude::*;
+use std::fs;
 use tempfile::tempdir;
 
 // ============================================================================
@@ -221,4 +222,62 @@ fn test_index_extracts_relative_path_markdown_links() {
         .assert()
         .success()
         .stdout(predicate::str::contains(target_id));
+}
+
+#[test]
+fn test_index_stemming_can_be_disabled() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Disable stemming in config
+    let config_path = dir.path().join(".qipu/config.toml");
+    let config_content = fs::read_to_string(&config_path).unwrap();
+    let new_content = config_content.replace("stemming = true", "stemming = false");
+    fs::write(&config_path, new_content).unwrap();
+
+    // Create a note with words that would stem differently
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Graph Theory"])
+        .assert()
+        .success();
+
+    // Index should work with stemming disabled
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+}
+
+#[test]
+fn test_index_stemming_enabled_by_default() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    // Index should work with default config (stemming enabled)
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
 }

@@ -45,6 +45,10 @@ pub struct StoreConfig {
     #[serde(default)]
     pub rewrite_wiki_links: bool,
 
+    /// Enable stemming for similarity matching (optional; default true)
+    #[serde(default = "default_stemming")]
+    pub stemming: bool,
+
     /// Graph configuration
     #[serde(default)]
     pub graph: GraphConfig,
@@ -112,6 +116,10 @@ fn default_version() -> u32 {
     STORE_FORMAT_VERSION
 }
 
+fn default_stemming() -> bool {
+    true
+}
+
 impl Default for StoreConfig {
     fn default() -> Self {
         StoreConfig {
@@ -122,6 +130,7 @@ impl Default for StoreConfig {
             branch: None,
             store_path: None,
             rewrite_wiki_links: false,
+            stemming: default_stemming(),
             graph: GraphConfig::default(),
         }
     }
@@ -141,6 +150,7 @@ mod tests {
         assert!(config.editor.is_none());
         assert!(config.store_path.is_none());
         assert!(!config.rewrite_wiki_links);
+        assert!(config.stemming); // Default to true
     }
 
     #[test]
@@ -184,5 +194,24 @@ mod tests {
             loaded.store_path,
             Some("/absolute/path/to/store".to_string())
         );
+    }
+
+    #[test]
+    fn test_stemming_config_defaults_to_true() {
+        let config = StoreConfig::default();
+        assert!(config.stemming);
+    }
+
+    #[test]
+    fn test_stemming_config_can_be_disabled() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let mut config = StoreConfig::default();
+        config.stemming = false;
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert!(!loaded.stemming);
     }
 }

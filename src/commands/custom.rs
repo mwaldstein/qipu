@@ -1,5 +1,6 @@
 //! Custom metadata commands
 
+use crate::cli::OutputFormat;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 use crate::lib::store::Store;
@@ -30,6 +31,7 @@ pub fn set_custom_field(
     id_or_path: &str,
     key: &str,
     value: &str,
+    format: OutputFormat,
     quiet: bool,
 ) -> Result<()> {
     let mut note = if Path::new(id_or_path).exists() {
@@ -51,11 +53,15 @@ pub fn set_custom_field(
     store.save_note(&mut note)?;
 
     if !quiet {
-        // Display disclaimer on first use
-        eprintln!();
-        eprintln!("Note: Custom metadata is for applications building on qipu.");
-        eprintln!("For standard note management, use 'qipu value', 'qipu tag', or 'qipu link'.");
-        eprintln!();
+        // Display disclaimer on first use (only for human format)
+        if matches!(format, OutputFormat::Human) {
+            eprintln!();
+            eprintln!("Note: Custom metadata is for applications building on qipu.");
+            eprintln!(
+                "For standard note management, use 'qipu value', 'qipu tag', or 'qipu link'."
+            );
+            eprintln!();
+        }
 
         // Format the value for display
         let display_value = match &parsed_value {
@@ -66,14 +72,37 @@ pub fn set_custom_field(
                 .to_string(),
         };
 
-        println!("Set {} custom.{} = {}", note_id, key, display_value);
+        match format {
+            OutputFormat::Json => {
+                let output = serde_json::json!({
+                    "id": note_id,
+                    "key": key,
+                    "value": parsed_value
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
+            OutputFormat::Human => {
+                println!("Set {} custom.{} = {}", note_id, key, display_value);
+            }
+            OutputFormat::Records => {
+                println!(
+                    "T id=\"{}\" key=\"{}\" value={:?}",
+                    note_id, key, display_value
+                );
+            }
+        }
     }
 
     Ok(())
 }
 
 /// Get a custom metadata field from a note
-pub fn get_custom_field(store: &Store, id_or_path: &str, key: &str) -> Result<()> {
+pub fn get_custom_field(
+    store: &Store,
+    id_or_path: &str,
+    key: &str,
+    format: OutputFormat,
+) -> Result<()> {
     let note = if Path::new(id_or_path).exists() {
         let content = fs::read_to_string(id_or_path)?;
         Note::parse(&content, Some(id_or_path.into()))?
@@ -81,29 +110,52 @@ pub fn get_custom_field(store: &Store, id_or_path: &str, key: &str) -> Result<()
         store.get_note(id_or_path)?
     };
 
+    let note_id = note.id().to_string();
+
     match note.frontmatter.custom.get(key) {
         Some(value) => {
-            // Format output based on value type
-            let output = match value {
-                serde_yaml::Value::String(s) => s.clone(),
-                _ => serde_yaml::to_string(value)
-                    .unwrap_or_else(|_| format!("{:?}", value))
-                    .trim()
-                    .to_string(),
-            };
-            println!("{}", output);
+            match format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "key": key,
+                        "value": value
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    // Format output based on value type
+                    let output = match value {
+                        serde_yaml::Value::String(s) => s.clone(),
+                        _ => serde_yaml::to_string(value)
+                            .unwrap_or_else(|_| format!("{:?}", value))
+                            .trim()
+                            .to_string(),
+                    };
+                    println!("{}", output);
+                }
+                OutputFormat::Records => {
+                    let output = match value {
+                        serde_yaml::Value::String(s) => s.clone(),
+                        _ => serde_yaml::to_string(value)
+                            .unwrap_or_else(|_| format!("{:?}", value))
+                            .trim()
+                            .to_string(),
+                    };
+                    println!("T id=\"{}\" key=\"{}\" value={:?}", note_id, key, output);
+                }
+            }
             Ok(())
         }
         None => Err(QipuError::UsageError(format!(
             "Custom field '{}' not found on note {}",
-            key,
-            note.id()
+            key, note_id
         ))),
     }
 }
 
 /// Show all custom metadata for a note
-pub fn show_custom_fields(store: &Store, id_or_path: &str) -> Result<()> {
+pub fn show_custom_fields(store: &Store, id_or_path: &str, format: OutputFormat) -> Result<()> {
     let note = if Path::new(id_or_path).exists() {
         let content = fs::read_to_string(id_or_path)?;
         Note::parse(&content, Some(id_or_path.into()))?
@@ -111,25 +163,70 @@ pub fn show_custom_fields(store: &Store, id_or_path: &str) -> Result<()> {
         store.get_note(id_or_path)?
     };
 
-    if note.frontmatter.custom.is_empty() {
-        println!("{}:", note.id());
-        println!("  (no custom fields)");
-    } else {
-        println!("{}:", note.id());
-        // Sort keys for deterministic output
-        let mut keys: Vec<_> = note.frontmatter.custom.keys().collect();
-        keys.sort();
+    let note_id = note.id().to_string();
 
-        for key in keys {
-            let value = &note.frontmatter.custom[key];
-            let display_value = match value {
-                serde_yaml::Value::String(s) => s.clone(),
-                _ => serde_yaml::to_string(value)
-                    .unwrap_or_else(|_| format!("{:?}", value))
-                    .trim()
-                    .to_string(),
-            };
-            println!("  {}: {}", key, display_value);
+    if note.frontmatter.custom.is_empty() {
+        match format {
+            OutputFormat::Json => {
+                let output = serde_json::json!({
+                    "id": note_id,
+                    "custom": {}
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
+            OutputFormat::Human => {
+                println!("{}:", note_id);
+                println!("  (no custom fields)");
+            }
+            OutputFormat::Records => {
+                println!("T id=\"{}\"", note_id);
+            }
+        }
+    } else {
+        match format {
+            OutputFormat::Json => {
+                let output = serde_json::json!({
+                    "id": note_id,
+                    "custom": note.frontmatter.custom
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
+            OutputFormat::Human => {
+                println!("{}:", note_id);
+                // Sort keys for deterministic output
+                let mut keys: Vec<_> = note.frontmatter.custom.keys().collect();
+                keys.sort();
+
+                for key in keys {
+                    let value = &note.frontmatter.custom[key];
+                    let display_value = match value {
+                        serde_yaml::Value::String(s) => s.clone(),
+                        _ => serde_yaml::to_string(value)
+                            .unwrap_or_else(|_| format!("{:?}", value))
+                            .trim()
+                            .to_string(),
+                    };
+                    println!("  {}: {}", key, display_value);
+                }
+            }
+            OutputFormat::Records => {
+                // Sort keys for deterministic output
+                let mut keys: Vec<_> = note.frontmatter.custom.keys().collect();
+                keys.sort();
+
+                println!("T id=\"{}\"", note_id);
+                for key in keys {
+                    let value = &note.frontmatter.custom[key];
+                    let display_value = match value {
+                        serde_yaml::Value::String(s) => s.clone(),
+                        _ => serde_yaml::to_string(value)
+                            .unwrap_or_else(|_| format!("{:?}", value))
+                            .trim()
+                            .to_string(),
+                    };
+                    println!("F custom.{}={:?}", key, display_value);
+                }
+            }
         }
     }
 
@@ -137,7 +234,13 @@ pub fn show_custom_fields(store: &Store, id_or_path: &str) -> Result<()> {
 }
 
 /// Remove a custom metadata field from a note
-pub fn unset_custom_field(store: &Store, id_or_path: &str, key: &str, quiet: bool) -> Result<()> {
+pub fn unset_custom_field(
+    store: &Store,
+    id_or_path: &str,
+    key: &str,
+    format: OutputFormat,
+    quiet: bool,
+) -> Result<()> {
     let mut note = if Path::new(id_or_path).exists() {
         let content = fs::read_to_string(id_or_path)?;
         Note::parse(&content, Some(id_or_path.into()))?
@@ -150,7 +253,22 @@ pub fn unset_custom_field(store: &Store, id_or_path: &str, key: &str, quiet: boo
     if note.frontmatter.custom.remove(key).is_some() {
         store.save_note(&mut note)?;
         if !quiet {
-            println!("Removed {} custom.{}", note_id, key);
+            match format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "key": key,
+                        "removed": true
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    println!("Removed {} custom.{}", note_id, key);
+                }
+                OutputFormat::Records => {
+                    println!("T id=\"{}\" key=\"{}\" removed=true", note_id, key);
+                }
+            }
         }
         Ok(())
     } else {

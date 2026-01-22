@@ -16,14 +16,21 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### P1: Core Features
 
 #### Machine-Readable Output for `qipu value` and `qipu custom` (`specs/cli-interface.md`, `specs/cli-tool.md`)
-- [ ] Make `qipu value set/show --format json` emit valid JSON on stdout
-- [ ] Make `qipu custom set/get/show/unset --format json` emit valid JSON on stdout
-- [ ] Ensure informational banners/logs never pollute stdout when `--format json` is requested (send to stderr or suppress)
+- [x] Make `qipu value set/show --format json` emit valid JSON on stdout
+- [x] Make `qipu custom set/get/show/unset --format json` emit valid JSON on stdout
+- [x] Ensure informational banners/logs never pollute stdout when `--format json` is requested (send to stderr or suppress)
 - [ ] Add integration tests/goldens covering:
   - `value` JSON shapes
   - `custom` JSON shapes
   - `--format json` + error cases
 - Context: `qipu-integration-feedback.md` item (2)
+- Status: **Implemented**. All value and custom commands now support `--format json` output. JSON output includes structured data (id, value/key, value) and is valid JSON. Informational banners (disclaimer in custom set) are only shown in human format and printed to stderr. Records format is also supported for all commands.
+- **Learnings**: The pattern for adding JSON support is straightforward:
+  1. Check `cli.format` in the handler
+  2. For JSON: create a structured JSON object using `serde_json::json!()` and print with `serde_json::to_string_pretty()`
+  3. For Records: use the `F` and `T` prefixes with `key=value` format
+  4. For Human: keep existing print statements
+  5. Ensure informational messages use `eprintln!()` for stderr output
 
 #### `qipu show --format json` includes core metadata (`specs/cli-interface.md`, `specs/custom-metadata.md`)
 - [ ] Include `value` in `qipu show --format json` output

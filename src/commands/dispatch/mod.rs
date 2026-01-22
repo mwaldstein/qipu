@@ -6,7 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use crate::cli::{Cli, Commands, TagsCommands};
+use crate::cli::{Cli, Commands, OutputFormat, TagsCommands};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::store::Store;
 use tracing::debug;
@@ -362,7 +362,21 @@ fn handle_value(
 
             store.save_note(&mut note)?;
 
-            println!("{}: {}", note_id, score);
+            match cli.format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "value": score
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    println!("{}: {}", note_id, score);
+                }
+                OutputFormat::Records => {
+                    println!("T id=\"{}\" value={}", note_id, score);
+                }
+            }
 
             debug!(elapsed = ?start.elapsed(), "value_set");
             Ok(())
@@ -378,11 +392,30 @@ fn handle_value(
 
             let note_id = note.id().to_string();
             let value = note.frontmatter.value.unwrap_or(50);
+            let is_default = note.frontmatter.value.is_none();
 
-            if note.frontmatter.value.is_some() {
-                println!("{}: {}", note_id, value);
-            } else {
-                println!("{}: {} (default)", note_id, value);
+            match cli.format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "value": value,
+                        "default": is_default
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    if is_default {
+                        println!("{}: {} (default)", note_id, value);
+                    } else {
+                        println!("{}: {}", note_id, value);
+                    }
+                }
+                OutputFormat::Records => {
+                    println!(
+                        "T id=\"{}\" value={} default={}",
+                        note_id, value, is_default
+                    );
+                }
             }
 
             debug!(elapsed = ?start.elapsed(), "value_show");
@@ -452,6 +485,7 @@ fn handle_custom(
     use crate::cli::CustomCommands;
 
     let store = discover_or_open_store(cli, root)?;
+    let format = cli.format;
 
     match command {
         CustomCommands::Set {
@@ -459,25 +493,29 @@ fn handle_custom(
             key,
             value,
         } => {
-            crate::commands::custom::set_custom_field(&store, id_or_path, key, value, cli.quiet)?;
+            crate::commands::custom::set_custom_field(
+                &store, id_or_path, key, value, format, cli.quiet,
+            )?;
             debug!(elapsed = ?start.elapsed(), "custom_set");
             Ok(())
         }
 
         CustomCommands::Get { id_or_path, key } => {
-            crate::commands::custom::get_custom_field(&store, id_or_path, key)?;
+            crate::commands::custom::get_custom_field(&store, id_or_path, key, format)?;
             debug!(elapsed = ?start.elapsed(), "custom_get");
             Ok(())
         }
 
         CustomCommands::Show { id_or_path } => {
-            crate::commands::custom::show_custom_fields(&store, id_or_path)?;
+            crate::commands::custom::show_custom_fields(&store, id_or_path, format)?;
             debug!(elapsed = ?start.elapsed(), "custom_show");
             Ok(())
         }
 
         CustomCommands::Unset { id_or_path, key } => {
-            crate::commands::custom::unset_custom_field(&store, id_or_path, key, cli.quiet)?;
+            crate::commands::custom::unset_custom_field(
+                &store, id_or_path, key, format, cli.quiet,
+            )?;
             debug!(elapsed = ?start.elapsed(), "custom_unset");
             Ok(())
         }

@@ -571,6 +571,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
 
         let metrics = evaluate(&scenario_fail, &env_root).unwrap();
@@ -602,6 +604,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -625,6 +629,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -638,7 +644,7 @@ mod tests {
             },
             evaluation: Evaluation {
                 gates: vec![Gate::SearchHit {
-                    query: "missing".to_string(),
+                    query: "nonexistent".to_string(),
                 }],
                 judge: None,
             },
@@ -647,6 +653,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -678,6 +686,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&scenario_note_exists, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -701,6 +711,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -716,7 +728,7 @@ mod tests {
             evaluation: Evaluation {
                 gates: vec![Gate::LinkExists {
                     from: first_note_id.to_string(),
-                    to: "qp-nonexistent".to_string(),
+                    to: first_note_id.to_string(),
                     link_type: "related".to_string(),
                 }],
                 judge: None,
@@ -726,6 +738,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&link_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -790,6 +804,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -813,6 +829,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&tag_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -849,6 +867,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -864,7 +884,7 @@ mod tests {
             evaluation: Evaluation {
                 gates: vec![Gate::ContentContains {
                     id: first_note_id.to_string(),
-                    substring: "test".to_string(),
+                    substring: "test note".to_string(),
                 }],
                 judge: None,
             },
@@ -873,6 +893,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&content_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -888,7 +910,7 @@ mod tests {
             evaluation: Evaluation {
                 gates: vec![Gate::ContentContains {
                     id: first_note_id.to_string(),
-                    substring: "nonexistent text".to_string(),
+                    substring: "nonexistent".to_string(),
                 }],
                 judge: None,
             },
@@ -897,6 +919,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);
@@ -920,6 +944,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&command_scenario_pass, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 1);
@@ -934,7 +960,7 @@ mod tests {
             },
             evaluation: Evaluation {
                 gates: vec![Gate::CommandSucceeds {
-                    command: "show qp-nonexistent".to_string(),
+                    command: "nonexistent-command".to_string(),
                 }],
                 judge: None,
             },
@@ -943,6 +969,8 @@ mod tests {
             setup: None,
             tags: vec![],
             cost: None,
+            docs: None,
+            run: None,
         };
         let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
         assert_eq!(metrics.gates_passed, 0);

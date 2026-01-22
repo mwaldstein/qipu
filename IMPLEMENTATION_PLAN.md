@@ -292,8 +292,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: The implementation was already correct; the spec documentation was wrong. Updated spec to say "Warn level by default (shows errors and warnings, hides info/debug/trace)" instead of "Silent operation by default".
 
 ### LLM User Validation (`specs/llm-user-validation.md`)
-- [ ] Scenario schema omits `docs`, `tags`, `run` limits, `cost`, and `cache` fields.
-  - `crates/llm-tool-test/src/scenario.rs:4-86`
+- [x] Scenario schema omits `docs`, `tags`, `run` limits, `cost`, and `cache` fields.
+  - `crates/llm-tool-test/src/scenario.rs:4-58` - Added `DocsConfig` struct with `prime` and `help_commands` fields; added `RunConfig` struct with `timeout_secs` and `max_turns` fields
+  - `crates/llm-tool-test/src/evaluation.rs:558-975` - Updated all Scenario initializers in tests to include new optional fields
+  - **Learnings**: The `tags` and `cost` (with `cache` subfield) were already implemented. Added comprehensive tests for all new fields including optional behavior, defaults, and full scenario integration. All 140 llm-tool-test tests pass.
 - [ ] Stage-1 evaluation lacks `qipu doctor` and transcript error checks.
   - `crates/llm-tool-test/src/evaluation.rs:75-148`
 - [ ] `--max-usd` is parsed but unused (no budget enforcement).

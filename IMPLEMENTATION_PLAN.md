@@ -264,11 +264,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## P2: Refactoring & Modularization
 
 ### Graph Library (`src/lib/graph`)
-- [ ] Split `src/lib/graph/bfs.rs` (1449 lines) into smaller modules.
-  - Create `src/lib/graph/algos/` directory.
-  - Move Dijkstra implementation to `src/lib/graph/algos/dijkstra.rs`.
-  - Move cost calculation logic to `src/lib/graph/cost.rs`.
-  - Move filtering logic to `src/lib/graph/filter.rs`.
+- [x] Split `src/lib/graph/bfs.rs` (1449 lines) into smaller modules.
+  - `src/lib/graph/algos/mod.rs` - Created module declaration
+  - `src/lib/graph/algos/dijkstra.rs` - Moved Dijkstra implementation with HeapEntry struct and tests
+  - `src/lib/graph/algos/bfs.rs` - Moved BFS traversal logic with tests
+  - `src/lib/graph/bfs.rs` - Retained bfs_find_path function with tests (uses HeapEntry from dijkstra module)
+  - Updated `src/lib/graph/mod.rs` to export algos module
+  - Note: Cost calculation (get_edge_cost, get_link_type_cost) and filtering (filter_edge) were already in types.rs; they were not moved as they were already well-placed
 
 ### Similarity Engine (`src/lib/similarity`)
 - [ ] Modularize `src/lib/similarity/mod.rs` (1082 lines).

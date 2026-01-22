@@ -337,8 +337,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/results.rs:586-844` - Updated all test cases to include prime_output parameter
   - `crates/llm-tool-test/src/adapter/mock.rs:479-482,542-548,588-594,628-634` - Updated error message checks to handle both old and new error formats
   - **Learnings**: Cache key now includes prime output hash to invalidate cache when fixture content changes; prime output is obtained after fixture setup but before cache check; budget validation moved before fixture setup for faster failure; empty string used for prime output if qipu command fails (e.g., no store yet or binary not found)
-- [ ] Fix MinLinks gate no-op in mock adapter.
-  - `crates/llm-tool-test/src/adapter/mock.rs:60-61`
+- [x] Fix MinLinks gate no-op in mock adapter.
+  - `crates/llm-tool-test/src/adapter/mock.rs:133-149` - Implemented MinLinks gate to create N+1 notes in a chain where each note (except the first) links to the previous note, resulting in exactly N links
+  - **Learnings**: The mock adapter generates fixture commands for each gate type to satisfy evaluation criteria; MinLinks now creates a chain of notes with inline wiki links to achieve the required link count
 - [ ] Avoid error-swallowing defaults in evaluation metrics.
   - `crates/llm-tool-test/src/evaluation.rs:72-114`
   - `crates/llm-tool-test/src/evaluation.rs:410-458`

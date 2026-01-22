@@ -130,7 +130,24 @@ impl MockAdapter {
                 Gate::CommandSucceeds { command } => {
                     commands.push(format!("qipu {}", command));
                 }
-                Gate::MinLinks { .. } => {}
+                Gate::MinLinks { count } => {
+                    // Create notes with links to satisfy the minimum link count
+                    // Strategy: Create count+1 notes, where each note (except the first)
+                    // links to the previous note, resulting in exactly 'count' links
+                    for i in 0..=*count {
+                        if i == 0 {
+                            commands.push(format!(
+                                "qipu create --id mock-link-{} --title 'Link Node {}' --content 'Base node for link chain'",
+                                i, i
+                            ));
+                        } else {
+                            commands.push(format!(
+                                "qipu create --id mock-link-{} --title 'Link Node {}' --content 'Links to previous node: [[mock-link-{}]]'",
+                                i, i, i - 1
+                            ));
+                        }
+                    }
+                }
                 Gate::DoctorPasses => {
                     // Doctor check is automatic, no specific command needed
                 }

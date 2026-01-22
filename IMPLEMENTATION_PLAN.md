@@ -7,6 +7,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - **Test baseline**: 795 tests pass
 - **Clippy**: Clean (`cargo clippy --all-targets --all-features -- -D warnings`)
 - **Revision 1 complete**: 2026-01-22
+- **Refactoring analysis complete**: 2026-01-22 - Identified 7 source files >500 lines requiring refactoring for maintainability and LLM integration
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
 ---
@@ -103,6 +104,75 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Status: **Implemented**. The `SearchResult` struct has a `via` field that is set when a compacted note is resolved to its digest. All three output formats (JSON, human, records) display the `via` field. The `show` and `context` commands also support `via` annotations (verified by test_compaction_annotations).
 - **Note**: Per spec (lines 260-267), traversal outputs (tree/path) do NOT use `via`. Traversals operate on the contracted graph and use `--with-compaction-ids` flag to display compacted notes instead.
 
+### P2: Code Quality & Refactoring
+
+**Critical for LLM Usage**: Large files and complex functions make code difficult to work with and understand. These refactorings focus on breaking down monolithic files into smaller, more maintainable modules.
+
+#### Split `bfs_find_path` Function (`src/lib/graph/bfs.rs`)
+- [ ] Extract BFS logic (unweighted, `ignore_value=true`) into separate function
+- [ ] Extract Dijkstra logic (weighted, `ignore_value=false`) into separate function
+- [ ] Deduplicate neighbor collection code between both algorithms
+- [ ] Extract filter checking logic into helper function
+- [ ] Target: Main function should be <100 lines, sub-functions <150 lines each
+- **Current state**: Single 400-line function with significant duplication
+- **Impact**: Critical for graph pathfinding clarity and maintainability
+
+#### Extract Model Pricing Logic (`crates/llm-tool-test/src/results.rs`)
+- [ ] Move `get_model_pricing()` function (lines 447-513) to new module `pricing.rs`
+- [ ] Create `ModelPricing` struct to encapsulate pricing data
+- [ ] Consider loading pricing from external file/URL for easier updates
+- [ ] Target: Reduce results.rs by ~70 lines, improve testability
+- **Current state**: Large match statement with 20+ model patterns
+- **Impact**: Makes adding new model pricing easier and tests more focused
+
+#### Modularize Gate Evaluation (`crates/llm-tool-test/src/evaluation.rs`)
+- [ ] Extract each gate type (MinNotes, MinLinks, SearchHit, etc.) into separate validator function
+- [ ] Create `GateEvaluator` trait for pluggable gate types
+- [ ] Move gate-specific helper functions (count_notes, search_hit, etc.) into validator modules
+- [ ] Target: Main `evaluate()` function <100 lines, each validator <50 lines
+- **Current state**: Large match statement (lines 72-213) with mixed concerns
+- **Impact**: Easier to add new gate types and test individual validators
+
+#### Consolidate Output Formatting (`src/commands/setup.rs`, `src/commands/show.rs`)
+- [ ] Extract `OutputFormatter` trait with `json()`, `human()`, `records()` methods
+- [ ] Create shared format helpers for common patterns (headers, error envelopes)
+- [ ] Reduce repetitive match statements across command files
+- [ ] Target: Cut ~50 lines from setup.rs and ~100 lines from show.rs
+- **Current state**: Each command handles all formats independently with code duplication
+- **Impact**: Easier to add new output formats or modify existing ones
+
+#### Split Large Test Files
+- [ ] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature
+- [ ] Evaluate `tests/cli/link/tree.rs` (1,899 lines) for split by edge case
+- [ ] Evaluate `tests/pack_tests.rs` (1,447 lines) for split by pack strategy
+- [ ] Consider test module structure: `tests/cli/export/create.rs`, `tests/cli/export/merge.rs`, etc.
+- **Current state**: Monolithic test files covering multiple features
+- **Impact**: Faster test runs, clearer test organization
+- **Note**: Less urgent than source code refactoring, but affects developer experience
+
+#### Extract Test Utilities (`crates/llm-tool-test/src/results.rs`)
+- [ ] Move test helpers (create_test_record, create_test_record_with_tool) to `tests.rs` module
+- [ ] Extract repeated setup/teardown logic into test fixtures
+- [ ] Target: Reduce test module from 800+ lines to ~300 lines
+- **Current state**: Large inline test setup duplicated across many tests
+- **Impact**: Faster test writing, reduced test file size
+
+#### Improve Doctor Command Structure (`src/commands/doctor/mod.rs`)
+- [ ] Extract individual check implementations into separate modules (`checks/broken_links.rs`, `checks/compaction.rs`)
+- [ ] Create `DoctorCheck` trait for uniform check interface
+- [ ] Move check-specific test cases to their respective modules
+- [ ] Target: mod.rs <200 lines (orchestration only)
+- **Current state**: 796 lines with 12+ checks mixed with tests
+- **Impact**: Easier to add new checks and maintain existing ones
+
+#### Simplify Similarity Engine (`src/lib/similarity/mod.rs`)
+- [ ] Extract field weighting logic into separate module
+- [ ] Separate TF-IDF calculations from graph traversal
+- [ ] Consider splitting into `similarity/calculation.rs` and `similarity/graph.rs`
+- [ ] Target: Main module <300 lines
+- **Current state**: 764 lines mixing concerns
+- **Impact**: Clearer separation between similarity algorithms and graph operations
+
 ### P2: LLM Tool Test Enhancements
 
 #### Safety Guard: `LLM_TOOL_TEST_ENABLED` (`specs/llm-user-validation.md:464`)
@@ -157,10 +227,15 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Technical Debt
 
-| Item | Notes |
-|------|-------|
-| Performance test thresholds | Current 1s budget is conservative; actual ~500-600ms. Consider tighter regression threshold |
-| Test suite optimization | Review for redundancy, parallelization opportunities as suite grows |
+| Item | Priority | Notes |
+|------|-----------|-------|
+| Performance test thresholds | Medium | Current 1s budget is conservative; actual ~500-600ms. Consider tighter regression threshold |
+| Test suite optimization | Medium | Review for redundancy, parallelization opportunities as suite grows |
+| File size monitoring | High | Add CI check to flag new files >500 lines (exclude tests) |
+| Function complexity monitoring | High | Add CI check to flag functions >100 lines for refactoring |
+| Large file refactoring | **Critical** | 7 source files >500 lines need splitting (see P2 Code Quality section) |
+| Model pricing externalization | Medium | Move hardcoded model costs to config file for easier maintenance |
+| Output format consolidation | Medium | Reduce ~500 lines of duplication via shared OutputFormatter trait |
 
 ---
 

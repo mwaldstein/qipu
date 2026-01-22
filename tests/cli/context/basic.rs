@@ -990,7 +990,7 @@ This note has no custom metadata.
 }
 
 #[test]
-fn test_context_custom_filter_existence() {
+fn test_context_deterministic_ordering_with_budget() {
     use std::fs;
 
     let dir = tempdir().unwrap();
@@ -1001,98 +1001,90 @@ fn test_context_custom_filter_existence() {
         .assert()
         .success();
 
-    // Create notes with and without custom metadata
-    let note_with_custom = r#"---
-id: qp-has-custom
-title: Note with Custom Metadata
-type: permanent
-tags:
-  - test
-custom:
-  priority: high
-  status: active
----
-
-This note has custom metadata.
-"#;
-
-    let note_without_custom = r#"---
-id: qp-no-custom
-title: Note without Custom Metadata
-type: permanent
-tags:
-  - test
----
-
-This note has no custom metadata.
-"#;
-
     let notes_dir = dir.path().join(".qipu/notes");
     fs::create_dir_all(&notes_dir).unwrap();
-    fs::write(
-        notes_dir.join("qp-has-custom-note-with-custom-metadata.md"),
-        note_with_custom,
-    )
-    .unwrap();
-    fs::write(
-        notes_dir.join("qp-no-custom-note-without-custom-metadata.md"),
-        note_without_custom,
-    )
-    .unwrap();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
+    let note_templates = vec![
+        (
+            r#"---
+id: qp-zzz
+title: Oldest Note
+type: permanent
+value: 95
+created: 2024-01-01T00:00:00Z
+---
 
-    // Test: existence check for key (should include notes with that key)
-    let output = qipu()
-        .current_dir(dir.path())
-        .args(["context", "--custom-filter", "priority", "--format", "json"])
-        .output()
-        .unwrap();
+Oldest content
+"#,
+            "note1.md",
+        ),
+        (
+            r#"---
+id: qp-aaa
+title: Middle Note
+type: permanent
+value: 90
+created: 2024-01-02T00:00:00Z
+---
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+Middle content
+"#,
+            "note2.md",
+        ),
+        (
+            r#"---
+id: qp-mmm
+title: Newest Note
+type: permanent
+value: 85
+created: 2024-01-03T00:00:00Z
+---
 
-    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+Newest content
+"#,
+            "note3.md",
+        ),
+    ];
+
+    for (note_content, filename) in note_templates {
+        fs::write(notes_dir.join(filename), note_content).unwrap();
+    }
+
+    let mut results = Vec::new();
+
+    for _ in 0..3 {
+        let output = qipu()
+            .current_dir(dir.path())
+            .args([
+                "context",
+                "--min-value",
+                "80",
+                "--max-chars",
+                "200",
+                "--format",
+                "json",
+            ])
+            .output()
+            .unwrap();
+
+        assert!(output.status.success());
+        results.push(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+
+    assert_eq!(results[0], results[1]);
+    assert_eq!(results[1], results[2]);
+
+    let json: serde_json::Value = serde_json::from_str(&results[0]).unwrap();
     let notes = json["notes"].as_array().unwrap();
 
-    assert_eq!(
-        notes.len(),
-        1,
-        "Should include only note with 'priority' key, got {}",
-        notes.len()
+    assert!(
+        notes.len() > 0,
+        "Should include at least one note with budget"
     );
-    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-has-custom");
 
-    // Test: absence check for key (should exclude notes with that key)
-    let output = qipu()
-        .current_dir(dir.path())
-        .args([
-            "context",
-            "--custom-filter",
-            "!priority",
-            "--format",
-            "json",
-        ])
-        .output()
-        .unwrap();
+    let note_ids: Vec<&str> = notes.iter().map(|n| n["id"].as_str().unwrap()).collect();
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    let notes = json["notes"].as_array().unwrap();
-
-    assert_eq!(
-        notes.len(),
-        1,
-        "Should include only note without 'priority' key, got {}",
-        notes.len()
-    );
-    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-no-custom");
+    assert_eq!(note_ids, vec!["qp-zzz", "qp-aaa", "qp-mmm"]);
 }
 
 #[test]

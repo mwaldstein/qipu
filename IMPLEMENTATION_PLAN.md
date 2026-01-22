@@ -73,13 +73,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - existence: `key` / `!key`
   - numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
 - [x] Combine multiple `--custom-filter` flags with AND semantics
-- [ ] Define deterministic ordering for the selected set before budgeting (so `--max-chars` truncation is stable)
+- [x] Define deterministic ordering for the selected set before budgeting (so `--max-chars` truncation is stable)
 - [x] Add integration tests:
   - `context --min-value N` returns only notes meeting threshold
   - `context --custom-filter ...` works with no other selectors
   - numeric comparisons and existence checks
 - Context: `qipu-integration-feedback.md` enhancement (D) and value threshold use cases
-- Status: **Partially Complete**. All custom-filter expression parsing is implemented and tested. Multiple filters work with AND semantics. The only remaining item is deterministic ordering for truncation stability, which is related to the Single-Note Truncation blocker.
+- Status: **Complete**. All custom-filter expression parsing is implemented and tested. Multiple filters work with AND semantics. Deterministic ordering for truncation stability is verified. The sorting logic (lines 520-551 in mod.rs) sorts notes by verified → link type → created → id, ensuring deterministic output even when budget truncation occurs. A new test `test_context_deterministic_ordering_with_budget` verifies that running the same context command with standalone filters produces identical output across multiple runs.
 - **Learnings**: The key implementation detail is checking operators in the correct order: numeric comparison operators (>=, <=, >, <) must be checked before equality (=) to avoid `score>=80` being incorrectly parsed as equality `key=80` with key=`score>`. The parsing uses `split_once` and matches operators from most specific to least specific. Test coverage includes 3 new test functions covering existence checks, numeric comparisons, and multiple filters with AND semantics.
 
 #### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`)

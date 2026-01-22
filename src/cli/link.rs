@@ -107,7 +107,7 @@ pub enum LinkCommands {
         min_value: Option<u8>,
 
         /// Ignore note values during traversal (unweighted BFS)
-        #[arg(long)]
+        #[arg(long, alias = "unweighted")]
         ignore_value: bool,
     },
 
@@ -152,7 +152,7 @@ pub enum LinkCommands {
         min_value: Option<u8>,
 
         /// Ignore note values during path finding (unweighted BFS, default: true)
-        #[arg(long, default_value = "true")]
+        #[arg(long, alias = "unweighted", default_value = "true")]
         ignore_value: bool,
     },
 }

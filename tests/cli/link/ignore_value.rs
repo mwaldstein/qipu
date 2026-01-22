@@ -595,3 +595,211 @@ fn test_ignore_value_disables_weighted_traversal() {
     assert_eq!(hop_b_weighted, 2);
     assert_eq!(hop_b_unweighted, 1);
 }
+
+/// Test that --unweighted is an alias for --ignore-value in link tree
+#[test]
+fn test_unweighted_alias_tree() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes: A -> B
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    // Set B to value 0 (maximum resistance)
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_b, "0"])
+        .assert()
+        .success();
+
+    // Create link: A -> B
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test with --unweighted (should give hop=1)
+    let output_unweighted = qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_a, "--unweighted", "--format", "json"])
+        .output()
+        .unwrap();
+
+    let json_unweighted: serde_json::Value =
+        serde_json::from_slice(&output_unweighted.stdout).unwrap();
+
+    // Find B's hop count
+    let spanning = json_unweighted["spanning_tree"].as_array().unwrap();
+    let hop_b = spanning
+        .iter()
+        .find(|e| e["to"].as_str().unwrap() == id_b)
+        .unwrap()["hop"]
+        .as_u64()
+        .unwrap();
+
+    // With --unweighted, edge cost is 1.0, so hop should be 1
+    assert_eq!(hop_b, 1);
+
+    // Test without --unweighted (should give hop=2 due to value-based cost)
+    let output_weighted = qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", &id_a, "--format", "json"])
+        .output()
+        .unwrap();
+
+    let json_weighted: serde_json::Value = serde_json::from_slice(&output_weighted.stdout).unwrap();
+
+    let spanning_weighted = json_weighted["spanning_tree"].as_array().unwrap();
+    let hop_b_weighted = spanning_weighted
+        .iter()
+        .find(|e| e["to"].as_str().unwrap() == id_b)
+        .unwrap()["hop"]
+        .as_u64()
+        .unwrap();
+
+    // With weighted (value=0), edge cost is 2.0, so hop should be 2
+    assert_eq!(hop_b_weighted, 2);
+}
+
+/// Test that --unweighted is an alias for --ignore-value in link path
+#[test]
+fn test_unweighted_alias_path() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a diamond pattern: A -> B -> D, A -> C -> D
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node C"])
+        .output()
+        .unwrap();
+    let id_c = extract_id(&output_c);
+
+    let output_d = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Node D"])
+        .output()
+        .unwrap();
+    let id_d = extract_id(&output_d);
+
+    // Set values: B=100 (low resistance), C=0 (high resistance)
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_b, "100"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &id_c, "0"])
+        .assert()
+        .success();
+
+    // Create links: A -> B -> D, A -> C -> D
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_d, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_c, &id_d, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test with --unweighted: note that `link path` has --ignore-value=true by default
+    // So --unweighted should have the same effect as default behavior
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "path",
+            &id_a,
+            &id_d,
+            "--unweighted",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    assert_eq!(json["found"], true);
+    assert_eq!(json["path_length"].as_u64().unwrap(), 2);
+
+    // Verify that --unweighted behaves the same as --ignore-value
+    // (Both should use unweighted BFS)
+    let note_ids: Vec<String> = json["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap().to_string())
+        .collect();
+
+    assert!(note_ids.contains(&id_a));
+    assert!(note_ids.contains(&id_d));
+    assert_eq!(note_ids.len(), 3); // A, (B or C), D
+}

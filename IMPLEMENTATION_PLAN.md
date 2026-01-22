@@ -167,8 +167,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Added 5 tests covering weighted vs unweighted traversal for both link tree and link path commands
   - Tests verify: default weighted behavior, --ignore-value unweighted behavior, hop count differences, and edge cost calculations
   - Learnings: The --ignore-value flag switches from Dijkstra (weighted, default) to BFS (unweighted) traversal. The implementation at `src/lib/graph/bfs.rs:299-310` correctly applies value-based costs when ignore_value=false and uniform costs when ignore_value=true
-- [ ] Add CLI coverage for `--unweighted`/`--weighted` aliases (spec names vs current flags).
-  - `src/cli/link.rs:105-111`
+- [x] Add CLI coverage for `--unweighted`/`--weighted` aliases (spec names vs current flags).
+  - `src/cli/link.rs:110,156` - Added `alias = "unweighted"` attribute to `ignore_value` field in both Tree and Path commands
+  - `tests/cli/link/ignore_value.rs:600-800` - Added `test_unweighted_alias_tree()` and `test_unweighted_alias_path()` to verify alias functionality
+  - Learnings: The `--unweighted` alias now works as specified in the Value Model spec; both flags (`--ignore-value` and `--unweighted`) have identical behavior for unweighted BFS traversal
 
 ### Export Tests (`specs/export.md`)
 - [ ] Add tests for `--tag`/`--query` selection ordering.

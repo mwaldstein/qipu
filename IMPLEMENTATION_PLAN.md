@@ -235,13 +235,15 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Added `test_dump_no_selectors_full_store()` - Verifies default behavior dumps entire store with all notes and links preserved
   - Added `test_dump_tag_with_traversal()` - Verifies combining `--tag` selector with `--max-hops` traversal expands to include linked notes
   - Learnings: All four selection modes work correctly as specified; no selectors dumps full store; selectors can be combined with traversal options for graph expansion
-- [ ] Add tests for attachments round-trip and `--no-attachments`.
-  - `src/commands/dump/mod.rs:344-392`
-  - `src/commands/load/mod.rs:362-395`
-  - `tests/cli/pack.rs:8-211`
+- [x] Add tests for attachments round-trip and `--no-attachments`.
+  - `tests/pack_tests.rs:857-1270` - Added 3 comprehensive tests for attachment handling
+  - Added `test_pack_attachments_roundtrip()` - Verifies attachments are included by default, packed into records format, and restored correctly on load (tests text, JSON, and binary PNG files)
+  - Added `test_pack_no_attachments_flag()` - Verifies `--no-attachments` flag excludes attachments from pack and they are not restored on load
+  - Added `test_pack_attachments_multiple_notes()` - Verifies multiple notes can reference attachments, including shared attachments referenced by multiple notes
+  - Learnings: Attachments are discovered by parsing markdown link syntax (`![alt](path)`) in note body; note body must be reindexed after manual file updates for database to reflect changes; attachment data is base64-encoded in pack records format
 - [ ] Add tests for pack version/store version compatibility errors.
   - `src/commands/load/mod.rs:58-72`
-  - `tests/cli/pack.rs:8-211`
+  - `tests/pack_tests.rs:8-855`
 
 ### Provenance Tests (`specs/provenance.md`)
 - [ ] Add tests for default `verified=false` behavior on LLM-origin notes.

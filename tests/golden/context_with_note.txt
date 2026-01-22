@@ -1,0 +1,40 @@
+# Qipu Context Bundle
+Store: <STORE_PATH>
+
+## Note: Research Note (qp-a1b2c3)
+Path: <STORE_PATH>/notes/qp-a1b2c3-research-note.md
+Type: permanent
+
+---
+This is a permanent research note about algorithms.
+
+## Summary
+
+Important findings about algorithmic complexity.
+
+---
+
+## Note: Quick Idea (qp-d4e5f6)
+Path: <STORE_PATH>/notes/qp-d4e5f6-quick-idea.md
+Type: fleeting
+Compaction: via=2hop:1.00
+
+---
+Quick idea about performance optimization needs more research.
+
+---
+
+## Note: Paper Review (qp-g7h8i9)
+Path: <STORE_PATH>/notes/qp-g7h8i9-paper-review.md
+Type: literature
+Compaction: via=2hop:1.00
+
+---
+## Sources
+
+- https://example.com/paper
+
+Review of important research paper.
+
+---
+

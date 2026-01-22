@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 669 tests pass (233 unit + 265 integration + 6 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
+- Test baseline: 678 tests pass (233 unit + 265 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -126,8 +126,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/misc.rs:214-280` - Added `test_hidden_store_preferred_over_visible()` to verify `.qipu/` is preferred over `qipu/` when both exist
   - `tests/cli/misc.rs:286-308` - Added `test_missing_required_arg_json_format()` and `test_invalid_value_json_format()` for JSON error envelope tests
   - Learnings: Visible store discovery (`qipu/` vs `.qipu/`) is checked in order with hidden preferred; JSON error envelopes are correctly emitted for all parse error types (usage errors, missing args, invalid values)
-- [ ] Expand golden determinism coverage beyond help/list/prime.
-  - `tests/golden_tests.rs:94-217`
+- [x] Expand golden determinism coverage beyond help/list/prime.
+  - `tests/golden_tests.rs:201-395` - Added 9 new golden tests for deterministic command outputs
+  - Added `test_golden_context_with_note()` and `test_golden_context_with_moc()` for context command
+  - Added `test_golden_search_basic()` for search command
+  - Added `test_golden_inbox()` for inbox command
+  - Added `test_golden_show_note()` and `test_golden_show_note_with_links()` for show command
+  - Added `test_golden_link_list()`, `test_golden_link_tree()`, and `test_golden_link_path()` for link traversal commands
+  - Learnings: Golden tests now cover the key deterministic commands mentioned in the spec (context, search, inbox, show, link list/tree/path); all outputs are normalized to use `<STORE_PATH>` placeholder for path-independence
 
 ### CLI Interface Tests (`specs/cli-interface.md`)
 - [ ] Add tests for `create` alias `new`, `--open`, and `--id`.

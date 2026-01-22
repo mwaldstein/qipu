@@ -1,0 +1,7 @@
+qp-moc123 "Research MOC"
+  |
+  | [related] (inline)
+  v
+qp-d4e5f6 "Quick Idea"
+
+Path length: 1 hop(s)

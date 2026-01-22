@@ -1,0 +1,59 @@
+# Qipu Context Bundle
+Store: <STORE_PATH>
+
+## Note: Research MOC (qp-moc123)
+Path: <STORE_PATH>/mocs/qp-moc123-research-moc.md
+Type: moc
+
+---
+# Research Map of Content
+
+## Algorithm Research
+
+- [[qp-a1b2c3]] - Research Note
+
+## Literature
+
+- [[qp-g7h8i9]] - Paper Review
+
+## Ideas
+
+- [[qp-d4e5f6]] - Quick Idea
+
+---
+
+## Note: Research Note (qp-a1b2c3)
+Path: <STORE_PATH>/notes/qp-a1b2c3-research-note.md
+Type: permanent
+
+---
+This is a permanent research note about algorithms.
+
+## Summary
+
+Important findings about algorithmic complexity.
+
+---
+
+## Note: Quick Idea (qp-d4e5f6)
+Path: <STORE_PATH>/notes/qp-d4e5f6-quick-idea.md
+Type: fleeting
+
+---
+Quick idea about performance optimization needs more research.
+
+---
+
+## Note: Paper Review (qp-g7h8i9)
+Path: <STORE_PATH>/notes/qp-g7h8i9-paper-review.md
+Type: literature
+
+---
+## Sources
+
+- https://example.com/paper
+
+Review of important research paper.
+
+---
+

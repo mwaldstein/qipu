@@ -196,6 +196,235 @@ fn test_golden_prime_empty_store() {
 }
 
 // ============================================================================
+// Context Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_context_with_note() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("context")
+            .arg("--note")
+            .arg("qp-a1b2c3")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    // Normalize store path
+    let store_placeholder = "<STORE_PATH>";
+    let normalized_output = output.replace(
+        &format!("{}", store_dir.path().display()),
+        store_placeholder,
+    );
+
+    let golden_path = Path::new("tests/golden/context_with_note.txt");
+    assert_golden_output(&normalized_output, golden_path).unwrap();
+}
+
+#[test]
+fn test_golden_context_with_moc() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("context")
+            .arg("--moc")
+            .arg("qp-moc123")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    // Normalize store path
+    let store_placeholder = "<STORE_PATH>";
+    let normalized_output = output.replace(
+        &format!("{}", store_dir.path().display()),
+        store_placeholder,
+    );
+
+    let golden_path = Path::new("tests/golden/context_with_moc.txt");
+    assert_golden_output(&normalized_output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Search Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_search_basic() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("search")
+            .arg("algorithms")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/search_basic.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Inbox Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_inbox() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("inbox")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/inbox.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Show Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_show_note() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("show")
+            .arg("qp-a1b2c3")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/show_note.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+#[test]
+fn test_golden_show_note_with_links() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("show")
+            .arg("qp-a1b2c3")
+            .arg("--links")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/show_note_with_links.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Link Traversal Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_link_list() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("link")
+            .arg("list")
+            .arg("qp-moc123")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/link_list.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+#[test]
+fn test_golden_link_tree() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("link")
+            .arg("tree")
+            .arg("qp-moc123")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/link_tree.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+#[test]
+fn test_golden_link_path() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("link")
+            .arg("path")
+            .arg("qp-moc123")
+            .arg("qp-d4e5f6")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/link_path.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
 // Error Output Golden Tests
 // ============================================================================
 

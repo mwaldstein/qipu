@@ -51,6 +51,7 @@ pub(super) fn handle_list(
     note_type: Option<crate::lib::note::NoteType>,
     since: Option<&str>,
     min_value: Option<u8>,
+    custom: Option<&str>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -66,7 +67,7 @@ pub(super) fn handle_list(
         })
         .transpose()?;
 
-    commands::list::execute(cli, &store, tag, note_type, since_dt, min_value)?;
+    commands::list::execute(cli, &store, tag, note_type, since_dt, min_value, custom)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }
@@ -317,6 +318,8 @@ pub(super) fn handle_context(
     related: f64,
     backlinks: bool,
     min_value: Option<u8>,
+    custom_filter: Option<&str>,
+    include_custom: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -340,6 +343,8 @@ pub(super) fn handle_context(
             related_threshold: if related > 0.0 { Some(related) } else { None },
             backlinks,
             min_value,
+            custom_filter,
+            include_custom,
         },
     )?;
     if cli.verbose {

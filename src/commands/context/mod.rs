@@ -334,6 +334,38 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         }
     }
 
+    // Apply custom metadata filter
+    if let Some(custom_filter) = options.custom_filter {
+        if let Some((key, value)) = custom_filter.split_once('=') {
+            let before_count = selected_notes.len();
+            selected_notes.retain(|selected| {
+                selected
+                    .note
+                    .frontmatter
+                    .custom
+                    .get(key)
+                    .map(|v| match v {
+                        serde_yaml::Value::String(s) => s == value,
+                        serde_yaml::Value::Number(num) => num.to_string() == value,
+                        serde_yaml::Value::Bool(b) => b.to_string() == value,
+                        _ => false,
+                    })
+                    .unwrap_or(false)
+            });
+            let after_count = selected_notes.len();
+
+            if cli.verbose && before_count > after_count {
+                tracing::debug!(
+                    custom_filter,
+                    before_count,
+                    after_count,
+                    filtered = before_count - after_count,
+                    "custom_filter"
+                );
+            }
+        }
+    }
+
     // Sort notes: Prioritize verified notes, then typed links (especially part-of and supports) over related, then by created date, then by id
     selected_notes.sort_by(|a, b| {
         // b.cmp(a) for verified because we want true (1) before false (0)

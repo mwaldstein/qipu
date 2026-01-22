@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use crate::cli::args::CreateArgs;
 use crate::cli::compact::CompactCommands;
+use crate::cli::custom::CustomCommands;
 use crate::cli::link::LinkCommands;
 use crate::cli::parse::parse_note_type;
 use crate::cli::tags::TagsCommands;
@@ -52,6 +53,10 @@ pub enum Commands {
         /// Filter by minimum value (0-100, default: 50)
         #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
+
+        /// Filter by custom metadata (format: key=value)
+        #[arg(long)]
+        custom: Option<String>,
     },
 
     /// Show a note
@@ -167,6 +172,13 @@ pub enum Commands {
     Tags {
         #[command(subcommand)]
         command: TagsCommands,
+    },
+
+    /// Manage custom note metadata (for applications building on qipu)
+    #[command(hide = true)]
+    Custom {
+        #[command(subcommand)]
+        command: CustomCommands,
     },
 
     /// Manage and traverse note links
@@ -293,6 +305,14 @@ pub enum Commands {
         /// Filter notes by minimum value (0-100, default: 50)
         #[arg(long, value_parser = crate::cli::parse::parse_min_value, value_name = "N")]
         min_value: Option<u8>,
+
+        /// Filter by custom metadata (format: key=value)
+        #[arg(long)]
+        custom_filter: Option<String>,
+
+        /// Include custom metadata in output (opt-in)
+        #[arg(long)]
+        custom: bool,
     },
 
     /// Export notes to a single document

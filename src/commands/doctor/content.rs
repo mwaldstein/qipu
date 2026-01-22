@@ -148,6 +148,32 @@ pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+pub fn check_custom_metadata(notes: &[Note], result: &mut DoctorResult) {
+    for note in notes {
+        if note.frontmatter.custom.is_empty() {
+            continue;
+        }
+
+        // Check if custom field size is reasonable (warn if >10KB)
+        if let Ok(json_str) = serde_json::to_string(&note.frontmatter.custom) {
+            if json_str.len() > 10 * 1024 {
+                result.add_issue(Issue {
+                    severity: Severity::Warning,
+                    category: "large-custom-metadata".to_string(),
+                    message: format!(
+                        "Note '{}' has large custom metadata block ({} bytes, >10KB)",
+                        note.id(),
+                        json_str.len()
+                    ),
+                    note_id: Some(note.id().to_string()),
+                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    fixable: false,
+                });
+            }
+        }
+    }
+}
+
 pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResult) {
     let attachments_dir = store.root().join(ATTACHMENTS_DIR);
     let mut referenced_attachments = HashSet::new();

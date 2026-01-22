@@ -15,6 +15,8 @@ pub struct ContextOptions<'a> {
     pub related_threshold: Option<f64>,
     pub backlinks: bool,
     pub min_value: Option<u8>,
+    pub custom_filter: Option<&'a str>,
+    pub include_custom: bool,
 }
 
 pub struct SelectedNote<'a> {

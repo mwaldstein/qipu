@@ -69,7 +69,10 @@ pub fn execute(
     // 7. Check for valid value range (0-100)
     checks::check_value_range(&notes, &mut result);
 
-    // 8. Check for missing or orphaned attachments
+    // 8. Check custom metadata
+    checks::check_custom_metadata(&notes, &mut result);
+
+    // 9. Check for missing or orphaned attachments
     checks::check_attachments(store, &notes, &mut result);
 
     // 10. Check compaction invariants

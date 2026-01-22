@@ -4,6 +4,7 @@ pub mod capture;
 pub mod compact;
 pub mod context;
 pub mod create;
+pub mod custom;
 pub mod dispatch;
 pub mod doctor;
 pub mod dump;

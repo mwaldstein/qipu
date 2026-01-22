@@ -6,6 +6,7 @@
 pub mod args;
 pub mod commands;
 pub mod compact;
+pub mod custom;
 pub mod link;
 pub mod output;
 pub mod parse;
@@ -30,6 +31,7 @@ fn parse_log_level(s: &str) -> Result<String, String> {
 pub use args::CreateArgs;
 pub use commands::Commands;
 pub use compact::CompactCommands;
+pub use custom::CustomCommands;
 pub use link::LinkCommands;
 pub use output::OutputFormat;
 pub use tags::TagsCommands;
@@ -175,11 +177,13 @@ mod tests {
             r#type,
             since,
             min_value,
+            custom,
         }) = cli.command
         {
             assert_eq!(tag, Some("test".to_string()));
             assert_eq!(r#type, Some(NoteType::Fleeting));
             assert_eq!(since, None);
+            assert_eq!(custom, None);
             assert_eq!(min_value, None);
         } else {
             panic!("Expected List command");

@@ -266,21 +266,18 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/load/mod.rs:245` - Initialize custom field in pack load
   - `src/lib/db/tests.rs:911` - Updated schema version test
   - Learnings: Schema version bump triggers auto-rebuild; custom fields round-trip through JSON storage; empty HashMap serializes to `{}`; all existing tests pass with new field
-- [ ] Implement CLI commands with type detection:
-    - `qipu custom set <id> <key> <value>` - Parse value using `serde_yaml::from_str()` for automatic type detection
-    - `qipu custom get <id> <key>` - Display single field value
-    - `qipu custom show <id>` - Display all custom fields for a note
-    - `qipu custom unset <id> <key>` - Remove a custom field
-    - Mark commands with `#[command(hide = true)]` per spec
-  - Add filtering support:
-    - `qipu list --custom key=value` - Filter by custom field value
-    - `qipu context --custom key=value` - Context selection with custom filters
-  - Add context output support:
-    - `qipu context --custom` flag to include custom fields in output (opt-in)
-    - Format output for markdown, JSON, and records formats
-  - Add doctor validation (`src/commands/doctor/mod.rs:170-323`):
-    - Validate custom block is a valid YAML mapping
-    - Warn on very large custom blocks (>10KB)
+- [x] Implement CLI commands with type detection:
+    - `src/cli/custom.rs` - Created CustomCommands enum with Set/Get/Show/Unset subcommands
+    - `src/cli/commands.rs:169-176` - Added Custom subcommand with `#[command(hide = true)]` per spec
+    - `src/commands/custom.rs` - Implemented all four commands with YAML type detection via `serde_yaml::from_str()`
+    - `src/commands/dispatch/mod.rs:122,435-525` - Added dispatch handler for custom commands
+    - `src/cli/commands.rs:56,302,304` - Added `--custom` filter to List and `--custom-filter`/`--custom` flags to Context commands
+    - `src/commands/list.rs:27,47-65` - Added custom metadata filtering to list command
+    - `src/commands/context/types.rs:18-19` - Added custom_filter and include_custom fields to ContextOptions
+    - `src/commands/context/mod.rs:336-359` - Added custom metadata filtering to context selection
+    - `src/commands/doctor/content.rs:151-172` - Added check_custom_metadata() to validate custom fields
+    - `src/commands/doctor/mod.rs:71` - Integrated custom metadata check into doctor command
+    - Learnings: Type detection using `serde_yaml::from_str()` provides intuitive CLI experience (numbers, booleans, strings, arrays, objects); custom filter uses simple key=value format with type-aware comparison; doctor validation warns on >10KB custom blocks; all 642 tests pass
 
 ### Distribution (`specs/distribution.md`)
 - [ ] Add release automation and install scripts (GitHub releases + installers).

@@ -44,6 +44,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             r#type,
             since,
             min_value,
+            custom,
         }) => notes::handle_list(
             cli,
             &root,
@@ -51,6 +52,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             *r#type,
             since.as_deref(),
             *min_value,
+            custom.as_deref(),
             start,
         ),
 
@@ -119,6 +121,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 
         Some(Commands::Tags { command }) => handle_tags(cli, &root, command, start),
 
+        Some(Commands::Custom { command }) => handle_custom(cli, &root, command, start),
+
         Some(Commands::Prime) => maintenance::handle_prime(cli, &root, start),
 
         Some(Commands::Setup {
@@ -157,6 +161,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             related,
             backlinks,
             min_value,
+            custom_filter,
+            custom,
         }) => {
             // Default to full body unless --summary-only is specified
             // --with-body is kept for backward compatibility but is now the default
@@ -177,6 +183,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 *related,
                 *backlinks,
                 *min_value,
+                custom_filter.as_deref(),
+                *custom,
                 start,
             )
         }
@@ -424,6 +432,47 @@ fn handle_tags(cli: &Cli, root: &PathBuf, command: &TagsCommands, start: Instant
             }
 
             debug!(elapsed = ?start.elapsed(), "tags_list");
+            Ok(())
+        }
+    }
+}
+
+fn handle_custom(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &crate::cli::CustomCommands,
+    start: Instant,
+) -> Result<()> {
+    use crate::cli::CustomCommands;
+
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        CustomCommands::Set {
+            id_or_path,
+            key,
+            value,
+        } => {
+            crate::commands::custom::set_custom_field(&store, id_or_path, key, value, cli.quiet)?;
+            debug!(elapsed = ?start.elapsed(), "custom_set");
+            Ok(())
+        }
+
+        CustomCommands::Get { id_or_path, key } => {
+            crate::commands::custom::get_custom_field(&store, id_or_path, key)?;
+            debug!(elapsed = ?start.elapsed(), "custom_get");
+            Ok(())
+        }
+
+        CustomCommands::Show { id_or_path } => {
+            crate::commands::custom::show_custom_fields(&store, id_or_path)?;
+            debug!(elapsed = ?start.elapsed(), "custom_show");
+            Ok(())
+        }
+
+        CustomCommands::Unset { id_or_path, key } => {
+            crate::commands::custom::unset_custom_field(&store, id_or_path, key, cli.quiet)?;
+            debug!(elapsed = ?start.elapsed(), "custom_unset");
             Ok(())
         }
     }

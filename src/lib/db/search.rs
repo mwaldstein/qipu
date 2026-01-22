@@ -20,7 +20,7 @@ impl super::Database {
     /// Field weights for BM25 (column weights):
     /// - Title: 2.0x boost
     /// - Body: 1.0x (baseline)
-    /// - Tags: 1.5x boost (via BM25 column weight) + 3.0x boost for exact tag matches
+    /// - Tags: 1.5x boost
     pub fn search(
         &self,
         query: &str,
@@ -72,7 +72,10 @@ impl super::Database {
         // Formula: 0.1 / (1 + age_days / 7)
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
-        // Title matches get 2.0x boost, tag matches get 3.0x boost to ensure they rank above body matches
+        // Query-specific boosts to ensure proper ranking per spec requirements:
+        // - Title matches: +2.0 (matches BM25 title weight of 2.0x)
+        // - Tag matches: +3.0 (higher to ensure tags rank above body even with multiple body occurrences)
+        // This ensures "Title matches rank above body matches" and "Exact tag matches rank above plain text"
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
         let sql = format!(
             r#"

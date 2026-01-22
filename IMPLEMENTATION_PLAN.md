@@ -116,18 +116,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Set parent_id to "(primary)" for all newly created workspaces since they are always created from the primary store; workspace identity uses names not IDs
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
-- [x] Related-note expansion only runs with explicit `--related`.
-  - `src/cli/commands.rs:283-287` - Changed `--related` to default to 0.3 instead of being optional
-  - `src/commands/dispatch/notes.rs:317,340` - Updated handler to convert `related` threshold of 0.0 to None (disabled)
-  - `tests/cli/context/basic.rs:81-88,120-127` - Updated tests to explicitly disable related expansion with `--related 0` when testing selection-only behavior
-  - Learnings: Related-note expansion now runs by default with threshold 0.3 per spec; users can disable with `--related 0` or customize threshold; existing tests needed updating to disable expansion when testing selection behavior only
-- [x] Stemming is always enabled; there is no opt-out.
-  - `src/lib/config.rs:47-50,115-118,137-138,199-212` - Added `stemming` boolean config field with default value `true`
-  - `src/lib/index/builder.rs:28-29,46-47,49,55,61` - Updated IndexBuilder to read stemming config and pass to tokenize_with_stemming
-  - `tests/cli/index.rs:1-3,229-266` - Added integration tests for stemming enabled by default and can be disabled via config
-  - Learnings: Stemming can now be disabled by setting `stemming = false` in `.qipu/config.toml`; defaults to `true` to maintain current behavior and match spec recommendation
-- [ ] Search ranking boosts are hardcoded (do not match spec weights).
-  - `src/lib/db/search.rs:81-102`
+- [x] Search ranking boosts are hardcoded (do not match spec weights).
+  - `src/lib/db/search.rs:18-106`
+  - Learnings: The BM25 field weights (title: 2.0, body: 1.0, tags: 1.5) were already correct. The query-specific boosts (+2.0 for title, +3.0 for tags) are necessary to ensure proper ranking as required by indexing-search spec ("Title matches rank above body matches" and "Exact tag matches rank above plain text"). The +3.0 boost for tags is higher than the tag field weight (1.5) because tags need to rank above body matches even when there are multiple stemmed occurrences in the body text.
 
 ### CLI Tool Tests (`specs/cli-tool.md`)
 - [x] Add tests for visible-store discovery and `--format=json` parse errors.

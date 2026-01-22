@@ -429,7 +429,15 @@ mod tests {
         store.save_note(&mut note2).unwrap();
 
         let cli = create_cli(OutputFormat::Human, false);
-        let result = execute(&cli, &store, None, Some(NoteType::Permanent), None, None, None);
+        let result = execute(
+            &cli,
+            &store,
+            None,
+            Some(NoteType::Permanent),
+            None,
+            None,
+            None,
+        );
         assert!(result.is_ok());
     }
 
@@ -712,7 +720,7 @@ mod tests {
     fn test_list_filter_by_min_value_with_defaults() {
         let (_temp_dir, store) = create_test_store();
 
-        let note1 = store
+        let _note1 = store
             .create_note("Default Value Note", None, &["default".to_string()], None)
             .unwrap();
 

@@ -14,7 +14,6 @@ use crate::lib::error::{QipuError, Result};
 use super::discover_or_open_store;
 
 #[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_export(
     cli: &Cli,
     root: &PathBuf,

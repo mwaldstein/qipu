@@ -3,8 +3,8 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 789 tests pass (all passing)
-- Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
+- Test baseline: 655 tests pass (653 passing + 2 ignored PDF tests requiring pandoc)
+- Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` reduced from 25 to 20 errors (5 fixed)
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
@@ -398,7 +398,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ## Notes
 
-- Audit Date: 2026-01-20
+- Audit Date: 2026-01-22
 - Recent completions include workspaces `--empty` flag, structured logging verification, file size refactoring, and MOC ordering preservation
 - Documentation additions: `docs/building-on-qipu.md` and type detection spec in `specs/custom-metadata.md`
 - Test fixes: Added `extract_id` helper to test support to handle two-line create output (ID + path); updated ID extraction in test files; added index calls to test cases that manually create notes
+- Code quality improvements (2026-01-22): Fixed 5 clippy warnings (duplicated attributes, deprecated cargo_bin, writeln empty string, unused variables)

@@ -1294,7 +1294,7 @@ Fourth digest."#,
     let notes_file4 = dir4.path().join("notes4.txt");
     let mut file4 = fs::File::create(&notes_file4).unwrap();
     writeln!(file4, "qp-note1").unwrap();
-    writeln!(file4, "").unwrap(); // Empty line
+    writeln!(file4).unwrap(); // Empty line
     writeln!(file4, "  ").unwrap(); // Whitespace only
     writeln!(file4, "qp-note2").unwrap();
 

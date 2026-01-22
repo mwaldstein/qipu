@@ -3,7 +3,7 @@
 use tempfile::tempdir;
 
 fn qipu() -> assert_cmd::Command {
-    assert_cmd::Command::cargo_bin("qipu").unwrap()
+    assert_cmd::cargo::cargo_bin_cmd!("qipu")
 }
 
 #[test]

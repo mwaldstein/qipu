@@ -296,8 +296,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/scenario.rs:4-58` - Added `DocsConfig` struct with `prime` and `help_commands` fields; added `RunConfig` struct with `timeout_secs` and `max_turns` fields
   - `crates/llm-tool-test/src/evaluation.rs:558-975` - Updated all Scenario initializers in tests to include new optional fields
   - **Learnings**: The `tags` and `cost` (with `cache` subfield) were already implemented. Added comprehensive tests for all new fields including optional behavior, defaults, and full scenario integration. All 140 llm-tool-test tests pass.
-- [ ] Stage-1 evaluation lacks `qipu doctor` and transcript error checks.
-  - `crates/llm-tool-test/src/evaluation.rs:75-148`
+- [x] Stage-1 evaluation lacks `qipu doctor` and transcript error checks.
+  - `crates/llm-tool-test/src/scenario.rs:122-123` - Added `DoctorPasses` and `NoTranscriptErrors` gate types
+  - `crates/llm-tool-test/src/evaluation.rs:148-167,437-456` - Implemented evaluation logic for both gates
+  - `crates/llm-tool-test/src/adapter/mock.rs:60-65` - Added match arms for new gates in mock adapter
+  - `crates/llm-tool-test/src/scenario.rs:743-785` - Added YAML deserialization tests
+  - `crates/llm-tool-test/src/evaluation.rs:1159-1254` - Added comprehensive tests for both gates
+  - **Learnings**: DoctorPasses gate runs `qipu doctor` and checks exit code. NoTranscriptErrors gate reads `artifacts/transcript.raw.txt` and uses TranscriptAnalyzer to count command errors (exit code != 0). Both gates return false if the underlying check fails or if required artifacts are missing. All 144 llm-tool-test tests pass.
 - [ ] `--max-usd` is parsed but unused (no budget enforcement).
   - `crates/llm-tool-test/src/commands.rs:23-36`
 - [ ] Artifact set is incomplete (missing `run.json`, `report.md`, snapshots).

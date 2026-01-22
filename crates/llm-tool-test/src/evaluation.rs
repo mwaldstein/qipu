@@ -145,6 +145,22 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
                     message: format!("Command '{}' succeeded: {}", command, succeeds),
                 }
             }
+            Gate::DoctorPasses => {
+                let passes = doctor_passes(env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "DoctorPasses".to_string(),
+                    passed: passes,
+                    message: format!("Store passes 'qipu doctor': {}", passes),
+                }
+            }
+            Gate::NoTranscriptErrors => {
+                let no_errors = no_transcript_errors(env_root).unwrap_or(false);
+                GateResult {
+                    gate_type: "NoTranscriptErrors".to_string(),
+                    passed: no_errors,
+                    message: format!("Transcript has no command errors: {}", no_errors),
+                }
+            }
         };
 
         if result.passed {
@@ -405,6 +421,34 @@ fn command_succeeds(command: &str, env_root: &Path) -> Result<bool> {
         .with_context(|| format!("Failed to execute qipu {}", command))?;
 
     Ok(output.status.success())
+}
+
+fn doctor_passes(env_root: &Path) -> Result<bool> {
+    let qipu = get_qipu_path();
+    let qipu_abs = std::fs::canonicalize(&qipu)
+        .with_context(|| format!("Could not find qipu binary at {}", qipu))?;
+
+    let output = Command::new(qipu_abs)
+        .arg("doctor")
+        .current_dir(env_root)
+        .output()
+        .context("Failed to execute qipu doctor")?;
+
+    Ok(output.status.success())
+}
+
+fn no_transcript_errors(env_root: &Path) -> Result<bool> {
+    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    match std::fs::read_to_string(&transcript_path) {
+        Ok(content) => {
+            let metrics = TranscriptAnalyzer::analyze_with_exit_codes(&content);
+            Ok(metrics.error_count == 0)
+        }
+        Err(_) => {
+            // If no transcript exists, we can't verify - fail the gate
+            Ok(false)
+        }
+    }
 }
 
 fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
@@ -1153,5 +1197,113 @@ mod tests {
         assert_eq!(format!("{}", ScoreTier::Good), "Good");
         assert_eq!(format!("{}", ScoreTier::Acceptable), "Acceptable");
         assert_eq!(format!("{}", ScoreTier::Poor), "Poor");
+    }
+
+    #[test]
+    fn test_doctor_passes_gate() {
+        let (_dir, env_root) = setup_env();
+
+        // Create a note so the store is valid
+        create_note_with_stdin(&env_root, "Test note for doctor check");
+
+        // DoctorPasses gate should pass with valid store
+        let scenario_pass = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::DoctorPasses],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+            tags: vec![],
+            cost: None,
+            docs: None,
+            run: None,
+        };
+        let metrics = evaluate(&scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+        assert!(metrics.details[0].passed);
+
+        // Break the store by deleting a note file but not from database
+        let json = run_qipu_json(&["list"], &env_root).unwrap();
+        let first_note_path = json
+            .get(0)
+            .and_then(|v| v.get("path"))
+            .and_then(|v| v.as_str())
+            .expect("No path found");
+
+        let note_path = env_root.join(first_note_path);
+        std::fs::remove_file(&note_path).expect("Failed to delete note file");
+
+        // DoctorPasses gate should fail with broken store
+        let metrics = evaluate(&scenario_pass, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+        assert!(!metrics.details[0].passed);
+    }
+
+    #[test]
+    fn test_no_transcript_errors_gate() {
+        let (_dir, env_root) = setup_env();
+
+        // Create artifacts directory and transcript
+        let artifacts_dir = env_root.join("artifacts");
+        std::fs::create_dir_all(&artifacts_dir).unwrap();
+
+        // Test with no errors
+        let transcript_no_errors = "qipu create --title 'Test'\nqp-abc123\nqipu list\n...";
+        std::fs::write(
+            artifacts_dir.join("transcript.raw.txt"),
+            transcript_no_errors,
+        )
+        .unwrap();
+
+        let scenario = Scenario {
+            name: "test".to_string(),
+            description: "test".to_string(),
+            fixture: "test".to_string(),
+            task: Task {
+                prompt: "test".to_string(),
+            },
+            evaluation: Evaluation {
+                gates: vec![Gate::NoTranscriptErrors],
+                judge: None,
+            },
+            tier: 0,
+            tool_matrix: None,
+            setup: None,
+            tags: vec![],
+            cost: None,
+            docs: None,
+            run: None,
+        };
+
+        let metrics = evaluate(&scenario, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 1);
+        assert!(metrics.details[0].passed);
+
+        // Test with errors
+        let transcript_with_errors = "qipu create --title 'Test'\nError: invalid input\nExit code: 1\nqipu create --title 'Test 2'\nqp-abc123";
+        std::fs::write(
+            artifacts_dir.join("transcript.raw.txt"),
+            transcript_with_errors,
+        )
+        .unwrap();
+
+        let metrics = evaluate(&scenario, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+        assert!(!metrics.details[0].passed);
+
+        // Test with missing transcript
+        std::fs::remove_file(artifacts_dir.join("transcript.raw.txt")).unwrap();
+
+        let metrics = evaluate(&scenario, &env_root).unwrap();
+        assert_eq!(metrics.gates_passed, 0);
+        assert!(!metrics.details[0].passed);
     }
 }

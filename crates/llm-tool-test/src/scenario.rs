@@ -119,6 +119,8 @@ pub enum Gate {
     CommandSucceeds {
         command: String,
     },
+    DoctorPasses,
+    NoTranscriptErrors,
 }
 
 pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Scenario> {
@@ -707,5 +709,47 @@ cost:
 
         // Evaluation
         assert_eq!(scenario.evaluation.gates.len(), 2);
+    }
+
+    #[test]
+    fn test_doctor_passes_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: doctor_passes
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::DoctorPasses => (),
+            _ => panic!("Expected DoctorPasses gate"),
+        }
+    }
+
+    #[test]
+    fn test_no_transcript_errors_gate() {
+        let yaml = r#"
+name: test
+description: "Test"
+fixture: qipu
+task:
+  prompt: "Test prompt"
+evaluation:
+  gates:
+    - type: no_transcript_errors
+"#;
+        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(scenario.name, "test");
+        assert_eq!(scenario.evaluation.gates.len(), 1);
+        match &scenario.evaluation.gates[0] {
+            Gate::NoTranscriptErrors => (),
+            _ => panic!("Expected NoTranscriptErrors gate"),
+        }
     }
 }

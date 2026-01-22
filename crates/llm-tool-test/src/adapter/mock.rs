@@ -58,6 +58,12 @@ impl MockAdapter {
                     commands.push(format!("qipu {}", command));
                 }
                 Gate::MinLinks { .. } => {}
+                Gate::DoctorPasses => {
+                    // Doctor check is automatic, no specific command needed
+                }
+                Gate::NoTranscriptErrors => {
+                    // Transcript error checking is automatic, no specific command needed
+                }
             }
         }
 

@@ -5,7 +5,7 @@ Items in this file are NOT ready for immediate implementation. They require desi
 For concrete bugs and implementation tasks, see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).  
 For specification status, see [`specs/README.md`](specs/README.md).
 
-*Last updated: 2026-01-21*
+*Last updated: 2026-01-22*
 
 ---
 
@@ -20,12 +20,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | Usage analytics collection | Awaiting finalization and privacy review | 1-61 |
 | Anonymous metrics | Design not approved | 15-30 |
 | Opt-in/opt-out mechanism | Success criteria unchecked | 57-61 |
-
-### knowledge-model.md (Optional)
-
-| Item | Reason | Spec Line |
-|------|--------|-----------|
-| Tag aliases | Marked as optional in spec | 53 |
 
 ---
 
@@ -44,34 +38,13 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | Item | Issue | Spec Line |
 |------|-------|-----------|
 | Automatic summarization for long notes | Open question: "Should qipu support lightweight automatic summarization (without an LLM)?" | 119 |
-| Single-note truncation with `[truncated]` marker | Spec suggests explicit truncation markers; current impl drops whole notes | 103 |
-
-### export.md
-
-| Item | Issue | Spec Line |
-|------|-------|-----------|
-| Pandoc integration for PDF export | Open question, no design | 56 |
-| Transitive links (depth-limited) | Open question, no design | 57 |
-| BibTeX/CSL JSON for bibliography | Marked as "future" | 29 |
 
 ### workspaces.md
 
 | Item | Issue | Spec Line |
 |------|--------|-----------|
-| `rename` merge strategy | Spec marks as "Complexity warning" - fork IDs to avoid conflicts | 113-116 |
 | Git integration for temp workspaces | Auto-add to .gitignore | 142 |
 | Merge creates git commit | Design needed for commit message format | 143 |
-| Post-merge doctor check | Spec says run `qipu doctor` after merge; not implemented | 119-120 |
-
-Note: `--from-note` graph slice moved to IMPLEMENTATION_PLAN.md (P1 bug + P3 ready)
-
-### operational-database.md
-
-| Item | Issue | Spec Line |
-|------|-------|-----------|
-| Auto-trigger incremental repair on inconsistency | `validate_consistency()` returns bool but result is ignored | `src/lib/db/mod.rs:84` |
-| Delete and rebuild on corruption | Spec mentions automatic recovery, not implemented | 153-156 |
-| Tag frequency statistics | Spec line 86 mentions it; not implemented | 86 |
 
 ### llm-user-validation.md
 
@@ -83,12 +56,9 @@ Note: `--from-note` graph slice moved to IMPLEMENTATION_PLAN.md (P1 bug + P3 rea
 | CI integration | Marked too expensive | N/A |
 | SQLite results.db | Spec says "Optional SQLite for queries" - design needed | 400-401 |
 | Transcript redaction for secrets | Security feature, needs design | 505-512 |
-| `LLM_TOOL_TEST_ENABLED` safety check | Environment variable not enforced | 464 |
 | `LLM_TOOL_TEST_BUDGET_USD` enforcement | Session budget not enforced | 465 |
-| Per-scenario `run.timeout_secs` | Uses CLI timeout, not per-scenario | 158 |
 | Per-scenario `cost.max_usd` | Not implemented | 178-181 |
 | `run.json` metadata artifact | Detailed run metadata file not generated | N/A |
-| `store_snapshot/` artifact | Snapshot of .qipu/ after run not captured | 297-298 |
 | `report.md` artifact | Human-readable summary not generated | 299 |
 | Event log rich format | Only simple `execution` event; spec shows spawn/tool_call/etc | 303-310 |
 
@@ -104,20 +74,10 @@ Note: `--from-note` graph slice moved to IMPLEMENTATION_PLAN.md (P1 bug + P3 rea
 | deb/rpm (Debian/RHEL) | Low priority package managers | 71-81 |
 | Release signatures (GPG/sigstore) | Security enhancement | 116-118 |
 
-Note: Repository URL mismatch moved to IMPLEMENTATION_PLAN.md (P1 bug - simple fix)
-
-### semantic-graph.md
-
-| Item | Issue | Spec Line |
-|------|-------|-----------|
-| Variable hop costs per link type | Spec allows 0.5 or "free" costs; currently all 1.0 | 74-77 |
-| Doctor warnings for semantic misuse | Spec says warn on misused link types | 109 |
-
 ### compaction.md
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| Breadcrumb `via=<id>` in traversal outputs | Spec says search hits in compacted notes yield `via=<id>`; not in `link tree`/`link path` | 118-120 |
 | Depth-aware compaction metrics | Spec marks as optional ("may optionally") | 176-177 |
 | Compaction versioning/history | Open question: inactive compaction edges for history? | 272 |
 | MOC treatment in compaction | Open question: exclude MOCs by default? | 273 |

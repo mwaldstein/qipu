@@ -74,6 +74,8 @@ N qp-3e7a literature "Paper: X" tags=paper
 S qp-3e7a Key claim and why it matters.
 ```
 
+Note: The `store` value and `path` field (when present) should be relative to the current working directory.
+
 ### Example: records output for context
 ```
 H qipu=1 records=1 store=.qipu/ mode=context notes=2 truncated=false

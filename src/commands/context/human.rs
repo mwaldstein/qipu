@@ -1,5 +1,6 @@
 use super::types::SelectedNote;
 use crate::cli::Cli;
+use crate::commands::context::path_relative_to_cwd;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
 use std::collections::HashMap;
@@ -117,7 +118,7 @@ fn build_human_output(
         output.push_str(&format!("## Note: {} ({})\n", note.title(), note.id()));
 
         if let Some(path) = &note.path {
-            output.push_str(&format!("Path: {}\n", path.display()));
+            output.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
         }
         output.push_str(&format!("Type: {}\n", note.note_type()));
 

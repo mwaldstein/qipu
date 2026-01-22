@@ -1,5 +1,6 @@
 use super::types::{RecordsOutputConfig, SelectedNote};
 use crate::cli::Cli;
+use crate::commands::context::path_relative_to_cwd;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
 use crate::lib::records::escape_quotes;
@@ -46,7 +47,7 @@ pub fn output_records(
         let path_str = note
             .path
             .as_ref()
-            .map(|p| p.display().to_string())
+            .map(|p| path_relative_to_cwd(p))
             .unwrap_or_else(|| "-".to_string());
 
         let mut annotations = String::new();

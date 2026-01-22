@@ -77,6 +77,7 @@ Rules:
 - Use `---` as a hard separator between notes.
 - Include metadata headers even if note content is empty.
 - Preserve original note markdown as-is.
+- Store paths and note paths should be relative to the current working directory.
 
 ## Bundle output format (`--format json`)
 For integration with tools, `qipu context --format json` should emit:
@@ -97,6 +98,8 @@ For integration with tools, `qipu context --format json` should emit:
   ]
 }
 ```
+
+Note: The `store` and `path` fields should be relative to the current working directory.
 
 ## Budgeting and truncation
 - When a budget is set, qipu should include as many complete notes as possible.

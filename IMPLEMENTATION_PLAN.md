@@ -403,11 +403,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ## P4: Spec Ambiguity
 
 ### LLM Context (`specs/llm-context.md`)
-- [ ] Clarify whether store paths should be relative or absolute in outputs.
-  - `src/commands/context/human.rs:86-88`
-  - `src/commands/context/json.rs:87-88`
-  - `src/commands/context/records.rs:203-207`
-  - `src/commands/prime.rs:72-80`
+- [x] Clarify whether store paths should be relative or absolute in outputs.
+   - `specs/llm-context.md:58-62,82-99` - Added notes clarifying paths should be relative to current working directory
+   - `specs/records-output.md:68-75,95` - Added notes clarifying store/path should be relative to cwd
+   - `src/commands/context/mod.rs:32-44` - Created `path_relative_to_cwd()` helper function
+   - `src/commands/context/mod.rs:427` - Updated store_path to use relative path
+   - `src/commands/context/human.rs:119-120` - Updated note.path to use relative path
+   - `src/commands/context/json.rs:107` - Updated note.path in JSON to use relative path
+   - `src/commands/context/records.rs:46-50` - Updated note.path in records to use relative path
+   - `src/commands/prime.rs:73` - Updated store_path to use relative path
+   - **Learnings**: Spec examples (`.qipu/`) and explicit `relative-path` notation clarify intent. Added `path_relative_to_cwd()` helper to convert absolute paths to relative paths using `std::env::current_dir()` and `strip_prefix()`. All three output formats (human, json, records) now use relative paths for both store and note paths. All 668 tests pass.
 
 ### Indexing/Search (`specs/indexing-search.md`)
 - [ ] Confirm whether backlink index must be stored or can be derived.

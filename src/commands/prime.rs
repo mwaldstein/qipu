@@ -7,6 +7,7 @@
 //! - Contents: qipu explanation, command reference, store location, key MOCs, recent notes
 
 use crate::cli::{Cli, OutputFormat};
+use crate::commands::context::path_relative_to_cwd;
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
 use crate::lib::records::escape_quotes;
@@ -69,8 +70,8 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
 
     let recent_notes: Vec<_> = recent_notes.into_iter().take(MAX_RECENT_NOTES).collect();
 
-    // Get store path for display
-    let store_path = store.root().display().to_string();
+    // Get store path for display (relative to current working directory per spec)
+    let store_path = path_relative_to_cwd(store.root());
 
     match cli.format {
         OutputFormat::Json => {

@@ -28,6 +28,18 @@ use crate::lib::store::Store;
 pub use types::ContextOptions;
 use types::{RecordsOutputConfig, SelectedNote};
 
+/// Convert an absolute path to a path relative to the current working directory
+pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
+    if let Ok(cwd) = std::env::current_dir() {
+        path.strip_prefix(&cwd)
+            .ok()
+            .and_then(|p| Some(p.display().to_string()))
+            .unwrap_or_else(|| path.display().to_string())
+    } else {
+        path.display().to_string()
+    }
+}
+
 /// Execute the context command
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
     let start = Instant::now();
@@ -411,8 +423,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         ),
     };
 
-    // Output in requested format
-    let store_path = store.root().display().to_string();
+    // Output in requested format (paths are relative to current working directory per spec)
+    let store_path = path_relative_to_cwd(store.root());
 
     match cli.format {
         OutputFormat::Json => {

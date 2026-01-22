@@ -284,11 +284,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
     - `src/commands/doctor/content.rs:151-172` - Added check_custom_metadata() to validate custom fields
     - `src/commands/doctor/mod.rs:71` - Integrated custom metadata check into doctor command
     - Learnings: Type detection using `serde_yaml::from_str()` provides intuitive CLI experience (numbers, booleans, strings, arrays, objects); custom filter uses simple key=value format with type-aware comparison; doctor validation warns on >10KB custom blocks; all 642 tests pass
-- [ ] Implement `--custom` context output for markdown, JSON, and records formats.
-    - `src/commands/context/human.rs` - Add Custom section to markdown output (opt-in via include_custom flag)
-    - `src/commands/context/json.rs` - Include custom metadata in JSON output when include_custom is true
-    - `src/commands/context/records.rs` - Add Custom.* fields to records output when include_custom is true
-    - `src/commands/context/output.rs` - Pass include_custom flag to all output functions
+- [x] Implement `--custom` context output for markdown, JSON, and records formats.
+    - `src/commands/context/human.rs:11-12,26,46,169-179,222-232` - Added include_custom parameter; display Custom section when flag is set
+    - `src/commands/context/json.rs:11-12,27,37,77,118-130,180-207` - Added include_custom parameter; include custom metadata in JSON output when flag is set
+    - `src/commands/context/records.rs:8,23,116-129,187-200` - Added include_custom parameter; add Custom.* D records when flag is set
+    - `src/commands/context/mod.rs:419,430,433,454,458` - Pass include_custom to all output functions
+    - `tests/cli/context/formats.rs:233-658` - Added 8 comprehensive tests for custom metadata in all three output formats
+    - Learnings: Custom metadata is opt-in via --custom flag; markdown shows "Custom:" section with YAML formatting; JSON includes "custom" object with proper type conversion; records format uses "D custom.<key> <value> from=<id>" lines; all tests verify omission by default and inclusion with flag; 663 tests pass (376 CLI + 245 unit + 15 golden + 14 pack + 6 perf + 1 workspace-from-note + 6 workspace-merge)
 
 ### Distribution (`specs/distribution.md`)
 - [x] Add release automation and install scripts (GitHub releases + installers).

@@ -427,6 +427,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &all_notes,
                 options.max_chars,
                 &excluded_notes,
+                options.include_custom,
             )?;
         }
         OutputFormat::Human => {
@@ -442,6 +443,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &all_notes,
                 options.max_chars,
                 &excluded_notes,
+                options.include_custom,
             );
         }
         OutputFormat::Records => {
@@ -459,6 +461,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &compaction_ctx,
                 &note_map,
                 &all_notes,
+                options.include_custom,
             );
         }
     }

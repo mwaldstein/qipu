@@ -20,13 +20,14 @@ pub fn output_human(
     all_notes: &[Note],
     max_chars: Option<usize>,
     excluded_notes: &[&SelectedNote],
+    include_custom: bool,
 ) {
     let start = Instant::now();
 
     if cli.verbose {
         debug!(
             notes_count = notes.len(),
-            truncated, with_body, safety_banner, max_chars, "output_human"
+            truncated, with_body, safety_banner, max_chars, include_custom, "output_human"
         );
     }
 
@@ -53,6 +54,7 @@ pub fn output_human(
             note_map,
             all_notes,
             &current_excluded,
+            include_custom,
         );
 
         if max_chars.is_none() || output.len() <= max_chars.unwrap() {
@@ -91,6 +93,7 @@ fn build_human_output(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     excluded_notes: &[&SelectedNote],
+    include_custom: bool,
 ) -> String {
     let mut output = String::new();
 
@@ -167,6 +170,17 @@ fn build_human_output(
             }
         }
 
+        if include_custom && !note.frontmatter.custom.is_empty() {
+            output.push_str("Custom:\n");
+            for (key, value) in &note.frontmatter.custom {
+                let value_str = serde_yaml::to_string(value)
+                    .unwrap_or_else(|_| "null".to_string())
+                    .trim()
+                    .to_string();
+                output.push_str(&format!("  {}: {}\n", key, value_str));
+            }
+        }
+
         output.push('\n');
         output.push_str("---\n");
         if with_body {
@@ -217,6 +231,17 @@ fn build_human_output(
                             } else {
                                 output.push_str(&format!("- {}\n", source.url));
                             }
+                        }
+                    }
+
+                    if include_custom && !compacted_note.frontmatter.custom.is_empty() {
+                        output.push_str("Custom:\n");
+                        for (key, value) in &compacted_note.frontmatter.custom {
+                            let value_str = serde_yaml::to_string(value)
+                                .unwrap_or_else(|_| "null".to_string())
+                                .trim()
+                                .to_string();
+                            output.push_str(&format!("  {}: {}\n", key, value_str));
                         }
                     }
 

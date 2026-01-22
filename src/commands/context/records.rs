@@ -16,6 +16,7 @@ pub fn output_records(
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
+    include_custom: bool,
 ) {
     let start = Instant::now();
 
@@ -26,6 +27,7 @@ pub fn output_records(
             with_body = config.with_body,
             safety_banner = config.safety_banner,
             max_chars = config.max_chars,
+            include_custom,
             "output_records"
         );
     }
@@ -111,6 +113,16 @@ pub fn output_records(
             ));
         }
 
+        if include_custom && !note.frontmatter.custom.is_empty() {
+            for (key, value) in &note.frontmatter.custom {
+                let value_str = serde_yaml::to_string(value)
+                    .unwrap_or_else(|_| "null".to_string())
+                    .trim()
+                    .to_string();
+                lines.push(format!("D custom.{} {} from={}", key, value_str, note.id()));
+            }
+        }
+
         if config.with_body && !note.body.trim().is_empty() {
             lines.push(format!("B {}", note.id()));
             for line in note.body.lines() {
@@ -175,6 +187,21 @@ pub fn output_records(
                             accessed,
                             compacted_note.id()
                         ));
+                    }
+
+                    if include_custom && !compacted_note.frontmatter.custom.is_empty() {
+                        for (key, value) in &compacted_note.frontmatter.custom {
+                            let value_str = serde_yaml::to_string(value)
+                                .unwrap_or_else(|_| "null".to_string())
+                                .trim()
+                                .to_string();
+                            lines.push(format!(
+                                "D custom.{} {} from={}",
+                                key,
+                                value_str,
+                                compacted_note.id()
+                            ));
+                        }
                     }
 
                     if config.with_body && !compacted_note.body.trim().is_empty() {

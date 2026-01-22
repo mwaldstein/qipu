@@ -20,13 +20,14 @@ pub fn output_json(
     all_notes: &[Note],
     max_chars: Option<usize>,
     excluded_notes: &[&SelectedNote],
+    include_custom: bool,
 ) -> Result<()> {
     let start = Instant::now();
 
     if cli.verbose {
         debug!(
             notes_count = notes.len(),
-            truncated, with_body, max_chars, "output_json"
+            truncated, with_body, max_chars, include_custom, "output_json"
         );
     }
 
@@ -44,6 +45,7 @@ pub fn output_json(
             note_map,
             all_notes,
             excluded_notes,
+            include_custom,
         );
 
         let output_str = serde_json::to_string_pretty(&output)?;
@@ -85,6 +87,7 @@ fn build_json_output(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     excluded_notes: &[&SelectedNote],
+    include_custom: bool,
 ) -> serde_json::Value {
     let mut output = serde_json::json!({
         "store": store_path,
@@ -121,6 +124,18 @@ fn build_json_output(
                 "prompt_hash": note.frontmatter.prompt_hash,
                 "verified": note.frontmatter.verified,
             });
+
+            if include_custom && !note.frontmatter.custom.is_empty() {
+                if let Some(obj) = json.as_object_mut() {
+                    let custom_json: serde_json::Map<String, serde_json::Value> = note.frontmatter.custom.iter()
+                        .map(|(k, v)| {
+                            let json_value = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
+                            (k.clone(), json_value)
+                        })
+                        .collect();
+                    obj.insert("custom".to_string(), serde_json::Value::Object(custom_json));
+                }
+            }
 
             if let Some(via) = &selected.via {
                 if let Some(obj) = json.as_object_mut() {
@@ -167,26 +182,40 @@ fn build_json_output(
                                 serde_json::json!(
                                     compacted_notes
                                         .iter()
-                                        .map(|n: &&Note| serde_json::json!({
-                                            "id": n.id(),
-                                            "title": n.title(),
-                                            "type": n.note_type().to_string(),
-                                            "tags": n.frontmatter.tags,
-                                            "path": n.path.as_ref().map(|p| p.display().to_string()),
-                                            "content": n.body,
-                                            "sources": n.frontmatter.sources.iter().map(|s| {
-                                                let mut obj = serde_json::json!({
-                                                    "url": s.url,
-                                                });
-                                                if let Some(title) = &s.title {
-                                                    obj["title"] = serde_json::json!(title);
+                                        .map(|n: &&Note| {
+                                            let mut note_json = serde_json::json!({
+                                                "id": n.id(),
+                                                "title": n.title(),
+                                                "type": n.note_type().to_string(),
+                                                "tags": n.frontmatter.tags,
+                                                "path": n.path.as_ref().map(|p| p.display().to_string()),
+                                                "content": n.body,
+                                                "sources": n.frontmatter.sources.iter().map(|s| {
+                                                    let mut obj = serde_json::json!({
+                                                        "url": s.url,
+                                                    });
+                                                    if let Some(title) = &s.title {
+                                                        obj["title"] = serde_json::json!(title);
+                                                    }
+                                                    if let Some(accessed) = &s.accessed {
+                                                        obj["accessed"] = serde_json::json!(accessed);
+                                                    }
+                                                    obj
+                                                }).collect::<Vec<_>>(),
+                                            });
+                                            if include_custom && !n.frontmatter.custom.is_empty() {
+                                                if let Some(obj) = note_json.as_object_mut() {
+                                                    let custom_json: serde_json::Map<String, serde_json::Value> = n.frontmatter.custom.iter()
+                                                        .map(|(k, v)| {
+                                                            let json_value = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
+                                                            (k.clone(), json_value)
+                                                        })
+                                                        .collect();
+                                                    obj.insert("custom".to_string(), serde_json::Value::Object(custom_json));
                                                 }
-                                                if let Some(accessed) = &s.accessed {
-                                                    obj["accessed"] = serde_json::json!(accessed);
-                                                }
-                                                obj
-                                            }).collect::<Vec<_>>(),
-                                        }))
+                                            }
+                                            note_json
+                                        })
                                         .collect::<Vec<_>>()
                                 ),
                             );

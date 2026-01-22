@@ -177,9 +177,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/export.rs:374-624` - Added 5 comprehensive tests for deterministic ordering
   - Tests verify tag/query exports sort by (created_at, id) and MOC exports preserve MOC order
   - Learnings: Implementation at `src/commands/export/mod.rs:110-111` correctly sorts by (created_at, id) for non-MOC exports; MOC exports skip sorting to preserve link order as specified
-- [ ] Add tests for `--mode bibliography`.
-  - `src/commands/export/emit/bibliography.rs:4-37`
-  - `tests/cli/export.rs:7-341`
+- [x] Add tests for `--mode bibliography`.
+  - `tests/cli/export.rs:639-895` - Added 7 comprehensive tests for bibliography mode
+  - Tests cover: basic bibliography export, empty sources case, multiple notes with sources, deterministic ordering (sorted by URL), source format variations (with/without title/accessed date), tag selection, and "bib" alias
+  - Learnings: Bibliography mode extracts sources from selected notes and produces markdown output with sources sorted alphabetically by URL; implementation at `src/commands/export/emit/bibliography.rs:4-41` correctly handles all source field combinations and references back to originating notes
 - [ ] Add tests for `--link-mode markdown` and `--link-mode preserve`.
   - `src/commands/export/mod.rs:47-69`
   - `tests/cli/export.rs:7-341`

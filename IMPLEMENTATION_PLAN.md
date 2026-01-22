@@ -299,8 +299,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/commands/export/mod.rs:82,145` - Added bib_format to ExportOptions and passed to export_bibliography
   - `tests/cli/export.rs:1294-1527` - Added 6 comprehensive tests for BibTeX and CSL JSON formats
   - Learnings: BibTeX format uses @misc entries with citation keys generated from URL domains; CSL JSON format uses webpage type with date-parts array for accessed dates; both formats support empty source lists with appropriate empty outputs; deterministic ordering by URL maintained across all formats
-- [ ] Add transitive export traversal (depth-limited).
-  - `src/commands/export/plan.rs:112-209`
+- [x] Add transitive export traversal (depth-limited).
+  - `src/cli/commands.rs:357-359` - Added --max-hops CLI flag with default value 0 (no expansion)
+  - `src/commands/export/mod.rs:83` - Added max_hops field to ExportOptions struct
+  - `src/commands/dispatch/io.rs:30,52` - Updated handle_export to accept and pass max_hops parameter
+  - `src/commands/dispatch/mod.rs:202,214` - Updated dispatch handler to extract and pass max_hops from CLI
+  - `src/commands/export/plan.rs:4,68-103,212-268` - Added transitive traversal logic using BFS with HopCost tracking; imports Direction, HopCost, and TreeOptions; performs bidirectional traversal from initially selected notes
+  - `tests/cli/export.rs:1534-1854` - Added 6 comprehensive tests covering: no traversal (max-hops=0), one-hop expansion, two-hop expansion, tag selection with traversal, bidirectional traversal, and JSON format output
+  - Learnings: Transitive traversal expands note selection by following links up to max-hops distance; traversal is bidirectional by default (Direction::Both); uses simple BFS queue with accumulated cost tracking; integrates cleanly with existing selection modes (--note, --tag, --moc, --query); all 795 tests pass
 - [ ] Add pandoc/PDF integration (future).
   - `src/commands/export/mod.rs:13-261`
 

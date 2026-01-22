@@ -352,6 +352,10 @@ pub enum Commands {
         /// Bibliography format: markdown, bibtex, csl-json (only used with --mode bibliography)
         #[arg(long, default_value = "markdown")]
         bib_format: String,
+
+        /// Expand selection by traversing links (0 = no expansion)
+        #[arg(long, default_value = "0")]
+        max_hops: u32,
     },
 
     /// Manage note compaction (digest-first navigation)

@@ -1,6 +1,7 @@
 use super::ExportOptions;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::{QipuError, Result};
+use crate::lib::graph::{Direction, HopCost, TreeOptions};
 use crate::lib::index::Index;
 use crate::lib::note::Note;
 use crate::lib::store::Store;
@@ -70,6 +71,43 @@ pub fn collect_notes(
         return Err(QipuError::Other(
             "no selection criteria provided. Use --note, --tag, --moc, or --query".to_string(),
         ));
+    }
+
+    // Graph traversal expansion if requested
+    if !selected_notes.is_empty() && options.max_hops > 0 {
+        let initial_ids: Vec<String> = selected_notes.iter().map(|n| n.id().to_string()).collect();
+
+        let traversal_options = TreeOptions {
+            direction: Direction::Both,
+            max_hops: HopCost::from(options.max_hops),
+            type_include: Vec::new(),
+            type_exclude: Vec::new(),
+            typed_only: false,
+            inline_only: false,
+            max_nodes: None,
+            max_edges: None,
+            max_fanout: None,
+            max_chars: None,
+            semantic_inversion: true,
+            min_value: None,
+            ignore_value: false,
+        };
+
+        // Build compaction context if needed
+        let compaction_ctx = CompactionContext::build(all_notes)?;
+
+        // For each initial note, perform simple traversal and collect discovered notes
+        for initial_id in &initial_ids {
+            perform_simple_traversal(
+                index,
+                initial_id,
+                &traversal_options,
+                Some(&compaction_ctx),
+                store,
+                &mut selected_notes,
+                &mut seen_ids,
+            )?;
+        }
     }
 
     Ok(selected_notes)
@@ -207,4 +245,61 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
     }
 
     Ok(linked_notes)
+}
+
+/// Perform simple graph traversal for export command
+fn perform_simple_traversal(
+    index: &Index,
+    root: &str,
+    opts: &TreeOptions,
+    _compaction_ctx: Option<&CompactionContext>,
+    store: &Store,
+    selected_notes: &mut Vec<Note>,
+    seen_ids: &mut HashSet<String>,
+) -> Result<()> {
+    use std::collections::VecDeque;
+
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
+
+    queue.push_back((root.to_string(), HopCost::from(0)));
+    visited.insert(root.to_string());
+
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
+        if accumulated_cost.value() >= opts.max_hops.value() {
+            continue;
+        }
+
+        // Get outbound edges from current note
+        for edge in &index.edges {
+            let should_follow = match opts.direction {
+                Direction::Out => edge.from == current_id,
+                Direction::In => edge.to == current_id,
+                Direction::Both => edge.from == current_id || edge.to == current_id,
+            };
+
+            if should_follow {
+                // Determine the neighbor ID
+                let neighbor_id = if edge.from == current_id {
+                    &edge.to
+                } else {
+                    &edge.from
+                };
+
+                if visited.insert(neighbor_id.clone()) {
+                    let next_cost = accumulated_cost + HopCost::from(1);
+                    queue.push_back((neighbor_id.clone(), next_cost));
+
+                    // Add to selected notes if not already present
+                    if seen_ids.insert(neighbor_id.clone()) {
+                        if let Ok(note) = store.get_note(neighbor_id) {
+                            selected_notes.push(note);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }

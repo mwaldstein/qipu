@@ -80,6 +80,7 @@ pub struct ExportOptions<'a> {
     pub with_attachments: bool,
     pub link_mode: LinkMode,
     pub bib_format: emit::bibliography::BibFormat,
+    pub max_hops: u32,
 }
 
 /// Execute the export command

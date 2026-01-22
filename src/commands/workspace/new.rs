@@ -71,22 +71,33 @@ pub fn execute(
         if copy_primary {
             copy_notes(&primary_store, &ws_store)?;
         } else if let Some(tag) = from_tag {
+            // Collect all notes matching the tag, then perform graph slice from them
             let notes = primary_store.list_notes()?;
-            for note in notes {
-                if note.frontmatter.tags.contains(&tag.to_string()) {
-                    copy_note(&note, &ws_store)?;
-                }
+            let root_ids: Vec<String> = notes
+                .iter()
+                .filter(|note| note.frontmatter.tags.contains(&tag.to_string()))
+                .map(|note| note.id().to_string())
+                .collect();
+
+            if !root_ids.is_empty() {
+                let index = IndexBuilder::new(&primary_store).build()?;
+                copy_graph_slice(&primary_store, &index, &root_ids, &ws_store)?;
             }
         } else if let Some(note_id) = from_note {
             let index = IndexBuilder::new(&primary_store).build()?;
-            copy_graph_slice(&primary_store, &index, note_id, &ws_store)?;
+            copy_graph_slice(&primary_store, &index, &[note_id.to_string()], &ws_store)?;
         } else if let Some(query) = from_query {
-            // Simple search and copy
+            // Collect all notes matching the query, then perform graph slice from them
             let notes = primary_store.list_notes()?;
-            for note in notes {
-                if note.title().contains(query) || note.body.contains(query) {
-                    copy_note(&note, &ws_store)?;
-                }
+            let root_ids: Vec<String> = notes
+                .iter()
+                .filter(|note| note.title().contains(query) || note.body.contains(query))
+                .map(|note| note.id().to_string())
+                .collect();
+
+            if !root_ids.is_empty() {
+                let index = IndexBuilder::new(&primary_store).build()?;
+                copy_graph_slice(&primary_store, &index, &root_ids, &ws_store)?;
             }
         }
     }
@@ -133,12 +144,15 @@ fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
     Ok(())
 }
 
-fn copy_graph_slice(src: &Store, index: &Index, root_id: &str, dst: &Store) -> Result<()> {
+fn copy_graph_slice(src: &Store, index: &Index, root_ids: &[String], dst: &Store) -> Result<()> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
 
-    queue.push_back((root_id.to_string(), 0));
-    visited.insert(root_id.to_string());
+    // Initialize queue with all root IDs
+    for root_id in root_ids {
+        queue.push_back((root_id.to_string(), 0));
+        visited.insert(root_id.to_string());
+    }
 
     while let Some((current_id, hops)) = queue.pop_front() {
         if hops >= 3 {

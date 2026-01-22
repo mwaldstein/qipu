@@ -102,8 +102,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] `rename` merge strategy is not supported.
   - `src/commands/workspace/merge.rs:20-24`
   - Learnings: Added rename strategy support with ID suffix generation (e.g., qp-a1b2 -> qp-a1b2-1); implemented ID mapping to rewrite links in all incoming notes; both copy_note and copy_note_with_rename now handle link rewriting based on id_mappings HashMap
-- [ ] `--from-*` workspace creation is shallow; graph-slice copy is missing.
-  - `src/commands/workspace/new.rs:70-89`
+- [x] `--from-*` workspace creation is shallow; graph-slice copy is missing.
+  - `src/commands/workspace/new.rs:67-101,136-180`
+  - Learnings: Refactored `copy_graph_slice` to accept multiple root IDs instead of a single ID; both `--from-tag` and `--from-query` now collect matching notes and perform BFS graph traversal (3-hop limit) instead of shallow copying; this matches the spec requirement that all `--from-*` options should initialize with a graph slice
 - [ ] Post-merge integrity validation is missing.
   - `src/commands/workspace/merge.rs:10-149`
 - [ ] `workspace list` omits last-updated metadata.

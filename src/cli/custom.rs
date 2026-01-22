@@ -12,6 +12,7 @@ pub enum CustomCommands {
         key: String,
 
         /// Custom field value (auto-detects type: number, boolean, string, JSON array/object)
+        #[arg(allow_hyphen_values = true)]
         value: String,
     },
 

@@ -51,9 +51,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - **Learnings**: The spec at `specs/llm-context.md:56` clearly states that these flags "count as selection criteria and may be used without --note/--tag/--moc/--query". The implementation now matches this spec by selecting all notes from the store when these flags are used standalone.
 
 #### Allow negative values in `qipu custom set` positional (`specs/custom-metadata.md`)
-- [ ] Update CLI arg parsing so `qipu custom set <id> <key> -100` works without requiring `--`
-- [ ] Add an integration test covering negative numbers and other leading-hyphen strings
+- [x] Update CLI arg parsing so `qipu custom set <id> <key> -100` works without requiring `--`
+- [x] Add an integration test covering negative numbers and other leading-hyphen strings
 - Context: `qipu-integration-feedback.md` item (5)
+- Status: **Complete**. Added `#[arg(allow_hyphen_values = true)]` attribute to the `value` field in `CustomCommands::Set`. Added two comprehensive tests: `test_custom_set_negative_number` (tests negative integer) and `test_custom_set_leading_hyphen_strings` (tests negative float and strings with leading hyphens like `-verbose` and `--long-option`). All custom command tests pass.
 
 #### JSON stdout must be clean (no logs/warnings/ANSI) (`specs/cli-tool.md`)
 - [ ] Add regression tests that run key commands with `--format json` and assert stdout is valid JSON (and stderr may contain logs)

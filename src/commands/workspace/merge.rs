@@ -2,6 +2,7 @@ use crate::cli::Cli;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::store::paths::WORKSPACES_DIR;
 use crate::lib::store::Store;
+use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -17,9 +18,9 @@ pub fn execute(
 ) -> Result<()> {
     let start = Instant::now();
 
-    if !matches!(strategy, "overwrite" | "merge-links" | "skip") {
+    if !matches!(strategy, "overwrite" | "merge-links" | "skip" | "rename") {
         return Err(QipuError::UsageError(format!(
-            "unknown merge strategy: '{}' (expected: overwrite, merge-links, or skip)",
+            "unknown merge strategy: '{}' (expected: overwrite, merge-links, skip, or rename)",
             strategy
         )));
     }
@@ -58,7 +59,31 @@ pub fn execute(
 
     let mut conflicts: Vec<(String, &str)> = Vec::new();
     let mut additions: Vec<String> = Vec::new();
+    let mut id_mappings: HashMap<String, String> = HashMap::new();
 
+    // For rename strategy, first pass: build ID mappings for conflicts
+    if strategy == "rename" {
+        for note in &source_notes {
+            let id: String = note.id().to_string();
+            if target_notes_ids.contains(&id) {
+                // Generate a new unique ID by appending a numeric suffix
+                let mut suffix = 1;
+                let new_id = loop {
+                    let candidate = format!("{}-{}", id, suffix);
+                    if !target_notes_ids.contains(&candidate)
+                        && !id_mappings.values().any(|v| v == &candidate)
+                    {
+                        break candidate;
+                    }
+                    suffix += 1;
+                };
+                id_mappings.insert(id.clone(), new_id.clone());
+                conflicts.push((id.clone(), "rename"));
+            }
+        }
+    }
+
+    // Second pass: process notes
     for note in &source_notes {
         let id: String = note.id().to_string();
         if target_notes_ids.contains(&id) {
@@ -66,9 +91,12 @@ pub fn execute(
                 "overwrite" => "overwrite",
                 "merge-links" => "merge-links",
                 "skip" => "skip",
+                "rename" => "rename",
                 _ => unreachable!(),
             };
-            conflicts.push((id.clone(), action));
+            if strategy != "rename" {
+                conflicts.push((id.clone(), action));
+            }
             if !dry_run {
                 match strategy {
                     "overwrite" => {
@@ -76,7 +104,7 @@ pub fn execute(
                         if let Some(path) = target_note.path {
                             let _ = std::fs::remove_file(path);
                         }
-                        copy_note(note, &target_store)?;
+                        copy_note(note, &target_store, &id_mappings)?;
                     }
                     "merge-links" => {
                         let mut target_note = target_store.get_note(&id)?;
@@ -88,13 +116,19 @@ pub fn execute(
                         target_store.save_note(&mut target_note)?;
                     }
                     "skip" => {}
+                    "rename" => {
+                        // Note with renamed ID will be handled below
+                        let new_id = id_mappings.get(&id).unwrap();
+                        additions.push(new_id.clone());
+                        copy_note_with_rename(note, &target_store, new_id, &id_mappings)?;
+                    }
                     _ => unreachable!(),
                 }
             }
         } else {
             additions.push(id.clone());
             if !dry_run {
-                copy_note(note, &target_store)?;
+                copy_note(note, &target_store, &id_mappings)?;
             }
         }
     }
@@ -149,8 +183,19 @@ pub fn execute(
     Ok(())
 }
 
-fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
+fn copy_note(
+    note: &crate::lib::note::Note,
+    dst: &Store,
+    id_mappings: &HashMap<String, String>,
+) -> Result<()> {
     let mut new_note = note.clone();
+
+    // Rewrite links based on ID mappings (for rename strategy)
+    for link in &mut new_note.frontmatter.links {
+        if let Some(new_target_id) = id_mappings.get(&link.id) {
+            link.id = new_target_id.clone();
+        }
+    }
 
     // Determine target directory
     let target_dir = match new_note.note_type() {
@@ -160,6 +205,41 @@ fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
 
     // Determine file path
     let id_obj = crate::lib::id::NoteId::new_unchecked(new_note.id().to_string());
+    let file_name = crate::lib::id::filename(&id_obj, new_note.title());
+    let file_path = target_dir.join(&file_name);
+
+    new_note.path = Some(file_path);
+
+    dst.save_note(&mut new_note)?;
+    Ok(())
+}
+
+fn copy_note_with_rename(
+    note: &crate::lib::note::Note,
+    dst: &Store,
+    new_id: &str,
+    id_mappings: &HashMap<String, String>,
+) -> Result<()> {
+    let mut new_note = note.clone();
+
+    // Update the note's ID
+    new_note.frontmatter.id = new_id.to_string();
+
+    // Rewrite links based on ID mappings (for rename strategy)
+    for link in &mut new_note.frontmatter.links {
+        if let Some(new_target_id) = id_mappings.get(&link.id) {
+            link.id = new_target_id.clone();
+        }
+    }
+
+    // Determine target directory
+    let target_dir = match new_note.note_type() {
+        crate::lib::note::NoteType::Moc => dst.mocs_dir(),
+        _ => dst.notes_dir(),
+    };
+
+    // Determine file path
+    let id_obj = crate::lib::id::NoteId::new_unchecked(new_id.to_string());
     let file_name = crate::lib::id::filename(&id_obj, new_note.title());
     let file_path = target_dir.join(&file_name);
 

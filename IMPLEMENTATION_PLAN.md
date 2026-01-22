@@ -99,8 +99,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - **Learnings**: The report command provides a comprehensive overview of test runs including pass rates, costs, and performance metrics aggregated by scenario and tool. The clean command now supports optional time-based filtering using standard duration formats (d/h/m) for better maintenance of large test result sets.
 
 ### Workspaces (`specs/workspaces.md`)
-- [ ] `rename` merge strategy is not supported.
+- [x] `rename` merge strategy is not supported.
   - `src/commands/workspace/merge.rs:20-24`
+  - Learnings: Added rename strategy support with ID suffix generation (e.g., qp-a1b2 -> qp-a1b2-1); implemented ID mapping to rewrite links in all incoming notes; both copy_note and copy_note_with_rename now handle link rewriting based on id_mappings HashMap
 - [ ] `--from-*` workspace creation is shallow; graph-slice copy is missing.
   - `src/commands/workspace/new.rs:70-89`
 - [ ] Post-merge integrity validation is missing.

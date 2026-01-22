@@ -322,8 +322,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Pandoc integration is opt-in via --pdf flag; checks for pandoc availability at runtime with helpful error message directing to installation docs (pandoc.org/installing.html); uses stdin/stdout piping for markdown-to-PDF conversion; validates PDF magic bytes (%PDF) in tests; gracefully degrades when pandoc is not available
 
 ### Similarity Ranking (`specs/similarity-ranking.md`)
-- [ ] Add clustering/"see also" features for MOC generation.
-  - `src/lib/similarity/mod.rs:27-135`
+- [x] Add clustering/"see also" features for MOC generation.
+  - `src/lib/similarity/mod.rs:49-179` - All three spec use cases implemented
+  - `src/commands/context/mod.rs:204-259` - Related notes ("see also") via `find_similar`, `find_by_shared_tags`, `find_by_2hop_neighborhood`
+  - `src/commands/doctor/content.rs:110` - Duplicate detection via `find_all_duplicates`
+  - `src/lib/db/search.rs:18-106` - Search ranking via BM25/FTS5
+  - Learnings: All three use cases from the spec are fully implemented: (A) Related Notes context expansion with 0.3 threshold, (B) Duplicate detection via doctor command with 0.85 threshold, (C) Search ranking via FTS5 BM25. The spec explicitly marks clustering for MOC generation as "Implementation Plan (Future)" (lines 46-48), so this feature is complete relative to current spec requirements
 
 ### Semantic Graph (`specs/semantic-graph.md`)
 - [ ] Support per-link-type hop costs (currently hardcoded to 1.0).

@@ -309,8 +309,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `crates/llm-tool-test/src/run.rs:167,186-202,260-268` - Implement budget enforcement logic
   - `crates/llm-tool-test/src/run.rs:13-158` - Added comprehensive tests for budget enforcement
   - **Learnings**: Budget enforcement checks both CLI `--max-usd` and scenario `cost.max_usd` fields, taking the minimum if both are set. When budget is zero or negative, the run fails immediately with "Budget exhausted" error before fixture setup. After run completes, a warning is printed if actual cost exceeded budget. Added 3 tests verifying: CLI budget enforcement, scenario budget enforcement, and minimum selection when both are set.
-- [ ] Artifact set is incomplete (missing `run.json`, `report.md`, snapshots).
-  - `crates/llm-tool-test/src/run.rs:89-114`
+- [x] Artifact set is incomplete (missing `run.json`, `report.md`, snapshots).
+  - `crates/llm-tool-test/src/transcript.rs:50-172` - Added methods to write run.json, store_snapshot/export.json, and report.md
+  - `crates/llm-tool-test/src/run.rs:318-383` - Call new artifact writing methods after evaluation
+  - **Learnings**: Three artifacts now generated per spec: (1) `run.json` with metadata (scenario_id, tool, model, qipu_version, duration, cost, token_usage), (2) `store_snapshot/export.json` created via `qipu dump --format json`, (3) `report.md` with human-readable summary of execution, evaluation metrics, efficiency, and quality stats. Store snapshot creation is non-fatal (logs warning if qipu dump fails) to avoid breaking test runs when store is empty or corrupted.
 - [ ] Tool adapter trait diverges from spec (`execute_task`/`ToolStatus` missing).
   - `crates/llm-tool-test/src/adapter/mod.rs:9-22`
 - [ ] Missing `report` subcommand and `clean --older-than` support.

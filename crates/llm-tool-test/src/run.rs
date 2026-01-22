@@ -315,6 +315,65 @@ pub fn run_single_scenario(
             "Pass".to_string()
         };
 
+        // Write run.json metadata
+        let run_metadata = crate::transcript::RunMetadata {
+            scenario_id: s.name.clone(),
+            scenario_hash: cache_key.scenario_hash.clone(),
+            tool: tool.to_string(),
+            model: model.to_string(),
+            qipu_version: qipu_version.clone(),
+            qipu_commit: qipu_version.clone(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            duration_secs: duration.as_secs_f64(),
+            cost_estimate_usd: cost,
+            token_usage: None, // TODO: Extract from adapter if available
+        };
+        writer.write_run_metadata(&run_metadata)?;
+
+        // Create store snapshot
+        writer.create_store_snapshot(&env.root)?;
+
+        // Write report.md
+        let report = crate::transcript::RunReport {
+            scenario_id: s.name.clone(),
+            tool: tool.to_string(),
+            model: model.to_string(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            duration_secs: duration.as_secs_f64(),
+            cost_usd: cost,
+            token_usage: None, // TODO: Extract from adapter if available
+            outcome: outcome.clone(),
+            gates_passed: metrics.gates_passed,
+            gates_total: metrics.gates_total,
+            note_count: metrics.note_count,
+            link_count: metrics.link_count,
+            composite_score: Some(metrics.composite_score),
+            gate_details: metrics
+                .details
+                .iter()
+                .map(|d| crate::transcript::GateDetail {
+                    gate_type: d.gate_type.clone(),
+                    passed: d.passed,
+                    message: d.message.clone(),
+                })
+                .collect(),
+            efficiency: crate::transcript::EfficiencyReport {
+                total_commands: metrics.efficiency.total_commands,
+                unique_commands: metrics.efficiency.unique_commands,
+                error_count: metrics.efficiency.error_count,
+                first_try_success_rate: metrics.efficiency.first_try_success_rate,
+                iteration_ratio: metrics.efficiency.iteration_ratio,
+            },
+            quality: crate::transcript::QualityReport {
+                avg_title_length: metrics.quality.avg_title_length,
+                avg_body_length: metrics.quality.avg_body_length,
+                avg_tags_per_note: metrics.quality.avg_tags_per_note,
+                links_per_note: metrics.quality.links_per_note,
+                orphan_notes: metrics.quality.orphan_notes,
+            },
+        };
+        writer.write_report(&report)?;
+
         let transcript_path = transcript_dir.to_string_lossy().to_string();
 
         let record = ResultRecord {

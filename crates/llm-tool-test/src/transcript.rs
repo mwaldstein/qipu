@@ -45,6 +45,204 @@ impl TranscriptWriter {
         }
         Ok(events)
     }
+
+    /// Write run.json with run metadata
+    pub fn write_run_metadata(&self, metadata: &RunMetadata) -> anyhow::Result<()> {
+        let json = serde_json::to_string_pretty(metadata)?;
+        fs::write(self.base_dir.join("run.json"), json)?;
+        Ok(())
+    }
+
+    /// Create store snapshot by running qipu dump
+    pub fn create_store_snapshot(&self, work_dir: &std::path::Path) -> anyhow::Result<()> {
+        let snapshot_dir = self.base_dir.join("store_snapshot");
+        fs::create_dir_all(&snapshot_dir)?;
+
+        // Run qipu dump --format json to export the store
+        let output = std::process::Command::new("qipu")
+            .arg("dump")
+            .arg("--format")
+            .arg("json")
+            .current_dir(work_dir)
+            .output();
+
+        match output {
+            Ok(result) if result.status.success() => {
+                fs::write(snapshot_dir.join("export.json"), result.stdout)?;
+                Ok(())
+            }
+            Ok(result) => {
+                // Store failed, but don't fail the entire run
+                eprintln!(
+                    "Warning: Failed to create store snapshot: {}",
+                    String::from_utf8_lossy(&result.stderr)
+                );
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to run qipu dump: {}", e);
+                Ok(())
+            }
+        }
+    }
+
+    /// Write report.md with human-readable summary
+    pub fn write_report(&self, report: &RunReport) -> anyhow::Result<()> {
+        let mut content = String::new();
+        content.push_str(&format!("# Test Run Report\n\n"));
+        content.push_str(&format!("## Scenario\n\n"));
+        content.push_str(&format!("- **ID**: {}\n", report.scenario_id));
+        content.push_str(&format!("- **Tool**: {}\n", report.tool));
+        content.push_str(&format!("- **Model**: {}\n", report.model));
+        content.push_str(&format!("- **Timestamp**: {}\n\n", report.timestamp));
+
+        content.push_str(&format!("## Execution\n\n"));
+        content.push_str(&format!("- **Duration**: {:.2}s\n", report.duration_secs));
+        content.push_str(&format!("- **Cost**: ${:.4}\n", report.cost_usd));
+        if let Some(ref usage) = report.token_usage {
+            content.push_str(&format!(
+                "- **Token Usage**: {} input, {} output\n",
+                usage.input, usage.output
+            ));
+        }
+        content.push_str(&format!("- **Outcome**: {}\n\n", report.outcome));
+
+        content.push_str(&format!("## Evaluation Metrics\n\n"));
+        content.push_str(&format!(
+            "- **Gates Passed**: {}/{}\n",
+            report.gates_passed, report.gates_total
+        ));
+        content.push_str(&format!("- **Notes Created**: {}\n", report.note_count));
+        content.push_str(&format!("- **Links Created**: {}\n", report.link_count));
+        if let Some(score) = report.composite_score {
+            content.push_str(&format!("- **Composite Score**: {:.2}\n", score));
+        }
+        content.push_str("\n");
+
+        if !report.gate_details.is_empty() {
+            content.push_str("### Gate Details\n\n");
+            for detail in &report.gate_details {
+                let status = if detail.passed { "✓" } else { "✗" };
+                content.push_str(&format!(
+                    "- {} {}: {}\n",
+                    status, detail.gate_type, detail.message
+                ));
+            }
+            content.push_str("\n");
+        }
+
+        content.push_str(&format!("## Efficiency\n\n"));
+        content.push_str(&format!(
+            "- **Total Commands**: {}\n",
+            report.efficiency.total_commands
+        ));
+        content.push_str(&format!(
+            "- **Unique Commands**: {}\n",
+            report.efficiency.unique_commands
+        ));
+        content.push_str(&format!(
+            "- **Error Count**: {}\n",
+            report.efficiency.error_count
+        ));
+        content.push_str(&format!(
+            "- **First Try Success Rate**: {:.1}%\n",
+            report.efficiency.first_try_success_rate * 100.0
+        ));
+        content.push_str(&format!(
+            "- **Iteration Ratio**: {:.2}\n\n",
+            report.efficiency.iteration_ratio
+        ));
+
+        content.push_str(&format!("## Quality\n\n"));
+        content.push_str(&format!(
+            "- **Average Title Length**: {:.1}\n",
+            report.quality.avg_title_length
+        ));
+        content.push_str(&format!(
+            "- **Average Body Length**: {:.1}\n",
+            report.quality.avg_body_length
+        ));
+        content.push_str(&format!(
+            "- **Average Tags per Note**: {:.2}\n",
+            report.quality.avg_tags_per_note
+        ));
+        content.push_str(&format!(
+            "- **Links per Note**: {:.2}\n",
+            report.quality.links_per_note
+        ));
+        content.push_str(&format!(
+            "- **Orphan Notes**: {}\n",
+            report.quality.orphan_notes
+        ));
+
+        fs::write(self.base_dir.join("report.md"), content)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RunMetadata {
+    pub scenario_id: String,
+    pub scenario_hash: String,
+    pub tool: String,
+    pub model: String,
+    pub qipu_version: String,
+    pub qipu_commit: String,
+    pub timestamp: String,
+    pub duration_secs: f64,
+    pub cost_estimate_usd: f64,
+    pub token_usage: Option<TokenUsage>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenUsage {
+    pub input: usize,
+    pub output: usize,
+}
+
+#[derive(Debug)]
+pub struct RunReport {
+    pub scenario_id: String,
+    pub tool: String,
+    pub model: String,
+    pub timestamp: String,
+    pub duration_secs: f64,
+    pub cost_usd: f64,
+    pub token_usage: Option<TokenUsage>,
+    pub outcome: String,
+    pub gates_passed: usize,
+    pub gates_total: usize,
+    pub note_count: usize,
+    pub link_count: usize,
+    pub composite_score: Option<f64>,
+    pub gate_details: Vec<GateDetail>,
+    pub efficiency: EfficiencyReport,
+    pub quality: QualityReport,
+}
+
+#[derive(Debug)]
+pub struct GateDetail {
+    pub gate_type: String,
+    pub passed: bool,
+    pub message: String,
+}
+
+#[derive(Debug)]
+pub struct EfficiencyReport {
+    pub total_commands: usize,
+    pub unique_commands: usize,
+    pub error_count: usize,
+    pub first_try_success_rate: f64,
+    pub iteration_ratio: f64,
+}
+
+#[derive(Debug)]
+pub struct QualityReport {
+    pub avg_title_length: f64,
+    pub avg_body_length: f64,
+    pub avg_tags_per_note: f64,
+    pub links_per_note: f64,
+    pub orphan_notes: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

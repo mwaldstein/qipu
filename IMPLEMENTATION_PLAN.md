@@ -158,9 +158,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Add tests for `search --sort value`.
   - `tests/cli/search.rs:689-937` - Added comprehensive tests for search --sort value
   - Learnings: Tests cover basic value sorting (descending order), default value handling (None treated as 50), and combined --min-value + --sort value filters. Implementation at `src/commands/search.rs:138-147` sorts by value descending with stable ID-based tiebreaker. All tests pass.
-- [ ] Add tests for `list --min-value` and `context --min-value`.
-  - `src/commands/list.rs:59-63`
-  - `src/commands/context/mod.rs:233-237`
+- [x] Add tests for `list --min-value` and `context --min-value`.
+  - `tests/cli/list.rs:112-310` - Added 4 comprehensive tests for list --min-value (all match, some match, none match, defaults)
+  - `tests/cli/context/basic.rs:647-784` - Added comprehensive test for context --min-value with multiple value thresholds
+  - Learnings: Tests were already fully implemented; verified all tests pass with cargo test
 - [ ] Add tests for `--ignore-value` traversal ordering.
   - `src/commands/link/tree.rs:61-78`
   - `src/commands/link/path.rs:71-95`

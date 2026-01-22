@@ -8,6 +8,90 @@ use std::path::Path;
 pub struct ClaudeCodeAdapter;
 
 impl ToolAdapter for ClaudeCodeAdapter {
+    fn name(&self) -> &str {
+        "claude"
+    }
+
+    fn is_available(&self) -> Result<super::ToolStatus, super::AdapterError> {
+        let runner = SessionRunner::new();
+        match runner.run_command("claude", &["--version"], Path::new("."), 10) {
+            Ok((output, _)) => {
+                let version = output.trim().to_string();
+                Ok(super::ToolStatus {
+                    available: true,
+                    version: Some(version),
+                    authenticated: true,
+                    budget_remaining: None,
+                })
+            }
+            Err(e) => Err(super::AdapterError::NotAvailable(format!(
+                "Claude Code tool not found: {}",
+                e
+            ))),
+        }
+    }
+
+    fn execute_task(
+        &self,
+        context: &super::TaskContext,
+        work_dir: &Path,
+        transcript_dir: &Path,
+    ) -> Result<super::ExecutionResult, super::AdapterError> {
+        use std::time::Instant;
+
+        let start = Instant::now();
+        let runner = SessionRunner::new();
+
+        // Write the full prompt (system + task) to a file
+        let full_prompt = format!("{}\n\n{}", context.system_prompt, context.task_prompt);
+        let prompt_path = work_dir.join("prompt.txt");
+        fs::write(&prompt_path, &full_prompt).map_err(|e| {
+            super::AdapterError::ExecutionFailed(format!("Failed to write prompt: {}", e))
+        })?;
+
+        let args = vec!["run", "--prompt-file", "prompt.txt"];
+        let timeout_secs = context.timeout.as_secs();
+
+        let (output, exit_code) = runner
+            .run_command("claude", &args, work_dir, timeout_secs)
+            .map_err(|e| {
+                super::AdapterError::ExecutionFailed(format!("claude execution failed: {}", e))
+            })?;
+
+        // Write transcript
+        let transcript_path = transcript_dir.join("transcript.raw.txt");
+        fs::write(&transcript_path, &output).map_err(|e| {
+            super::AdapterError::ExecutionFailed(format!("Failed to write transcript: {}", e))
+        })?;
+
+        let duration = start.elapsed();
+        let input_tokens = full_prompt.len() / 4; // rough estimate
+        let output_tokens = output.len() / 4;
+
+        Ok(super::ExecutionResult {
+            exit_code,
+            duration,
+            token_usage: Some(super::TokenUsage {
+                input: input_tokens,
+                output: output_tokens,
+            }),
+            cost_estimate: Some(estimate_cost(
+                "default",
+                input_tokens * 4,
+                output_tokens * 4,
+            )),
+        })
+    }
+
+    fn estimate_cost(&self, prompt_tokens: usize) -> Option<super::CostEstimate> {
+        // Estimate based on typical Claude pricing
+        let input_cost = (prompt_tokens as f64) / 1_000_000.0 * 3.0; // $3/M tokens
+        let output_cost = (prompt_tokens as f64 * 0.5) / 1_000_000.0 * 15.0; // $15/M tokens
+        Some(super::CostEstimate {
+            estimated_usd: input_cost + output_cost,
+        })
+    }
+
     fn check_availability(&self) -> anyhow::Result<()> {
         let runner = SessionRunner::new();
         match runner.run_command("claude", &["--version"], Path::new("."), 10) {

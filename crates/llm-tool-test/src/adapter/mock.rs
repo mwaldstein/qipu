@@ -76,6 +76,51 @@ impl MockAdapter {
 }
 
 impl ToolAdapter for MockAdapter {
+    fn name(&self) -> &str {
+        "mock"
+    }
+
+    fn is_available(&self) -> Result<super::ToolStatus, super::AdapterError> {
+        Ok(super::ToolStatus {
+            available: true,
+            version: Some("1.0.0-mock".to_string()),
+            authenticated: true,
+            budget_remaining: Some(100.0),
+        })
+    }
+
+    fn execute_task(
+        &self,
+        context: &super::TaskContext,
+        work_dir: &Path,
+        _transcript_dir: &Path,
+    ) -> Result<super::ExecutionResult, super::AdapterError> {
+        use std::time::Instant;
+
+        let start = Instant::now();
+
+        // For now, just return a mock result
+        // In the future, this could parse context.task_prompt and generate appropriate commands
+        let duration = start.elapsed();
+
+        Ok(super::ExecutionResult {
+            exit_code: 0,
+            duration,
+            token_usage: Some(super::TokenUsage {
+                input: context.system_prompt.len() + context.task_prompt.len(),
+                output: 100,
+            }),
+            cost_estimate: Some(0.001),
+        })
+    }
+
+    fn estimate_cost(&self, prompt_tokens: usize) -> Option<super::CostEstimate> {
+        // Mock adapter has very low cost
+        Some(super::CostEstimate {
+            estimated_usd: (prompt_tokens as f64) * 0.000001,
+        })
+    }
+
     fn check_availability(&self) -> anyhow::Result<()> {
         Ok(())
     }

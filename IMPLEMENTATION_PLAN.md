@@ -187,10 +187,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: The `preserve` mode keeps wiki links as-is (`[[qp-xxx]]`); the `markdown` mode converts wiki links to markdown file links using absolute paths (`[label](path/to/qp-xxx.md)`); labels are preserved during conversion; both modes work correctly with MOC-driven exports
 
 ### Graph Traversal Tests (`specs/graph-traversal.md`)
-- [ ] Add tests for semantic inversion in `link tree`/`link path`.
-  - `src/commands/link/tree.rs:57-63`
-  - `src/commands/link/path.rs:71-76`
-  - `tests/cli/link/add_remove.rs:55-73`
+- [x] Add tests for semantic inversion in `link tree`/`link path`.
+  - `tests/cli/link/tree.rs:1138-1377` - Added 3 comprehensive tests for link tree semantic inversion
+  - `tests/cli/link/path.rs:53-355` - Added 4 comprehensive tests for link path semantic inversion
+  - Learnings: Semantic inversion affects both traversal and presentation; when enabled (default), virtual inverted edges are created and followed during traversal; when disabled with `--no-semantic-inversion`, raw backlinks are used with original types retained; type filtering applies to inverted types when semantic inversion is enabled, and to original types when disabled; JSON output correctly handles both modes; all 7 new tests pass
 - [ ] Add tests for `max_nodes`, `max_edges`, and `max_fanout` truncation.
   - `src/cli/link.rs:89-99`
   - `tests/cli/link/tree.rs:366-435`

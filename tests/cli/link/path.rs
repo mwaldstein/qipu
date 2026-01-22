@@ -50,6 +50,320 @@ fn test_link_path_direct() {
 }
 
 #[test]
+fn test_link_path_semantic_inversion_default() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create A -> B with "supports" link
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Path from B to A should be found via virtual inverted edge (semantic inversion enabled by default)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_b, &id_a, "--format", "json"])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    assert_eq!(json["found"], true);
+
+    // Should have a link with type "supported-by" and source "virtual"
+    let links = json["links"].as_array().unwrap();
+    let inverted_link = links
+        .iter()
+        .find(|l| l["from"].as_str() == Some(&id_b) && l["to"].as_str() == Some(&id_a));
+
+    assert!(inverted_link.is_some(), "Should have virtual inverted link");
+    let link = inverted_link.unwrap();
+    assert_eq!(link["type"].as_str().unwrap(), "supported-by");
+    assert_eq!(link["source"].as_str().unwrap(), "virtual");
+}
+
+#[test]
+fn test_link_path_semantic_inversion_disabled() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create A -> B with "supports" link
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Path from B to A with --no-semantic-inversion and direction=both should still be found
+    // because "in" direction allows traversing along backlinks (just without type inversion)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "path",
+            &id_b,
+            &id_a,
+            "--no-semantic-inversion",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        json["found"], true,
+        "Path should be found via backlink traversal"
+    );
+
+    // Check that the link retains its original type "supports" (not inverted)
+    let links = json["links"].as_array().unwrap();
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0]["from"].as_str().unwrap(), id_a);
+    assert_eq!(links[0]["to"].as_str().unwrap(), id_b);
+    assert_eq!(links[0]["type"].as_str().unwrap(), "supports");
+
+    // Path from A to B should still be found (forward link exists)
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_a, &id_b, "--no-semantic-inversion"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Note A"))
+        .stdout(predicate::str::contains("Note B"))
+        .stdout(predicate::str::contains("Path length: 1 hop"));
+}
+
+#[test]
+fn test_link_path_semantic_inversion_type_filter() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create A -> B with "supports" link
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // With semantic inversion, filtering by --type supported-by should find the virtual inverted edge
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_b, &id_a, "--type", "supported-by"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Note B"))
+        .stdout(predicate::str::contains("Note A"))
+        .stdout(predicate::str::contains("Path length: 1 hop"));
+
+    // Without semantic inversion, filtering by --type supported-by should NOT find a path (no such raw link)
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "path",
+            &id_b,
+            &id_a,
+            "--no-semantic-inversion",
+            "--type",
+            "supported-by",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No path found"));
+
+    // Without semantic inversion, filtering by --type supports should find the forward path (A->B)
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "path",
+            &id_a,
+            &id_b,
+            "--no-semantic-inversion",
+            "--type",
+            "supports",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Note A"))
+        .stdout(predicate::str::contains("Note B"));
+}
+
+#[test]
+fn test_link_path_semantic_inversion_multi_hop() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create A -> B -> C with "supports" links
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note C"])
+        .output()
+        .unwrap();
+    let id_c = extract_id(&output_c);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "supports"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Path from C to A should be found via virtual inverted edges (C -supported-by-> B -supported-by-> A)
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &id_c, &id_a])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Note C"))
+        .stdout(predicate::str::contains("Note B"))
+        .stdout(predicate::str::contains("Note A"))
+        .stdout(predicate::str::contains("Path length: 2 hop"));
+
+    // Without semantic inversion, path should still be found from C to A via backlink traversal
+    // but the link types should remain as "supports" (not inverted to "supported-by")
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "path",
+            &id_c,
+            &id_a,
+            "--no-semantic-inversion",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        json["found"], true,
+        "Path should be found via backlink traversal"
+    );
+    assert_eq!(json["path_length"], 2);
+
+    // Check that links retain their original types "supports" (not inverted)
+    let links = json["links"].as_array().unwrap();
+    assert_eq!(links.len(), 2);
+    for link in links {
+        assert_eq!(
+            link["type"].as_str().unwrap(),
+            "supports",
+            "Link types should not be inverted"
+        );
+    }
+}
+
+#[test]
 fn test_link_path_multi_hop() {
     let dir = tempdir().unwrap();
 

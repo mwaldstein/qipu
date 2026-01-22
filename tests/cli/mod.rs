@@ -2,6 +2,7 @@ mod capture;
 mod compact;
 mod context;
 mod create;
+mod custom;
 mod doctor;
 mod dump;
 mod export;

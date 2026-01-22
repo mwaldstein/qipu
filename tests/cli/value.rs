@@ -312,3 +312,163 @@ fn test_value_set_multiple_times() {
         .stdout(predicate::str::contains(format!("{}: 90", note_id)))
         .stdout(predicate::str::contains("(default)").not());
 }
+
+#[test]
+fn test_value_set_json() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "value", "set", &note_id, "85"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+    assert_eq!(json["id"], note_id);
+    assert_eq!(json["value"], 85);
+    assert_eq!(json.as_object().unwrap().len(), 2);
+}
+
+#[test]
+fn test_value_show_json_explicit() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", &note_id, "75"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "value", "show", &note_id])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+    assert_eq!(json["id"], note_id);
+    assert_eq!(json["value"], 75);
+    assert_eq!(json["default"], false);
+    assert_eq!(json.as_object().unwrap().len(), 3);
+}
+
+#[test]
+fn test_value_show_json_default() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "value", "show", &note_id])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+    assert_eq!(json["id"], note_id);
+    assert_eq!(json["value"], 50);
+    assert_eq!(json["default"], true);
+    assert_eq!(json.as_object().unwrap().len(), 3);
+}
+
+#[test]
+fn test_value_set_json_error_invalid() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "value", "set", &note_id, "101"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_value_show_json_nonexistent() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "value", "show", "qp-nonexistent"])
+        .assert()
+        .failure();
+}

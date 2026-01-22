@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 619 tests pass (239 unit + 344 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
+- Test baseline: 625 tests pass (239 unit + 350 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -221,9 +221,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `src/lib/similarity/mod.rs:545-1075` - Added 6 comprehensive unit tests
   - Tests cover: field weighting (title 2.0 vs tags 1.5 vs body 1.0), combined field weights, default threshold 0.3 for related notes, default threshold 0.85 for duplicates
   - Learnings: Field weights (title=2.0, tags=1.5, body=1.0) are correctly applied during indexing; cosine similarity with single shared term produces 1.0 similarity regardless of TF weight (this is mathematically correct); tests must use multiple terms with different field distributions to verify weight effects; threshold tests verify 0.3 for context expansion and 0.85 for duplicate detection as specified
-- [ ] Add end-to-end tests for stop-word filtering.
-  - `src/lib/text/mod.rs:8-54`
-  - `src/lib/similarity/mod.rs:27-135`
+- [x] Add end-to-end tests for stop-word filtering.
+  - `tests/cli/doctor.rs:393-623` - Added 6 comprehensive end-to-end tests
+  - Tests cover: stop words don't affect duplicate detection, notes differing only by stop words are detected as duplicates, content word differences prevent false positives, specific stop words from spec are filtered (a, an, the, and, or, is, with, in, for, at, by, etc.), stop words filtered from both title and body, field weighting works correctly with stop words
+  - Learnings: Stop-word filtering is implemented in `src/lib/text/mod.rs:32-40` and used by the similarity engine for duplicate detection (via `qipu doctor --duplicates`), not for FTS5 full-text search; FTS5 uses SQLite's Porter stemmer tokenizer which does not filter stop words; end-to-end tests verify stop-word filtering works correctly in the context of duplicate detection using the `doctor` command
 
 ### Pack Tests (`specs/pack.md`)
 - [ ] Add tests for `--tag`, `--moc`, `--query`, and "no selectors" dump.

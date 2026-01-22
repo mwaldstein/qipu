@@ -388,3 +388,321 @@ This is a completely different note about programming and coding."#;
         .stdout(predicate::str::contains("qp-note1"))
         .stdout(predicate::str::contains("qp-note2"));
 }
+
+// ============================================================================
+// Stop-word filtering tests (end-to-end)
+// Tests for specs/similarity-ranking.md stop-word filtering
+// ============================================================================
+
+#[test]
+fn test_doctor_duplicates_ignores_stop_words() {
+    // Test that stop words don't affect duplicate detection
+    // Two notes that only differ by stop words should be detected as duplicates
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes with identical content words but different stop words
+    let note1_content = r#"---
+id: qp-stop1
+title: Knowledge Management System
+---
+This is a note about knowledge management and information architecture. The system provides tools for organizing notes."#;
+
+    let note2_content = r#"---
+id: qp-stop2
+title: Knowledge Management System
+---
+This note discusses knowledge management with information architecture. System has tools to organize notes."#;
+
+    fs::write(
+        dir.path()
+            .join(".qipu/notes/qp-stop1-knowledge-management.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path()
+            .join(".qipu/notes/qp-stop2-knowledge-management.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // Run doctor with --duplicates
+    // Both notes should be detected as near-duplicates since stop words are filtered
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.7"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-stop1"))
+        .stdout(predicate::str::contains("qp-stop2"));
+}
+
+#[test]
+fn test_doctor_duplicates_stop_words_only_differences_not_detected() {
+    // Test that notes differing only by stop words ARE detected as duplicates
+    // This verifies stop-word filtering is working correctly
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes with the same content words but tons of different stop words
+    let note1_content = r#"---
+id: qp-same1
+title: Graph Theory
+---
+graph algorithms data structures computer science"#;
+
+    let note2_content = r#"---
+id: qp-same2
+title: Graph Theory
+---
+the graph is with algorithms and for data of structures in computer on science"#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-same1-graph-theory.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-same2-graph-theory.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // Both notes should be detected as duplicates at high threshold
+    // because all the stop words ("the", "is", "with", "and", "for", "of", "in", "on") are filtered
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.9"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-same1"))
+        .stdout(predicate::str::contains("qp-same2"));
+}
+
+#[test]
+fn test_doctor_duplicates_content_words_required_for_match() {
+    // Test that actual content word differences prevent duplicate detection
+    // This verifies that stop-word filtering doesn't cause false positives
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes with different content words
+    let note1_content = r#"---
+id: qp-diff1
+title: Machine Learning
+---
+This is a note about neural networks and deep learning algorithms for artificial intelligence."#;
+
+    let note2_content = r#"---
+id: qp-diff2
+title: Database Systems
+---
+This is a note about relational databases and query optimization techniques for data storage."#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-diff1-machine-learning.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-diff2-database-systems.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // These notes should NOT be detected as duplicates even at low threshold
+    // because they have different content words despite similar stop-word patterns
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.3"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Store is healthy"));
+}
+
+#[test]
+fn test_doctor_duplicates_stop_word_list_coverage() {
+    // Test that specific stop words from the spec are filtered
+    // Per specs/similarity-ranking.md: "a", "an", "the", "and", "or", "is", "with", "in", "for", etc.
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes with identical rare content words but different common stop words
+    let note1_content = r#"---
+id: qp-rare1
+title: Zettelkasten Method
+---
+zettelkasten ontology epistemology methodology"#;
+
+    let note2_content = r#"---
+id: qp-rare2
+title: Zettelkasten Method
+---
+a zettelkasten is the ontology and an epistemology with methodology or for in on at by"#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-rare1-zettelkasten.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-rare2-zettelkasten.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // Should be detected as duplicates because stop words are filtered
+    // Testing stop words: "a", "is", "the", "and", "an", "with", "or", "for", "in", "on", "at", "by"
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.9"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-rare1"))
+        .stdout(predicate::str::contains("qp-rare2"));
+}
+
+#[test]
+fn test_doctor_duplicates_stop_words_in_title_and_body() {
+    // Test that stop words are filtered from both title and body content
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Note 1: Content words in title, stop words in body
+    let note1_content = r#"---
+id: qp-field1
+title: Distributed Systems Architecture
+---
+the and or with in for at"#;
+
+    // Note 2: Same content words in title, different stop words in body
+    let note2_content = r#"---
+id: qp-field2
+title: Distributed Systems Architecture
+---
+a is that this to was will"#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-field1-distributed.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-field2-distributed.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // Should be detected as duplicates because:
+    // - Titles are identical (same content words)
+    // - Bodies contain only stop words which are filtered
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.9"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-field1"))
+        .stdout(predicate::str::contains("qp-field2"));
+}
+
+#[test]
+fn test_doctor_duplicates_field_weighting_with_stop_words() {
+    // Test that field weighting (title 2.0, tags 1.5, body 1.0) works correctly
+    // even when stop words are mixed with content words
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Note 1: Unique term "quantum" in title (high weight)
+    let note1_content = r#"---
+id: qp-weight1
+title: The Quantum Computing
+tags: []
+---
+This is a basic note about computing systems."#;
+
+    // Note 2: Same unique term "quantum" in body (low weight)
+    let note2_content = r#"---
+id: qp-weight2
+title: Computing Systems
+tags: []
+---
+This is a note about quantum computing and other systems."#;
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-weight1-quantum-title.md"),
+        note1_content,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".qipu/notes/qp-weight2-quantum-body.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    // These notes share "quantum" and "computing" but in different fields
+    // With stop words filtered ("the", "is", "a", "about", "and", "other"),
+    // similarity should be moderate but not high enough for 0.8 threshold
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.8"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Store is healthy"));
+
+    // At lower threshold (0.3), they should be detected as related
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "0.3"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("near-duplicate"))
+        .stdout(predicate::str::contains("qp-weight1"))
+        .stdout(predicate::str::contains("qp-weight2"));
+}

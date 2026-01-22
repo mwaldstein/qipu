@@ -76,8 +76,20 @@ pub fn execute(
         || prompt_hash.is_some()
         || verified.is_some()
     {
-        note.frontmatter.source = source;
-        note.frontmatter.author = author;
+        note.frontmatter.source = source.clone();
+
+        // Per spec (specs/provenance.md): Web capture defaults
+        // When capturing a webpage (source is provided):
+        // - Set author to user's name (if manual) or "Qipu Clipper" (if automated)
+        // Default to "Qipu Clipper" when source is provided but author is not
+        note.frontmatter.author = if author.is_some() {
+            author
+        } else if source.is_some() {
+            Some("Qipu Clipper".to_string())
+        } else {
+            None
+        };
+
         note.frontmatter.generated_by = generated_by.clone();
         note.frontmatter.prompt_hash = prompt_hash;
 

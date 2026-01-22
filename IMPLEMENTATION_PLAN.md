@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 634 tests pass (228 unit + 252 integration + 6 golden + 7 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
+- Test baseline: 637 tests pass (228 unit + 255 integration + 6 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -274,8 +274,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `tests/cli/provenance.rs:127-180`
   - `tests/cli/capture.rs:346-351`
   - **Learnings**: When `--generated-by` is provided, default `verified` to `false` unless explicitly overridden with `--verified` flag. This allows agents to track LLM-generated content with proper provenance while giving users the ability to pre-verify content if needed. Added comprehensive tests for both the default behavior and explicit override.
-- [ ] Web capture defaults for `source`/`author` are not implemented.
-  - `src/commands/capture.rs:72-87`
+- [x] Web capture defaults for `source`/`author` are not implemented.
+  - `src/commands/capture.rs:72-96`
+  - `tests/cli/capture.rs:354-475`
+  - **Learnings**: Per spec (specs/provenance.md), when capturing a webpage (source is provided) without explicitly providing an author, default to "Qipu Clipper" for automated captures. If both source and author are provided, use the provided author. If neither is provided, don't set author field. Added comprehensive test with 3 scenarios: source-only (defaults to Qipu Clipper), source+author (uses provided author), and no-source (no author field).
 
 ### Structured Logging (`specs/structured-logging.md`)
 - [ ] `--log-level` accepts arbitrary strings (no validation).

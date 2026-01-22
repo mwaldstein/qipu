@@ -32,7 +32,7 @@ pub fn output_human(
 
     let mut final_truncated = truncated;
     let mut note_count = notes.len();
-    let total_notes = notes.len() + excluded_notes.len();
+    let _total_notes = notes.len() + excluded_notes.len();
 
     loop {
         // Calculate currently excluded notes

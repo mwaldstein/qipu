@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 605 tests pass (233 unit + 336 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
+- Test baseline: 613 tests pass (233 unit + 344 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -210,10 +210,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - Learnings: Tests verify that dry-run mode reports conflicts and additions without modifying stores; skip strategy preserves target notes while adding new notes; overwrite strategy replaces conflicting notes with incoming versions
 
 ### Semantic Graph Tests (`specs/semantic-graph.md`)
-- [ ] Add tests for additional standard types and custom inverses.
-  - `src/lib/note/types.rs:92-169`
-  - `src/lib/config.rs:65-79`
-  - `tests/cli/link/add_remove.rs:31-239`
+- [x] Add tests for additional standard types and custom inverses.
+  - `tests/cli/link/add_remove.rs:359-710`
+  - Added 8 new tests covering all standard link types: `part-of`/`has-part`, `follows`/`precedes`, `contradicts`/`contradicted-by`, `answers`/`answered-by`, `refines`/`refined-by`, `same-as` (symmetric), `alias-of`/`has-alias`, and unknown type fallback (`inverse-<type>`)
+  - Each test verifies both forward and inverse link display, semantic inversion with `(virtual)` marker, and proper inverse type transformation
+  - Learnings: All standard types from semantic-graph spec are now comprehensively tested; unknown types correctly fall back to `inverse-<type>` pattern; symmetric types (same-as, related) show same type in both directions
 
 ### Similarity Ranking Tests (`specs/similarity-ranking.md`)
 - [ ] Add tests for default similarity thresholds and field weighting.

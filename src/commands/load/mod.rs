@@ -77,11 +77,41 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     // Load links
     // Get current existing IDs (including newly loaded notes) for edge resolution
     let all_existing_ids = store.existing_ids()?;
-    // With skip strategy, only load links between newly loaded notes
-    let loaded_links_count = if matches!(strategy, LoadStrategy::Skip) {
-        load_links(store, &pack_data.links, &new_ids, &all_existing_ids)?
-    } else {
-        load_links(store, &pack_data.links, &loaded_ids, &all_existing_ids)?
+    // Choose which IDs to use based on strategy:
+    // - skip: only load links between newly loaded notes
+    // - merge-links: load links from loaded notes (new or existing) but only to newly loaded notes
+    // - overwrite: load links from loaded notes to loaded notes
+    let loaded_links_count = match strategy {
+        LoadStrategy::Skip => {
+            // Only load links between newly loaded notes
+            load_links(
+                store,
+                &pack_data.links,
+                &new_ids,
+                &new_ids,
+                &all_existing_ids,
+            )?
+        }
+        LoadStrategy::MergeLinks => {
+            // Load links from loaded notes (new or existing), but only to newly loaded notes
+            load_links(
+                store,
+                &pack_data.links,
+                &loaded_ids,
+                &new_ids,
+                &all_existing_ids,
+            )?
+        }
+        LoadStrategy::Overwrite => {
+            // Load links from and to loaded notes
+            load_links(
+                store,
+                &pack_data.links,
+                &loaded_ids,
+                &loaded_ids,
+                &all_existing_ids,
+            )?
+        }
     };
 
     // Load attachments
@@ -131,7 +161,11 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
     Ok(())
 }
 
-fn write_note_preserving_updated(store: &Store, note: &Note, existing_ids: &HashSet<String>) -> Result<()> {
+fn write_note_preserving_updated(
+    store: &Store,
+    note: &Note,
+    existing_ids: &HashSet<String>,
+) -> Result<()> {
     let path = note
         .path
         .as_ref()
@@ -306,10 +340,15 @@ fn load_notes(
 }
 
 /// Load links from pack into store
+///
+/// # Arguments
+/// * `source_ids` - Only process links FROM notes in this set
+/// * `target_ids` - Only add links TO notes in this set
 fn load_links(
     store: &Store,
     pack_links: &[PackLink],
-    loaded_ids: &HashSet<String>,
+    source_ids: &HashSet<String>,
+    target_ids: &HashSet<String>,
     existing_ids: &HashSet<String>,
 ) -> Result<usize> {
     let mut loaded_count = 0;
@@ -325,16 +364,15 @@ fn load_links(
     }
 
     for (source_id, links) in links_by_source {
-        // Only process links for notes that were actually loaded
-        if loaded_ids.contains(&source_id) {
+        // Only process links for notes that are in source_ids
+        if source_ids.contains(&source_id) {
             // Load the source note
             let mut source_note = store.get_note(&source_id)?;
 
             // Add each link to the note's frontmatter
             for pack_link in links {
-                // Only load links where target note was loaded
-                // This prevents adding links to skipped notes
-                if loaded_ids.contains(&pack_link.to) {
+                // Only load links where target note is in target_ids
+                if target_ids.contains(&pack_link.to) {
                     // Check if link already exists to avoid duplicates
                     let link_exists = source_note.frontmatter.links.iter().any(|l| {
                         l.id == pack_link.to.as_str()

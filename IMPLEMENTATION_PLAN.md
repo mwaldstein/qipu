@@ -3,9 +3,9 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 633 tests pass (228 unit + 252 integration + 6 golden + 6 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
+- Test baseline: 634 tests pass (228 unit + 252 integration + 6 golden + 7 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 130 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
-- Audit Date: 2026-01-21
+- Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
 ---
@@ -254,10 +254,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - **Learnings**: The `get_compacted_ids()` method is the correct API for getting compacted IDs with truncation support. All output formats should indicate when truncation occurs to maintain transparency per spec requirements. Test count increased to 633 tests (252 integration tests, +1 from baseline).
 
 ### Pack (`specs/pack.md`)
-- [ ] `merge-links` only applies when targets were loaded (skips existing notes).
-  - `src/commands/load/mod.rs:319-328`
+- [x] `merge-links` only applies when targets were loaded (skips existing notes).
+   - `src/commands/load/mod.rs:77-97,317-345`
+   - `tests/pack_tests.rs:564-735`
+   - **Root Cause**: The `merge-links` strategy was merging links to ALL notes in `loaded_ids` (which included existing notes when using merge-links), not just to newly loaded notes.
+   - **Fix**: Modified `load_links` function to accept separate `source_ids` and `target_ids` parameters. For `merge-links` strategy, pass `loaded_ids` as source (so existing notes can get new links) but `new_ids` as target (so only links TO newly loaded notes are added). For `skip` strategy, pass `new_ids` for both. For `overwrite`, pass `loaded_ids` for both.
+   - **Learnings**: The distinction between "notes involved in link processing" (source) and "notes that links can point to" (target) is critical for the `merge-links` strategy. This allows enrichment of existing notes with new connections while avoiding links to notes that already existed in the target store.
 - [ ] Pack note `path` is ignored on load.
-  - `src/commands/load/mod.rs:209-283`
+   - `src/commands/load/mod.rs:209-283`
 
 ### Provenance (`specs/provenance.md`)
 - [ ] LLM-generated notes do not default `verified=false`.

@@ -249,9 +249,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Version validation at `src/commands/load/mod.rs:59-72` correctly rejects unsupported pack versions (only 1.0 supported) and store versions higher than STORE_FORMAT_VERSION (currently 1); lower store versions are accepted for backward compatibility per spec requirement
 
 ### Provenance Tests (`specs/provenance.md`)
-- [ ] Add tests for default `verified=false` behavior on LLM-origin notes.
-  - `src/commands/create.rs:49-67`
-  - `tests/cli/provenance.rs:6-123`
+- [x] Add tests for default `verified=false` behavior on LLM-origin notes.
+  - `tests/cli/provenance.rs:127-189` - Added `test_llm_generated_defaults_verified_false()` and `test_llm_generated_can_override_verified()`
+  - Learnings: Tests verify that notes created with `--generated-by` automatically get `verified=false` unless explicitly overridden with `--verified=true`; implementation at `src/commands/create.rs:61-68` correctly sets verified field based on presence of generated_by flag
 
 ---
 

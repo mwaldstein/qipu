@@ -347,6 +347,8 @@ fn test_capture_with_provenance() {
     assert!(note_content.contains("source: https://example.com"));
     assert!(note_content.contains("author: Test Author"));
     assert!(note_content.contains("generated_by: test-agent"));
+    // Per spec: LLM-generated notes should default to verified: false
+    assert!(note_content.contains("verified: false"));
 }
 
 #[test]

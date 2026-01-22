@@ -78,9 +78,17 @@ pub fn execute(
     {
         note.frontmatter.source = source;
         note.frontmatter.author = author;
-        note.frontmatter.generated_by = generated_by;
+        note.frontmatter.generated_by = generated_by.clone();
         note.frontmatter.prompt_hash = prompt_hash;
-        note.frontmatter.verified = verified;
+
+        // Per spec (specs/provenance.md): When an agent generates a note, set verified: false by default
+        note.frontmatter.verified = if verified.is_some() {
+            verified
+        } else if generated_by.is_some() {
+            Some(false)
+        } else {
+            None
+        };
 
         // Save the updated note
         store.save_note(&mut note)?;

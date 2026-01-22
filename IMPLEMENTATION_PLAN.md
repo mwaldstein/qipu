@@ -268,9 +268,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
    - **Learnings**: Pack files already included the `path` field (line 36 in dump/serialize.rs), but it wasn't being consumed during load. This preserves the original file structure when round-tripping through pack/unpack. Added comprehensive test `test_pack_preserves_note_paths` to verify path preservation across dump/load cycle.
 
 ### Provenance (`specs/provenance.md`)
-- [ ] LLM-generated notes do not default `verified=false`.
+- [x] LLM-generated notes do not default `verified=false`.
   - `src/commands/create.rs:49-67`
   - `src/commands/capture.rs:72-87`
+  - `tests/cli/provenance.rs:127-180`
+  - `tests/cli/capture.rs:346-351`
+  - **Learnings**: When `--generated-by` is provided, default `verified` to `false` unless explicitly overridden with `--verified` flag. This allows agents to track LLM-generated content with proper provenance while giving users the ability to pre-verify content if needed. Added comprehensive tests for both the default behavior and explicit override.
 - [ ] Web capture defaults for `source`/`author` are not implemented.
   - `src/commands/capture.rs:72-87`
 

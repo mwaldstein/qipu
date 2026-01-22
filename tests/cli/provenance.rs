@@ -122,3 +122,68 @@ fn test_context_prioritizes_verified() {
         .success()
         .stdout(predicate::str::is_match("Verified Note[\\s\\S]*Unverified Note").unwrap());
 }
+
+#[test]
+fn test_llm_generated_defaults_verified_false() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create note with --generated-by but no --verified flag
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--generated-by", "gpt-4o", "LLM Generated Note"])
+        .output()
+        .unwrap();
+
+    let id = extract_id(&output);
+
+    // Verify that verified=false was set automatically
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "show", &id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"generated_by\": \"gpt-4o\""))
+        .stdout(predicate::str::contains("\"verified\": false"));
+}
+
+#[test]
+fn test_llm_generated_can_override_verified() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create note with --generated-by AND --verified=true (explicit override)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--generated-by",
+            "gpt-4o",
+            "--verified",
+            "true",
+            "Pre-verified LLM Note",
+        ])
+        .output()
+        .unwrap();
+
+    let id = extract_id(&output);
+
+    // Verify that the explicit verified=true was used instead of default false
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "show", &id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"generated_by\": \"gpt-4o\""))
+        .stdout(predicate::str::contains("\"verified\": true"));
+}

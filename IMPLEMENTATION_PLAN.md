@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 625 tests pass (239 unit + 350 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
+- Test baseline: 630 tests pass (239 unit + 355 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -227,9 +227,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: Stop-word filtering is implemented in `src/lib/text/mod.rs:32-40` and used by the similarity engine for duplicate detection (via `qipu doctor --duplicates`), not for FTS5 full-text search; FTS5 uses SQLite's Porter stemmer tokenizer which does not filter stop words; end-to-end tests verify stop-word filtering works correctly in the context of duplicate detection using the `doctor` command
 
 ### Pack Tests (`specs/pack.md`)
-- [ ] Add tests for `--tag`, `--moc`, `--query`, and "no selectors" dump.
-  - `src/commands/dump/mod.rs:117-158`
-  - `tests/cli/dump.rs:5-789`
+- [x] Add tests for `--tag`, `--moc`, `--query`, and "no selectors" dump.
+  - `tests/cli/dump.rs:793-1320` - Added 5 comprehensive tests for dump selection modes
+  - Added `test_dump_by_tag()` - Verifies `--tag` selector includes only notes with matching tag
+  - Added `test_dump_by_moc()` - Verifies `--moc` selector includes notes linked from MOC
+  - Added `test_dump_by_query()` - Verifies `--query` selector includes notes matching search query
+  - Added `test_dump_no_selectors_full_store()` - Verifies default behavior dumps entire store with all notes and links preserved
+  - Added `test_dump_tag_with_traversal()` - Verifies combining `--tag` selector with `--max-hops` traversal expands to include linked notes
+  - Learnings: All four selection modes work correctly as specified; no selectors dumps full store; selectors can be combined with traversal options for graph expansion
 - [ ] Add tests for attachments round-trip and `--no-attachments`.
   - `src/commands/dump/mod.rs:344-392`
   - `src/commands/load/mod.rs:362-395`

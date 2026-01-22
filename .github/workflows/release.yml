@@ -1,9 +1,15 @@
 name: Release
 
+# =============================================================================
+# WORKFLOW DISABLED - GitHub Actions is not enabled on this account
+# =============================================================================
+# This workflow should not be re-enabled until GitHub Actions is properly
+# set up and configured for the account. Currently waiting on this external
+# dependency to be resolved before automated releases can function.
+# =============================================================================
+
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch: # Manual trigger only
 
 env:
   CARGO_TERM_COLOR: always

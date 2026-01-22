@@ -274,9 +274,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### Similarity Engine (`src/lib/similarity`)
 - [ ] Modularize `src/lib/similarity/mod.rs` (1082 lines).
-  - Extract TF-IDF and vector math to `src/lib/similarity/tfidf.rs`.
-  - Extract duplicate detection to `src/lib/similarity/duplicates.rs`.
-  - Extract tag-based similarity to `src/lib/similarity/tags.rs`.
+  - [x] Extract TF-IDF and vector math to `src/lib/similarity/tfidf.rs`.
+    - Learnings: Created `tfidf.rs` module with `cosine_similarity()` and `get_tfidf_vector()` public functions; updated mod.rs to import and use these functions; removed original private methods; all 10 similarity tests pass
+  - [ ] Extract duplicate detection to `src/lib/similarity/duplicates.rs`.
+  - [ ] Extract tag-based similarity to `src/lib/similarity/tags.rs`.
 
 ### CLI Commands (`src/commands`)
 - [ ] Refactor `src/commands/list.rs` (758 lines).

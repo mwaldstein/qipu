@@ -1,5 +1,7 @@
 //! Similarity engine for finding related notes and duplicates
 
+mod tfidf;
+
 use crate::lib::index::types::Index;
 use std::collections::HashMap;
 
@@ -39,11 +41,10 @@ impl<'a> SimilarityEngine<'a> {
             return 0.0;
         }
 
-        // Get TF-IDF weighted vectors for both notes
-        let vec_a = self.get_tfidf_vector(term_freqs_a);
-        let vec_b = self.get_tfidf_vector(term_freqs_b);
+        let vec_a = tfidf::get_tfidf_vector(self.index, term_freqs_a);
+        let vec_b = tfidf::get_tfidf_vector(self.index, term_freqs_b);
 
-        self.cosine_similarity(&vec_a, &vec_b)
+        tfidf::cosine_similarity(&vec_a, &vec_b)
     }
 
     /// Get top N similar notes for a given note
@@ -176,50 +177,6 @@ impl<'a> SimilarityEngine<'a> {
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results.truncate(limit);
         results
-    }
-
-    /// Calculate cosine similarity between two weighted vectors
-    fn cosine_similarity(&self, vec_a: &HashMap<String, f64>, vec_b: &HashMap<String, f64>) -> f64 {
-        let mut dot_product = 0.0;
-        let mut norm_a = 0.0;
-        let mut norm_b = 0.0;
-
-        for (term, weight) in vec_a {
-            norm_a += weight * weight;
-            if let Some(weight_b) = vec_b.get(term) {
-                dot_product += weight * weight_b;
-            }
-        }
-
-        for weight in vec_b.values() {
-            norm_b += weight * weight;
-        }
-
-        if norm_a == 0.0 || norm_b == 0.0 {
-            return 0.0;
-        }
-
-        dot_product / (norm_a.sqrt() * norm_b.sqrt())
-    }
-
-    /// Get TF-IDF weighted vector for a note
-    fn get_tfidf_vector(&self, term_freqs: &HashMap<String, f64>) -> HashMap<String, f64> {
-        let mut vector = HashMap::new();
-        let total_docs = self.index.total_docs as f64;
-
-        for (term, &tf) in term_freqs {
-            let df = *self.index.term_df.get(term).unwrap_or(&1) as f64;
-            // IDF formula with smoothing to avoid zero: log((N + 1) / (df + 1)) + 1
-            // This ensures IDF is always positive even when df == N
-            let idf = ((total_docs + 1.0) / (df + 1.0)).ln() + 1.0;
-
-            // TF-IDF weight = TF * IDF
-            // TF already includes field weighting from index builder
-            let weight = tf * idf;
-            vector.insert(term.clone(), weight);
-        }
-
-        vector
     }
 }
 

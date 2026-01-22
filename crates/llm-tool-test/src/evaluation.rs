@@ -69,98 +69,147 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     let mut details = Vec::new();
     let mut gates_passed = 0;
 
-    let note_count = count_notes(env_root).unwrap_or(0);
-    let link_count = count_links(env_root).unwrap_or(0);
-
     for gate in &scenario.evaluation.gates {
         let result = match gate {
             Gate::MinNotes { count } => {
-                let passed = note_count >= *count;
-                GateResult {
-                    gate_type: "MinNotes".to_string(),
-                    passed,
-                    message: format!("Expected >= {}, found {}", count, note_count),
+                match count_notes(env_root).context("Failed to count notes") {
+                    Ok(note_count) => {
+                        let passed = note_count >= *count;
+                        GateResult {
+                            gate_type: "MinNotes".to_string(),
+                            passed,
+                            message: format!("Expected >= {}, found {}", count, note_count),
+                        }
+                    }
+                    Err(e) => GateResult {
+                        gate_type: "MinNotes".to_string(),
+                        passed: false,
+                        message: format!("Evaluation error: {:#}", e),
+                    },
                 }
             }
             Gate::MinLinks { count } => {
-                let passed = link_count >= *count;
-                GateResult {
-                    gate_type: "MinLinks".to_string(),
-                    passed,
-                    message: format!("Expected >= {}, found {}", count, link_count),
+                match count_links(env_root).context("Failed to count links") {
+                    Ok(link_count) => {
+                        let passed = link_count >= *count;
+                        GateResult {
+                            gate_type: "MinLinks".to_string(),
+                            passed,
+                            message: format!("Expected >= {}, found {}", count, link_count),
+                        }
+                    }
+                    Err(e) => GateResult {
+                        gate_type: "MinLinks".to_string(),
+                        passed: false,
+                        message: format!("Evaluation error: {:#}", e),
+                    },
                 }
             }
-            Gate::SearchHit { query } => {
-                let hit = search_hit(query, env_root).unwrap_or(false);
-                GateResult {
+            Gate::SearchHit { query } => match search_hit(query, env_root) {
+                Ok(hit) => GateResult {
                     gate_type: "SearchHit".to_string(),
                     passed: hit,
                     message: format!("Query '{}' found: {}", query, hit),
-                }
-            }
-            Gate::NoteExists { id } => {
-                let exists = note_exists(id, env_root).unwrap_or(false);
-                GateResult {
+                },
+                Err(e) => GateResult {
+                    gate_type: "SearchHit".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
+            Gate::NoteExists { id } => match note_exists(id, env_root) {
+                Ok(exists) => GateResult {
                     gate_type: "NoteExists".to_string(),
                     passed: exists,
                     message: format!("Note '{}' exists: {}", id, exists),
-                }
-            }
+                },
+                Err(e) => GateResult {
+                    gate_type: "NoteExists".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
             Gate::LinkExists {
                 from,
                 to,
                 link_type,
-            } => {
-                let exists = link_exists(from, to, link_type, env_root).unwrap_or(false);
-                GateResult {
+            } => match link_exists(from, to, link_type, env_root) {
+                Ok(exists) => GateResult {
                     gate_type: "LinkExists".to_string(),
                     passed: exists,
                     message: format!(
                         "Link {} --[{}]--> {} exists: {}",
                         from, link_type, to, exists
                     ),
-                }
-            }
-            Gate::TagExists { tag } => {
-                let exists = tag_exists(tag, env_root).unwrap_or(false);
-                GateResult {
+                },
+                Err(e) => GateResult {
+                    gate_type: "LinkExists".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
+            Gate::TagExists { tag } => match tag_exists(tag, env_root) {
+                Ok(exists) => GateResult {
                     gate_type: "TagExists".to_string(),
                     passed: exists,
                     message: format!("Tag '{}' exists: {}", tag, exists),
-                }
-            }
+                },
+                Err(e) => GateResult {
+                    gate_type: "TagExists".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
             Gate::ContentContains { id, substring } => {
-                let contains = content_contains(id, substring, env_root).unwrap_or(false);
-                GateResult {
-                    gate_type: "ContentContains".to_string(),
-                    passed: contains,
-                    message: format!("Note '{}' contains '{}': {}", id, substring, contains),
+                match content_contains(id, substring, env_root) {
+                    Ok(contains) => GateResult {
+                        gate_type: "ContentContains".to_string(),
+                        passed: contains,
+                        message: format!("Note '{}' contains '{}': {}", id, substring, contains),
+                    },
+                    Err(e) => GateResult {
+                        gate_type: "ContentContains".to_string(),
+                        passed: false,
+                        message: format!("Evaluation error: {:#}", e),
+                    },
                 }
             }
-            Gate::CommandSucceeds { command } => {
-                let succeeds = command_succeeds(command, env_root).unwrap_or(false);
-                GateResult {
+            Gate::CommandSucceeds { command } => match command_succeeds(command, env_root) {
+                Ok(succeeds) => GateResult {
                     gate_type: "CommandSucceeds".to_string(),
                     passed: succeeds,
                     message: format!("Command '{}' succeeded: {}", command, succeeds),
-                }
-            }
-            Gate::DoctorPasses => {
-                let passes = doctor_passes(env_root).unwrap_or(false);
-                GateResult {
+                },
+                Err(e) => GateResult {
+                    gate_type: "CommandSucceeds".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
+            Gate::DoctorPasses => match doctor_passes(env_root) {
+                Ok(passes) => GateResult {
                     gate_type: "DoctorPasses".to_string(),
                     passed: passes,
                     message: format!("Store passes 'qipu doctor': {}", passes),
-                }
-            }
-            Gate::NoTranscriptErrors => {
-                let no_errors = no_transcript_errors(env_root).unwrap_or(false);
-                GateResult {
+                },
+                Err(e) => GateResult {
+                    gate_type: "DoctorPasses".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
+            Gate::NoTranscriptErrors => match no_transcript_errors(env_root) {
+                Ok(no_errors) => GateResult {
                     gate_type: "NoTranscriptErrors".to_string(),
                     passed: no_errors,
                     message: format!("Transcript has no command errors: {}", no_errors),
-                }
-            }
+                },
+                Err(e) => GateResult {
+                    gate_type: "NoTranscriptErrors".to_string(),
+                    passed: false,
+                    message: format!("Evaluation error: {:#}", e),
+                },
+            },
         };
 
         if result.passed {
@@ -217,8 +266,28 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         }
     }
 
-    let efficiency = compute_efficiency_metrics(env_root)?;
-    let quality = compute_quality_metrics(env_root)?;
+    // Compute supplementary metrics (fallback to defaults on error)
+    let efficiency = compute_efficiency_metrics(env_root).unwrap_or_else(|_| EfficiencyMetrics {
+        total_commands: 0,
+        unique_commands: 0,
+        error_count: 0,
+        retry_count: 0,
+        help_invocations: 0,
+        first_try_success_rate: 0.0,
+        iteration_ratio: 0.0,
+    });
+    let quality = compute_quality_metrics(env_root).unwrap_or_else(|_| QualityMetrics {
+        avg_title_length: 0.0,
+        avg_body_length: 0.0,
+        avg_tags_per_note: 0.0,
+        notes_without_tags: 0,
+        links_per_note: 0.0,
+        orphan_notes: 0,
+        link_type_diversity: 0,
+        type_distribution: std::collections::HashMap::new(),
+        total_notes: 0,
+        total_links: 0,
+    });
     let composite_score = compute_composite_score(
         judge_score,
         gates_passed,
@@ -226,6 +295,11 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
         &efficiency,
         &quality,
     );
+
+    // Compute counts for final metrics (failures are gracefully handled)
+    let note_count = count_notes(env_root).unwrap_or(0);
+    let link_count = count_links(env_root).unwrap_or(0);
+
     let metrics = EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
@@ -337,73 +411,50 @@ fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
 }
 
 fn note_exists(id: &str, env_root: &Path) -> Result<bool> {
-    let json = run_qipu_json(&["show", id], env_root);
-    match json {
-        Ok(value) => {
-            // If we get a valid JSON response with an "id" field, the note exists
-            if value.get("id").is_some() {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
-        Err(_) => Ok(false),
-    }
+    let json = run_qipu_json(&["show", id], env_root).context("Failed to run qipu show")?;
+    // If we get a valid JSON response with an "id" field, the note exists
+    Ok(json.get("id").is_some())
 }
 
 fn link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> Result<bool> {
-    let json = run_qipu_json(&["link", "list", from], env_root);
-    match json {
-        Ok(value) => {
-            if let Some(arr) = value.as_array() {
-                for link in arr {
-                    let id = link.get("id").and_then(|v| v.as_str());
-                    let typ = link.get("type").and_then(|v| v.as_str());
-                    if id == Some(to) && typ == Some(link_type) {
-                        return Ok(true);
-                    }
-                }
+    let json =
+        run_qipu_json(&["link", "list", from], env_root).context("Failed to run qipu link list")?;
+    if let Some(arr) = json.as_array() {
+        for link in arr {
+            let id = link.get("id").and_then(|v| v.as_str());
+            let typ = link.get("type").and_then(|v| v.as_str());
+            if id == Some(to) && typ == Some(link_type) {
+                return Ok(true);
             }
-            Ok(false)
         }
-        Err(_) => Ok(false),
     }
+    Ok(false)
 }
 
 fn tag_exists(tag: &str, env_root: &Path) -> Result<bool> {
-    let json = run_qipu_json(&["list"], env_root);
-    match json {
-        Ok(value) => {
-            if let Some(arr) = value.as_array() {
-                for note in arr {
-                    if let Some(tags) = note.get("tags").and_then(|v| v.as_array()) {
-                        for t in tags {
-                            if let Some(tag_str) = t.as_str() {
-                                if tag_str == tag {
-                                    return Ok(true);
-                                }
-                            }
+    let json = run_qipu_json(&["list"], env_root).context("Failed to run qipu list")?;
+    if let Some(arr) = json.as_array() {
+        for note in arr {
+            if let Some(tags) = note.get("tags").and_then(|v| v.as_array()) {
+                for t in tags {
+                    if let Some(tag_str) = t.as_str() {
+                        if tag_str == tag {
+                            return Ok(true);
                         }
                     }
                 }
             }
-            Ok(false)
         }
-        Err(_) => Ok(false),
     }
+    Ok(false)
 }
 
 fn content_contains(id: &str, substring: &str, env_root: &Path) -> Result<bool> {
-    let json = run_qipu_json(&["show", id], env_root);
-    match json {
-        Ok(value) => {
-            let title = value.get("title").and_then(|v| v.as_str()).unwrap_or("");
-            let body = value.get("body").and_then(|v| v.as_str()).unwrap_or("");
-            let content = format!("{}\n{}", title, body);
-            Ok(content.contains(substring))
-        }
-        Err(_) => Ok(false),
-    }
+    let json = run_qipu_json(&["show", id], env_root).context("Failed to run qipu show")?;
+    let title = json.get("title").and_then(|v| v.as_str()).unwrap_or("");
+    let body = json.get("body").and_then(|v| v.as_str()).unwrap_or("");
+    let content = format!("{}\n{}", title, body);
+    Ok(content.contains(substring))
 }
 
 fn command_succeeds(command: &str, env_root: &Path) -> Result<bool> {
@@ -439,67 +490,24 @@ fn doctor_passes(env_root: &Path) -> Result<bool> {
 
 fn no_transcript_errors(env_root: &Path) -> Result<bool> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
-    match std::fs::read_to_string(&transcript_path) {
-        Ok(content) => {
-            let metrics = TranscriptAnalyzer::analyze_with_exit_codes(&content);
-            Ok(metrics.error_count == 0)
-        }
-        Err(_) => {
-            // If no transcript exists, we can't verify - fail the gate
-            Ok(false)
-        }
-    }
+    let content = std::fs::read_to_string(&transcript_path)
+        .context("Failed to read transcript file (missing or unreadable)")?;
+    let metrics = TranscriptAnalyzer::analyze_with_exit_codes(&content);
+    Ok(metrics.error_count == 0)
 }
 
 fn compute_efficiency_metrics(env_root: &Path) -> Result<EfficiencyMetrics> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
-    match std::fs::read_to_string(&transcript_path) {
-        Ok(content) => Ok(TranscriptAnalyzer::analyze_with_exit_codes(&content)),
-        Err(_) => Ok(EfficiencyMetrics {
-            total_commands: 0,
-            unique_commands: 0,
-            error_count: 0,
-            retry_count: 0,
-            help_invocations: 0,
-            first_try_success_rate: 0.0,
-            iteration_ratio: 0.0,
-        }),
-    }
+    let content = std::fs::read_to_string(&transcript_path)
+        .context("Failed to read transcript file for efficiency metrics")?;
+    Ok(TranscriptAnalyzer::analyze_with_exit_codes(&content))
 }
 
 fn compute_quality_metrics(env_root: &Path) -> Result<QualityMetrics> {
-    match run_qipu_json(&["export"], env_root) {
-        Ok(json) => {
-            let export_json = serde_json::to_string(&json).unwrap_or_else(|_| "{}".to_string());
-            match StoreAnalyzer::analyze(&export_json) {
-                Ok(metrics) => Ok(metrics),
-                Err(_) => Ok(QualityMetrics {
-                    avg_title_length: 0.0,
-                    avg_body_length: 0.0,
-                    avg_tags_per_note: 0.0,
-                    notes_without_tags: 0,
-                    links_per_note: 0.0,
-                    orphan_notes: 0,
-                    link_type_diversity: 0,
-                    type_distribution: std::collections::HashMap::new(),
-                    total_notes: 0,
-                    total_links: 0,
-                }),
-            }
-        }
-        Err(_) => Ok(QualityMetrics {
-            avg_title_length: 0.0,
-            avg_body_length: 0.0,
-            avg_tags_per_note: 0.0,
-            notes_without_tags: 0,
-            links_per_note: 0.0,
-            orphan_notes: 0,
-            link_type_diversity: 0,
-            type_distribution: std::collections::HashMap::new(),
-            total_notes: 0,
-            total_links: 0,
-        }),
-    }
+    let json = run_qipu_json(&["export"], env_root)
+        .context("Failed to run qipu export for quality metrics")?;
+    let export_json = serde_json::to_string(&json).context("Failed to serialize export JSON")?;
+    StoreAnalyzer::analyze(&export_json).context("Failed to analyze store quality")
 }
 
 fn compute_composite_score(

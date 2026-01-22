@@ -340,9 +340,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Fix MinLinks gate no-op in mock adapter.
   - `crates/llm-tool-test/src/adapter/mock.rs:133-149` - Implemented MinLinks gate to create N+1 notes in a chain where each note (except the first) links to the previous note, resulting in exactly N links
   - **Learnings**: The mock adapter generates fixture commands for each gate type to satisfy evaluation criteria; MinLinks now creates a chain of notes with inline wiki links to achieve the required link count
-- [ ] Avoid error-swallowing defaults in evaluation metrics.
-  - `crates/llm-tool-test/src/evaluation.rs:72-114`
-  - `crates/llm-tool-test/src/evaluation.rs:410-458`
+- [x] Avoid error-swallowing defaults in evaluation metrics.
+  - `crates/llm-tool-test/src/evaluation.rs:66-236` - Removed `.unwrap_or()` calls in gate evaluation; errors now propagate with descriptive messages
+  - `crates/llm-tool-test/src/evaluation.rs:375-435` - Fixed `note_exists`, `link_exists`, `tag_exists`, `content_contains` to propagate errors instead of returning false
+  - `crates/llm-tool-test/src/evaluation.rs:464-473,490-496` - Fixed `no_transcript_errors`, `compute_efficiency_metrics`, `compute_quality_metrics` to propagate errors properly
+  - **Learnings**: Errors during gate evaluation (e.g., qipu command failures, file I/O errors) are now shown in gate result messages with "Evaluation error:" prefix instead of being silently treated as test failures; supplementary metrics (efficiency, quality) gracefully fall back to zero values if computation fails; this distinguishes between "test condition not met" and "could not evaluate test"
 
 ### Knowledge Model (`specs/knowledge-model.md`)
 - [ ] Add quality bar / rationale validation and duplicate detection (future).

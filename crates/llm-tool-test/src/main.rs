@@ -145,8 +145,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Compare { run_ids } => {
             commands::handle_compare_command(run_ids, &results_db)?;
         }
-        Commands::Clean => {
-            commands::handle_clean_command(&cache)?;
+        Commands::Report => {
+            commands::handle_report_command(&results_db)?;
+        }
+        Commands::Clean { older_than } => {
+            commands::handle_clean_command(&cache, older_than, &base_dir)?;
         }
         Commands::Review {
             run_id,

@@ -3,7 +3,8 @@ use crate::output;
 use crate::results::{Cache, ResultsDB};
 use crate::run;
 use crate::scenario::load;
-use chrono::Utc;
+use chrono::{Duration, Utc};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
@@ -274,11 +275,216 @@ pub fn handle_compare_command(run_ids: &[String], results_db: &ResultsDB) -> any
     Ok(())
 }
 
-pub fn handle_clean_command(cache: &Cache) -> anyhow::Result<()> {
+pub fn handle_report_command(results_db: &ResultsDB) -> anyhow::Result<()> {
+    let records = results_db.load_all()?;
+
+    if records.is_empty() {
+        println!("No test runs found");
+        return Ok(());
+    }
+
+    // Group by scenario
+    let mut by_scenario: HashMap<String, Vec<_>> = HashMap::new();
+    for record in &records {
+        by_scenario
+            .entry(record.scenario_id.clone())
+            .or_default()
+            .push(record);
+    }
+
+    println!("# LLM Tool Test Summary Report\n");
+    println!("Generated: {}\n", Utc::now().format("%Y-%m-%d %H:%M:%S"));
+    println!("Total runs: {}\n", records.len());
+
+    // Overall statistics
+    let total_cost: f64 = records.iter().map(|r| r.cost_usd).sum();
+    let avg_cost = total_cost / records.len() as f64;
+    let total_duration: f64 = records.iter().map(|r| r.duration_secs).sum();
+    let avg_duration = total_duration / records.len() as f64;
+    let pass_count = records.iter().filter(|r| r.gates_passed).count();
+    let pass_rate = (pass_count as f64 / records.len() as f64) * 100.0;
+
+    println!("## Overall Statistics");
+    println!(
+        "- Pass rate: {:.1}% ({}/{})",
+        pass_rate,
+        pass_count,
+        records.len()
+    );
+    println!("- Total cost: ${:.2}", total_cost);
+    println!("- Average cost per run: ${:.4}", avg_cost);
+    println!("- Total duration: {:.1}s", total_duration);
+    println!("- Average duration per run: {:.1}s\n", avg_duration);
+
+    // Per-scenario breakdown
+    println!("## Scenarios\n");
+    let mut scenario_names: Vec<_> = by_scenario.keys().collect();
+    scenario_names.sort();
+
+    for scenario_name in scenario_names {
+        let scenario_records = &by_scenario[scenario_name];
+        let scenario_pass_count = scenario_records.iter().filter(|r| r.gates_passed).count();
+        let scenario_pass_rate =
+            (scenario_pass_count as f64 / scenario_records.len() as f64) * 100.0;
+        let scenario_avg_score: f64 = scenario_records
+            .iter()
+            .filter_map(|r| r.judge_score)
+            .sum::<f64>()
+            / scenario_records
+                .iter()
+                .filter(|r| r.judge_score.is_some())
+                .count()
+                .max(1) as f64;
+
+        println!("### {}", scenario_name);
+        println!("- Runs: {}", scenario_records.len());
+        println!(
+            "- Pass rate: {:.1}% ({}/{})",
+            scenario_pass_rate,
+            scenario_pass_count,
+            scenario_records.len()
+        );
+        if scenario_records.iter().any(|r| r.judge_score.is_some()) {
+            println!("- Average judge score: {:.2}", scenario_avg_score);
+        }
+
+        // Group by tool
+        let mut by_tool: HashMap<String, Vec<_>> = HashMap::new();
+        for record in scenario_records.iter() {
+            by_tool
+                .entry(record.tool.clone())
+                .or_default()
+                .push(*record);
+        }
+
+        for (tool, tool_records) in by_tool.iter() {
+            let tool_pass_count = tool_records.iter().filter(|r| r.gates_passed).count();
+            let tool_pass_rate = (tool_pass_count as f64 / tool_records.len() as f64) * 100.0;
+            let latest = tool_records.iter().max_by_key(|r| r.timestamp).unwrap();
+
+            println!(
+                "  - {}: {:.1}% pass rate, latest: {} ({})",
+                tool, tool_pass_rate, latest.outcome, latest.id
+            );
+        }
+        println!();
+    }
+
+    // Recent runs
+    let mut sorted_records = records.clone();
+    sorted_records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    println!("## Recent Runs (last 10)\n");
+    for record in sorted_records.iter().take(10) {
+        let status = if record.gates_passed { "✓" } else { "✗" };
+        println!(
+            "- {} [{}] {} / {} - {} (${:.4}, {:.1}s)",
+            status,
+            record.id,
+            record.scenario_id,
+            record.tool,
+            record.outcome,
+            record.cost_usd,
+            record.duration_secs
+        );
+    }
+
+    Ok(())
+}
+
+pub fn handle_clean_command(
+    cache: &Cache,
+    older_than: &Option<String>,
+    base_dir: &PathBuf,
+) -> anyhow::Result<()> {
+    let cutoff_time = if let Some(duration_str) = older_than {
+        let duration = parse_duration(duration_str)?;
+        Some(Utc::now() - duration)
+    } else {
+        None
+    };
+
+    // Clean cache
     println!("Cleaning cache...");
     cache.clear()?;
     println!("Cache cleared");
+
+    // Clean old transcripts
+    let transcripts_dir = base_dir.join("transcripts");
+    if !transcripts_dir.exists() {
+        println!("No transcripts directory found");
+        return Ok(());
+    }
+
+    let mut removed_count = 0;
+    let mut kept_count = 0;
+
+    for entry in std::fs::read_dir(&transcripts_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if !path.is_dir() {
+            continue;
+        }
+
+        // Check if we should delete based on age
+        let should_delete = if let Some(cutoff) = cutoff_time {
+            // Get the modification time of the directory
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                if let Ok(modified) = metadata.modified() {
+                    let modified_datetime = chrono::DateTime::<Utc>::from(modified);
+                    modified_datetime < cutoff
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            // If no cutoff time specified, delete all
+            true
+        };
+
+        if should_delete {
+            if let Err(e) = std::fs::remove_dir_all(&path) {
+                eprintln!("Warning: Failed to remove {}: {}", path.display(), e);
+            } else {
+                removed_count += 1;
+            }
+        } else {
+            kept_count += 1;
+        }
+    }
+
+    if let Some(duration_str) = older_than {
+        println!(
+            "Cleaned {} transcript(s) older than {}, kept {}",
+            removed_count, duration_str, kept_count
+        );
+    } else {
+        println!("Cleaned {} transcript(s)", removed_count);
+    }
+
     Ok(())
+}
+
+fn parse_duration(s: &str) -> anyhow::Result<Duration> {
+    let re = regex::Regex::new(r"^(\d+)([dhm])$")?;
+    let caps = re.captures(s).ok_or_else(|| {
+        anyhow::anyhow!("Invalid duration format. Use format like '30d', '7d', '1h'")
+    })?;
+
+    let value: i64 = caps[1].parse()?;
+    let unit = &caps[2];
+
+    let duration = match unit {
+        "d" => Duration::days(value),
+        "h" => Duration::hours(value),
+        "m" => Duration::minutes(value),
+        _ => anyhow::bail!("Invalid duration unit. Use 'd' (days), 'h' (hours), or 'm' (minutes)"),
+    };
+
+    Ok(duration)
 }
 
 pub fn handle_review_command(

@@ -89,8 +89,14 @@ pub enum Commands {
         #[arg(required = true)]
         run_ids: Vec<String>,
     },
+    /// Generate summary report
+    Report,
     /// Clean up artifacts
-    Clean,
+    Clean {
+        /// Clean artifacts older than duration (e.g., "30d", "7d", "1h")
+        #[arg(long)]
+        older_than: Option<String>,
+    },
     /// Add human review to a run
     Review {
         /// Run ID to review

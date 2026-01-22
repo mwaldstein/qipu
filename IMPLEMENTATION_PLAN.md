@@ -92,8 +92,11 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - All four adapters (mock, amp, opencode, claude_code) implement the new trait methods
   - Legacy `check_availability()` and `run()` methods preserved for backward compatibility during migration
   - **Learnings**: The new trait interface provides better separation of concerns with explicit types for status, context, and results. The execute_task method now properly handles transcript directory for artifact generation. Cost estimation is now a separate concern with its own type.
-- [ ] Missing `report` subcommand and `clean --older-than` support.
-  - `crates/llm-tool-test/src/cli.rs:11-115`
+- [x] Missing `report` subcommand and `clean --older-than` support.
+  - `crates/llm-tool-test/src/cli.rs:93-99` - Added `Report` subcommand and `--older-than` optional flag to `Clean` command
+  - `crates/llm-tool-test/src/main.rs:148-152` - Added command dispatch for `Report` and updated `Clean` to pass parameters
+  - `crates/llm-tool-test/src/commands.rs:277-421` - Implemented `handle_report_command()` which generates summary statistics grouped by scenario and tool, plus recent runs. Implemented `parse_duration()` helper for parsing duration strings like "30d", "7d", "1h". Updated `handle_clean_command()` to accept `older_than` parameter and clean transcripts based on modification time
+  - **Learnings**: The report command provides a comprehensive overview of test runs including pass rates, costs, and performance metrics aggregated by scenario and tool. The clean command now supports optional time-based filtering using standard duration formats (d/h/m) for better maintenance of large test result sets.
 
 ### Workspaces (`specs/workspaces.md`)
 - [ ] `rename` merge strategy is not supported.

@@ -19,7 +19,7 @@ pub fn output_json(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     max_chars: Option<usize>,
-    excluded_notes: &[&SelectedNote],
+    _excluded_notes: &[&SelectedNote],
     include_custom: bool,
 ) -> Result<()> {
     let start = Instant::now();
@@ -31,49 +31,25 @@ pub fn output_json(
         );
     }
 
-    let mut final_truncated = truncated;
-    let mut note_count = notes.len();
+    let output = build_json_output(
+        cli,
+        store_path,
+        notes,
+        truncated,
+        with_body,
+        compaction_ctx,
+        note_map,
+        all_notes,
+        max_chars,
+        include_custom,
+    );
 
-    loop {
-        let output = build_json_output(
-            cli,
-            store_path,
-            &notes[..note_count],
-            final_truncated,
-            with_body,
-            compaction_ctx,
-            note_map,
-            all_notes,
-            excluded_notes,
-            include_custom,
-        );
+    println!("{}", serde_json::to_string_pretty(&output)?);
 
-        let output_str = serde_json::to_string_pretty(&output)?;
-
-        if max_chars.is_none() || output_str.len() <= max_chars.unwrap() {
-            println!("{}", output_str);
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "output_json_complete");
-            }
-            return Ok(());
-        }
-
-        if note_count > 0 {
-            note_count -= 1;
-            final_truncated = true;
-        } else {
-            let minimal = serde_json::json!({
-                "store": store_path,
-                "truncated": true,
-                "notes": []
-            });
-            println!("{}", serde_json::to_string_pretty(&minimal)?);
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "output_json_complete");
-            }
-            return Ok(());
-        }
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "output_json_complete");
     }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -86,26 +62,49 @@ fn build_json_output(
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
-    excluded_notes: &[&SelectedNote],
+    max_chars: Option<usize>,
     include_custom: bool,
 ) -> serde_json::Value {
-    let mut output = serde_json::json!({
+    let output = serde_json::json!({
         "store": store_path,
         "truncated": truncated,
-        "notes": notes.iter().map(|selected| {
+        "notes": notes.iter().enumerate().map(|(idx, selected)| {
             let note = selected.note;
+            let is_last_note = idx == notes.len() - 1;
             let content = if with_body {
                 note.body.clone()
             } else {
                 note.summary()
             };
+
+            let (final_content, content_truncated) = if is_last_note {
+                if let Some(budget) = max_chars {
+                    let marker = "…[truncated]";
+                    if content.len() > marker.len() + 10 {
+                        let available = budget.saturating_sub(1000);
+                        if available > marker.len() && content.len() > available {
+                            let truncated = &content[..available.saturating_sub(marker.len())];
+                            (format!("{} {}", truncated, marker), true)
+                        } else {
+                            (content, false)
+                        }
+                    } else {
+                        (content, false)
+                    }
+                } else {
+                    (content, false)
+                }
+            } else {
+                (content, false)
+            };
+
             let mut json = serde_json::json!({
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
                 "tags": note.frontmatter.tags,
-                
-                "content": content,
+                "content": final_content,
+                "content_truncated": content_truncated,
                 "sources": note.frontmatter.sources.iter().map(|s| {
                     let mut obj = serde_json::json!({
                         "url": s.url,
@@ -188,7 +187,7 @@ fn build_json_output(
                                                 "title": n.title(),
                                                 "type": n.note_type().to_string(),
                                                 "tags": n.frontmatter.tags,
-                                                
+
                                                 "content": n.body,
                                                 "sources": n.frontmatter.sources.iter().map(|s| {
                                                     let mut obj = serde_json::json!({
@@ -233,22 +232,6 @@ fn build_json_output(
             json
         }).collect::<Vec<_>>(),
     });
-
-    // Add excluded notes if any
-    if !excluded_notes.is_empty() {
-        if let Some(obj) = output.as_object_mut() {
-            obj.insert(
-                "excluded_notes".to_string(),
-                serde_json::json!(excluded_notes
-                    .iter()
-                    .map(|selected| serde_json::json!({
-                        "id": selected.note.id(),
-                        "title": selected.note.title(),
-                    }))
-                    .collect::<Vec<_>>()),
-            );
-        }
-    }
 
     output
 }

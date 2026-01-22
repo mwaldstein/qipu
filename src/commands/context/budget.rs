@@ -5,6 +5,8 @@ use tiktoken_rs::get_bpe_from_model;
 
 /// Apply character and token budget to notes
 /// Returns (truncated, notes_to_output, excluded_notes)
+/// Note: This function now includes all notes to support per-note content truncation
+/// instead of excluding entire notes. The excluded_notes vector will be empty.
 pub fn apply_budget<'a>(
     notes: &'a [SelectedNote<'a>],
     max_chars: Option<usize>,
@@ -33,9 +35,6 @@ pub fn apply_budget<'a>(
         None
     };
 
-    let mut result = Vec::new();
-    let mut used_chars = 0;
-    let mut used_tokens = 0;
     let mut truncated = false;
 
     // Conservative header estimate with buffer
@@ -49,11 +48,13 @@ pub fn apply_budget<'a>(
         0
     };
 
-    used_chars += header_estimate_chars;
-    used_tokens += header_estimate_tokens;
+    let mut used_chars = header_estimate_chars;
+    let mut used_tokens = header_estimate_tokens;
 
-    let mut excluded = Vec::new();
+    // Include all notes - per-note truncation will be handled by output formatters
+    let result: Vec<&'a SelectedNote<'a>> = notes.iter().collect();
 
+    // Calculate total size to determine if truncation is needed
     for note in notes {
         let note_size_chars = estimate_note_size(note.note, with_body);
         let note_size_tokens = if let Some(ref bpe) = bpe {
@@ -73,25 +74,23 @@ pub fn apply_budget<'a>(
             .map(|limit| used_tokens + note_size_tokens_with_buffer <= limit)
             .unwrap_or(true);
 
-        if char_ok && token_ok {
-            result.push(note);
-            used_chars += note_size_chars_with_buffer;
-            used_tokens += note_size_tokens_with_buffer;
-        } else {
+        if !char_ok || !token_ok {
             truncated = true;
-            excluded.push(note);
         }
+
+        used_chars += note_size_chars_with_buffer;
+        used_tokens += note_size_tokens_with_buffer;
     }
 
     tracing::debug!(
         output_notes = result.len(),
-        excluded_notes = excluded.len(),
+        excluded_notes = 0,
         truncated,
         elapsed = ?start.elapsed(),
         "apply_budget_complete"
     );
 
-    (truncated, result, excluded)
+    (truncated, result, Vec::new())
 }
 
 /// Estimate the output size of a note in tokens

@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 613 tests pass (233 unit + 344 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
+- Test baseline: 619 tests pass (239 unit + 344 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 6 workspace_merge)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -217,9 +217,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: All standard types from semantic-graph spec are now comprehensively tested; unknown types correctly fall back to `inverse-<type>` pattern; symmetric types (same-as, related) show same type in both directions
 
 ### Similarity Ranking Tests (`specs/similarity-ranking.md`)
-- [ ] Add tests for default similarity thresholds and field weighting.
-  - `src/lib/similarity/mod.rs:27-135`
-  - `tests/cli/doctor.rs:305-389`
+- [x] Add tests for default similarity thresholds and field weighting.
+  - `src/lib/similarity/mod.rs:545-1075` - Added 6 comprehensive unit tests
+  - Tests cover: field weighting (title 2.0 vs tags 1.5 vs body 1.0), combined field weights, default threshold 0.3 for related notes, default threshold 0.85 for duplicates
+  - Learnings: Field weights (title=2.0, tags=1.5, body=1.0) are correctly applied during indexing; cosine similarity with single shared term produces 1.0 similarity regardless of TF weight (this is mathematically correct); tests must use multiple terms with different field distributions to verify weight effects; threshold tests verify 0.3 for context expansion and 0.85 for duplicate detection as specified
 - [ ] Add end-to-end tests for stop-word filtering.
   - `src/lib/text/mod.rs:8-54`
   - `src/lib/similarity/mod.rs:27-135`

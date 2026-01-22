@@ -261,6 +261,29 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ---
 
+## P2: Refactoring & Modularization
+
+### Graph Library (`src/lib/graph`)
+- [ ] Split `src/lib/graph/bfs.rs` (1449 lines) into smaller modules.
+  - Create `src/lib/graph/algos/` directory.
+  - Move Dijkstra implementation to `src/lib/graph/algos/dijkstra.rs`.
+  - Move cost calculation logic to `src/lib/graph/cost.rs`.
+  - Move filtering logic to `src/lib/graph/filter.rs`.
+
+### Similarity Engine (`src/lib/similarity`)
+- [ ] Modularize `src/lib/similarity/mod.rs` (1082 lines).
+  - Extract TF-IDF and vector math to `src/lib/similarity/tfidf.rs`.
+  - Extract duplicate detection to `src/lib/similarity/duplicates.rs`.
+  - Extract tag-based similarity to `src/lib/similarity/tags.rs`.
+
+### CLI Commands (`src/commands`)
+- [ ] Refactor `src/commands/list.rs` (758 lines).
+  - Extract filtering logic to `src/lib/query/filter.rs` or similar.
+  - Extract formatting logic to `src/commands/list/format.rs`.
+- [ ] Refactor `src/commands/search.rs` (725 lines).
+  - Extract search execution logic to `src/lib/search/`.
+  - Extract result formatting to `src/commands/search/format.rs`.
+
 ## P3: Unimplemented Optional / Future
 
 ### Custom Metadata (`specs/custom-metadata.md`)

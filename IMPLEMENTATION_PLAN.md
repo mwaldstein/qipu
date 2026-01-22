@@ -3,7 +3,7 @@
 This document tracks **concrete implementation tasks** - bugs to fix, features to complete, and tests to add. For exploratory future work and open questions from specs, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
-- Test baseline: 727 tests pass (233 unit + 314 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
+- Test baseline: 733 tests pass (233 unit + 320 integration + 15 golden + 8 pack + 6 perf + 1 workspace_from_note + 3 workspace_merge + 147 llm-tool-test)
 - Clippy baseline: `cargo clippy --all-targets --all-features -- -D warnings` has pre-existing warnings
 - Audit Date: 2026-01-22
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -196,11 +196,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Learnings: All three truncation limits (`--max-nodes`, `--max-edges`, `--max-fanout`) correctly stop traversal when their respective limits are reached and report truncation in JSON output with appropriate truncation_reason field; max-fanout test uses `--direction out` to avoid counting inverted edges in bidirectional traversal; all tests verify both truncation flag and actual node/edge counts match expected limits
 
 ### Records Output Tests (`specs/records-output.md`)
-- [ ] Add `max-chars` truncation tests for link tree/path records output.
-  - `src/commands/link/tree.rs:276-396`
-  - `src/commands/link/records.rs:205-315`
-  - `tests/cli/link/tree.rs:149-178`
-  - `tests/cli/link/path.rs:203-245`
+- [x] Add `max-chars` truncation tests for link tree/path records output.
+  - `tests/cli/link/tree.rs:1699-1909` - Added 3 comprehensive tests for link tree max-chars truncation
+  - `tests/cli/link/path.rs:1198-1418` - Added 3 comprehensive tests for link path max-chars truncation
+  - Learnings: Tests cover no truncation (large budget), truncation (small budget), and header-only output (minimal budget ~120-140 chars); verified budget enforcement and truncated flag in header; all tests verify exact character count limits
 
 ### Workspaces Tests (`specs/workspaces.md`)
 - [ ] Add tests for `workspace merge --dry-run`, `skip`, and `overwrite` strategies.

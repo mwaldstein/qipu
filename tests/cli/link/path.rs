@@ -1193,3 +1193,232 @@ fn test_link_path_min_value_filter_with_defaults() {
         .stdout(predicate::str::contains("Node B"))
         .stdout(predicate::str::contains("Path length: 1 hop"));
 }
+
+#[test]
+fn test_link_path_records_max_chars_no_truncation() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two connected notes
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Use a large max-chars that won't truncate
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "records",
+            "link",
+            "path",
+            &id_a,
+            &id_b,
+            "--max-chars",
+            "10000",
+        ])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Header should show truncated=false
+    assert!(
+        stdout.contains("truncated=false"),
+        "Expected truncated=false in header"
+    );
+
+    // Should include both notes
+    assert!(stdout.contains(&format!("N {}", id_a)));
+    assert!(stdout.contains(&format!("N {}", id_b)));
+
+    // Should include the edge
+    assert!(stdout.contains(&format!("E {} related {}", id_a, id_b)));
+}
+
+#[test]
+fn test_link_path_records_max_chars_truncation() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a longer path with several notes
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A with a long title"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B with a long title"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    let output_c = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note C with a long title"])
+        .output()
+        .unwrap();
+    let id_c = extract_id(&output_c);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_b, &id_c, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Use a small max-chars that will truncate
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "records",
+            "link",
+            "path",
+            &id_a,
+            &id_c,
+            "--max-chars",
+            "200",
+        ])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Header should show truncated=true
+    assert!(
+        stdout.contains("truncated=true"),
+        "Expected truncated=true in header"
+    );
+
+    // Should include the header line
+    assert!(stdout.contains("H qipu=1 records=1"));
+
+    // Count total characters in output (including newlines)
+    let total_chars = stdout.len();
+    assert!(
+        total_chars <= 200,
+        "Output exceeded max-chars budget: {} > 200",
+        total_chars
+    );
+}
+
+#[test]
+fn test_link_path_records_max_chars_header_only() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_a = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note A"])
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output_a);
+
+    let output_b = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note B"])
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output_b);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id_a, &id_b, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Use a max-chars that can only fit the header (header is ~120-130 chars for path)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "records",
+            "link",
+            "path",
+            &id_a,
+            &id_b,
+            "--max-chars",
+            "140",
+        ])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should have truncated=true
+    assert!(
+        stdout.contains("truncated=true"),
+        "Expected truncated=true in header"
+    );
+
+    // Should only have the header line (no N or E records)
+    let lines: Vec<&str> = stdout.trim().lines().collect();
+    assert_eq!(
+        lines.len(),
+        1,
+        "Expected only header line, got {} lines",
+        lines.len()
+    );
+    assert!(lines[0].starts_with("H "));
+
+    // Verify total length is within budget
+    assert!(stdout.len() <= 140);
+}

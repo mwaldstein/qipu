@@ -15,6 +15,54 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### P1: Core Features
 
+#### Machine-Readable Output for `qipu value` and `qipu custom` (`specs/cli-interface.md`, `specs/cli-tool.md`)
+- [ ] Make `qipu value set/show --format json` emit valid JSON on stdout
+- [ ] Make `qipu custom set/get/show/unset --format json` emit valid JSON on stdout
+- [ ] Ensure informational banners/logs never pollute stdout when `--format json` is requested (send to stderr or suppress)
+- [ ] Add integration tests/goldens covering:
+  - `value` JSON shapes
+  - `custom` JSON shapes
+  - `--format json` + error cases
+- Context: `qipu-integration-feedback.md` item (2)
+
+#### `qipu show --format json` includes core metadata (`specs/cli-interface.md`, `specs/custom-metadata.md`)
+- [ ] Include `value` in `qipu show --format json` output
+- [ ] Add `qipu show --custom` (opt-in) to include custom metadata as `custom: { ... }`
+- [ ] Add tests covering default omission and opt-in inclusion of `custom`
+- Context: `qipu-integration-feedback.md` item (3) (excluding `path`)
+
+#### Fix `qipu context --min-value` default mismatch (`specs/value-model.md`, `specs/cli-interface.md`)
+- [ ] Decide semantics: either (a) apply an actual default filter for `context --min-value`, or (b) remove any implied default from help text and docs
+- [ ] Update `qipu context --help` so it matches behavior
+- [ ] Add an integration test asserting `qipu context` selection is unchanged when `--min-value` is omitted
+- Context: `qipu-integration-feedback.md` item (4) note
+
+#### Allow negative values in `qipu custom set` positional (`specs/custom-metadata.md`)
+- [ ] Update CLI arg parsing so `qipu custom set <id> <key> -100` works without requiring `--`
+- [ ] Add an integration test covering negative numbers and other leading-hyphen strings
+- Context: `qipu-integration-feedback.md` item (5)
+
+#### JSON stdout must be clean (no logs/warnings/ANSI) (`specs/cli-tool.md`)
+- [ ] Add regression tests that run key commands with `--format json` and assert stdout is valid JSON (and stderr may contain logs)
+- [ ] Ensure all logging and warnings are routed to stderr when `--format json` is selected
+- [ ] Ensure ANSI color is disabled in non-TTY contexts and never appears on stdout
+- Context: `qipu-integration-feedback.md` item (6)
+
+#### Allow `context` selection via `--custom-filter` and `--min-value` (`specs/llm-context.md`, `specs/cli-interface.md`, `specs/custom-metadata.md`)
+- [ ] Treat `--min-value` as a selector when no other selectors are provided (select notes by `value >= n`)
+- [ ] Treat `--custom-filter` as a selector when no other selectors are provided
+- [ ] Implement minimal custom-filter expression parsing:
+  - equality: `key=value`
+  - existence: `key` / `!key`
+  - numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+- [ ] Combine multiple `--custom-filter` flags with AND semantics
+- [ ] Define deterministic ordering for the selected set before budgeting (so `--max-chars` truncation is stable)
+- [ ] Add integration tests:
+  - `context --min-value N` returns only notes meeting threshold
+  - `context --custom-filter ...` works with no other selectors
+  - numeric comparisons and existence checks
+- Context: `qipu-integration-feedback.md` enhancement (D) and value threshold use cases
+
 #### Single-Note Truncation with Marker (`specs/llm-context.md:106-107`)
 - [x] When budget is tight, truncate individual notes instead of dropping entirely
 - [x] Append `…[truncated]` marker to truncated content

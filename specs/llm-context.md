@@ -49,6 +49,22 @@ Selection methods (composable):
 - by MOC: `--moc <id>` (include links listed in that MOC)
 - by search: `--query <text>`
 
+Additional selectors/filters:
+- by value threshold: `--min-value <n>`
+- by custom metadata: `--custom-filter <expr>` (repeatable)
+
+`--min-value` and `--custom-filter` count as selection criteria and may be used without `--note/--tag/--moc/--query`.
+
+### Custom filter expression (minimal)
+Custom filters are intentionally minimal to keep the integration surface stable.
+
+Required support:
+- Equality: `key=value`
+- Existence: `key` (present), `!key` (absent)
+- Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n` (where `n` is an integer or float literal)
+
+Multiple `--custom-filter` flags are combined with AND semantics.
+
 Notes:
 - For MOCs, qipu should support both "direct list" and "transitive closure" modes.
 

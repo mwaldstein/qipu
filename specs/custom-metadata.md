@@ -149,6 +149,16 @@ qipu custom set qp-a1b2 status in-progress   # → string: "in-progress"
 qipu custom set qp-a1b2 reviewer null        # → null
 ```
 
+#### Negative values
+
+`qipu custom set` must accept negative numeric values (and other leading-hyphen strings) in the `<value>` positional without requiring the `--` end-of-options delimiter.
+
+Example:
+
+```bash
+qipu custom set qp-a1b2 alignment -100
+```
+
 **Complex types via YAML/JSON:**
 ```bash
 # Arrays
@@ -205,7 +215,31 @@ qipu list --custom alignment=disagree
 qipu list --tag consensus --custom workflow_state=review --min-value 50
 
 # Context with custom filter
-qipu context --custom alignment=agree --max-chars 8000
+qipu context --custom-filter alignment=agree --max-chars 8000
+```
+
+#### Filter expressions (minimal)
+
+Custom filtering is intentionally minimal:
+
+- Equality: `key=value`
+- Existence: `key` (present), `!key` (absent)
+- Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+
+Multiple `--custom-filter` flags are combined with AND semantics.
+
+#### Using custom filters as selection (context)
+
+`qipu context` must allow `--custom-filter` to participate in selection.
+
+Examples:
+
+```bash
+# Select notes only by custom metadata
+qipu context --custom-filter alignment=disagree --max-chars 8000
+
+# Combine custom filters with other selectors
+qipu context --tag consensus --custom-filter workflow_state=review --max-chars 8000
 ```
 
 ### Removing Custom Fields
@@ -281,7 +315,7 @@ Custom fields are **orthogonal to traversal** by default. They do not affect:
 
 Applications that need custom fields to affect traversal can do so by:
 1. Filtering post-traversal: `qipu link tree qp-a1b2 | filter-by-custom`
-2. Pre-filtering the working set: `qipu context --custom active=true`
+2. Pre-filtering the working set: `qipu context --custom-filter active=true`
 
 If demand emerges, a future spec could add traversal cost modifiers based on custom fields, but this is out of scope for v1.
 
@@ -329,7 +363,7 @@ custom:
 
 Blibio can now:
 - Filter: `qipu list --custom alignment=disagree`
-- Build context: `qipu context --custom alignment=agree` (show only agreed-with sources)
+- Build context: `qipu context --custom-filter alignment=agree` (select only agreed-with sources)
 - Maintain the linkage: Blibio's own DB stores `sub-7x9k` details; qipu stores the cross-reference
 
 This avoids the "separate metadata layer" problem while keeping qipu's core schema clean.
@@ -363,6 +397,18 @@ qipu context --note qp-a1b2 --custom  # Custom fields included (opt-in)
 ```
 
 Applications that need custom fields in context use `--custom` explicitly. This prevents LLMs from seeing (and potentially hallucinating about) application-specific metadata.
+
+### Opt-in for `show` JSON Output
+
+When using `qipu show --format json`, custom metadata is omitted by default.
+
+To include it, use:
+
+```bash
+qipu show <note-id> --format json --custom
+```
+
+This provides a CLI-only way for integrations to fetch a single note along with its application metadata, without relying on qipu's on-disk storage details.
 
 ### CLI Disclaimer
 

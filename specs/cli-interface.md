@@ -71,6 +71,20 @@ Print a note to stdout.
 Common flags:
 - `--links`: show inbound and outbound links for the note
 
+#### JSON output
+When `--format json` is used, `qipu show` should return a single JSON object containing:
+- the note content (`body`)
+- core qipu metadata (at minimum: `id`, `title`, `type`, `tags`, `created`, `updated`, `value`, `verified`)
+- provenance fields where present (`source`, `sources`, `author`, `generated_by`, `prompt_hash`)
+
+The JSON output for `show` must not require consumers to understand qipu's on-disk storage layout. In particular, do not require integrations to use file paths as identifiers.
+
+#### Custom metadata (opt-in)
+`qipu show` supports an opt-in flag for custom metadata:
+- `--custom`: include the note's custom metadata in JSON output under a top-level `custom` object
+
+Custom metadata must be omitted by default.
+
 ### `qipu search <query>`
 Search within qipu notes (titles + bodies).
 
@@ -125,6 +139,15 @@ Selection options (one or more):
 - `--tag <tag>`
 - `--moc <id>` (include that MOC and its linked notes)
 - `--query <text>` (search-based selection)
+
+Additional selection filters:
+- `--min-value <n>`: include only notes with `value >= n`
+- `--custom-filter <expr>` (repeatable): include only notes matching the custom metadata filter expression
+
+Selection rule:
+- `--min-value` and/or `--custom-filter` count as selection criteria.
+  - Example: `qipu context --min-value 80` is valid and selects all notes with `value >= 80`.
+  - Example: `qipu context --custom-filter workflow_state=review` is valid and selects notes matching that filter.
 
 Budgeting:
 - `--max-chars <n>` (exact)

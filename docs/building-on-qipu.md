@@ -2,8 +2,7 @@
 
 This guide is for developers building applications, agents, and tools that use qipu as a knowledge graph foundation.
 
-Status: Draft  
-Last updated: 2026-01-20
+Up to date as of qipu version `0.1.100`.
 
 ## Overview
 
@@ -14,6 +13,8 @@ Qipu is designed as a **knowledge graph tool for LLM agents**. It provides:
 - CLI-first interface suitable for agent tool integration
 
 This document covers how to integrate qipu into your application, particularly focusing on LLM-based systems.
+
+Integration contract: Treat the qipu store (files + database) as an internal implementation detail. Do not read or write qipu markdown files or the SQLite database directly. Use the `qipu` CLI as the only supported interface; storage layout, file formats, and database schema may change.
 
 ## Core Integration Pattern
 
@@ -32,6 +33,8 @@ This outputs a compact (~1-2k tokens) introduction to qipu that teaches the LLM:
 - Key MOCs and recently updated notes
 
 **Recommended:** Inject `qipu prime` output into your system prompt or initial context automatically.
+
+Note: `qipu prime` is internally size-bounded, but does not currently accept `--max-chars` / `--max-tokens` flags.
 
 ### 2. Dynamic Context Injection
 
@@ -55,7 +58,7 @@ qipu context --moc qp-api-design --tag security --min-value 70 --max-chars 10000
 - Always use `--max-chars` to control token budget precisely
 - `--format json` for programmatic consumption
 - `--format records` for line-oriented parsing
-- Default format (markdown) is human-friendly for direct LLM injection
+- Default format (`--format human`) is human-friendly markdown for direct LLM injection
 
 ### 3. Knowledge Capture
 
@@ -85,7 +88,7 @@ qipu link tree qp-oauth-research --max-hops 2 --format json
 qipu link path qp-auth-basics qp-token-validation --format json
 
 # List all outbound links
-qipu link list qp-api-design --direction outbound --format json
+qipu link list qp-api-design --direction out --format json
 ```
 
 ## Custom Metadata for Application Extensions
@@ -99,6 +102,12 @@ Custom metadata allows you to layer application-specific data onto qipu's knowle
 - Qipu's core fields (`value`, `verified`, `tags`, `links`) are designed for LLM-driven knowledge management
 - Custom fields are for your application's internal tracking, workflow states, and integrations
 - By default, custom fields are **hidden from LLM context** to keep prompts clean
+
+**Custom is intentionally non-discoverable.**
+
+- `qipu --help` does not list `qipu custom` on purpose.
+- Your wrapper/application should already know which custom keys it uses; do not rely on discovery.
+- If an LLM should use custom metadata, teach it explicitly via your system prompt (examples below).
 
 ### Setting Custom Properties
 
@@ -141,7 +150,7 @@ qipu list --custom workflow_state=review
 qipu list --tag api --custom priority=1 --min-value 70
 
 # Context with custom filters
-qipu context --moc qp-sprint-23 --custom assignee="alice@example.com"
+qipu context --moc qp-sprint-23 --custom-filter assignee="alice@example.com"
 ```
 
 ### Including Custom Metadata in Context
@@ -156,7 +165,9 @@ This opt-in design prevents LLMs from seeing (and potentially hallucinating abou
 
 ## Teaching LLMs About Custom Properties
 
-If your application needs the LLM to understand and work with custom properties, you can extend the session primer.
+If your application needs the LLM to understand and work with custom properties, extend your system prompt with the schema and the exact commands to use.
+
+Principle: the wrapper owns the schema. The LLM should not invent new custom keys.
 
 ### Example: Custom Workflow Integration
 
@@ -193,10 +204,10 @@ When capturing research that you disagree with:
   qipu custom set <new-note-id> alignment disagree
 
 To find sources you agree with:
-  qipu context --tag <topic> --custom alignment=agree
+  qipu context --tag <topic> --custom-filter alignment=agree
 
 To find sources you disagree with (for counter-argument research):
-  qipu context --tag <topic> --custom alignment=disagree
+  qipu context --tag <topic> --custom-filter alignment=disagree
 
 This allows you to maintain high-quality sources in your knowledge graph
 even when you disagree with their conclusions.
@@ -209,6 +220,7 @@ even when you disagree with their conclusions.
 3. **Explain the boundary:** Make it clear that custom fields don't affect core qipu semantics
 4. **Provide defaults:** If fields should have default values, specify them
 5. **Mention opt-in visibility:** Remind the LLM that custom fields require `--custom` flag in context output
+6. **No discovery:** Tell the LLM not to use `qipu --help` to discover custom keys/commands; your prompt is the source of truth
 
 ## Use Cases
 
@@ -226,10 +238,10 @@ qipu custom set qp-xyz123 alignment disagree
 qipu custom set qp-xyz123 blibio_submission "sub-7x9k"
 
 # Build context of sources you agree with
-qipu context --tag economics --custom alignment=agree --max-chars 15000
+qipu context --tag economics --custom-filter alignment=agree --max-chars 15000
 
 # Find counter-arguments (sources you disagree with)
-qipu context --tag economics --custom alignment=disagree --max-chars 8000
+qipu context --tag economics --custom-filter alignment=disagree --max-chars 8000
 ```
 
 ### 2. Team Knowledge Base
@@ -257,7 +269,7 @@ Track generation metadata beyond qipu's core provenance fields:
 
 ```bash
 # Capture LLM-generated content
-qipu capture --type permanent --generated_by "claude-3.5-sonnet" \
+qipu capture --type permanent --generated-by "claude-3.5-sonnet" \
   --author "research-agent" < generated-summary.md
 
 # Add custom tracking
@@ -292,12 +304,12 @@ qipu custom set qp-ghi012 review_deadline "2026-02-01"
 qipu list --custom stage=draft --tag auth
 
 # Export published content
-qipu context --custom stage=published --tag auth --format markdown
+qipu context --custom-filter stage=published --tag auth --format human
 ```
 
 ## Storage and Deployment Options
 
-Qipu is designed to work with git-based storage by default, but provides several options for alternative deployment models.
+Qipu is designed to work with git-based storage by default. For integrations, prefer explicit store targeting and CLI-only access.
 
 ### Store Location Options
 
@@ -307,7 +319,7 @@ By default, qipu creates a `.qipu/` directory in your repository:
 
 ```bash
 qipu init
-# Creates .qipu/ with notes/, mocs/, config.toml, etc.
+# Creates a qipu store in the current project
 ```
 
 This mirrors the beads pattern and is ideal for:
@@ -321,7 +333,7 @@ Use `qipu/` instead of `.qipu/` for more prominent visibility:
 
 ```bash
 qipu init --visible
-# Creates qipu/ instead of .qipu/
+# Uses qipu/ instead of .qipu/
 ```
 
 Useful for:
@@ -334,7 +346,7 @@ Create a local-only store that's automatically gitignored:
 
 ```bash
 qipu init --stealth
-# Creates .qipu/ and adds it to .gitignore
+# Creates a store and adds it to .gitignore
 ```
 
 Perfect for:
@@ -374,12 +386,7 @@ This configures automatic branch management:
 qipu sync --commit --push
 ```
 
-The `branch` setting is stored in `.qipu/config.toml`:
-
-```toml
-version = 1
-branch = "qipu-metadata"
-```
+ Note: Treat store configuration files as internal implementation details; configure branch workflows via `qipu init --branch ...` and `qipu sync --commit/--push`.
 
 **Use cases:**
 - Main branch requires PR reviews, but notes need frequent updates
@@ -388,7 +395,7 @@ branch = "qipu-metadata"
 
 ### Alternative Storage Backends
 
-For applications that need to bypass git entirely, you have several options:
+For applications that need to bypass git entirely, you can still use qipu by pointing `--store` at an application-managed directory. The directory contents are not a stable API; only qipu CLI behavior is supported.
 
 #### 1. In-Memory / Ephemeral Stores
 
@@ -409,97 +416,9 @@ qipu --store "$TEMP_STORE" context --tag session
 rm -rf "$TEMP_STORE"
 ```
 
-#### 2. Application-Managed File Storage
+### Configuration
 
-Your application can manage the file structure directly while using qipu as the interface:
-
-```python
-# Python example: Application-managed storage
-import subprocess
-import tempfile
-from pathlib import Path
-
-class ManagedQipuStore:
-    def __init__(self, base_path):
-        self.store_path = Path(base_path) / ".qipu"
-        self.store_path.mkdir(parents=True, exist_ok=True)
-        
-        # Initialize qipu store
-        subprocess.run(
-            ["qipu", "--store", str(self.store_path), "init"],
-            check=True
-        )
-    
-    def sync_to_external_storage(self):
-        """Sync .qipu/notes/ to your own storage system"""
-        notes_dir = self.store_path / "notes"
-        # Upload to S3, database, etc.
-        pass
-    
-    def sync_from_external_storage(self):
-        """Pull notes from external storage"""
-        # Download from S3, database, etc.
-        # Then rebuild index
-        subprocess.run(
-            ["qipu", "--store", str(self.store_path), "index", "--rebuild"],
-            check=True
-        )
-```
-
-#### 3. Database-Only Mode (Advanced)
-
-For applications that want to manage files separately, you can work primarily with the SQLite database:
-
-```bash
-# Initialize store
-qipu init --stealth
-
-# Your application manages note files
-# but uses qipu for indexing and querying
-qipu index --rebuild
-
-# Query via qipu CLI
-qipu list --format json
-
-# Or query database directly
-sqlite3 .qipu/qipu.db "SELECT id, title FROM notes WHERE ..."
-```
-
-**Important caveats:**
-- The SQLite database is a **derived index**, not the source of truth
-- Always maintain note files (markdown with frontmatter) as the primary data
-- Use `qipu index --rebuild` to regenerate the database from files
-
-### Configuration Management
-
-Store configuration is managed via `.qipu/config.toml`:
-
-```toml
-# Store format version
-version = 1
-
-# Default note type for new notes
-default_note_type = "fleeting"
-
-# ID generation scheme: "hash" (default), "ulid", or "timestamp"
-id_scheme = "hash"
-
-# Optional: Editor override
-editor = "vim"
-
-# Optional: Protected branch workflow
-branch = "qipu-metadata"
-
-# Optional: Custom link types
-[graph.types.custom_link]
-inverse = "custom_inverse"
-description = "Application-specific link type"
-```
-
-Applications can:
-- Pre-generate config files with application-specific defaults
-- Use different ID schemes (hash is collision-resistant for multi-agent workflows)
-- Define custom link types for domain-specific semantics
+Configure stores via `qipu init` flags and qipu commands. Avoid depending on the on-disk config format.
 
 ### Sync and Automation
 
@@ -528,7 +447,7 @@ Applications managing multiple stores can use shell functions or wrappers:
 ```bash
 # Bash example: Multi-store management
 function qipu-project() {
-    qipu --store ~/projects/$1/.qipu "${@:2}"
+    qipu --root ~/projects/$1 "${@:2}"
 }
 
 function qipu-global() {
@@ -544,40 +463,16 @@ qipu-global context --tag reference
 
 For large stores or high-throughput applications:
 
-1. **Database is local and fast:** SQLite operations are instant for typical workloads
-2. **File count matters:** Flat storage in `notes/` works well up to ~10k notes
-3. **Index rebuilds:** `qipu index --rebuild` scales linearly with note count
-4. **Search is indexed:** Full-text search uses SQLite FTS5 for fast queries
+1. **Local and fast:** typical listing/search should feel instant
+2. **Index rebuilds:** `qipu index --rebuild` scales linearly with note count
+3. **Search is indexed:** results are fast after indexing
 
 **Recommendations:**
 - Keep individual notes small (< 100KB)
 - Use `--format json` for programmatic consumption (avoids terminal formatting overhead)
 - Batch operations when possible (bulk import, then single index rebuild)
-- Monitor `.qipu/qipu.db` size (should be < 10% of total note content)
 
 ## Advanced Integration
-
-### Direct Database Access
-
-For advanced queries, you can access qipu's SQLite database directly:
-
-```bash
-# Location: .qipu/qipu.db
-
-# Query custom metadata with SQLite JSON functions
-sqlite3 .qipu/qipu.db \
-  "SELECT id, title FROM notes 
-   WHERE json_extract(custom_json, '$.priority') = 1
-   ORDER BY value DESC LIMIT 10"
-
-# Find notes with specific custom field
-sqlite3 .qipu/qipu.db \
-  "SELECT id, title, json_extract(custom_json, '$.workflow_state') as state
-   FROM notes
-   WHERE json_extract(custom_json, '$.workflow_state') IS NOT NULL"
-```
-
-**Note:** Direct database access bypasses qipu's abstraction layer. Use for read-only queries and advanced filtering only.
 
 ### Programmatic Integration
 
@@ -586,6 +481,13 @@ For language-specific integrations, you can:
 1. **Shell out to qipu CLI:** Use subprocess/exec to call qipu commands
 2. **Parse JSON output:** Use `--format json` for structured data
 3. **Parse records output:** Use `--format records` for streaming/line-oriented parsing
+
+Operational guidance for integrations:
+- Assume stdout must be parseable (JSON/records). Treat stderr as the only channel for logs.
+- Always pass an explicit log level in wrappers (e.g. `--log-level error`) rather than relying on implicit defaults.
+- ANSI should be auto-disabled when qipu is not writing to a TTY; do not rely on colored output for integration.
+
+Implementation note (qipu `0.1.100`): not every subcommand currently honors `--format json`. If you need reliable machine-readable output today, prefer `qipu context --format records` / `qipu context --format json` and treat other commands as human-oriented until they are made consistent.
 
 Example (Python pseudocode):
 
@@ -614,14 +516,12 @@ Qipu uses standard exit codes:
 - `0`: Success
 - `1`: General error
 - `2`: Invalid arguments
+- `3`: Data/store error (missing store, invalid note data, not found)
 
-With `--format json`, errors are wrapped in JSON envelopes:
+With `--format json`, errors are returned as JSON envelopes on stdout:
 
 ```json
-{
-  "error": "Note not found: qp-invalid",
-  "code": "not_found"
-}
+{"error":{"code":3,"message":"note not found: qp-invalid","type":"note_not_found"}}
 ```
 
 Parse stderr for human-readable error messages when not using JSON format.
@@ -653,9 +553,9 @@ Parse stderr for human-readable error messages when not using JSON format.
 Use qipu's built-in provenance fields for LLM-generated content:
 
 ```bash
-qipu capture --generated_by "gpt-4" \
+qipu capture --generated-by "gpt-4" \
   --author "my-research-agent" \
-  --prompt_hash "sha256:abc123..." \
+  --prompt-hash "sha256:abc123..." \
   --verified false
 ```
 
@@ -670,7 +570,7 @@ Run `qipu doctor` regularly to validate graph integrity:
 qipu sync --validate
 
 # Check custom metadata structure
-qipu doctor --check custom
+qipu doctor
 ```
 
 ## Migration and Versioning
@@ -701,11 +601,8 @@ qipu custom set qp-123 quality 85
 qipu value set qp-123 85
 ```
 
-❌ **Don't bypass qipu's abstractions for writes:** Use the CLI, not direct DB manipulation
+❌ **Don't bypass qipu's abstractions for writes:** Use the CLI only (no direct writes to store files or databases)
 ```bash
-# Bad: Direct database writes
-sqlite3 .qipu/qipu.db "UPDATE notes SET ..."
-
 # Good: Use qipu commands
 qipu custom set qp-123 field value
 ```
@@ -717,8 +614,8 @@ qipu context --tag api --custom
 
 # Good: Include only when LLM needs it
 qipu context --tag api  # No custom fields
-qipu context --custom workflow_state=review --tag api  # Filter, but don't show in output
-qipu context --tag api --custom  # Explicitly show custom fields when needed
+qipu context --custom-filter workflow_state=review --tag api  # Filter, custom fields still hidden
+qipu context --custom-filter workflow_state=review --tag api --custom  # Filter and show custom fields
 ```
 
 ❌ **Don't store large data in custom fields:** Link to external storage instead

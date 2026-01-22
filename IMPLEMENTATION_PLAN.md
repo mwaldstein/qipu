@@ -105,8 +105,9 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] `--from-*` workspace creation is shallow; graph-slice copy is missing.
   - `src/commands/workspace/new.rs:67-101,136-180`
   - Learnings: Refactored `copy_graph_slice` to accept multiple root IDs instead of a single ID; both `--from-tag` and `--from-query` now collect matching notes and perform BFS graph traversal (3-hop limit) instead of shallow copying; this matches the spec requirement that all `--from-*` options should initialize with a graph slice
-- [ ] Post-merge integrity validation is missing.
-  - `src/commands/workspace/merge.rs:10-149`
+- [x] Post-merge integrity validation is missing.
+  - `src/commands/workspace/merge.rs:167-190`
+  - Learnings: Added post-merge validation by calling `doctor::execute()` after merge completes; validation runs all standard checks (broken links, duplicate IDs, semantic link misuse, etc.); results are reported to user with error/warning counts; doctor returns error if critical issues remain unfixed
 - [ ] `workspace list` omits last-updated metadata.
   - `src/commands/workspace/list.rs:70-85`
 - [ ] `parent_id` is never populated.

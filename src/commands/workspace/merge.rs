@@ -164,6 +164,34 @@ pub fn execute(
         return Ok(());
     }
 
+    // Post-merge integrity validation (per specs/workspaces.md)
+    if cli.verbose {
+        debug!("running_post_merge_validation");
+    }
+
+    let validation_result =
+        crate::commands::doctor::execute(cli, &target_store, false, false, 0.8)?;
+
+    if cli.verbose {
+        debug!(
+            errors = validation_result.error_count,
+            warnings = validation_result.warning_count,
+            "post_merge_validation_complete"
+        );
+    }
+
+    // Report validation issues if any
+    if validation_result.error_count > 0 || validation_result.warning_count > 0 {
+        if !cli.quiet {
+            println!();
+            println!("Post-merge validation found issues:");
+            println!(
+                "  Errors: {}, Warnings: {}",
+                validation_result.error_count, validation_result.warning_count
+            );
+        }
+    }
+
     if delete_source && source_name != "." {
         std::fs::remove_dir_all(source_store.root())?;
     }

@@ -8,6 +8,7 @@ pub struct MockAdapter;
 
 impl MockAdapter {
     /// Internal helper to run commands with event logging
+    #[allow(dead_code)]
     pub fn run_with_events(
         &self,
         scenario: &Scenario,
@@ -182,7 +183,7 @@ impl ToolAdapter for MockAdapter {
     fn execute_task(
         &self,
         context: &super::TaskContext,
-        work_dir: &Path,
+        _work_dir: &Path,
         _transcript_dir: &Path,
     ) -> Result<super::ExecutionResult, super::AdapterError> {
         use std::time::Instant;

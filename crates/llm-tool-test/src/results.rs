@@ -1,4 +1,4 @@
-use crate::pricing::{get_model_pricing, ModelPricing};
+use crate::pricing::get_model_pricing;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

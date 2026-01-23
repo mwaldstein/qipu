@@ -9,6 +9,7 @@ use std::time::Duration;
 
 /// Error type for adapter operations.
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum AdapterError {
     #[error("Tool not available: {0}")]
     NotAvailable(String),
@@ -28,6 +29,7 @@ pub enum AdapterError {
 
 /// Status of a tool's availability.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ToolStatus {
     pub available: bool,
     pub version: Option<String>,
@@ -37,6 +39,7 @@ pub struct ToolStatus {
 
 /// Context for executing a task.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TaskContext {
     pub system_prompt: String,
     pub task_prompt: String,
@@ -45,6 +48,7 @@ pub struct TaskContext {
 
 /// Token usage statistics.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TokenUsage {
     pub input: usize,
     pub output: usize,
@@ -52,12 +56,14 @@ pub struct TokenUsage {
 
 /// Cost estimate for a task.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CostEstimate {
     pub estimated_usd: f64,
 }
 
 /// Result of executing a task.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ExecutionResult {
     pub exit_code: i32,
     pub duration: Duration,
@@ -66,6 +72,7 @@ pub struct ExecutionResult {
 }
 
 /// Trait for tool adapters that execute LLM CLI tools.
+#[allow(dead_code)]
 pub trait ToolAdapter: Send + Sync {
     /// Tool identifier.
     fn name(&self) -> &str;

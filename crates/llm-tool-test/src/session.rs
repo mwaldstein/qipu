@@ -149,7 +149,7 @@ impl SessionRunner {
             .take()
             .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr"))?;
 
-        let (output_tx, output_rx) = channel();
+        let (output_tx, _output_rx) = channel();
         let (status_tx, status_rx) = channel();
 
         // Spawn threads to read stdout and stderr

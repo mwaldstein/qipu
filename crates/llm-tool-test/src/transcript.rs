@@ -5,6 +5,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
+#[allow(dead_code)]
 pub struct TranscriptWriter {
     pub base_dir: PathBuf,
 }
@@ -93,6 +94,7 @@ impl TranscriptWriter {
             .as_secs_f64()
     }
 
+    #[allow(dead_code)]
     pub fn read_events(&self) -> anyhow::Result<Vec<serde_json::Value>> {
         let path = self.base_dir.join("events.jsonl");
         if !path.exists() {
@@ -356,6 +358,7 @@ pub struct CommandEvent {
 pub struct TranscriptAnalyzer;
 
 impl TranscriptAnalyzer {
+    #[allow(dead_code)]
     pub fn analyze(transcript: &str) -> EfficiencyMetrics {
         Self::analyze_with_events(transcript, None)
     }

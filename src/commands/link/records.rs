@@ -4,7 +4,7 @@ use crate::lib::compaction::CompactionContext;
 use crate::lib::graph::PathResult;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
-use crate::lib::records::escape_quotes;
+use crate::lib::records::{escape_quotes, path_relative_to_cwd};
 use crate::lib::store::Store;
 use std::collections::HashMap;
 
@@ -174,9 +174,10 @@ fn append_edge_lines(lines: &mut Vec<String>, entries: &[LinkEntry], display_id:
 
 /// Build the header base string for records output
 fn build_header_base(store: &Store, display_id: &str, direction: Direction) -> String {
+    let store_path = path_relative_to_cwd(store.root());
     format!(
         "H qipu=1 records=1 store={} mode=link.list id={} direction={} truncated=",
-        store.root().display(),
+        store_path,
         display_id,
         match direction {
             Direction::Out => "out",
@@ -329,9 +330,10 @@ pub fn output_path_records(
     }
 
     let found_str = if result.found { "true" } else { "false" };
+    let store_path = path_relative_to_cwd(store.root());
     let header_base = format!(
         "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={} truncated=",
-        store.root().display(),
+        store_path,
         result.from,
         result.to,
         result.direction,

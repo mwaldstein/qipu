@@ -175,7 +175,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 #### Split Large Test Files
 - [x] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature
-- [ ] Evaluate `tests/cli/link/tree.rs` (1,899 lines) for split by edge case
+- [x] Evaluate `tests/cli/link/tree.rs` (1,900 lines) for split by edge case
 - [ ] Evaluate `tests/pack_tests.rs` (1,447 lines) for split by pack strategy
 - [ ] Consider test module structure: `tests/cli/export/create.rs`, `tests/cli/export/merge.rs`, etc.
 - **Current state**: Monolithic test files covering multiple features
@@ -191,6 +191,17 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `max_hops.rs` (6 tests: max hops traversal tests)
   - `pdf.rs` (4 tests: PDF export tests, 2 ignored without pandoc)
 - **Learnings**: Splitting tests by feature makes the codebase easier to navigate and maintain. Each module is now 500-1400 bytes vs 2038 lines. The module structure follows the pattern already established by `tests/cli/link/` directory. All 40 export tests pass after the split (2 ignored PDF tests require pandoc).
+- **Status**: **Complete**. Split `tests/cli/link/tree.rs` (1,900 lines) into 9 edge case modules:
+  - `basic.rs` (2 tests: single_node, with_links)
+  - `format.rs` (2 tests: json_format, records_format)
+  - `cycles.rs` (1 test: cycle_shows_seen)
+  - `direction.rs` (3 tests: direction_out, direction_in, direction_both)
+  - `type_filter.rs` (4 tests: type_filter, exclude_type_filter, typed_only, inline_only)
+  - `min_value.rs` (4 tests: min_value_filter_all_match, some_match, with_defaults, excludes_root)
+  - `semantic_inversion.rs` (3 tests: semantic_inversion_default, disabled, type_filter)
+  - `spanning_tree.rs` (1 test: spanning_tree_ordering)
+  - `truncation.rs` (7 tests: max_hops, max_hops_reports_truncation, max_nodes, max_edges, max_fanout, records_max_chars_no_truncation, records_max_chars_truncation, records_max_chars_header_only)
+- **Learnings**: Edge case categorization is straightforward for link tree tests. Tests grouped by feature flag/behavior (direction, type_filter, truncation). Each module is 50-250 lines vs 1900 lines. Module structure consistent with export split pattern. All 31 tree tests pass.
 
 #### Extract Test Utilities (`crates/llm-tool-test/src/results.rs`)
 - [x] Move test helpers (create_test_record, create_test_record_with_tool) to `tests.rs` module

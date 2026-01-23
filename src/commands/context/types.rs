@@ -2,6 +2,18 @@ use crate::lib::note::{LinkType, Note};
 
 /// Options for the context command
 pub struct ContextOptions<'a> {
+    pub walk_id: Option<&'a str>,
+    pub walk_direction: &'a str,
+    pub walk_max_hops: u32,
+    pub walk_type: &'a [String],
+    pub walk_exclude_type: &'a [String],
+    pub walk_typed_only: bool,
+    pub walk_inline_only: bool,
+    pub walk_max_nodes: Option<usize>,
+    pub walk_max_edges: Option<usize>,
+    pub walk_max_fanout: Option<usize>,
+    pub walk_min_value: Option<u8>,
+    pub walk_ignore_value: bool,
     pub note_ids: &'a [String],
     pub tag: Option<&'a str>,
     pub moc_id: Option<&'a str>,

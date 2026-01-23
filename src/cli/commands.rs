@@ -255,6 +255,54 @@ pub enum Commands {
 
     /// Build context bundle for LLM integration
     Context {
+        /// Walk the graph from a note and bundle traversed notes
+        #[arg(long)]
+        walk: Option<String>,
+
+        /// Direction for graph walk (out, in, or both)
+        #[arg(long, default_value = "both")]
+        walk_direction: String,
+
+        /// Maximum traversal depth for graph walk
+        #[arg(long, default_value = "3")]
+        walk_max_hops: u32,
+
+        /// Include only these link types in graph walk (can be repeated, or use CSV)
+        #[arg(long, short = 'T', action = clap::ArgAction::Append, value_delimiter = ',')]
+        walk_type: Vec<String>,
+
+        /// Exclude these link types in graph walk (can be repeated, or use CSV)
+        #[arg(long, action = clap::ArgAction::Append, value_delimiter = ',')]
+        walk_exclude_type: Vec<String>,
+
+        /// Show only typed links in graph walk (from frontmatter)
+        #[arg(long)]
+        walk_typed_only: bool,
+
+        /// Show only inline links in graph walk (from markdown body)
+        #[arg(long)]
+        walk_inline_only: bool,
+
+        /// Maximum nodes to visit in graph walk
+        #[arg(long)]
+        walk_max_nodes: Option<usize>,
+
+        /// Maximum edges to emit in graph walk
+        #[arg(long)]
+        walk_max_edges: Option<usize>,
+
+        /// Maximum neighbors per node in graph walk
+        #[arg(long)]
+        walk_max_fanout: Option<usize>,
+
+        /// Filter by minimum value in graph walk (0-100, default: 50)
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
+        walk_min_value: Option<u8>,
+
+        /// Ignore note values during graph walk (unweighted BFS, weighted by default)
+        #[arg(long, alias = "walk-unweighted", default_value = "false")]
+        walk_ignore_value: bool,
+
         /// Select notes by ID (can be repeated)
         #[arg(long, short = 'n', action = clap::ArgAction::Append)]
         note: Vec<String>,

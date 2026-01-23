@@ -122,12 +122,18 @@ This document tracks completed implementation work. For exploratory future work 
    - Added test `test_index_rewrites_wiki_links` to verify behavior
    - Note: Flag name differs from plan (`--rewrite-wiki-links` vs `--canonicalize-links`), but matches commit `a889f25` implementation
  - [x] `cli-interface.md`: `qipu capture` default type (default to `fleeting`) (`src/commands/capture.rs`, `specs/cli-interface.md:73-80`)
-   - Implementation already present: line 63 defaults to `NoteType::Fleeting`
-   - Test already present: `test_capture_default_type_fleeting` verifies behavior
-   - Updated spec to document the `--type` flag with explicit default
-   - Removed open question from spec
- - [ ] `graph-traversal.md`: Context walk command (`qipu context --walk`) (`src/commands/context/walk.rs`)
- - [ ] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/stats.rs`)
+    - Implementation already present: line 63 defaults to `NoteType::Fleeting`
+    - Test already present: `test_capture_default_type_fleeting` verifies behavior
+    - Updated spec to document the `--type` flag with explicit default
+    - Removed open question from spec
+  - [x] `graph-traversal.md`: Context walk command (`qipu context --walk`) (`src/commands/context/walk.rs`)
+    - Added `--walk <id>` flag to `qipu context` command
+    - Added walk-specific options: `--walk-direction`, `--walk-max-hops`, `--walk-type`, `--walk-exclude-type`, `--walk-typed-only`, `--walk-inline-only`, `--walk-max-nodes`, `--walk-max-edges`, `--walk-max-fanout`, `--walk-min-value`, `--walk-ignore-value`
+    - Implemented `walk_for_context()` function to perform graph traversal using existing link tree traversal logic
+    - Updated context command to use walk results as note selection criteria
+    - Added 5 integration tests: `test_context_walk_basic`, `test_context_walk_max_hops`, `test_context_walk_direction`, `test_context_walk_with_type_filter`, `test_context_walk_json_format`
+    - All 47 context tests pass
+  - [ ] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/stats.rs`)
 
 ## Revision 2 (2026-01-23)
 

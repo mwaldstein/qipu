@@ -14,6 +14,7 @@ pub mod output;
 pub mod records;
 pub mod select;
 pub mod types;
+pub mod walk;
 
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
@@ -207,6 +208,44 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             compaction_ctx.canon(id)
         }
     };
+
+    // Selection by graph walk
+    if let Some(walk_id) = options.walk_id {
+        let walked_ids = walk::walk_for_context(
+            cli,
+            store,
+            walk_id,
+            options.walk_direction,
+            options.walk_max_hops,
+            options.walk_type,
+            options.walk_exclude_type,
+            options.walk_typed_only,
+            options.walk_inline_only,
+            options.walk_max_nodes,
+            options.walk_max_edges,
+            options.walk_max_fanout,
+            options.walk_min_value,
+            options.walk_ignore_value,
+        )?;
+
+        for id in &walked_ids {
+            let resolved_id = resolve_id(id)?;
+
+            if seen_ids.insert(resolved_id.clone()) {
+                let note =
+                    note_map
+                        .get(resolved_id.as_str())
+                        .ok_or_else(|| QipuError::NoteNotFound {
+                            id: resolved_id.clone(),
+                        })?;
+                selected_notes.push(SelectedNote {
+                    note,
+                    via: Some(format!("walk:{}", walk_id)),
+                    link_type: None,
+                });
+            }
+        }
+    }
 
     // Selection by explicit note IDs
     for id in options.note_ids {
@@ -437,11 +476,12 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         && options.tag.is_none()
         && options.moc_id.is_none()
         && options.query.is_none()
+        && options.walk_id.is_none()
     {
         // Check if min-value or custom-filter is provided as a standalone selector
         if options.min_value.is_none() && options.custom_filter.is_empty() {
             return Err(QipuError::UsageError(
-                "no selection criteria provided. Use --note, --tag, --moc, --query, --min-value, or --custom-filter".to_string(),
+                "no selection criteria provided. Use --note, --tag, --moc, --query, --walk, --min-value, or --custom-filter".to_string(),
             ));
         }
 

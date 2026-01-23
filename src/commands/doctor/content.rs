@@ -5,10 +5,41 @@ use crate::lib::note::Note;
 use crate::lib::store::paths::ATTACHMENTS_DIR;
 use crate::lib::store::Store;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
+
+pub fn check_tag_aliases(store: &Store, notes: &[Note], result: &mut DoctorResult) {
+    let config = store.config();
+
+    if config.tag_aliases.is_empty() {
+        return;
+    }
+
+    let mut all_tags: BTreeSet<String> = BTreeSet::new();
+    for note in notes {
+        for tag in &note.frontmatter.tags {
+            all_tags.insert(tag.clone());
+        }
+    }
+
+    for (alias, canonical) in &config.tag_aliases {
+        if !all_tags.contains(canonical) {
+            result.add_issue(Issue {
+                severity: Severity::Warning,
+                category: "orphaned-tag-alias".to_string(),
+                message: format!(
+                    "Tag alias '{}' points to canonical tag '{}' which does not exist in any note",
+                    alias, canonical
+                ),
+                note_id: None,
+                path: None,
+                fixable: false,
+            });
+        }
+    }
+}
 
 pub fn scan_notes(store: &Store) -> (Vec<Note>, Vec<(String, String)>) {
     let mut notes = Vec::new();

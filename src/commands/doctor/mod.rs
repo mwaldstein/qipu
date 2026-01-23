@@ -81,6 +81,9 @@ pub fn execute(
     // 11. Check for bare link lists (quality bar)
     checks::check_bare_link_lists(&notes, &mut result);
 
+    // 11.5. Check for orphaned tag aliases
+    checks::check_tag_aliases(store, &notes, &mut result);
+
     // 12. Check for overly complex notes (quality bar)
     checks::check_note_complexity(&notes, &mut result);
 

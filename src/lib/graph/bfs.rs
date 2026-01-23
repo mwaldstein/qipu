@@ -286,6 +286,68 @@ fn dijkstra_search(
     (false, predecessors)
 }
 
+fn create_empty_path_result(from: &str, to: &str, direction: Direction) -> PathResult {
+    PathResult {
+        from: from.to_string(),
+        to: to.to_string(),
+        direction: match direction {
+            Direction::Out => "out".to_string(),
+            Direction::In => "in".to_string(),
+            Direction::Both => "both".to_string(),
+        },
+        found: false,
+        notes: vec![],
+        links: vec![],
+        path_length: 0,
+    }
+}
+
+fn reconstruct_path(
+    from: &str,
+    to: &str,
+    predecessors: &HashMap<String, (String, Edge)>,
+    provider: &dyn GraphProvider,
+) -> (Vec<TreeNote>, Vec<TreeLink>) {
+    let mut path_nodes: Vec<String> = Vec::new();
+    let mut path_links: Vec<TreeLink> = Vec::new();
+
+    let mut current = to.to_string();
+    path_nodes.push(current.clone());
+
+    while current != from {
+        if let Some((pred, edge)) = predecessors.get(&current) {
+            path_links.push(TreeLink {
+                from: edge.from.clone(),
+                to: edge.to.clone(),
+                link_type: edge.link_type.to_string(),
+                source: edge.source.to_string(),
+            });
+            current = pred.clone();
+            path_nodes.push(current.clone());
+        } else {
+            break;
+        }
+    }
+
+    path_nodes.reverse();
+    path_links.reverse();
+
+    let tree_notes: Vec<TreeNote> = path_nodes
+        .iter()
+        .filter_map(|id| {
+            provider.get_metadata(id).map(|meta| TreeNote {
+                id: meta.id.clone(),
+                title: meta.title.clone(),
+                note_type: meta.note_type,
+                tags: meta.tags.clone(),
+                path: meta.path.clone(),
+            })
+        })
+        .collect();
+
+    (tree_notes, path_links)
+}
+
 /// Find path between two nodes using BFS or Dijkstra
 /// With `ignore_value=true`: unweighted BFS (all edges cost 1.0)
 /// With `ignore_value=false`: weighted Dijkstra (cost based on note value)
@@ -299,40 +361,12 @@ pub fn bfs_find_path(
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
-    let from_passes_filter = check_min_value_filter(provider, from, opts.min_value);
-
-    if !from_passes_filter {
-        return Ok(PathResult {
-            from: from.to_string(),
-            to: to.to_string(),
-            direction: match opts.direction {
-                Direction::Out => "out".to_string(),
-                Direction::In => "in".to_string(),
-                Direction::Both => "both".to_string(),
-            },
-            found: false,
-            notes: vec![],
-            links: vec![],
-            path_length: 0,
-        });
+    if !check_min_value_filter(provider, from, opts.min_value) {
+        return Ok(create_empty_path_result(from, to, opts.direction));
     }
 
-    let to_passes_filter = check_min_value_filter(provider, to, opts.min_value);
-
-    if !to_passes_filter {
-        return Ok(PathResult {
-            from: from.to_string(),
-            to: to.to_string(),
-            direction: match opts.direction {
-                Direction::Out => "out".to_string(),
-                Direction::In => "in".to_string(),
-                Direction::Both => "both".to_string(),
-            },
-            found: false,
-            notes: vec![],
-            links: vec![],
-            path_length: 0,
-        });
+    if !check_min_value_filter(provider, to, opts.min_value) {
+        return Ok(create_empty_path_result(from, to, opts.direction));
     }
 
     let (found, predecessors) = if opts.ignore_value {
@@ -357,48 +391,8 @@ pub fn bfs_find_path(
         )
     };
 
-    // Reconstruct path if found
     let (notes, links) = if found {
-        let mut path_nodes: Vec<String> = Vec::new();
-        let mut path_links: Vec<TreeLink> = Vec::new();
-
-        // Backtrack from target to source
-        let mut current = to.to_string();
-        path_nodes.push(current.clone());
-
-        while current != from {
-            if let Some((pred, edge)) = predecessors.get(&current) {
-                path_links.push(TreeLink {
-                    from: edge.from.clone(),
-                    to: edge.to.clone(),
-                    link_type: edge.link_type.to_string(),
-                    source: edge.source.to_string(),
-                });
-                current = pred.clone();
-                path_nodes.push(current.clone());
-            } else {
-                break;
-            }
-        }
-
-        path_nodes.reverse();
-        path_links.reverse();
-
-        // Convert to TreeNotes
-        let tree_notes: Vec<TreeNote> = path_nodes
-            .iter()
-            .filter_map(|id| {
-                provider.get_metadata(id).map(|meta| TreeNote {
-                    id: meta.id.clone(),
-                    title: meta.title.clone(),
-                    note_type: meta.note_type,
-                    tags: meta.tags.clone(),
-                    path: meta.path.clone(),
-                })
-            })
-            .collect();
-
-        (tree_notes, path_links)
+        reconstruct_path(from, to, &predecessors, provider)
     } else {
         (Vec::new(), Vec::new())
     };

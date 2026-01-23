@@ -111,10 +111,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Extract Dijkstra logic (weighted, `ignore_value=false`) into separate function
 - [x] Deduplicate neighbor collection code between both algorithms
 - [x] Extract filter checking logic into helper function
-- [ ] Target: Main function should be <100 lines, sub-functions <150 lines each
-- **Current state**: Main function reduced from 400 to 127 lines. Added `check_min_value_filter`, `collect_neighbors`, `bfs_search`, and `dijkstra_search` helper functions. Fixed duplicate check bug in Dijkstra loop. Deduplicated neighbor collection into `collect_neighbors` (46 lines).
+- [x] Target: Main function should be <100 lines, sub-functions <150 lines each
+- **Current state**: Main function reduced from 400 to 59 lines (target met!). Added `check_min_value_filter`, `collect_neighbors`, `bfs_search`, `dijkstra_search`, `create_empty_path_result`, and `reconstruct_path` helper functions. Fixed duplicate check bug in Dijkstra loop. Deduplicated neighbor collection into `collect_neighbors` (46 lines). All helper functions <150 lines.
 - **Impact**: Critical for graph pathfinding clarity and maintainability
-- **Learnings**: Extracting neighbor collection code reduced `bfs_search` from 124 to 88 lines and `dijkstra_search` from 159 to 124 lines. Total file reduced from 872 to 848 lines (24 lines saved). All sub-functions now meet the <150-line target. `bfs_find_path` remains at 127 lines (slightly above 100-line target, but acceptable as main orchestration function).
+- **Learnings**: Extracted empty result creation (20 lines) and path reconstruction (44 lines) logic into separate helpers. Combined with previous extractions (neighbor collection, BFS/Dijkstra search, filter checking), the main function is now 59 lines—well under the 100-line target. The pattern of extracting common paths (filter failures, empty results) into helper functions reduces duplication and improves readability.
 - **Note**: 3 pre-existing test failures in context command detected during verification (not caused by this refactoring):
   - `test_context_deterministic_ordering_with_budget`
   - `test_context_expand_compaction_human_format`

@@ -512,7 +512,8 @@ pub enum Commands {
         editor: Option<String>,
     },
 
-    /// Update a note's metadata or content non-interactively
+    /// Update a note's metadata or content non-interactively.
+    /// Reads replacement body text from stdin when piped (e.g., `echo "new content" | qipu update <id>`)
     Update {
         /// Note ID or file path
         id_or_path: String,

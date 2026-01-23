@@ -307,8 +307,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Add `tag_aliases` field to config for tag mappings (e.g., `ml: machine-learning`)
 - [x] Resolve aliases during querying (list, search)
 - [x] `qipu doctor` warns on orphaned aliases
-- Files: `src/lib/config.rs`, `src/lib/query/filter.rs`, `src/commands/list/mod.rs`, `src/commands/search/mod.rs`, `src/lib/db/search.rs`
-- Status: **Complete**. Added `tag_aliases` HashMap to `StoreConfig` with bidirectional resolution via `get_equivalent_tags()`. Modified `NoteFilter` to support equivalent tags. Updated `list` command to resolve tag aliases before filtering. Updated `search` command and database to handle equivalent tags. All tests pass (420 total).
+- Files: `src/lib/config.rs`, `src/lib/query/filter.rs`, `src/commands/list/mod.rs`, `src/commands/search/mod.rs`, `src/lib/db/search.rs`, `src/commands/doctor/content.rs`, `src/commands/doctor/mod.rs`
+- Status: **Complete**. Added `tag_aliases` HashMap to `StoreConfig` with bidirectional resolution via `get_equivalent_tags()`. Modified `NoteFilter` to support equivalent tags. Updated `list` command to resolve tag aliases before filtering. Updated `search` command and database to handle equivalent tags. Added doctor check `check_tag_aliases()` that warns when tag aliases point to canonical tags not present in any note. Added `CheckTagAliases` struct implementing `DoctorCheck` trait. Added test `test_doctor_tag_aliases_no_warnings` verifying no warnings when config has no aliases.
+- **Learnings**: Tag aliases work bidirectionally:
+  1. User can query by alias `ml` to find notes tagged with canonical `machine-learning`
+  2. User can query by canonical `machine-learning` to find notes tagged with alias `ml`
+  3. On-disk representation remains simple (tags are stored as-is)
+  4. Aliases are resolved at query time, not stored in database
+  5. The `get_equivalent_tags()` method returns all matching tags (canonical + aliases) for flexible filtering
+  6. The doctor check for orphaned tag aliases identifies aliases that point to canonical tags not present in any note, helping users clean up unused aliases.
+  7. The check is straightforward to implement and provides clear, actionable warnings for users.
 - **Learnings**: Tag aliases work bidirectionally:
   1. User can query by alias `ml` to find notes tagged with canonical `machine-learning`
   2. User can query by canonical `machine-learning` to find notes tagged with alias `ml`

@@ -106,8 +106,8 @@ pub enum LinkCommands {
         #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
 
-        /// Ignore note values during traversal (unweighted BFS)
-        #[arg(long, alias = "unweighted")]
+        /// Ignore note values during traversal (unweighted BFS, weighted by default)
+        #[arg(long, alias = "unweighted", default_value = "false")]
         ignore_value: bool,
     },
 
@@ -151,8 +151,8 @@ pub enum LinkCommands {
         #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         min_value: Option<u8>,
 
-        /// Ignore note values during path finding (unweighted BFS, default: true)
-        #[arg(long, alias = "unweighted", default_value = "true")]
+        /// Ignore note values during path finding (unweighted BFS, weighted by default)
+        #[arg(long, alias = "unweighted", default_value = "false")]
         ignore_value: bool,
     },
 }

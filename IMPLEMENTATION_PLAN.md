@@ -53,7 +53,10 @@ This document tracks completed implementation work. For exploratory future work 
    - Fixed: Added `build_path_to_id_map()` function to query all note paths and IDs from database
    - Updated both `insert_edges()` and `insert_edges_internal()` to use the populated `path_to_id` HashMap
    - This allows relative markdown links like `[text](../other/note.md)` to be properly resolved to note IDs
-- [ ] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)
+- [x] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)
+  - Fixed: Changed `default_value = "true"` to `default_value = "false"` for both Tree and Path subcommands
+  - Updated help text to indicate "weighted by default"
+  - All 7 ignore_value tests verify correct behavior
 - [ ] `graph-traversal.md`: `link tree` human view expands from `result.links` (not `spanning_tree`) and can expand nodes multiple times (`src/commands/link/tree.rs:171-293`)
 - [ ] `llm-context.md`: `context --format json` omits per-note `path` (`src/commands/context/json.rs:171-195`)
 - [ ] `records-output.md`: Link records headers use store-root path (not CWD-relative) (`src/commands/link/records.rs:176-186`)

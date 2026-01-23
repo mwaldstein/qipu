@@ -107,7 +107,6 @@ For integration with tools, `qipu context --format json` should emit:
       "title": "…",
       "type": "…",
       "tags": ["…"],
-      "path": "…",
       "content": "…",
       "sources": [ {"url": "…", "title": "…"} ]
     }
@@ -115,7 +114,7 @@ For integration with tools, `qipu context --format json` should emit:
 }
 ```
 
-Note: The `store` and `path` fields should be relative to the current working directory.
+Note: The `store` field should be relative to the current working directory.
 
 ## Budgeting and truncation
 - When a budget is set, qipu should include as many complete notes as possible.

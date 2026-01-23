@@ -64,7 +64,7 @@ This document tracks completed implementation work. For exploratory future work 
   - Added test `test_link_tree_spanning_tree_not_all_links` to verify spanning tree behavior
   - Updated golden test `link_tree.txt` to reflect correct behavior (nodes appear once)
   - Note: Tree indentation issue (first-level children appear at same level as root) is a pre-existing bug in original code, not introduced by this fix
-- [ ] `llm-context.md`: `context --format json` omits per-note `path` (`src/commands/context/json.rs:171-195`)
+
 - [ ] `records-output.md`: Link records headers use store-root path (not CWD-relative) (`src/commands/link/records.rs:176-186`)
 - [ ] `compaction.md`: Link JSON outputs omit compaction annotations/truncation indicators (`src/commands/link/json.rs:7-86`, `src/commands/link/tree.rs:120-153`)
 - [ ] `pack.md`: Pack dump/load is lossy (value not serialized; custom dropped; merge-links semantics restricted) (`src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246`)

@@ -127,6 +127,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 
         Some(Commands::Prime) => maintenance::handle_prime(cli, &root, start),
 
+        Some(Commands::Onboard) => handle_onboard(cli),
+
         Some(Commands::Setup {
             list,
             tool,
@@ -321,6 +323,10 @@ fn handle_setup(
     remove: bool,
 ) -> Result<()> {
     crate::commands::setup::execute(cli, list, tool, print, check, remove)
+}
+
+fn handle_onboard(cli: &Cli) -> Result<()> {
+    crate::commands::setup::execute_onboard(cli)
 }
 
 fn handle_compact(cli: &Cli, command: &crate::cli::CompactCommands) -> Result<()> {

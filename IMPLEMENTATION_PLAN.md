@@ -293,15 +293,27 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### P3: Optional Enhancements
 
 #### Beads/Qipu CLI Alignment Review
-- [ ] Compare `bd init`/`bd setup`/`bd onboard`/`bd prime` patterns vs qipu equivalents
-- [ ] Evaluate `bd onboard` approach: minimal AGENTS.md snippet pointing to `prime`
-- [ ] Consider merging `qipu init` + `qipu setup` or adding `qipu onboard`
-- [ ] Review beads' `--stealth` flag (combines init + gitignore + agent setup)
-- [ ] Assess if qipu help is too verbose for agent discovery of key commands
+- [x] Compare `bd init`/`bd setup`/`bd onboard`/`bd prime` patterns vs qipu equivalents
+- [x] Evaluate `bd onboard` approach: minimal AGENTS.md snippet pointing to `prime`
+- [x] Consider merging `qipu init` + `qipu setup` or adding `qipu onboard`
+- [x] Review beads' `--stealth` flag (combines init + gitignore + agent setup)
+- [x] Assess if qipu help is too verbose for agent discovery of key commands
 - [ ] Discourage direct file reading of `.qipu/notes/` - agents should use CLI
   - Options: AGENTS.md guidance, directory naming, or tooling hints
   - Intent: CLI provides consistent formatting, budget control, and graph context
 - Reference: `bd --help`, `bd onboard --help`, `bd init --help`
+- Status: **Complete**. Added `qipu onboard` command that outputs a minimal (~25 line) AGENTS.md snippet pointing to `qipu prime`. This follows beads' pattern of keeping AGENTS.md lean and letting `prime` provide dynamic, always-current workflow details. All three output formats (human, json, records) are supported. Added 3 tests covering all format variants.
+- **Learnings**:
+  - Beads and qipu already have good alignment: `init`, `setup`, and `prime` commands serve equivalent purposes
+  - The key missing piece was `onboard`, which provides a minimal snippet for quick setup
+  - `--stealth` flag already exists in qipu with equivalent behavior
+  - `qipu --help` (64 lines) is reasonable for full CLI discovery - no need for `human` command like beads
+  - Pattern comparison:
+    - `bd init` → `qipu init` ✓
+    - `bd setup <recipe>` → `qipu setup <integration>` ✓
+    - `bd onboard` → `qipu onboard` ✓ (newly added)
+    - `bd prime` → `qipu prime` ✓
+  - Remaining item: discourage direct `.qipu/notes/` file reading (optional enhancement)
 
 #### Tag Aliases (`specs/knowledge-model.md:53`)
 - [x] Add `tag_aliases` field to config for tag mappings (e.g., `ml: machine-learning`)

@@ -10,6 +10,35 @@ use crate::commands::format::{
 use crate::lib::error::QipuError;
 use std::path::PathBuf;
 
+const ONBOARD_SNIPPET: &str = r#"# Qipu Knowledge Management
+
+This project uses **qipu** for knowledge management.
+
+## Quick Start
+
+Add this minimal snippet to AGENTS.md (or create it):
+
+---
+
+Run `qipu prime` for workflow context and session-start primer.
+
+**Quick reference:**
+- `qipu prime` - Get store overview and session-start primer
+- `qipu create <title>` - Create a new note
+- `qipu capture` - Capture note from stdin
+- `qipu list` - List notes
+- `qipu search <query>` - Search notes
+- `qipu context` - Build context bundle for LLM
+- `qipu link tree <id>` - Show note neighborhood
+
+---
+
+**Why minimal?**
+- `qipu prime` provides dynamic, always-current workflow details
+- AGENTS.md stays lean and saves tokens
+- Run `qipu --help` for complete command reference
+"#;
+
 fn get_agents_md_path(cli: &Cli) -> PathBuf {
     match &cli.root {
         Some(root) => root.join("AGENTS.md"),
@@ -159,6 +188,27 @@ pub fn execute(
     Err(QipuError::UsageError(
         "Specify --list, --print, or provide a tool name. See `qipu setup --help`".to_string(),
     ))
+}
+
+/// Execute the onboard command - display minimal AGENTS.md snippet
+pub fn execute_onboard(cli: &Cli) -> Result<(), QipuError> {
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "snippet": ONBOARD_SNIPPET,
+                "instruction": "Add this snippet to AGENTS.md for qipu integration"
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Records => {
+            print_records_header("onboard", &[]);
+            wrap_records_body("snippet", ONBOARD_SNIPPET);
+        }
+        OutputFormat::Human => {
+            print!("{}", ONBOARD_SNIPPET);
+        }
+    }
+    Ok(())
 }
 
 /// List available integrations
@@ -693,6 +743,27 @@ mod tests {
         assert!(result.is_ok());
 
         let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_onboard_human() {
+        let cli = create_cli(OutputFormat::Human);
+        let result = execute_onboard(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_onboard_json() {
+        let cli = create_cli(OutputFormat::Json);
+        let result = execute_onboard(&cli);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_onboard_records() {
+        let cli = create_cli(OutputFormat::Records);
+        let result = execute_onboard(&cli);
         assert!(result.is_ok());
     }
 }

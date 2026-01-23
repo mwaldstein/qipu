@@ -17,6 +17,7 @@ Commands:
   tags       Manage and query tags
   link       Manage and traverse note links
   prime      Output session-start primer for LLM agents
+  onboard    Display minimal AGENTS.md snippet for agent integration
   setup      Install qipu integration instructions for agent tools
   doctor     Validate store invariants and optionally repair issues
   sync       Sync store: update indexes and optionally validate

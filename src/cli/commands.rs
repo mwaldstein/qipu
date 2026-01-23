@@ -194,6 +194,9 @@ pub enum Commands {
     /// Output session-start primer for LLM agents
     Prime,
 
+    /// Display minimal AGENTS.md snippet for agent integration
+    Onboard,
+
     /// Install qipu integration instructions for agent tools
     Setup {
         /// List available integrations

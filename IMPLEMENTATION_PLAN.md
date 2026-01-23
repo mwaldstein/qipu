@@ -87,7 +87,13 @@ This document tracks completed implementation work. For exploratory future work 
 
 ### P2: Missing Test Coverage
 
-- [ ] `semantic-graph.md`: Add direct CLI tests asserting semantic inversion + type filtering + `source=virtual` behavior (`src/lib/graph/algos/bfs.rs:146-164`, `src/commands/link/list.rs:119-136`)
+- [x] `semantic-graph.md`: Add direct CLI tests asserting semantic inversion + type filtering + `source=virtual` behavior (`src/lib/graph/algos/bfs.rs:146-164`, `src/commands/link/list.rs:119-136`)
+  - Added 5 tests to `tests/cli/link/list.rs`:
+    - `test_link_list_semantic_inversion_default`: Verifies inbound link shows as outbound virtual with inverted type
+    - `test_link_list_semantic_inversion_disabled`: Verifies --no-semantic-inversion shows raw inbound link
+    - `test_link_list_semantic_inversion_type_filter`: Verifies filtering by inverted type works with semantic inversion
+    - `test_link_list_semantic_inversion_type_filter_disabled`: Verifies filtering by inverted type fails without semantic inversion
+    - `test_link_list_semantic_inversion_type_filter_original`: Verifies filtering by original type behavior with/without semantic inversion
 - [ ] `workspaces.md`: Add tests for `workspace merge --strategy rename` (`src/commands/workspace/merge.rs:219-289`)
 - [ ] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`src/commands/list/mod.rs:41-53`, `src/commands/doctor/content.rs:181-205`)
 

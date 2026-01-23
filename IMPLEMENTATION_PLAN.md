@@ -109,12 +109,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 #### Split `bfs_find_path` Function (`src/lib/graph/bfs.rs`)
 - [x] Extract BFS logic (unweighted, `ignore_value=true`) into separate function
 - [x] Extract Dijkstra logic (weighted, `ignore_value=false`) into separate function
-- [ ] Deduplicate neighbor collection code between both algorithms
+- [x] Deduplicate neighbor collection code between both algorithms
 - [x] Extract filter checking logic into helper function
 - [ ] Target: Main function should be <100 lines, sub-functions <150 lines each
-- **Current state**: Main function reduced from 400 to 127 lines. Added `check_min_value_filter`, `bfs_search`, and `dijkstra_search` helper functions. Fixed duplicate check bug in Dijkstra loop.
+- **Current state**: Main function reduced from 400 to 127 lines. Added `check_min_value_filter`, `collect_neighbors`, `bfs_search`, and `dijkstra_search` helper functions. Fixed duplicate check bug in Dijkstra loop. Deduplicated neighbor collection into `collect_neighbors` (46 lines).
 - **Impact**: Critical for graph pathfinding clarity and maintainability
-- **Learnings**: Extracting both BFS and Dijkstra algorithms reduced the main function by 138 lines (from 265 to 127). Both search functions return `(bool, HashMap)` tuple for `found` and `predecessors`. Fixed a bug where the target check was duplicated in the Dijkstra loop (lines 233-240). `dijkstra_search` is 159 lines, `bfs_search` is 124 lines - both slightly over the 150-line target but still significant improvement. Neighbor collection code remains duplicated between the two search functions (next step).
+- **Learnings**: Extracting neighbor collection code reduced `bfs_search` from 124 to 88 lines and `dijkstra_search` from 159 to 124 lines. Total file reduced from 872 to 848 lines (24 lines saved). All sub-functions now meet the <150-line target. `bfs_find_path` remains at 127 lines (slightly above 100-line target, but acceptable as main orchestration function).
+- **Note**: 3 pre-existing test failures in context command detected during verification (not caused by this refactoring):
+  - `test_context_deterministic_ordering_with_budget`
+  - `test_context_expand_compaction_human_format`
+  - `test_context_expand_compaction_with_depth`
 
 #### Extract Model Pricing Logic (`crates/llm-tool-test/src/results.rs`)
 - [ ] Move `get_model_pricing()` function (lines 447-513) to new module `pricing.rs`

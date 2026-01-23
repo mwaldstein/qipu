@@ -24,6 +24,53 @@ fn check_min_value_filter(
     }
 }
 
+fn collect_neighbors(
+    provider: &dyn GraphProvider,
+    store: &Store,
+    current_id: &str,
+    opts: &TreeOptions,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
+) -> Vec<(String, Edge)> {
+    let source_ids = equivalence_map
+        .and_then(|map| map.get(current_id).cloned())
+        .unwrap_or_else(|| vec![current_id.to_string()]);
+
+    let mut neighbors = Vec::new();
+
+    if opts.direction == Direction::Out || opts.direction == Direction::Both {
+        for source_id in &source_ids {
+            for edge in provider.get_outbound_edges(source_id) {
+                if filter_edge(&edge, opts) {
+                    neighbors.push((edge.to.clone(), edge));
+                }
+            }
+        }
+    }
+
+    if opts.direction == Direction::In || opts.direction == Direction::Both {
+        for source_id in &source_ids {
+            for edge in provider.get_inbound_edges(source_id) {
+                if opts.semantic_inversion {
+                    let virtual_edge = edge.invert(store.config());
+                    if filter_edge(&virtual_edge, opts) {
+                        neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                    }
+                } else if filter_edge(&edge, opts) {
+                    neighbors.push((edge.from.clone(), edge));
+                }
+            }
+        }
+    }
+
+    neighbors.sort_by(|a, b| {
+        a.1.link_type
+            .cmp(&b.1.link_type)
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    neighbors
+}
+
 fn bfs_search(
     provider: &dyn GraphProvider,
     store: &Store,
@@ -49,42 +96,7 @@ fn bfs_search(
             continue;
         }
 
-        let source_ids = equivalence_map
-            .and_then(|map| map.get(&current_id).cloned())
-            .unwrap_or_else(|| vec![current_id.clone()]);
-
-        let mut neighbors = Vec::new();
-
-        if opts.direction == Direction::Out || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in provider.get_outbound_edges(source_id) {
-                    if filter_edge(&edge, opts) {
-                        neighbors.push((edge.to.clone(), edge));
-                    }
-                }
-            }
-        }
-
-        if opts.direction == Direction::In || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in provider.get_inbound_edges(source_id) {
-                    if opts.semantic_inversion {
-                        let virtual_edge = edge.invert(store.config());
-                        if filter_edge(&virtual_edge, opts) {
-                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
-                        }
-                    } else if filter_edge(&edge, opts) {
-                        neighbors.push((edge.from.clone(), edge));
-                    }
-                }
-            }
-        }
-
-        neighbors.sort_by(|a, b| {
-            a.1.link_type
-                .cmp(&b.1.link_type)
-                .then_with(|| a.0.cmp(&b.0))
-        });
+        let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
             let canonical_from = if let Some(ctx) = compaction_ctx {
@@ -183,42 +195,7 @@ fn dijkstra_search(
             continue;
         }
 
-        let source_ids = equivalence_map
-            .and_then(|map| map.get(&current_id).cloned())
-            .unwrap_or_else(|| vec![current_id.clone()]);
-
-        let mut neighbors = Vec::new();
-
-        if opts.direction == Direction::Out || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in provider.get_outbound_edges(source_id) {
-                    if filter_edge(&edge, opts) {
-                        neighbors.push((edge.to.clone(), edge));
-                    }
-                }
-            }
-        }
-
-        if opts.direction == Direction::In || opts.direction == Direction::Both {
-            for source_id in &source_ids {
-                for edge in provider.get_inbound_edges(source_id) {
-                    if opts.semantic_inversion {
-                        let virtual_edge = edge.invert(store.config());
-                        if filter_edge(&virtual_edge, opts) {
-                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
-                        }
-                    } else if filter_edge(&edge, opts) {
-                        neighbors.push((edge.from.clone(), edge));
-                    }
-                }
-            }
-        }
-
-        neighbors.sort_by(|a, b| {
-            a.1.link_type
-                .cmp(&b.1.link_type)
-                .then_with(|| a.0.cmp(&b.0))
-        });
+        let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
             let canonical_from = if let Some(ctx) = compaction_ctx {

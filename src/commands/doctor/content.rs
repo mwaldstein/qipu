@@ -332,3 +332,345 @@ pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lib::store::InitOptions;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_doctor_bare_link_lists() {
+        use crate::lib::store::InitOptions;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "- [[qp-2]]\n- [[qp-3]]\n".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        check_bare_link_lists(&notes, &mut result);
+
+        assert!(result.warning_count >= 1);
+        assert!(result.issues.iter().any(|i| i.category == "bare-link-list"));
+    }
+
+    #[test]
+    fn test_doctor_bare_link_lists_with_context() {
+        use crate::lib::store::InitOptions;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "- See [[qp-2]] for more details on this topic\n- [[qp-3]] explains the counter-argument\n".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        check_bare_link_lists(&notes, &mut result);
+
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "bare-link-list")
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_doctor_note_complexity_too_long() {
+        use crate::lib::store::InitOptions;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        let long_content = "word ".repeat(1600);
+        note1.body = format!("{}\n\nThis note is very long.", long_content);
+        store.save_note(&mut note1).unwrap();
+
+        let notes = scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        check_note_complexity(&notes, &mut result);
+
+        eprintln!("Issues found: {:?}", result.issues);
+
+        assert!(result.warning_count >= 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "note-complexity"));
+    }
+
+    #[test]
+    fn test_doctor_note_complexity_normal() {
+        use crate::lib::store::InitOptions;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+
+        let mut note1 = store.create_note("Note 1", None, &[], None).unwrap();
+        note1.body = "This is a normal note with reasonable length.".to_string();
+        store.save_note(&mut note1).unwrap();
+
+        let notes = scan_notes(&store).0;
+        let mut result = DoctorResult::new();
+        check_note_complexity(&notes, &mut result);
+
+        assert_eq!(
+            result
+                .issues
+                .iter()
+                .filter(|i| i.category == "note-complexity")
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_doctor_compaction_cycle() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.compacts = vec!["qp-2".to_string()];
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        assert!(result.error_count > 0);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "compaction-invariant" && i.message.contains("cycle")));
+    }
+
+    #[test]
+    fn test_doctor_compaction_self_compaction() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        assert!(result.error_count > 0);
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.category == "compaction-invariant"
+                    && i.message.contains("compacts itself"))
+        );
+    }
+
+    #[test]
+    fn test_doctor_compaction_multiple_compactors() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut digest1 = NoteFrontmatter::new("qp-d1".to_string(), "Digest 1".to_string());
+        digest1.compacts = vec!["qp-1".to_string()];
+
+        let mut digest2 = NoteFrontmatter::new("qp-d2".to_string(), "Digest 2".to_string());
+        digest2.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![
+            Note::new(
+                NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                String::new(),
+            ),
+            Note::new(digest1, String::new()),
+            Note::new(digest2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        assert!(result.error_count > 0);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "compaction-invariant"
+                && i.message.contains("multiple compactors")));
+    }
+
+    #[test]
+    fn test_doctor_compaction_valid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut digest = NoteFrontmatter::new("qp-digest".to_string(), "Digest".to_string());
+        digest.compacts = vec!["qp-1".to_string(), "qp-2".to_string()];
+
+        let notes = vec![
+            Note::new(
+                NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                String::new(),
+            ),
+            Note::new(
+                NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string()),
+                String::new(),
+            ),
+            Note::new(digest, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_compaction_invariants(&notes, &mut result);
+
+        assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_invalid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note.value = Some(150);
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "invalid-value" && i.message.contains("150")));
+    }
+
+    #[test]
+    fn test_doctor_value_range_valid() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.value = Some(100);
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.value = Some(0);
+
+        let mut note3 = NoteFrontmatter::new("qp-3".to_string(), "Note 3".to_string());
+        note3.value = Some(50);
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+            Note::new(note3, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_none() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let note = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+
+        let notes = vec![Note::new(note, String::new())];
+
+        let mut result = DoctorResult::new();
+        check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 0);
+    }
+
+    #[test]
+    fn test_doctor_value_range_boundary() {
+        use crate::lib::note::NoteFrontmatter;
+
+        let mut note1 = NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string());
+        note1.value = Some(100);
+
+        let mut note2 = NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string());
+        note2.value = Some(101);
+
+        let notes = vec![
+            Note::new(note1, String::new()),
+            Note::new(note2, String::new()),
+        ];
+
+        let mut result = DoctorResult::new();
+        check_value_range(&notes, &mut result);
+
+        assert_eq!(result.error_count, 1);
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "invalid-value" && i.message.contains("101")));
+    }
+
+    #[test]
+    fn test_doctor_attachments() {
+        use crate::lib::note::NoteFrontmatter;
+        use std::fs;
+
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+        let attachments_dir = store.root().join(ATTACHMENTS_DIR);
+
+        let attachment_path = attachments_dir.join("valid.png");
+        fs::write(&attachment_path, "dummy data").unwrap();
+
+        let mut note1 = Note::new(
+            NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+            "![Valid](../attachments/valid.png)".to_string(),
+        );
+        note1.path = Some(store.notes_dir().join("qp-1.md"));
+
+        let mut note2 = Note::new(
+            NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string()),
+            "![Broken](../attachments/missing.jpg)".to_string(),
+        );
+        note2.path = Some(store.notes_dir().join("qp-2.md"));
+
+        let orphaned_path = attachments_dir.join("orphaned.txt");
+        fs::write(&orphaned_path, "nobody loves me").unwrap();
+
+        let notes = vec![note1, note2];
+        let mut result = DoctorResult::new();
+        check_attachments(&store, &notes, &mut result);
+
+        assert_eq!(
+            result.error_count, 1,
+            "Expected 1 error for missing.jpg, got: {:?}",
+            result.issues
+        );
+        assert_eq!(
+            result.warning_count, 1,
+            "Expected 1 warning for orphaned.txt, got: {:?}",
+            result.issues
+        );
+
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "broken-attachment" && i.message.contains("missing.jpg")));
+        assert!(result
+            .issues
+            .iter()
+            .any(|i| i.category == "orphaned-attachment" && i.message.contains("orphaned.txt")));
+    }
+}

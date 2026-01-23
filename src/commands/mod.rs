@@ -9,6 +9,7 @@ pub mod dispatch;
 pub mod doctor;
 pub mod dump;
 pub mod export;
+pub mod format;
 pub mod index;
 pub mod init;
 pub mod link;

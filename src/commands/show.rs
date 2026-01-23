@@ -8,6 +8,9 @@ use std::fs;
 use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
+use crate::commands::format::{
+    add_compaction_to_json, build_compaction_annotations, format_custom_value, wrap_records_body,
+};
 use crate::commands::link::LinkEntry;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
@@ -101,36 +104,27 @@ pub fn execute(
 
             // Add compaction annotations for digest notes
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-            if compacts_count > 0 {
-                if let Some(obj) = output.as_object_mut() {
-                    obj.insert("compacts".to_string(), serde_json::json!(compacts_count));
+            let compaction_pct = compaction_ctx.get_compaction_pct(&note, &note_map);
+            let (compacted_ids, truncated) = if cli.with_compaction_ids && compacts_count > 0 {
+                let depth = cli.compaction_depth.unwrap_or(1);
+                compaction_ctx.get_compacted_ids(
+                    &note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                )
+            } else {
+                None
+            }
+            .unwrap_or((Vec::new(), false));
 
-                    if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &note_map) {
-                        obj.insert(
-                            "compaction_pct".to_string(),
-                            serde_json::json!(format!("{:.1}", pct)),
-                        );
-                    }
-
-                    // Add compacted IDs if --with-compaction-ids is set
-                    // Per spec (specs/compaction.md line 131)
-                    if cli.with_compaction_ids {
-                        let depth = cli.compaction_depth.unwrap_or(1);
-                        if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
-                            &note.frontmatter.id,
-                            depth,
-                            cli.compaction_max_nodes,
-                        ) {
-                            obj.insert("compacted_ids".to_string(), serde_json::json!(ids));
-                            if truncated {
-                                obj.insert(
-                                    "compacted_ids_truncated".to_string(),
-                                    serde_json::json!(true),
-                                );
-                            }
-                        }
-                    }
-                }
+            if let Some(obj) = output.as_object_mut() {
+                add_compaction_to_json(
+                    obj,
+                    compacts_count,
+                    compaction_pct,
+                    Some(compacted_ids),
+                    truncated,
+                );
             }
 
             println!("{}", serde_json::to_string_pretty(&output)?);
@@ -161,18 +155,10 @@ pub fn execute(
                 .unwrap_or_else(|| "-".to_string());
 
             // Build compaction annotations for digest notes
-            let mut annotations = String::new();
-            if let Some(via_id) = &via {
-                annotations.push_str(&format!(" via={}", via_id));
-            }
             let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-            if compacts_count > 0 {
-                annotations.push_str(&format!(" compacts={}", compacts_count));
-
-                if let Some(pct) = compaction_ctx.get_compaction_pct(&note, &note_map) {
-                    annotations.push_str(&format!(" compaction={:.0}%", pct));
-                }
-            }
+            let compaction_pct = compaction_ctx.get_compaction_pct(&note, &note_map);
+            let annotations =
+                build_compaction_annotations(via.as_deref(), compacts_count, compaction_pct);
 
             println!(
                 "N {} {} \"{}\" tags={} value={}{}",
@@ -209,13 +195,7 @@ pub fn execute(
             // Custom metadata lines if requested (opt-in)
             if show_custom && !note.frontmatter.custom.is_empty() {
                 for (key, value) in &note.frontmatter.custom {
-                    let value_str = match value {
-                        serde_yaml::Value::String(s) => format!("\"{}\"", escape_quotes(s)),
-                        serde_yaml::Value::Number(n) => n.to_string(),
-                        serde_yaml::Value::Bool(b) => b.to_string(),
-                        _ => format!("{:?}", value),
-                    };
-                    println!("C {} {}={}", note.id(), key, value_str);
+                    println!("C {} {}={}", note.id(), key, format_custom_value(value));
                 }
             }
 
@@ -228,11 +208,7 @@ pub fn execute(
             }
 
             // Body lines with terminator
-            println!("B {}", note.id());
-            for line in note.body.lines() {
-                println!("{}", line);
-            }
-            println!("B-END");
+            wrap_records_body(note.id(), &note.body);
         }
     }
 

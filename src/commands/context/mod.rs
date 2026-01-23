@@ -33,7 +33,7 @@ pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
     if let Ok(cwd) = std::env::current_dir() {
         path.strip_prefix(&cwd)
             .ok()
-            .and_then(|p| Some(p.display().to_string()))
+            .map(|p| p.display().to_string())
             .unwrap_or_else(|| path.display().to_string())
     } else {
         path.display().to_string()
@@ -55,6 +55,7 @@ enum ComparisonOp {
 /// - Equality: `key=value`
 /// - Existence: `key` (present), `!key` (absent)
 /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+#[allow(clippy::type_complexity)]
 fn parse_custom_filter_expression(
     expr: &str,
 ) -> Result<Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool + '_>> {
@@ -489,6 +490,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         let before_count = selected_notes.len();
 
         // Parse filter expressions
+        #[allow(clippy::type_complexity)]
         let filters: Vec<
             Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool>,
         > = options

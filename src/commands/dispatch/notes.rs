@@ -44,6 +44,7 @@ pub(super) fn handle_create(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_list(
     cli: &Cli,
     root: &PathBuf,
@@ -271,6 +272,7 @@ pub(super) fn handle_verify(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_search(
     cli: &Cli,
     root: &PathBuf,

@@ -69,7 +69,7 @@ fn build_json_output(
     let mut actual_truncated = false;
     let mut estimated_size = store_path.len() + 50;
 
-    for (_idx, selected) in notes.iter().enumerate() {
+    for selected in notes.iter() {
         let note = selected.note;
         let content = if with_body {
             note.body.clone()

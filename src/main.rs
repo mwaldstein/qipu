@@ -83,15 +83,11 @@ fn argv_requests_json() -> bool {
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         if arg == "--format" {
-            if let Some(value) = args.next() {
-                if value == "json" {
-                    return true;
-                }
-            }
-        } else if arg.starts_with("--format=") {
-            if arg == "--format=json" {
+            if args.next().is_some_and(|v| v == "json") {
                 return true;
             }
+        } else if arg == "--format=json" {
+            return true;
         }
     }
     false

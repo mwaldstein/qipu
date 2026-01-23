@@ -27,7 +27,7 @@ pub fn output_json(
 
             // Add compacted IDs if --with-compaction-ids is set
             if cli.with_compaction_ids {
-                if let Some(ref ctx) = compaction_ctx {
+                if let Some(ctx) = compaction_ctx {
                     let compacts_count = ctx.get_compacts_count(&entry.id);
                     if compacts_count > 0 {
                         let depth = cli.compaction_depth.unwrap_or(1);
@@ -58,7 +58,7 @@ pub fn output_path_json(
     let mut json_result = serde_json::to_value(result)?;
     // Add compacted IDs if --with-compaction-ids is set
     if cli.with_compaction_ids {
-        if let Some(ref ctx) = compaction_ctx {
+        if let Some(ctx) = compaction_ctx {
             if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut()) {
                 for note in notes {
                     if let Some(id) = note.get("id").and_then(|i| i.as_str()) {

@@ -181,15 +181,13 @@ pub fn execute(
     }
 
     // Report validation issues if any
-    if validation_result.error_count > 0 || validation_result.warning_count > 0 {
-        if !cli.quiet {
-            println!();
-            println!("Post-merge validation found issues:");
-            println!(
-                "  Errors: {}, Warnings: {}",
-                validation_result.error_count, validation_result.warning_count
-            );
-        }
+    if (validation_result.error_count > 0 || validation_result.warning_count > 0) && !cli.quiet {
+        println!();
+        println!("Post-merge validation found issues:");
+        println!(
+            "  Errors: {}, Warnings: {}",
+            validation_result.error_count, validation_result.warning_count
+        );
     }
 
     if delete_source && source_name != "." {

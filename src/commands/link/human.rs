@@ -60,7 +60,7 @@ pub fn output_human(
 
             // Show compacted IDs if --with-compaction-ids is set
             if cli.with_compaction_ids {
-                if let Some(ref ctx) = compaction_ctx {
+                if let Some(ctx) = compaction_ctx {
                     let compacts_count = ctx.get_compacts_count(&entry.id);
                     if compacts_count > 0 {
                         let depth = cli.compaction_depth.unwrap_or(1);

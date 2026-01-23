@@ -33,15 +33,13 @@ pub fn process_search_results(
 
                 if let Ok(canonical_id) = canonical_id {
                     if canonical_id != result.id {
-                        if let Ok(digest_meta) = store.db().get_note_metadata(&canonical_id) {
-                            if let Some(digest_meta) = digest_meta {
-                                result.via = Some(result.id.clone());
-                                result.id = canonical_id.clone();
-                                result.title = digest_meta.title.clone();
-                                result.note_type = digest_meta.note_type;
-                                result.tags = digest_meta.tags.clone();
-                                result.path = digest_meta.path.clone();
-                            }
+                        if let Ok(Some(digest_meta)) = store.db().get_note_metadata(&canonical_id) {
+                            result.via = Some(result.id.clone());
+                            result.id = canonical_id.clone();
+                            result.title = digest_meta.title.clone();
+                            result.note_type = digest_meta.note_type;
+                            result.tags = digest_meta.tags.clone();
+                            result.path = digest_meta.path.clone();
                         }
                     }
 

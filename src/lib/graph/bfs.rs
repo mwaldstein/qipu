@@ -18,7 +18,7 @@ fn check_min_value_filter(
 ) -> bool {
     if let Some(meta) = provider.get_metadata(note_id) {
         let value = meta.value.unwrap_or(50);
-        min_value.is_none_or(|min| value as u8 >= min)
+        min_value.is_none_or(|min| value >= min)
     } else {
         false
     }

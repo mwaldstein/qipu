@@ -9,6 +9,7 @@ use std::time::Instant;
 use tracing::debug;
 
 /// Output in records format
+#[allow(clippy::too_many_arguments)]
 pub fn output_records(
     cli: &Cli,
     store_path: &str,

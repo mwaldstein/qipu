@@ -610,7 +610,7 @@ fn test_context_custom_metadata_complex_types() {
     let note_files: Vec<_> = fs::read_dir(store_path.join("notes"))
         .unwrap()
         .filter_map(Result::ok)
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "md"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
         .collect();
 
     assert_eq!(note_files.len(), 1, "Should have exactly one note file");

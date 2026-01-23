@@ -273,7 +273,7 @@ pub fn check_bare_link_lists(notes: &[Note], result: &mut DoctorResult) {
                     .map(|m| m.as_str())
                     .collect();
 
-                if links.len() >= 1 {
+                if !links.is_empty() {
                     let non_link_content = wiki_link_re.replace_all(line_without_marker, "");
                     let non_link_content = non_link_content.trim();
 

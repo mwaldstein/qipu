@@ -112,11 +112,12 @@ impl StoreConfig {
     }
 
     /// Set a custom cost for a link type
+    #[allow(dead_code)]
     pub fn set_link_cost(&mut self, link_type: &str, cost: f32) {
         self.graph
             .types
             .entry(link_type.to_string())
-            .or_insert_with(LinkTypeConfig::default)
+            .or_default()
             .cost = cost;
     }
 
@@ -225,8 +226,10 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.toml");
 
-        let mut config = StoreConfig::default();
-        config.store_path = Some("data/notes".to_string());
+        let config = StoreConfig {
+            store_path: Some("data/notes".to_string()),
+            ..Default::default()
+        };
         config.save(&path).unwrap();
 
         let loaded = StoreConfig::load(&path).unwrap();
@@ -238,8 +241,10 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.toml");
 
-        let mut config = StoreConfig::default();
-        config.store_path = Some("/absolute/path/to/store".to_string());
+        let config = StoreConfig {
+            store_path: Some("/absolute/path/to/store".to_string()),
+            ..Default::default()
+        };
         config.save(&path).unwrap();
 
         let loaded = StoreConfig::load(&path).unwrap();
@@ -260,8 +265,10 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.toml");
 
-        let mut config = StoreConfig::default();
-        config.stemming = false;
+        let config = StoreConfig {
+            stemming: false,
+            ..Default::default()
+        };
         config.save(&path).unwrap();
 
         let loaded = StoreConfig::load(&path).unwrap();

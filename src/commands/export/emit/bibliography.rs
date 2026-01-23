@@ -157,8 +157,7 @@ fn generate_citation_key(url: &str, index: usize) -> String {
         .split('/')
         .next()
         .unwrap_or("source")
-        .replace('.', "_")
-        .replace('-', "_");
+        .replace(['.', '-'], "_");
 
     format!("{}_{}", domain, index + 1)
 }

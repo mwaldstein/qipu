@@ -124,7 +124,7 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
     store.save_note(&mut note2)?;
 
     // 7. Delete Source Note (from both filesystem and database)
-    store.delete_note(&id1)?;
+    store.delete_note(id1)?;
 
     println!("Merge complete. {} has been merged into {}.", id1, id2);
 

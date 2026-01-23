@@ -1085,7 +1085,7 @@ Newest content
     let notes = json["notes"].as_array().unwrap();
 
     assert!(
-        notes.len() > 0,
+        !notes.is_empty(),
         "Should include at least one note with budget"
     );
 

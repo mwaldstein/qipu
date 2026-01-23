@@ -131,7 +131,7 @@ pub fn execute(
 
             let compaction_info = calculate_compaction_info(cli, &note, &note_map, &compaction_ctx);
             print_note_records(
-                &cli,
+                cli,
                 &note,
                 store,
                 via.as_deref(),

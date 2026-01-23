@@ -360,8 +360,10 @@ mod tests {
         fs::create_dir_all(custom_store.join(TEMPLATES_DIR)).unwrap();
 
         let config_path = default_store.join(CONFIG_FILE);
-        let mut config = StoreConfig::default();
-        config.store_path = Some("custom_notes".to_string());
+        let config = StoreConfig {
+            store_path: Some("custom_notes".to_string()),
+            ..Default::default()
+        };
         config.save(&config_path).unwrap();
 
         let loaded_config = StoreConfig::load(&config_path).unwrap();

@@ -323,14 +323,14 @@ pub fn get_ids_from_all_branches(
                         }
 
                         // Get filename from path
-                        if let Some(filename) = file_path.split('/').last() {
+                        if let Some(filename) = file_path.rsplit('/').next() {
                             // Extract ID (format: qp-<hash>-<slug>.md or qp-<hash>.md)
                             if let Some(id_part) = filename.strip_suffix(".md") {
                                 // Find the first hyphen after "qp-"
-                                if id_part.starts_with("qp-") {
+                                if let Some(rest) = id_part.strip_prefix("qp-") {
                                     // The ID is everything up to the next hyphen (if any)
                                     // or the entire string if no more hyphens
-                                    let id = if let Some(pos) = id_part[3..].find('-') {
+                                    let id = if let Some(pos) = rest.find('-') {
                                         &id_part[..pos + 3]
                                     } else {
                                         id_part

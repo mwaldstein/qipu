@@ -594,7 +594,7 @@ fn test_custom_set_leading_hyphen_strings() {
             "set",
             &note_id,
             "temperature",
-            "-3.14",
+            "-2.75",
         ])
         .assert()
         .success()
@@ -607,7 +607,7 @@ fn test_custom_set_leading_hyphen_strings() {
     assert_eq!(json["id"], note_id);
     assert_eq!(json["key"], "temperature");
     let temp_val: f64 = json["value"].as_f64().unwrap();
-    assert!((temp_val - -3.14).abs() < 0.001);
+    assert!((temp_val - -2.75).abs() < 0.001);
 
     // Test string with leading hyphen
     let output = qipu()

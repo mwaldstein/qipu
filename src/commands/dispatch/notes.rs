@@ -162,15 +162,25 @@ fn output_inbox_notes(
             let output: Vec<_> = inbox_notes
                 .iter()
                 .map(|n| {
-                    serde_json::json!({
+                    let mut obj = serde_json::json!({
                         "id": n.id(),
                         "title": n.title(),
                         "type": n.note_type().to_string(),
                         "tags": n.frontmatter.tags,
-
                         "created": n.frontmatter.created,
                         "updated": n.frontmatter.updated,
-                    })
+                    });
+
+                    if let Some(path) = &n.path {
+                        if let Some(obj_mut) = obj.as_object_mut() {
+                            obj_mut.insert(
+                                "path".to_string(),
+                                serde_json::json!(path.to_string_lossy()),
+                            );
+                        }
+                    }
+
+                    obj
                 })
                 .collect();
             println!("{}", serde_json::to_string_pretty(&output)?);

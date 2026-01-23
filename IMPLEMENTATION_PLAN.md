@@ -36,7 +36,10 @@ This document tracks completed implementation work. For exploratory future work 
   - Updated SQL query to select `created` and `updated` columns from notes table
   - Updated JSON output to include `path`, `created`, and `updated` fields
   - Updated `test_search_json_format` to verify `path` field is present
-- [ ] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
+- [x] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
+  - Added `path` field to inbox JSON output
+  - Updated JSON formatting to include path from note's `Option<PathBuf>` field
+  - Added test `test_inbox_json_format_includes_path` to verify spec compliance
 - [ ] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/mod.rs`)
 - [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
 - [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)

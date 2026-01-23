@@ -138,3 +138,49 @@ fn test_inbox_exclude_linked() {
                 .and(predicate::str::contains("Linked Note").not()),
         );
 }
+
+#[test]
+fn test_inbox_json_format_includes_path() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "fleeting", "Test Note"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["inbox", "--format", "json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json_output = String::from_utf8(output.stdout).unwrap();
+
+    // Verify JSON is valid
+    let value: serde_json::Value = serde_json::from_str(&json_output).unwrap();
+
+    // Verify the path field is present
+    let notes = value.as_array().unwrap();
+    assert_eq!(notes.len(), 1);
+    let note = &notes[0];
+
+    // Check that required fields are present per spec: id, title, type, tags, path, created, updated
+    assert!(note.get("id").is_some());
+    assert!(note.get("title").is_some());
+    assert!(note.get("type").is_some());
+    assert!(note.get("tags").is_some());
+    assert!(
+        note.get("path").is_some(),
+        "path field should be present in JSON output"
+    );
+    assert!(note.get("created").is_some());
+    assert!(note.get("updated").is_some());
+}

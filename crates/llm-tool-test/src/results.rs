@@ -1,3 +1,4 @@
+use crate::pricing::{get_model_pricing, ModelPricing};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -437,79 +438,6 @@ pub fn get_qipu_version() -> Result<String> {
     }
 
     Ok("unknown".to_string())
-}
-
-pub struct ModelPricing {
-    pub input_cost_per_1k_tokens: f64,
-    pub output_cost_per_1k_tokens: f64,
-}
-
-fn get_model_pricing(model: &str) -> Option<ModelPricing> {
-    let model_lower = model.to_lowercase();
-
-    let pricing = match model_lower.as_str() {
-        // Claude models (Anthropic pricing)
-        m if m.contains("claude-3-5-sonnet") || m.contains("sonnet") => ModelPricing {
-            input_cost_per_1k_tokens: 3.0,
-            output_cost_per_1k_tokens: 15.0,
-        },
-        m if m.contains("claude-3-5-haiku") || m.contains("haiku") => ModelPricing {
-            input_cost_per_1k_tokens: 0.8,
-            output_cost_per_1k_tokens: 4.0,
-        },
-        m if m.contains("claude-3-opus") || m.contains("opus") => ModelPricing {
-            input_cost_per_1k_tokens: 15.0,
-            output_cost_per_1k_tokens: 75.0,
-        },
-        m if m.contains("claude-3") => ModelPricing {
-            input_cost_per_1k_tokens: 3.0,
-            output_cost_per_1k_tokens: 15.0,
-        },
-        m if m.contains("claude") => ModelPricing {
-            input_cost_per_1k_tokens: 3.0,
-            output_cost_per_1k_tokens: 15.0,
-        },
-
-        // GPT models (OpenAI pricing)
-        m if m.contains("gpt-4o") => ModelPricing {
-            input_cost_per_1k_tokens: 2.5,
-            output_cost_per_1k_tokens: 10.0,
-        },
-        m if m.contains("gpt-4-turbo") || m.contains("gpt-4-turbo-preview") => ModelPricing {
-            input_cost_per_1k_tokens: 10.0,
-            output_cost_per_1k_tokens: 30.0,
-        },
-        m if m.contains("gpt-4") => ModelPricing {
-            input_cost_per_1k_tokens: 30.0,
-            output_cost_per_1k_tokens: 60.0,
-        },
-        m if m.contains("gpt-3.5-turbo") => ModelPricing {
-            input_cost_per_1k_tokens: 0.5,
-            output_cost_per_1k_tokens: 1.5,
-        },
-        m if m.contains("gpt-3.5") => ModelPricing {
-            input_cost_per_1k_tokens: 0.5,
-            output_cost_per_1k_tokens: 1.5,
-        },
-
-        // Amp modes (estimated costs)
-        "smart" => ModelPricing {
-            input_cost_per_1k_tokens: 3.0,
-            output_cost_per_1k_tokens: 15.0,
-        },
-        "rush" => ModelPricing {
-            input_cost_per_1k_tokens: 0.8,
-            output_cost_per_1k_tokens: 4.0,
-        },
-        "free" => ModelPricing {
-            input_cost_per_1k_tokens: 0.0,
-            output_cost_per_1k_tokens: 0.0,
-        },
-
-        _ => return None,
-    };
-
-    Some(pricing)
 }
 
 pub fn estimate_cost(model: &str, input_chars: usize, output_chars: usize) -> f64 {

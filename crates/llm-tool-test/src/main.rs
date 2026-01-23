@@ -5,6 +5,7 @@ mod evaluation;
 mod fixture;
 mod judge;
 mod output;
+mod pricing;
 mod results;
 mod run;
 mod scenario;

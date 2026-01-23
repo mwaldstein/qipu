@@ -121,12 +121,19 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `test_context_expand_compaction_with_depth`
 
 #### Extract Model Pricing Logic (`crates/llm-tool-test/src/results.rs`)
-- [ ] Move `get_model_pricing()` function (lines 447-513) to new module `pricing.rs`
-- [ ] Create `ModelPricing` struct to encapsulate pricing data
+- [x] Move `get_model_pricing()` function (lines 447-513) to new module `pricing.rs`
+- [x] Create `ModelPricing` struct to encapsulate pricing data
 - [ ] Consider loading pricing from external file/URL for easier updates
-- [ ] Target: Reduce results.rs by ~70 lines, improve testability
+- [x] Target: Reduce results.rs by ~70 lines, improve testability
 - **Current state**: Large match statement with 20+ model patterns
 - **Impact**: Makes adding new model pricing easier and tests more focused
+- **Status**: **Complete**. Created `pricing.rs` module (115 lines) with `ModelPricing` struct and `get_model_pricing()` function. Reduced `results.rs` from 1343 to 1271 lines (72 lines saved, exceeding ~70-line target). All pricing and estimate_cost tests pass. `ModelPricing` derives `Debug` and `PartialEq` for test assertions.
+- **Learnings**: The extraction was straightforward. Key considerations:
+  1. Added `#[derive(Debug, PartialEq)]` to `ModelPricing` for test assertions
+  2. Import path uses `crate::pricing` (Rust 2018 module path clarity)
+  3. Moved related tests to the new module for better organization
+  4. `estimate_cost()` remains in `results.rs` and imports from `pricing` module
+  5. The 4 pre-existing llm-tool-test test failures (adapter::mock and evaluation) are unrelated to this change
 
 #### Modularize Gate Evaluation (`crates/llm-tool-test/src/evaluation.rs`)
 - [ ] Extract each gate type (MinNotes, MinLinks, SearchHit, etc.) into separate validator function

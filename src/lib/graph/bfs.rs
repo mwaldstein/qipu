@@ -24,6 +24,18 @@ fn check_min_value_filter(
     }
 }
 
+fn get_note_value(provider: &dyn GraphProvider, note_id: &str) -> Option<u8> {
+    provider.get_metadata(note_id).and_then(|meta| meta.value)
+}
+
+fn canonicalize_with_context(ctx: Option<&CompactionContext>, id: &str) -> Option<String> {
+    if let Some(compaction_ctx) = ctx {
+        compaction_ctx.canon(id).ok()
+    } else {
+        Some(id.to_string())
+    }
+}
+
 fn collect_neighbors(
     provider: &dyn GraphProvider,
     store: &Store,
@@ -99,44 +111,27 @@ fn bfs_search(
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
-            let canonical_from = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&edge.from) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                edge.from.clone()
+            let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
+                continue;
             };
-
-            let canonical_to = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&edge.to) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                edge.to.clone()
+            let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
+                continue;
             };
 
             if canonical_from == canonical_to {
                 continue;
             }
 
-            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&neighbor_id) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                neighbor_id.clone()
+            let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, &neighbor_id)
+            else {
+                continue;
             };
 
             if visited.contains(&canonical_neighbor) {
                 continue;
             }
 
-            let neighbor_passes_filter =
-                check_min_value_filter(provider, &canonical_neighbor, opts.min_value);
-            if !neighbor_passes_filter {
+            if !check_min_value_filter(provider, &canonical_neighbor, opts.min_value) {
                 continue;
             }
 
@@ -198,35 +193,20 @@ fn dijkstra_search(
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
-            let canonical_from = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&edge.from) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                edge.from.clone()
+            let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
+                continue;
             };
-
-            let canonical_to = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&edge.to) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                edge.to.clone()
+            let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
+                continue;
             };
 
             if canonical_from == canonical_to {
                 continue;
             }
 
-            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
-                match ctx.canon(&neighbor_id) {
-                    Ok(id) => id,
-                    Err(_) => continue,
-                }
-            } else {
-                neighbor_id.clone()
+            let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, &neighbor_id)
+            else {
+                continue;
             };
 
             let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
@@ -244,11 +224,9 @@ fn dijkstra_search(
                 continue;
             }
 
-            let edge_cost = if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                let value = meta.value.unwrap_or(50);
-                get_edge_cost(edge.link_type.as_str(), value, store.config())
-            } else {
-                get_link_type_cost(edge.link_type.as_str(), store.config())
+            let edge_cost = match get_note_value(provider, &canonical_neighbor) {
+                Some(value) => get_edge_cost(edge.link_type.as_str(), value, store.config()),
+                None => get_link_type_cost(edge.link_type.as_str(), store.config()),
             };
             let new_cost = accumulated_cost + edge_cost;
 

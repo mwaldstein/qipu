@@ -21,7 +21,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| Refactor `src/lib/graph/bfs.rs` (842 lines) | High |
 | Refactor `src/commands/doctor/content.rs` (829 lines) | High |
 | Refactor `src/commands/setup.rs` (780 lines) | Medium |
 | Refactor `src/commands/doctor/database.rs` (722 lines) | Medium |
@@ -38,6 +37,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 6** (2026-01-23): Refactored `src/lib/graph/bfs.rs` (842→820 lines). Extracted helper functions (`get_note_value`, `canonicalize_with_context`) to eliminate code duplication in neighbor processing loops across `bfs_search` and `dijkstra_search`.
 
 **Revision 5** (2026-01-23): Added CI check for function complexity (>100 lines) with grandfathering for existing violations.
 

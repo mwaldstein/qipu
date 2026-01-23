@@ -36,11 +36,15 @@ pub fn execute(
 ) -> Result<()> {
     let start = Instant::now();
 
+    // Resolve tag aliases for filtering
+    let equivalent_tags = tag_filter.map(|t| store.config().get_equivalent_tags(t));
+
     if cli.verbose {
         debug!(
             query,
             ?type_filter,
             ?tag_filter,
+            ?equivalent_tags,
             exclude_mocs,
             ?min_value,
             ?sort,
@@ -48,9 +52,14 @@ pub fn execute(
         );
     }
 
-    let results = store
-        .db()
-        .search(query, type_filter, tag_filter, min_value, 200)?;
+    let results = store.db().search(
+        query,
+        type_filter,
+        tag_filter,
+        min_value,
+        equivalent_tags.as_deref(),
+        200,
+    )?;
 
     if cli.verbose {
         debug!(result_count = results.len(), elapsed = ?start.elapsed(), "search");

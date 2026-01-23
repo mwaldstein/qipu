@@ -35,8 +35,12 @@ pub fn execute(
     let compaction_ctx = CompactionContext::build(&all_notes)?;
     let note_map = CompactionContext::build_note_map(&all_notes);
 
+    // Resolve tag aliases for filtering
+    let equivalent_tags = tag.map(|t| store.config().get_equivalent_tags(t));
+
     let filter = NoteFilter::new()
         .with_tag(tag)
+        .with_equivalent_tags(equivalent_tags)
         .with_type(note_type)
         .with_since(since)
         .with_min_value(min_value)

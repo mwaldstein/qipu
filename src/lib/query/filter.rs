@@ -10,6 +10,8 @@ use serde_yaml::Value;
 pub struct NoteFilter<'a> {
     /// Filter by tag
     pub tag: Option<&'a str>,
+    /// Filter by equivalent tags (for alias resolution)
+    pub equivalent_tags: Option<Vec<String>>,
     /// Filter by note type
     pub note_type: Option<NoteType>,
     /// Filter by creation date (notes created since this timestamp)
@@ -26,6 +28,7 @@ impl<'a> Default for NoteFilter<'a> {
     fn default() -> Self {
         Self {
             tag: None,
+            equivalent_tags: None,
             note_type: None,
             since: None,
             min_value: None,
@@ -44,6 +47,12 @@ impl<'a> NoteFilter<'a> {
     /// Set the tag filter
     pub fn with_tag(mut self, tag: Option<&'a str>) -> Self {
         self.tag = tag;
+        self
+    }
+
+    /// Set the equivalent tags (for tag alias resolution)
+    pub fn with_equivalent_tags(mut self, tags: Option<Vec<String>>) -> Self {
+        self.equivalent_tags = tags;
         self
     }
 
@@ -125,7 +134,11 @@ impl<'a> NoteFilter<'a> {
 
     /// Check tag filter
     fn matches_tag(&self, note: &crate::lib::note::Note) -> bool {
-        if let Some(tag) = self.tag {
+        // If equivalent tags are set (for alias resolution), check against those
+        if let Some(ref equiv_tags) = self.equivalent_tags {
+            equiv_tags.iter().any(|t| note.frontmatter.tags.contains(t))
+        } else if let Some(tag) = self.tag {
+            // Otherwise, check against the single tag
             note.frontmatter.tags.iter().any(|t| t == tag)
         } else {
             true

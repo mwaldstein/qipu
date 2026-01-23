@@ -149,12 +149,14 @@ fn build_human_output(
         let mut expanded_notes_content = String::new();
         if cli.expand_compaction && compacts_count > 0 {
             let depth = cli.compaction_depth.unwrap_or(1);
-            if let Some((compacted_notes, _truncated)) = compaction_ctx.get_compacted_notes_expanded(
-                &selected.note.frontmatter.id,
-                depth,
-                cli.compaction_max_nodes,
-                _all_notes,
-            ) {
+            if let Some((compacted_notes, _truncated)) = compaction_ctx
+                .get_compacted_notes_expanded(
+                    &selected.note.frontmatter.id,
+                    depth,
+                    cli.compaction_max_nodes,
+                    _all_notes,
+                )
+            {
                 expanded_notes_content.push_str("### Compacted Notes:\n\n");
                 for compacted_note in compacted_notes {
                     expanded_notes_content.push_str(&format!(
@@ -162,7 +164,8 @@ fn build_human_output(
                         compacted_note.title(),
                         compacted_note.id()
                     ));
-                    expanded_notes_content.push_str(&format!("Type: {}\n", compacted_note.note_type()));
+                    expanded_notes_content
+                        .push_str(&format!("Type: {}\n", compacted_note.note_type()));
                     if !compacted_note.frontmatter.tags.is_empty() {
                         expanded_notes_content.push_str(&format!(
                             "Tags: {}\n",

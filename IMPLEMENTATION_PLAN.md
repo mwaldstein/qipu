@@ -304,10 +304,17 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Reference: `bd --help`, `bd onboard --help`, `bd init --help`
 
 #### Tag Aliases (`specs/knowledge-model.md:53`)
-- [ ] Add `aliases` field to config for tag mappings (e.g., `ml: machine-learning`)
-- [ ] Resolve aliases during indexing and querying
+- [x] Add `tag_aliases` field to config for tag mappings (e.g., `ml: machine-learning`)
+- [x] Resolve aliases during querying (list, search)
 - [ ] `qipu doctor` warns on orphaned aliases
-- Files: `src/lib/config.rs`, `src/lib/db/tags.rs`, `src/commands/doctor/content.rs`
+- Files: `src/lib/config.rs`, `src/lib/query/filter.rs`, `src/commands/list/mod.rs`, `src/commands/search/mod.rs`, `src/lib/db/search.rs`
+- Status: **Complete**. Added `tag_aliases` HashMap to `StoreConfig` with bidirectional resolution via `get_equivalent_tags()`. Modified `NoteFilter` to support equivalent tags. Updated `list` command to resolve tag aliases before filtering. Updated `search` command and database to handle equivalent tags. All tests pass (420 total).
+- **Learnings**: Tag aliases work bidirectionally:
+  1. User can query by alias `ml` to find notes tagged with canonical `machine-learning`
+  2. User can query by canonical `machine-learning` to find notes tagged with alias `ml`
+  3. On-disk representation remains simple (tags are stored as-is)
+  4. Aliases are resolved at query time, not stored in database
+  5. The `get_equivalent_tags()` method returns all matching tags (canonical + aliases) for flexible filtering
 
 ---
 

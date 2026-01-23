@@ -28,6 +28,7 @@ impl super::Database {
         type_filter: Option<NoteType>,
         tag_filter: Option<&str>,
         min_value: Option<u8>,
+        equivalent_tags: Option<&[String]>,
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
         if query.trim().is_empty() {
@@ -52,7 +53,25 @@ impl super::Database {
             where_clause.push_str(&format!(" AND n.type = '{}' ", tf));
         }
 
-        if let Some(ref tg) = tag_filter_str {
+        // Handle tag filtering with equivalent tags for alias resolution
+        if let Some(ref equiv_tags) = equivalent_tags {
+            // If multiple equivalent tags exist (alias resolution), use IN clause
+            if equiv_tags.len() > 1 {
+                let tags_list: Vec<String> =
+                    equiv_tags.iter().map(|t| format!("'{}'", t)).collect();
+                where_clause.push_str(&format!(
+                    " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag IN ({})) ",
+                    tags_list.join(", ")
+                ));
+            } else {
+                // Single tag, use simple equality
+                where_clause.push_str(&format!(
+                    " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = '{}') ",
+                    equiv_tags.first().unwrap_or(&tag_filter_str.unwrap_or_default())
+                ));
+            }
+        } else if let Some(ref tg) = tag_filter_str {
+            // Fall back to single tag filter if no equivalent tags provided
             where_clause.push_str(&format!(
                 " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = '{}') ",
                 tg

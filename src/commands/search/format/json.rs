@@ -22,7 +22,7 @@ pub fn output_json(
                 "title": r.title,
                 "type": r.note_type.to_string(),
                 "tags": r.tags,
-                
+
                 "match_context": r.match_context,
                 "relevance": r.relevance,
             });

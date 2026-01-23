@@ -49,6 +49,10 @@ pub struct StoreConfig {
     #[serde(default = "default_stemming")]
     pub stemming: bool,
 
+    /// Tag aliases: short aliases mapped to canonical tag names
+    #[serde(default)]
+    pub tag_aliases: std::collections::HashMap<String, String>,
+
     /// Graph configuration
     #[serde(default)]
     pub graph: GraphConfig,
@@ -121,6 +125,42 @@ impl StoreConfig {
             .cost = cost;
     }
 
+    /// Resolve a tag alias to its canonical name
+    /// Returns: canonical tag name, or the original tag if no alias exists
+    pub fn resolve_tag_alias(&self, tag: &str) -> String {
+        self.tag_aliases
+            .get(tag)
+            .cloned()
+            .unwrap_or_else(|| tag.to_string())
+    }
+
+    /// Get all equivalent tags for a given tag (including the tag itself and any aliases)
+    /// This is useful for filtering: if user queries with "ml", match notes tagged "ml" OR "machine-learning"
+    pub fn get_equivalent_tags(&self, tag: &str) -> Vec<String> {
+        let mut tags = vec![tag.to_string()];
+
+        // If this tag is an alias, add the canonical tag
+        if let Some(canonical) = self.tag_aliases.get(tag) {
+            tags.push(canonical.clone());
+        }
+
+        // If this is a canonical tag, add all its aliases
+        for (alias, canonical) in &self.tag_aliases {
+            if canonical == tag {
+                tags.push(alias.clone());
+            }
+        }
+
+        tags.sort();
+        tags.dedup();
+        tags
+    }
+
+    /// Add a tag alias
+    pub fn add_tag_alias(&mut self, alias: String, canonical: String) {
+        self.tag_aliases.insert(alias, canonical);
+    }
+
     /// Load configuration from a file
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)?;
@@ -185,6 +225,7 @@ impl Default for StoreConfig {
             store_path: None,
             rewrite_wiki_links: false,
             stemming: default_stemming(),
+            tag_aliases: std::collections::HashMap::new(),
             graph: GraphConfig::default(),
         }
     }
@@ -335,5 +376,86 @@ mod tests {
 
         let loaded = StoreConfig::load(&path).unwrap();
         assert_eq!(loaded.get_link_cost("custom"), 0.7);
+    }
+
+    #[test]
+    fn test_tag_aliases_default_empty() {
+        let config = StoreConfig::default();
+        assert!(config.tag_aliases.is_empty());
+    }
+
+    #[test]
+    fn test_add_tag_alias() {
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+        config.add_tag_alias("ai".to_string(), "artificial-intelligence".to_string());
+
+        assert_eq!(config.tag_aliases.len(), 2);
+        assert_eq!(
+            config.tag_aliases.get("ml"),
+            Some(&"machine-learning".to_string())
+        );
+        assert_eq!(
+            config.tag_aliases.get("ai"),
+            Some(&"artificial-intelligence".to_string())
+        );
+    }
+
+    #[test]
+    fn test_resolve_tag_alias() {
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+
+        assert_eq!(config.resolve_tag_alias("ml"), "machine-learning");
+        assert_eq!(config.resolve_tag_alias("ai"), "ai"); // no alias, returns original
+    }
+
+    #[test]
+    fn test_tag_aliases_serialization() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert_eq!(loaded.resolve_tag_alias("ml"), "machine-learning");
+    }
+
+    #[test]
+    fn test_get_equivalent_tags_alias() {
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+
+        let equiv = config.get_equivalent_tags("ml");
+        assert_eq!(equiv, vec!["machine-learning", "ml"]);
+    }
+
+    #[test]
+    fn test_get_equivalent_tags_canonical() {
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+
+        let equiv = config.get_equivalent_tags("machine-learning");
+        assert_eq!(equiv, vec!["machine-learning", "ml"]);
+    }
+
+    #[test]
+    fn test_get_equivalent_tags_no_alias() {
+        let config = StoreConfig::default();
+
+        let equiv = config.get_equivalent_tags("some-tag");
+        assert_eq!(equiv, vec!["some-tag"]);
+    }
+
+    #[test]
+    fn test_get_equivalent_tags_multiple_aliases() {
+        let mut config = StoreConfig::default();
+        config.add_tag_alias("ml".to_string(), "machine-learning".to_string());
+        config.add_tag_alias("ai".to_string(), "machine-learning".to_string());
+
+        let equiv = config.get_equivalent_tags("machine-learning");
+        assert_eq!(equiv, vec!["ai", "machine-learning", "ml"]);
     }
 }

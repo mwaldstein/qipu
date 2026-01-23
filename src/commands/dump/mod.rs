@@ -140,7 +140,7 @@ fn collect_notes_with_traversal(
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = store.db().search(q, None, None, None, 200)?;
+        let results = store.db().search(q, None, None, None, None, 200)?;
         for result in results {
             add_note_internal(store, &mut selected_notes, &mut seen_ids, &result.id)?;
         }

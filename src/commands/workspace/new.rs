@@ -2,7 +2,8 @@ use crate::cli::Cli;
 use crate::lib::error::Result;
 use crate::lib::index::Index;
 use crate::lib::index::IndexBuilder;
-use crate::lib::store::paths::{WORKSPACES_DIR, WORKSPACE_FILE};
+use crate::lib::store::config;
+use crate::lib::store::paths::{GITIGNORE_FILE, WORKSPACES_DIR, WORKSPACE_FILE};
 use crate::lib::store::workspace::WorkspaceMetadata;
 use crate::lib::store::Store;
 use std::collections::{HashSet, VecDeque};
@@ -64,6 +65,17 @@ pub fn execute(
         parent_id: Some("(primary)".to_string()),
     };
     metadata.save(&workspace_path.join(WORKSPACE_FILE))?;
+
+    if temp {
+        if let Some(project_root) = primary_store.root().parent() {
+            let project_gitignore = project_root.join(GITIGNORE_FILE);
+            let workspace_relative_path = workspace_path
+                .strip_prefix(project_root)
+                .map(|p| format!("{}/", p.display()))
+                .unwrap_or_else(|_| format!("{}/{}/{}/", ".qipu", WORKSPACES_DIR, name));
+            config::ensure_project_gitignore_entry(&project_gitignore, &workspace_relative_path)?;
+        }
+    }
 
     if !empty {
         if cli.verbose {

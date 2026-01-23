@@ -112,8 +112,10 @@ This document tracks completed implementation work. For exploratory future work 
 
 ### P3: Unimplemented But Ready
 
-- [ ] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/create.rs`)
-- [ ] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/create.rs`)
+- [x] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/new.rs`)
+  - Added gitignore entry for temp workspaces in `.qipu/workspaces/<name>/` format
+  - Added 6 integration tests covering all scenarios (create, preserve, no-duplicate, non-temp)
+  - All 448 CLI tests pass
 - [ ] `storage-format.md`: Wiki-link canonicalization (opt-in `--canonicalize-links` flag) (`src/lib/note/content.rs`)
 - [ ] `cli-interface.md`: `qipu capture` default type (default to `fleeting`) (`src/commands/capture.rs`)
 - [ ] `graph-traversal.md`: Context walk command (`qipu context --walk`) (`src/commands/context/walk.rs`)

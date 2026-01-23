@@ -7,6 +7,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 - **Test baseline**: 791 tests pass
 - **Schema version**: 6 (custom metadata column)
 - **Last audited**: 2026-01-23
+- **Last CI check added**: function complexity (>100 lines)
 
 ---
 
@@ -20,7 +21,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| CI check for function complexity (>100 lines) | High |
 | Refactor `src/lib/graph/bfs.rs` (842 lines) | High |
 | Refactor `src/commands/doctor/content.rs` (829 lines) | High |
 | Refactor `src/commands/setup.rs` (780 lines) | Medium |
@@ -38,6 +38,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 5** (2026-01-23): Added CI check for function complexity (>100 lines) with grandfathering for existing violations.
 
 **Revision 4** (2026-01-23): Added CI check for file size (>500 lines) with grandfathering for existing violations.
 

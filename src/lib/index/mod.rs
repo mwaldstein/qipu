@@ -7,6 +7,7 @@
 pub mod builder;
 pub mod links;
 pub mod types;
+pub mod weights;
 
 pub use builder::IndexBuilder;
 pub use types::{Edge, Index, LinkSource, SearchResult};

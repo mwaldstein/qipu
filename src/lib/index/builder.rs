@@ -1,5 +1,6 @@
 use super::links::extract_links;
 use super::types::{Index, NoteMetadata};
+use super::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
 use crate::lib::error::Result;
 use crate::lib::store::Store;
 use crate::lib::text::tokenize_with_stemming;
@@ -44,25 +45,24 @@ impl<'a> IndexBuilder<'a> {
             };
 
             // TF-IDF statistics with field weighting
-            // Per spec: title weight=2.0, tags weight=1.5, body weight=1.0
             // Stemming is optional per config (e.g., "graph" matches "graphs" when enabled)
             let mut term_freqs: HashMap<String, f64> = HashMap::new();
 
-            // Tokenize and weight title (weight: 2.0)
+            // Tokenize and weight title
             for term in tokenize_with_stemming(note.title(), use_stemming) {
-                *term_freqs.entry(term).or_insert(0.0) += 2.0;
+                *term_freqs.entry(term).or_insert(0.0) += TITLE_WEIGHT;
             }
 
-            // Tokenize and weight tags (weight: 1.5)
+            // Tokenize and weight tags
             for tag in &note.frontmatter.tags {
                 for term in tokenize_with_stemming(tag, use_stemming) {
-                    *term_freqs.entry(term).or_insert(0.0) += 1.5;
+                    *term_freqs.entry(term).or_insert(0.0) += TAGS_WEIGHT;
                 }
             }
 
-            // Tokenize and weight body (weight: 1.0)
+            // Tokenize and weight body
             for term in tokenize_with_stemming(&note.body, use_stemming) {
-                *term_freqs.entry(term).or_insert(0.0) += 1.0;
+                *term_freqs.entry(term).or_insert(0.0) += BODY_WEIGHT;
             }
 
             let word_count = term_freqs.values().map(|&f| f as usize).sum();

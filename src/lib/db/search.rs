@@ -2,6 +2,7 @@
 
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::SearchResult;
+use crate::lib::index::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
 use crate::lib::note::NoteType;
 use std::str::FromStr;
 
@@ -17,10 +18,10 @@ fn parse_tags(tags_str: &str) -> Vec<String> {
 impl super::Database {
     /// Perform full-text search using FTS5 with BM25 ranking
     ///
-    /// Field weights for BM25 (column weights):
-    /// - Title: 2.0x boost
-    /// - Body: 1.0x (baseline)
-    /// - Tags: 1.5x boost
+    /// Field weights for BM25 (column weights) are defined in weights.rs:
+    /// - Title: TITLE_WEIGHT boost
+    /// - Body: BODY_WEIGHT (baseline)
+    /// - Tags: TAGS_WEIGHT boost
     pub fn search(
         &self,
         query: &str,
@@ -73,7 +74,7 @@ impl super::Database {
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
         // Query-specific boosts to ensure proper ranking per spec requirements:
-        // - Title matches: +2.0 (matches BM25 title weight of 2.0x)
+        // - Title matches: +TITLE_WEIGHT (matches BM25 title weight)
         // - Tag matches: +3.0 (higher to ensure tags rank above body even with multiple body occurrences)
         // This ensures "Title matches rank above body matches" and "Exact tag matches rank above plain text"
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
@@ -82,7 +83,7 @@ impl super::Database {
             WITH ranked_results AS (
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
-                bm25(notes_fts, 2.0, 1.0, 1.5) +
+                bm25(notes_fts, {}, {}, {}) +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
@@ -92,7 +93,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
-                bm25(notes_fts, 2.0, 1.0, 1.5) + 2.0 +
+                bm25(notes_fts, {}, {}, {}) + {} +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
@@ -102,7 +103,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
-                bm25(notes_fts, 2.0, 1.0, 1.5) + 3.0 +
+                bm25(notes_fts, {}, {}, {}) + 3.0 +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
@@ -114,7 +115,19 @@ impl super::Database {
             ORDER BY rank DESC
             LIMIT ?4
         "#,
-            where_clause, where_clause, where_clause
+            TITLE_WEIGHT,
+            BODY_WEIGHT,
+            TAGS_WEIGHT,
+            where_clause,
+            TITLE_WEIGHT,
+            BODY_WEIGHT,
+            TAGS_WEIGHT,
+            TITLE_WEIGHT,
+            where_clause,
+            TITLE_WEIGHT,
+            BODY_WEIGHT,
+            TAGS_WEIGHT,
+            where_clause
         );
 
         let params: Vec<Box<dyn rusqlite::ToSql>> = vec![

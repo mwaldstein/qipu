@@ -232,12 +232,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - **Status**: **Partially complete**. Tests moved successfully, mod.rs reduced to 116 lines (<200 target). Remaining items: `DoctorCheck` trait for uniform interface and further check module extraction. The current re-export pattern through `checks.rs` provides good organization, but a trait would enable dynamic check registration.
 
 #### Simplify Similarity Engine (`src/lib/similarity/mod.rs`)
-- [ ] Extract field weighting logic into separate module
-- [ ] Separate TF-IDF calculations from graph traversal
-- [ ] Consider splitting into `similarity/calculation.rs` and `similarity/graph.rs`
-- [ ] Target: Main module <300 lines
-- **Current state**: 764 lines mixing concerns
+- [x] Extract field weighting logic into separate module
+- [x] Separate TF-IDF calculations from graph traversal
+- [x] Consider splitting into `similarity/calculation.rs` and `similarity/graph.rs`
+- [x] Target: Main module <300 lines
+- **Current state**: Main module reduced to 82 lines (well under 300 target). Created `src/lib/index/weights.rs` module with field weight constants (TITLE_WEIGHT=2.0, TAGS_WEIGHT=1.5, BODY_WEIGHT=1.0). Updated `builder.rs` and `search.rs` to use these constants. TF-IDF calculations already in `tfidf.rs`, graph traversal already in `graph.rs`.
 - **Impact**: Clearer separation between similarity algorithms and graph operations
+- **Learnings**: Extracting field weighting constants into a shared module eliminates duplication across index building and search code. The similarity engine was already well-modularized with calculation.rs, graph.rs, and tfidf.rs modules. Main module now contains only orchestration code (82 lines) with tests separated.
 
 ### P2: LLM Tool Test Enhancements
 

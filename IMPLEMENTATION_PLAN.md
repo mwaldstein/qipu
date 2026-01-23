@@ -21,7 +21,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| Refactor `src/commands/doctor/content.rs` (829 lines) | High |
+| Refactor `src/commands/doctor/content.rs` (724 lines, reduced from 830) | High |
 | Refactor `src/commands/setup.rs` (780 lines) | Medium |
 | Refactor `src/commands/doctor/database.rs` (722 lines) | Medium |
 | Externalize model pricing to config | Low |

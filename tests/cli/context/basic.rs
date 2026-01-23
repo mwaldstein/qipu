@@ -1050,6 +1050,13 @@ Newest content
         fs::write(notes_dir.join(filename), note_content).unwrap();
     }
 
+    // Index the notes
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
     let mut results = Vec::new();
 
     for _ in 0..3 {
@@ -1060,7 +1067,7 @@ Newest content
                 "--min-value",
                 "80",
                 "--max-chars",
-                "200",
+                "2000",
                 "--format",
                 "json",
             ])

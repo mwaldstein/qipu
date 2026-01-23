@@ -1,5 +1,4 @@
 use crate::cli::support::{extract_id, qipu};
-use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]

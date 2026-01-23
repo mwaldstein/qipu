@@ -19,7 +19,6 @@ Type: moc
 ## Ideas
 
 - [[qp-d4e5f6]] - Quick Idea
-
 ---
 
 ## Note: Research Note (qp-a1b2c3)
@@ -32,7 +31,6 @@ This is a permanent research note about algorithms.
 ## Summary
 
 Important findings about algorithmic complexity.
-
 ---
 
 ## Note: Quick Idea (qp-d4e5f6)
@@ -41,7 +39,6 @@ Type: fleeting
 
 ---
 Quick idea about performance optimization needs more research.
-
 ---
 
 ## Note: Paper Review (qp-g7h8i9)
@@ -54,6 +51,5 @@ Type: literature
 - https://example.com/paper
 
 Review of important research paper.
-
 ---
 

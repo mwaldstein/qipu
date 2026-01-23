@@ -6,10 +6,13 @@ mod duplicates;
 
 mod tags;
 
+mod graph;
+
+mod calculation;
+
 pub use duplicates::find_all_duplicates;
 
 use crate::lib::index::types::Index;
-use std::collections::HashMap;
 
 /// Similarity score between two notes
 #[derive(Debug, Clone, PartialEq)]
@@ -34,23 +37,7 @@ impl<'a> SimilarityEngine<'a> {
 
     /// Calculate cosine similarity between two notes using TF-IDF vectors
     pub fn calculate_similarity(&self, note_id_a: &str, note_id_b: &str) -> f64 {
-        let term_freqs_a = match self.index.note_terms.get(note_id_a) {
-            Some(t) => t,
-            None => return 0.0,
-        };
-        let term_freqs_b = match self.index.note_terms.get(note_id_b) {
-            Some(t) => t,
-            None => return 0.0,
-        };
-
-        if term_freqs_a.is_empty() || term_freqs_b.is_empty() {
-            return 0.0;
-        }
-
-        let vec_a = tfidf::get_tfidf_vector(self.index, term_freqs_a);
-        let vec_b = tfidf::get_tfidf_vector(self.index, term_freqs_b);
-
-        tfidf::cosine_similarity(&vec_a, &vec_b)
+        calculation::calculate_similarity(self.index, note_id_a, note_id_b)
     }
 
     /// Get top N similar notes for a given note
@@ -89,49 +76,7 @@ impl<'a> SimilarityEngine<'a> {
 
     /// Find notes within 2 hops in the link graph
     pub fn find_by_2hop_neighborhood(&self, note_id: &str, limit: usize) -> Vec<SimilarityResult> {
-        let mut results = Vec::new();
-        let mut neighbor_counts: HashMap<String, usize> = HashMap::new();
-
-        // Get 1-hop neighbors
-        let outbound = self.index.get_outbound_edges(note_id);
-        let inbound = self.index.get_inbound_edges(note_id);
-
-        let mut one_hop = std::collections::HashSet::new();
-        for edge in outbound {
-            one_hop.insert(edge.to.clone());
-        }
-        for edge in inbound {
-            one_hop.insert(edge.from.clone());
-        }
-
-        // Get 2-hop neighbors (linked to 1-hop neighbors)
-        for neighbor_id in &one_hop {
-            let outbound = self.index.get_outbound_edges(neighbor_id);
-            let inbound = self.index.get_inbound_edges(neighbor_id);
-
-            for edge in outbound {
-                if edge.to != note_id && !one_hop.contains(&edge.to) {
-                    *neighbor_counts.entry(edge.to.clone()).or_insert(0) += 1;
-                }
-            }
-            for edge in inbound {
-                if edge.from != note_id && !one_hop.contains(&edge.from) {
-                    *neighbor_counts.entry(edge.from.clone()).or_insert(0) += 1;
-                }
-            }
-        }
-
-        // Convert to results, score based on number of 2-hop paths
-        for (id, count) in neighbor_counts {
-            results.push(SimilarityResult {
-                id,
-                score: count as f64,
-            });
-        }
-
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        results.truncate(limit);
-        results
+        graph::find_by_2hop_neighborhood(self.index, note_id, limit)
     }
 }
 
@@ -140,7 +85,9 @@ mod tests {
     use super::*;
     use crate::lib::index::types::NoteMetadata;
     use crate::lib::note::NoteType;
+    use std::collections::HashMap;
 
+    #[allow(dead_code)]
     fn create_test_index() -> Index {
         let mut index = Index::new();
 
@@ -201,19 +148,6 @@ mod tests {
         }
 
         index
-    }
-
-    #[test]
-    fn test_similarity_calculation() {
-        let index = create_test_index();
-        let engine = SimilarityEngine::new(&index);
-
-        let score = engine.calculate_similarity("qp-1", "qp-2");
-        assert!(score > 0.0);
-        assert!(score < 1.0);
-
-        let self_score = engine.calculate_similarity("qp-1", "qp-1");
-        assert!((self_score - 1.0).abs() < 1e-9);
     }
 
     #[test]
@@ -283,69 +217,6 @@ mod tests {
             score > 0.0,
             "Similarity should be > 0 when sharing stemmed terms"
         );
-    }
-
-    #[test]
-    fn test_find_by_2hop_neighborhood() {
-        let mut index = Index::new();
-
-        // Create a graph:
-        // qp-1 -> qp-2 -> qp-3
-        // qp-1 -> qp-4 -> qp-3
-        // qp-5 is isolated
-
-        index.edges.push(crate::lib::index::types::Edge {
-            from: "qp-1".to_string(),
-            to: "qp-2".to_string(),
-            link_type: crate::lib::note::LinkType::from("related"),
-            source: crate::lib::index::types::LinkSource::Inline,
-        });
-        index.edges.push(crate::lib::index::types::Edge {
-            from: "qp-2".to_string(),
-            to: "qp-3".to_string(),
-            link_type: crate::lib::note::LinkType::from("related"),
-            source: crate::lib::index::types::LinkSource::Inline,
-        });
-        index.edges.push(crate::lib::index::types::Edge {
-            from: "qp-1".to_string(),
-            to: "qp-4".to_string(),
-            link_type: crate::lib::note::LinkType::from("related"),
-            source: crate::lib::index::types::LinkSource::Inline,
-        });
-        index.edges.push(crate::lib::index::types::Edge {
-            from: "qp-4".to_string(),
-            to: "qp-3".to_string(),
-            link_type: crate::lib::note::LinkType::from("related"),
-            source: crate::lib::index::types::LinkSource::Inline,
-        });
-
-        // Add metadata for all notes
-        for id in ["qp-1", "qp-2", "qp-3", "qp-4", "qp-5"] {
-            index.metadata.insert(
-                id.to_string(),
-                NoteMetadata {
-                    id: id.to_string(),
-                    title: format!("Note {}", id),
-                    note_type: NoteType::Permanent,
-                    tags: vec![],
-                    path: format!("{}.md", id),
-                    created: None,
-                    updated: None,
-                    value: None,
-                },
-            );
-        }
-
-        let engine = SimilarityEngine::new(&index);
-        let results = engine.find_by_2hop_neighborhood("qp-1", 100);
-
-        // qp-3 is 2 hops away (via qp-2 and via qp-4), so score = 2
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].id, "qp-3");
-        assert_eq!(results[0].score, 2.0);
-
-        // qp-5 is isolated, should not be in results
-        assert!(!results.iter().any(|r| r.id == "qp-5"));
     }
 
     #[test]

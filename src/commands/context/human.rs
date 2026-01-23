@@ -68,11 +68,10 @@ fn build_human_output(
     include_custom: bool,
 ) -> String {
     let mut output = String::new();
-    let mut used_chars = 0;
 
     output.push_str("# Qipu Context Bundle\n");
     output.push_str(&format!("Store: {}\n", store_path));
-    used_chars = output.len();
+    let mut used_chars = output.len();
 
     if truncated {
         output.push('\n');
@@ -86,7 +85,7 @@ fn build_human_output(
 
     output.push('\n');
 
-    for (_idx, selected) in notes.iter().enumerate() {
+    for selected in notes.iter() {
         if let Some(budget) = max_chars {
             if used_chars >= budget {
                 break;
@@ -146,6 +145,37 @@ fn build_human_output(
             }
         }
 
+        // Expanded compaction: include full compacted note content
+        let mut expanded_notes_content = String::new();
+        if cli.expand_compaction && compacts_count > 0 {
+            let depth = cli.compaction_depth.unwrap_or(1);
+            if let Some((compacted_notes, _truncated)) = compaction_ctx.get_compacted_notes_expanded(
+                &selected.note.frontmatter.id,
+                depth,
+                cli.compaction_max_nodes,
+                _all_notes,
+            ) {
+                expanded_notes_content.push_str("### Compacted Notes:\n\n");
+                for compacted_note in compacted_notes {
+                    expanded_notes_content.push_str(&format!(
+                        "#### {} ({})\n",
+                        compacted_note.title(),
+                        compacted_note.id()
+                    ));
+                    expanded_notes_content.push_str(&format!("Type: {}\n", compacted_note.note_type()));
+                    if !compacted_note.frontmatter.tags.is_empty() {
+                        expanded_notes_content.push_str(&format!(
+                            "Tags: {}\n",
+                            compacted_note.frontmatter.tags.join(", ")
+                        ));
+                    }
+                    expanded_notes_content.push('\n');
+                    expanded_notes_content.push_str(compacted_note.body.trim());
+                    expanded_notes_content.push_str("\n\n");
+                }
+            }
+        }
+
         if !selected.note.frontmatter.sources.is_empty() {
             note_header.push_str("Sources:\n");
             for source in &selected.note.frontmatter.sources {
@@ -181,7 +211,11 @@ fn build_human_output(
 
         if let Some(budget) = max_chars {
             let header_len = note_header.len();
-            let potential_total = used_chars + header_len + content.len() + separator_len;
+            let potential_total = used_chars
+                + header_len
+                + content.len()
+                + expanded_notes_content.len()
+                + separator_len;
 
             if potential_total > budget {
                 break;
@@ -190,6 +224,10 @@ fn build_human_output(
             output.push_str(&note_header);
             output.push_str(&content);
             output.push('\n');
+            if !expanded_notes_content.is_empty() {
+                output.push('\n');
+                output.push_str(&expanded_notes_content);
+            }
             output.push_str("---\n");
             output.push('\n');
             used_chars = output.len();
@@ -197,6 +235,10 @@ fn build_human_output(
             output.push_str(&note_header);
             output.push_str(&content);
             output.push('\n');
+            if !expanded_notes_content.is_empty() {
+                output.push('\n');
+                output.push_str(&expanded_notes_content);
+            }
             output.push_str("---\n");
             output.push('\n');
             used_chars = output.len();

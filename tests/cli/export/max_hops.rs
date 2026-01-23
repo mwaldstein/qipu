@@ -1,5 +1,4 @@
 use crate::cli::support::qipu;
-use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 

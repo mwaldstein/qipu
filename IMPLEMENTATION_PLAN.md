@@ -8,6 +8,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - **Clippy**: Pre-existing warnings in non-changed files (changed files are clean)
 - **Revision 1 complete**: 2026-01-22
 - **Revision 2 update**: 2026-01-23 - Fixed 3 failing context command tests, added `--expand-compaction` to human format
+- **Revision 2 update**: 2026-01-23 - Extracted field weighting logic to shared module (weights.rs), completed similarity engine refactoring
 - **Refactoring analysis complete**: 2026-01-22 - Identified 7 source files >500 lines requiring refactoring for maintainability and LLM integration
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 

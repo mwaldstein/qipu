@@ -6,9 +6,44 @@ This document tracks completed implementation work. For exploratory future work 
 
 - **Test baseline**: 757 tests pass (excludes performance tests)
 - **Revision 2 complete**: 2026-01-23
+- **Last audited**: 2026-01-23
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 
 ---
+
+## Spec Audit (2026-01-23)
+
+### Completed (Verified)
+
+- [x] `custom-metadata.md`: Custom frontmatter + DB persistence + `qipu custom` + `context --custom-filter` + opt-in output (`src/lib/note/frontmatter.rs:52-57`, `src/lib/db/schema.rs:30-49`, `src/commands/custom.rs:19-280`, `tests/cli/custom.rs:4-653`, `tests/cli/context/basic.rs:903-1414`)
+
+### P1: Correctness Bugs (Spec Mismatch)
+
+- [ ] `cli-tool.md`: Store discovery stops at project root markers, not filesystem root (`src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120`)
+- [ ] `cli-tool.md`: `--format json --help/--version` likely treated as error envelope instead of exit 0 (`src/main.rs:32-41`)
+- [ ] `cli-tool.md` / `structured-logging.md`: Logs appear on stdout (breaks machine output expectations) (`tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40`)
+- [ ] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
+- [ ] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
+- [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
+- [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
+- [ ] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:13-22`)
+- [ ] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)
+- [ ] `graph-traversal.md`: `link tree` human view expands from `result.links` (not `spanning_tree`) and can expand nodes multiple times (`src/commands/link/tree.rs:171-293`)
+- [ ] `llm-context.md`: `context --format json` omits per-note `path` (`src/commands/context/json.rs:171-195`)
+- [ ] `records-output.md`: Link records headers use store-root path (not CWD-relative) (`src/commands/link/records.rs:176-186`)
+- [ ] `compaction.md`: Link JSON outputs omit compaction annotations/truncation indicators (`src/commands/link/json.rs:7-86`, `src/commands/link/tree.rs:120-153`)
+- [ ] `pack.md`: Pack dump/load is lossy (value not serialized; custom dropped; merge-links semantics restricted) (`src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246`)
+- [ ] `distribution.md`: Release workflow is disabled + installers hardcode repo slug inconsistent with Cargo metadata (`.github/workflows/release.yml:3-13`, `scripts/install.sh:13-16`, `Cargo.toml:4-12`)
+
+### P2: Missing Test Coverage
+
+- [ ] `semantic-graph.md`: Add direct CLI tests asserting semantic inversion + type filtering + `source=virtual` behavior (`src/lib/graph/algos/bfs.rs:146-164`, `src/commands/link/list.rs:119-136`)
+- [ ] `workspaces.md`: Add tests for `workspace merge --strategy rename` (`src/commands/workspace/merge.rs:219-289`)
+- [ ] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`src/commands/list/mod.rs:41-53`, `src/commands/doctor/content.rs:181-205`)
+
+### P3: Unimplemented But Ready
+
+- [ ] `llm-user-validation.md`: Enforce per-run budget env var and per-scenario `cost.max_usd` preflight (`crates/llm-tool-test/src/run.rs:323-339`, `crates/llm-tool-test/src/scenario.rs:27-33`)
 
 ## Revision 2 (2026-01-23)
 

@@ -5,7 +5,7 @@ Items in this file are NOT ready for immediate implementation. They require desi
 For concrete bugs and implementation tasks, see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).  
 For specification status, see [`specs/README.md`](specs/README.md).
 
-*Last updated: 2026-01-22*
+*Last updated: 2026-01-23*
 
 ---
 
@@ -56,16 +56,14 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | CI integration | Marked too expensive | N/A |
 | SQLite results.db | Spec says "Optional SQLite for queries" - design needed | 400-401 |
 | Transcript redaction for secrets | Security feature, needs design | 505-512 |
-| `LLM_TOOL_TEST_BUDGET_USD` enforcement | Session budget not enforced | 465 |
-| Per-scenario `cost.max_usd` | Not implemented | 178-181 |
-| `run.json` metadata artifact | Detailed run metadata file not generated | N/A |
-| `report.md` artifact | Human-readable summary not generated | 299 |
 | Event log rich format | Only simple `execution` event; spec shows spawn/tool_call/etc | 303-310 |
 
 ### distribution.md
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
+| Tag-triggered GitHub Release automation | Workflow exists but is disabled + manual-only; blocked on Actions enablement | 18-35 |
+| Canonical repo slug for installers | Installers hardcode `mwaldstein/qipu` but Cargo metadata points elsewhere; decide canonical repo | 18-35 |
 | Homebrew tap | Requires separate repository setup | 62-69 |
 | crates.io publishing | Account setup and verification needed | 92 |
 | AUR (Arch Linux) | Medium priority package manager | 71-81 |
@@ -87,6 +85,13 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 ---
 
 ## Needs Spec Clarification
+
+### provenance.md
+
+| Item | Issue | Spec Line |
+|------|-------|-----------|
+| `source` vs `sources` semantics | Spec defines `source` only, but implementation uses `sources[]` heavily (context/export); decide canonical field + migration story | 11-17 |
+| Bibliography input field | Implementation reads only `sources[]` for bibliography export; spec does not define bibliography behavior | 58-61 |
 
 ### storage-format.md
 

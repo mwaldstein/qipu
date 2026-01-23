@@ -7,7 +7,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 ## Planning Documents
 
 - **[`../IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md)** - Concrete implementation tasks, bugs, and missing test coverage that need to be addressed
-- **[`../FUTURE_PLAN.md`](../FUTURE_PLAN.md)** - Future work, exploratory features, and open questions from specs not yet in the implementation plan
+- **[`../FUTURE_WORK.md`](../FUTURE_WORK.md)** - Future work, exploratory features, and open questions from specs not yet in the implementation plan
 
 ## Spec Index
 
@@ -42,31 +42,31 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-20*
+*Last audited: 2026-01-23*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | `--format=json` parse envelope bug; 10k perf budget unverified |
-| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | Context MOC ordering not preserved; quality/duplicate enforcement missing |
-| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Config store root + rewrite + collision guards missing |
-| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | `create` output missing path; tests missing for create alias/open/id, list tag/since/records, search opts |
-| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | Incremental indexing no-op; qp-link scope; related-notes missing |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Context typed-link preference + doctor validation missing |
-| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | `link path` weighted default; CSV flags missing; tests incomplete |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Default related threshold/opt-out missing; boosts hardcoded |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link records rely on traversal order |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Per-note truncation missing; empty headers omitted |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Harness partial; guard/dry-run/gates/artifacts missing |
-| `provenance.md` | ✅ | ⚠️ | ⚠️ | Verified defaults + web capture defaults missing |
-| `export.md` | ✅ | ⚠️ | ⚠️ | Outline ordering + query cap; tests missing; optional formats |
-| `compaction.md` | ✅ | ⚠️ | ⚠️ | Link outputs miss annotations; truncation flags ignored |
-| `pack.md` | ✅ | ⚠️ | ⚠️ | Skip drops links; dump filters drop links; merge-links skips existing; path ignored |
-| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Rename strategy + graph-slice + post-merge checks missing |
-| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Log-level gating/validation gaps; default warn |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Startup repair/rebuild missing; DB not sole index |
-| `value-model.md` | ✅ | ⚠️ | ⚠️ | Min-value validation missing; Dijkstra ordering bug; tests incomplete |
-| `distribution.md` | ⚠️ | ❌ | ❌ | Release automation + install scripts missing |
-| `custom-metadata.md` | ✅ | ❌ | ❌ | No custom frontmatter/DB/CLI support |
+| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | Discovery stops at project roots; `--format json --help` behavior unclear |
+| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | DB unknown note types coerced to `fleeting` |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Discovery boundary vs spec; load attachment path guards missing |
+| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Search/inbox JSON missing spec-minimum fields; context missing-selection exit code |
+| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | DB edges miss some relative `.md` links; related notes only via context |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Inversion works; `show --links` ignores inversion flag; direct tests sparse |
+| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | Tree view semantics differ; hop limit is a cost budget |
+| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Field weights mismatch vs spec; search wraps query in quotes |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link record headers not CWD-relative; prefix overlaps (`C`, `S`) |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Context JSON missing per-note `path`; prime is count-based (not token budget) |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Events/budgets/dry-run behavior partial |
+| `provenance.md` | ✅ | ⚠️ | ⚠️ | Spec lacks `sources[]`; bibliography ignores `source` |
+| `export.md` | ✅ | ⚠️ | ✅ | Outline ordering uses wiki-links only |
+| `compaction.md` | ✅ | ⚠️ | ✅ | Link JSON missing compaction annotations/truncation markers |
+| `pack.md` | ✅ | ⚠️ | ⚠️ | Dump/load lossy (value/custom); merge-links semantics restricted |
+| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Metadata file location mismatch; rename strategy untested |
+| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Logs appear on stdout; instrumentation not comprehensive |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Consistency check doesn’t auto-repair; no corruption rebuild |
+| `value-model.md` | ✅ | ⚠️ | ✅ | `link path` defaults unweighted; traversal hop is a cost budget |
+| `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts exist; release workflow disabled/manual; repo mismatch |
+| `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
 ## Legend
@@ -81,42 +81,34 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | JSON error envelope misses `--format=json` | `src/main.rs:82-93` |
-| `operational-database.md` | DB-only index + repair + auto-rebuild gaps | `src/lib/store/query.rs:14-52`, `src/lib/db/mod.rs:84-85`, `src/lib/db/schema.rs:94-112` |
-| `indexing-search.md` | `index --rebuild` no-op | `src/commands/index.rs:14-19` |
-| `graph-traversal.md` | `link path` weighted default; missing CSV types flags | `src/commands/link/path.rs:71-95`, `src/cli/link.rs:73-79` |
-| `pack.md` | `load --strategy skip` drops all links | `src/commands/load/mod.rs:77-84` |
-| `pack.md` | `dump` filters can drop links between included notes | `src/commands/dump/mod.rs:225-246` |
-| `records-output.md` | Link records omit `path=` | `src/commands/link/records.rs:65-71`, `src/commands/link/tree.rs:293-299` |
-| `value-model.md` | Missing `--min-value` validation; Dijkstra ordering bug | `src/cli/commands.rs:136-141`, `src/lib/graph/bfs.rs:340-346` |
-| `cli-interface.md` | `create` output missing path | `src/commands/create.rs:88-95` |
-| `knowledge-model.md` | Context traversal ignores MOC ordering | `src/commands/context/select.rs:21-38` |
-| `structured-logging.md` | Log-level gated by `--verbose` | `src/commands/dispatch/notes.rs:23-26` |
-| `llm-user-validation.md` | Guard + dry-run missing | `crates/llm-tool-test/src/main.rs:1-53`, `crates/llm-tool-test/src/run.rs:90-93` |
+| `cli-tool.md` | Store discovery stops at project root markers | `src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120` |
+| `cli-tool.md` | `--format json --help/--version` likely treated as error | `src/main.rs:32-41` |
+| `structured-logging.md` | Logs show up on stdout (breaks machine output expectations) | `tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40` |
+| `cli-interface.md` | Search JSON omits spec-minimum note fields (`path/created/updated`) | `src/commands/search/format/json.rs:20-29` |
+| `cli-interface.md` | Inbox JSON omits `path` | `src/commands/dispatch/notes.rs:160-177` |
+| `cli-interface.md` | `context` missing-selection returns exit 1 (not usage exit 2) | `src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101` |
+| `knowledge-model.md` | DB reads coerce unknown `type` to `fleeting` | `src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207` |
+| `indexing-search.md` | DB edge insertion misses relative `.md` links (empty `path_to_id`) | `src/lib/db/edges.rs:13-22` |
+| `graph-traversal.md` | Tree human view expands from `result.links` (not `spanning_tree`) | `src/commands/link/tree.rs:171-293` |
+| `value-model.md` | `link path` defaults to `--ignore-value` despite spec “weighted by default” | `src/cli/link.rs:154-155` |
+| `records-output.md` | Link records headers use store-root path (not CWD-relative) | `src/commands/link/records.rs:176-186` |
+| `llm-context.md` | `context --format json` omits per-note `path` | `src/commands/context/json.rs:171-195` |
+| `compaction.md` | Link JSON outputs omit compaction annotations/truncation markers | `src/commands/link/json.rs:7-86` |
+| `pack.md` | Dump/load lossy (value/custom dropped; merge-links restricted) | `src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246` |
+| `distribution.md` | Release automation disabled + installers repo mismatch | `.github/workflows/release.yml:3-13`, `scripts/install.sh:13-16`, `Cargo.toml:4-12` |
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Test coverage | Visible-store discovery + `--format=json` parse errors + more goldens |
-| `cli-tool.md` | Test coverage | Performance budget coverage missing for 10k-note search |
-| `cli-interface.md` | Test coverage | Create/list/search/compact flag variants missing |
-| `indexing-search.md` | Feature gaps | qp-link scope + related-notes missing |
-| `storage-format.md` | Feature gaps | Config store root + rewrite + collision guards missing |
-| `semantic-graph.md` | Feature gaps | Typed-link preference + doctor validation missing |
-| `graph-traversal.md` | Feature gaps/tests | CSV flags missing; inversion + truncation tests missing |
-| `records-output.md` | Feature gaps/tests | Link records rely on traversal order; tree/path trunc tests missing |
-| `llm-context.md` | Feature gaps | Per-note truncation missing; empty headers omitted |
-| `llm-user-validation.md` | Feature gaps | Schema/gates/budget/artifacts/tool-trait gaps |
-| `provenance.md` | Feature gaps | Verified defaults + web capture defaults missing |
-| `export.md` | Feature gaps/tests | Outline ordering + query cap; tests missing; optional formats |
-| `compaction.md` | Feature gaps | Link annotations + truncation flags missing |
-| `pack.md` | Feature gaps/tests | Merge-links + path gaps; selector/attachment tests missing |
-| `workspaces.md` | Feature gaps/tests | Rename + graph-slice + post-merge checks missing |
-| `structured-logging.md` | Feature gaps | Log-level validation + default warn |
-| `similarity-ranking.md` | Feature gaps/tests | Default threshold + stemming opt-out; boosts hardcoded |
-| `custom-metadata.md` | Unimplemented | Custom frontmatter + DB + CLI missing |
-| `distribution.md` | Unimplemented | Release automation and install scripts missing |
+| `semantic-graph.md` | Test coverage | Add direct CLI tests for inversion + type filtering + `source=virtual` |
+| `custom-metadata.md` | Test coverage | Add tests for `qipu list --custom ...` + doctor custom checks |
+| `workspaces.md` | Test coverage | Add tests for `workspace merge --strategy rename` |
+| `llm-user-validation.md` | Feature gap | Enforce per-run budgets (`LLM_TOOL_TEST_BUDGET_USD`, `cost.max_usd`) preflight |
+| `export.md` | Spec alignment | Decide whether outline ordering must include typed/markdown links (impl uses wiki-links only) (`src/commands/export/emit/outline.rs:92-121`) |
+| `provenance.md` | Spec clarification | Define `source` vs `sources[]` and bibliography behavior |
+| `structured-logging.md` | Design/test gap | Decide stdout/stderr routing guarantees for machine output; add tests |
+| `distribution.md` | External dependency | Enable Actions + tag-triggered releases; decide canonical repo slug |
 
 ### Not Applicable
 

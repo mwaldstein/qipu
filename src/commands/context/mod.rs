@@ -440,7 +440,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     {
         // Check if min-value or custom-filter is provided as a standalone selector
         if options.min_value.is_none() && options.custom_filter.is_empty() {
-            return Err(QipuError::Other(
+            return Err(QipuError::UsageError(
                 "no selection criteria provided. Use --note, --tag, --moc, --query, --min-value, or --custom-filter".to_string(),
             ));
         }

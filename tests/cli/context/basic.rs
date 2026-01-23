@@ -21,7 +21,7 @@ fn test_context_no_selection() {
         .current_dir(dir.path())
         .arg("context")
         .assert()
-        .code(1)
+        .code(2)
         .stderr(predicate::str::contains("no selection criteria"));
 }
 

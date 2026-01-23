@@ -41,7 +41,9 @@ This document tracks completed implementation work. For exploratory future work 
   - Updated JSON formatting to include path from note's `Option<PathBuf>` field
   - Added test `test_inbox_json_format_includes_path` to verify spec compliance
 - [x] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/edit.rs`, `src/commands/update.rs`, `src/commands/dispatch/notes.rs:67-130`, `src/commands/dispatch/mod.rs:271-288`)
-- [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
+- [x] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
+  - Fixed: Changed `QipuError::Other` to `QipuError::UsageError` for missing selection criteria (exit code 2)
+  - Updated test to expect exit code 2 instead of exit code 1
 - [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
 - [ ] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:13-22`)
 - [ ] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)

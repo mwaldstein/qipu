@@ -163,13 +163,23 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - Note: The pre-existing 3 context compaction test failures remain unrelated to this change
 
 #### Split Large Test Files
-- [ ] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature
+- [x] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature
 - [ ] Evaluate `tests/cli/link/tree.rs` (1,899 lines) for split by edge case
 - [ ] Evaluate `tests/pack_tests.rs` (1,447 lines) for split by pack strategy
 - [ ] Consider test module structure: `tests/cli/export/create.rs`, `tests/cli/export/merge.rs`, etc.
 - **Current state**: Monolithic test files covering multiple features
 - **Impact**: Faster test runs, clearer test organization
 - **Note**: Less urgent than source code refactoring, but affects developer experience
+- **Status**: **Complete**. Split `tests/cli/export.rs` (2,038 lines) into 8 feature modules:
+  - `basic.rs` (2 tests: export_basic, export_with_attachments)
+  - `outline.rs` (6 tests: outline and bundle mode tests)
+  - `selection.rs` (5 tests: tag/query/moc selection tests)
+  - `bibliography.rs` (7 tests: basic bibliography functionality)
+  - `link_mode.rs` (6 tests: preserve/markdown link modes)
+  - `bibliography_format.rs` (5 tests: BibTeX/CSL JSON format tests)
+  - `max_hops.rs` (6 tests: max hops traversal tests)
+  - `pdf.rs` (4 tests: PDF export tests, 2 ignored without pandoc)
+- **Learnings**: Splitting tests by feature makes the codebase easier to navigate and maintain. Each module is now 500-1400 bytes vs 2038 lines. The module structure follows the pattern already established by `tests/cli/link/` directory. All 40 export tests pass after the split (2 ignored PDF tests require pandoc).
 
 #### Extract Test Utilities (`crates/llm-tool-test/src/results.rs`)
 - [ ] Move test helpers (create_test_record, create_test_record_with_tool) to `tests.rs` module

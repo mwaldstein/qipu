@@ -506,3 +506,475 @@ fn test_workspace_merge_overwrite_strategy() {
     assert!(list_stdout.contains(&new_id));
     assert!(list_stdout.contains("Workspace New"));
 }
+
+#[test]
+fn test_workspace_merge_rename_strategy_basic() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Init store
+    qipu().arg("init").current_dir(root).assert().success();
+
+    // 2. Create note in primary
+    let output = qipu()
+        .arg("create")
+        .arg("Primary Original")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let primary_id = extract_id(&output);
+
+    // 3. Create workspace
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws_rename")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws_store_path = root.join(".qipu/workspaces/ws_rename");
+    let ws_store_str = ws_store_path.to_str().unwrap();
+
+    // 4. Create conflicting note in workspace (same ID, different content)
+    qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Conflict")
+        .arg("--id")
+        .arg(&primary_id)
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 5. Create unique note in workspace
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Unique")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let unique_id = extract_id(&output);
+
+    // 6. Merge with rename strategy
+    qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws_rename")
+        .arg(".")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 7. Verify primary note was NOT modified (rename strategy keeps target)
+    let show_output = qipu()
+        .arg("show")
+        .arg(&primary_id)
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let show_stdout = String::from_utf8(show_output.stdout).unwrap();
+    assert!(show_stdout.contains("Primary Original"));
+    assert!(!show_stdout.contains("Workspace Conflict"));
+
+    // 8. Verify workspace's conflicting note was added with renamed ID
+    let list_output = qipu().arg("list").current_dir(root).output().unwrap();
+    let list_stdout = String::from_utf8(list_output.stdout).unwrap();
+
+    // The renamed ID should be primary_id-1
+    let renamed_id = format!("{}-1", primary_id);
+    assert!(
+        list_stdout.contains(&renamed_id),
+        "Should contain renamed ID {} in list output: {}",
+        renamed_id,
+        list_stdout
+    );
+    assert!(
+        list_stdout.contains("Workspace Conflict"),
+        "Should contain 'Workspace Conflict' in list output"
+    );
+
+    // 9. Verify unique note was added with original ID
+    assert!(
+        list_stdout.contains(&unique_id),
+        "Should contain unique ID {} in list output",
+        unique_id
+    );
+    assert!(
+        list_stdout.contains("Workspace Unique"),
+        "Should contain 'Workspace Unique' in list output"
+    );
+}
+
+#[test]
+fn test_workspace_merge_rename_strategy_preserves_unique_notes() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Init store
+    qipu().arg("init").current_dir(root).assert().success();
+
+    // 2. Create note A in primary (to ensure we have at least one note)
+    let output = qipu()
+        .arg("create")
+        .arg("Primary Note A")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let id_a = extract_id(&output);
+
+    // 3. Create workspace
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws_unique")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws_store_path = root.join(".qipu/workspaces/ws_unique");
+    let ws_store_str = ws_store_path.to_str().unwrap();
+
+    // 4. Create notes B and C in workspace (unique IDs, no conflicts)
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Note B")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let id_b = extract_id(&output);
+
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Note C")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let id_c = extract_id(&output);
+
+    // 5. Merge with rename strategy (no conflicts, should just add notes)
+    qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws_unique")
+        .arg(".")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 6. Verify all notes exist in primary
+    let list_output = qipu().arg("list").current_dir(root).output().unwrap();
+    let list_stdout = String::from_utf8(list_output.stdout).unwrap();
+    assert!(list_stdout.contains(&id_a), "Primary note A should exist");
+    assert!(list_stdout.contains(&id_b), "Workspace note B should exist");
+    assert!(list_stdout.contains(&id_c), "Workspace note C should exist");
+    assert!(list_stdout.contains("Primary Note A"));
+    assert!(list_stdout.contains("Workspace Note B"));
+    assert!(list_stdout.contains("Workspace Note C"));
+}
+
+#[test]
+fn test_workspace_merge_rename_strategy_multiple_conflicts_same_id() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Init store
+    qipu().arg("init").current_dir(root).assert().success();
+
+    // 2. Create note in primary
+    let output = qipu()
+        .arg("create")
+        .arg("Primary Original")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let primary_id = extract_id(&output);
+
+    // 3. Create workspace 1 with conflicting note
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws1")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws1_store_path = root.join(".qipu/workspaces/ws1");
+    let ws1_store_str = ws1_store_path.to_str().unwrap();
+
+    qipu()
+        .arg("--store")
+        .arg(ws1_store_str)
+        .arg("create")
+        .arg("WS1 Conflict")
+        .arg("--id")
+        .arg(&primary_id)
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 4. Merge ws1 with rename strategy (creates primary_id-1)
+    qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws1")
+        .arg(".")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 5. Create workspace 2 with conflicting note (same ID as primary)
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws2")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws2_store_path = root.join(".qipu/workspaces/ws2");
+    let ws2_store_str = ws2_store_path.to_str().unwrap();
+
+    qipu()
+        .arg("--store")
+        .arg(ws2_store_str)
+        .arg("create")
+        .arg("WS2 Conflict")
+        .arg("--id")
+        .arg(&primary_id)
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 6. Merge ws2 with rename strategy (should create primary_id-1, but it exists, so primary_id-2)
+    qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws2")
+        .arg(".")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 7. Verify we have both renamed notes: primary_id-1 and primary_id-2
+    let list_output = qipu().arg("list").current_dir(root).output().unwrap();
+    let list_stdout = String::from_utf8(list_output.stdout).unwrap();
+
+    let renamed_id_1 = format!("{}-1", primary_id);
+    let renamed_id_2 = format!("{}-2", primary_id);
+
+    assert!(
+        list_stdout.contains(&renamed_id_1),
+        "Should contain first renamed ID {}",
+        renamed_id_1
+    );
+    assert!(
+        list_stdout.contains(&renamed_id_2),
+        "Should contain second renamed ID {}",
+        renamed_id_2
+    );
+    assert!(
+        list_stdout.contains("WS1 Conflict"),
+        "Should contain WS1 Conflict"
+    );
+    assert!(
+        list_stdout.contains("WS2 Conflict"),
+        "Should contain WS2 Conflict"
+    );
+}
+
+#[test]
+fn test_workspace_merge_rename_strategy_dry_run() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Init store
+    qipu().arg("init").current_dir(root).assert().success();
+
+    // 2. Create note in primary
+    let output = qipu()
+        .arg("create")
+        .arg("Primary Note")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let primary_id = extract_id(&output);
+
+    // 3. Create workspace
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws_rename_dry")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws_store_path = root.join(".qipu/workspaces/ws_rename_dry");
+    let ws_store_str = ws_store_path.to_str().unwrap();
+
+    // 4. Create conflicting note in workspace
+    qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Conflict")
+        .arg("--id")
+        .arg(&primary_id)
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 5. Create unique note in workspace
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Unique")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let unique_id = extract_id(&output);
+
+    // 6. Run dry-run merge with rename strategy
+    let output = qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws_rename_dry")
+        .arg(".")
+        .arg("--dry-run")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // Verify dry-run output
+    // Note: In rename strategy, the conflicting note is shown in conflicts, not additions
+    assert!(stdout.contains("Dry-run:"));
+    assert!(stdout.contains("Notes to add: 1"));
+    assert!(stdout.contains(&unique_id));
+    assert!(stdout.contains("Conflicts: 1"));
+    assert!(stdout.contains(&primary_id));
+    assert!(stdout.contains("Strategy: rename"));
+
+    // 7. Verify primary note was NOT modified
+    let show_output = qipu()
+        .arg("show")
+        .arg(&primary_id)
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let show_stdout = String::from_utf8(show_output.stdout).unwrap();
+    assert!(show_stdout.contains("Primary Note"));
+    assert!(!show_stdout.contains("Workspace Conflict"));
+
+    // 8. Verify neither unique nor renamed note was added to primary
+    let list_output = qipu().arg("list").current_dir(root).output().unwrap();
+    let list_stdout = String::from_utf8(list_output.stdout).unwrap();
+    assert!(!list_stdout.contains("Workspace Conflict"));
+    assert!(!list_stdout.contains("Workspace Unique"));
+}
+
+#[test]
+fn test_workspace_merge_rename_strategy_no_conflicts() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Init store
+    qipu().arg("init").current_dir(root).assert().success();
+
+    // 2. Create note in primary
+    let output = qipu()
+        .arg("create")
+        .arg("Primary Note")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let primary_id = extract_id(&output);
+
+    // 3. Create workspace
+    qipu()
+        .arg("workspace")
+        .arg("new")
+        .arg("ws_no_conflict")
+        .arg("--empty")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    let ws_store_path = root.join(".qipu/workspaces/ws_no_conflict");
+    let ws_store_str = ws_store_path.to_str().unwrap();
+
+    // 4. Create unique notes in workspace (no ID conflicts)
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Unique 1")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let unique_id_1 = extract_id(&output);
+
+    let output = qipu()
+        .arg("--store")
+        .arg(ws_store_str)
+        .arg("create")
+        .arg("Workspace Unique 2")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let unique_id_2 = extract_id(&output);
+
+    // 5. Merge with rename strategy (should work fine even with no conflicts)
+    qipu()
+        .arg("workspace")
+        .arg("merge")
+        .arg("ws_no_conflict")
+        .arg(".")
+        .arg("--strategy")
+        .arg("rename")
+        .current_dir(root)
+        .assert()
+        .success();
+
+    // 6. Verify primary note unchanged
+    let show_output = qipu()
+        .arg("show")
+        .arg(&primary_id)
+        .current_dir(root)
+        .output()
+        .unwrap();
+    let show_stdout = String::from_utf8(show_output.stdout).unwrap();
+    assert!(show_stdout.contains("Primary Note"));
+
+    // 7. Verify both workspace notes added with original IDs
+    let list_output = qipu().arg("list").current_dir(root).output().unwrap();
+    let list_stdout = String::from_utf8(list_output.stdout).unwrap();
+    assert!(list_stdout.contains(&unique_id_1));
+    assert!(list_stdout.contains("Workspace Unique 1"));
+    assert!(list_stdout.contains(&unique_id_2));
+    assert!(list_stdout.contains("Workspace Unique 2"));
+}

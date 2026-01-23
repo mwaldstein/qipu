@@ -94,7 +94,14 @@ This document tracks completed implementation work. For exploratory future work 
     - `test_link_list_semantic_inversion_type_filter`: Verifies filtering by inverted type works with semantic inversion
     - `test_link_list_semantic_inversion_type_filter_disabled`: Verifies filtering by inverted type fails without semantic inversion
     - `test_link_list_semantic_inversion_type_filter_original`: Verifies filtering by original type behavior with/without semantic inversion
-- [ ] `workspaces.md`: Add tests for `workspace merge --strategy rename` (`src/commands/workspace/merge.rs:219-289`)
+- [x] `workspaces.md`: Add tests for `workspace merge --strategy rename` (`src/commands/workspace/merge.rs:219-289`)
+  - Added 5 tests to `tests/workspace_merge_test.rs`:
+    - `test_workspace_merge_rename_strategy_basic`: Verifies conflicting notes are renamed and added
+    - `test_workspace_merge_rename_strategy_multiple_conflicts_same_id`: Verifies suffix increments correctly for multiple conflicts
+    - `test_workspace_merge_rename_strategy_dry_run`: Verifies dry-run shows correct output format
+    - `test_workspace_merge_rename_strategy_no_conflicts`: Verifies rename strategy works with no conflicts
+    - `test_workspace_merge_rename_strategy_preserves_unique_notes`: Verifies unique notes are added correctly
+  - Note: Link rewriting tests revealed merge bug (broken links after merge) - tracked separately
 - [ ] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`src/commands/list/mod.rs:41-53`, `src/commands/doctor/content.rs:181-205`)
 
 ### P3: Unimplemented But Ready

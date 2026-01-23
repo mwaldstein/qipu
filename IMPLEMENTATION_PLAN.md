@@ -176,8 +176,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 #### Split Large Test Files
 - [x] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature
 - [x] Evaluate `tests/cli/link/tree.rs` (1,900 lines) for split by edge case
-- [ ] Evaluate `tests/pack_tests.rs` (1,447 lines) for split by pack strategy
-- [ ] Consider test module structure: `tests/cli/export/create.rs`, `tests/cli/export/merge.rs`, etc.
+- [x] Evaluate `tests/pack_tests.rs` (1,447 lines) for split by pack strategy
+- [x] Consider test module structure: `tests/cli/export/create.rs`, `tests/cli/export/merge.rs`, etc.
 - **Current state**: Monolithic test files covering multiple features
 - **Impact**: Faster test runs, clearer test organization
 - **Note**: Less urgent than source code refactoring, but affects developer experience
@@ -202,6 +202,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   - `spanning_tree.rs` (1 test: spanning_tree_ordering)
   - `truncation.rs` (7 tests: max_hops, max_hops_reports_truncation, max_nodes, max_edges, max_fanout, records_max_chars_no_truncation, records_max_chars_truncation, records_max_chars_header_only)
 - **Learnings**: Edge case categorization is straightforward for link tree tests. Tests grouped by feature flag/behavior (direction, type_filter, truncation). Each module is 50-250 lines vs 1900 lines. Module structure consistent with export split pattern. All 31 tree tests pass.
+- **Status**: **Complete**. Split `tests/pack_tests.rs` (1,447 lines) into 4 functional area modules:
+  - `basic.rs` (193 lines, 2 tests: JSON and Records format roundtrips)
+  - `strategy.rs` (563 lines, 5 tests: skip, overwrite, merge-links strategies)
+  - `features.rs` (522 lines, 4 tests: paths, attachments, no-attachments, multiple notes)
+  - `version.rs` (192 lines, 3 tests: version errors and backward compatibility)
+- **Learnings**: Pack tests organized by functional area (roundtrip formats, load strategies, features, versioning) rather than just "pack strategy" as originally planned. This aligns better with the actual test structure and makes it easier to find tests by feature. Each module is 190-560 lines vs 1447 lines. Module structure consistent with export and link tree split patterns. All 14 pack tests pass.
 
 #### Extract Test Utilities (`crates/llm-tool-test/src/results.rs`)
 - [x] Move test helpers (create_test_record, create_test_record_with_tool) to `tests.rs` module

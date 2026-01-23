@@ -455,9 +455,14 @@ pub fn estimate_cost(model: &str, input_chars: usize, output_chars: usize) -> f6
 }
 
 #[cfg(test)]
+mod results_test_helpers;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    use results_test_helpers::*;
 
     #[test]
     fn test_estimate_cost_claude_sonnet() {
@@ -907,16 +912,15 @@ mod tests {
 
     #[test]
     fn test_results_db_append_and_load_all() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record1 = create_test_record("run-1");
         let record2 = create_test_record("run-2");
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
 
-        let loaded = db.load_all().unwrap();
+        let loaded = test_db.db.load_all().unwrap();
         assert_eq!(loaded.len(), 2);
         assert_eq!(loaded[0].id, "run-1");
         assert_eq!(loaded[1].id, "run-2");
@@ -924,36 +928,33 @@ mod tests {
 
     #[test]
     fn test_results_db_load_empty() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
-        let loaded = db.load_all().unwrap();
+        let loaded = test_db.db.load_all().unwrap();
         assert_eq!(loaded.len(), 0);
     }
 
     #[test]
     fn test_results_db_load_by_id() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record1 = create_test_record("run-1");
         let record2 = create_test_record("run-2");
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
 
-        let loaded = db.load_by_id("run-1").unwrap();
+        let loaded = test_db.db.load_by_id("run-1").unwrap();
         assert!(loaded.is_some());
         assert_eq!(loaded.unwrap().id, "run-1");
 
-        let not_found = db.load_by_id("run-3").unwrap();
+        let not_found = test_db.db.load_by_id("run-3").unwrap();
         assert!(not_found.is_none());
     }
 
     #[test]
     fn test_results_db_load_baseline() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
         let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "amp");
@@ -963,23 +964,22 @@ mod tests {
         record2.timestamp = Utc::now() - chrono::Duration::seconds(30);
         record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-        db.append(&record3).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
+        test_db.db.append(&record3).unwrap();
 
-        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
         assert!(baseline.is_some());
         assert_eq!(baseline.unwrap().id, "run-3");
 
-        let amp_baseline = db.load_baseline("scenario-a", "amp").unwrap();
+        let amp_baseline = test_db.db.load_baseline("scenario-a", "amp").unwrap();
         assert!(amp_baseline.is_some());
         assert_eq!(amp_baseline.unwrap().id, "run-2");
     }
 
     #[test]
     fn test_baseline_set_and_load() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
         let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
@@ -989,21 +989,23 @@ mod tests {
         record2.timestamp = Utc::now() - chrono::Duration::seconds(30);
         record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-        db.append(&record3).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
+        test_db.db.append(&record3).unwrap();
 
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        test_db
+            .db
+            .set_baseline("scenario-a", "opencode", "run-1")
+            .unwrap();
 
-        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
         assert!(baseline.is_some());
         assert_eq!(baseline.unwrap().id, "run-1");
     }
 
     #[test]
     fn test_baseline_clear() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
         let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
@@ -1011,49 +1013,59 @@ mod tests {
         record2.timestamp = Utc::now();
         record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
 
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        test_db
+            .db
+            .set_baseline("scenario-a", "opencode", "run-1")
+            .unwrap();
+        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
         assert_eq!(baseline.unwrap().id, "run-1");
 
-        db.clear_baseline("scenario-a", "opencode").unwrap();
+        test_db.db.clear_baseline("scenario-a", "opencode").unwrap();
 
-        let baseline = db.load_baseline("scenario-a", "opencode").unwrap();
+        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
         assert!(baseline.is_some());
         assert_eq!(baseline.unwrap().id, "run-2");
     }
 
     #[test]
     fn test_baseline_list() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
         let record2 = create_test_record_with_tool("run-2", "scenario-b", "amp");
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
 
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
-        db.set_baseline("scenario-b", "amp", "run-2").unwrap();
+        test_db
+            .db
+            .set_baseline("scenario-a", "opencode", "run-1")
+            .unwrap();
+        test_db
+            .db
+            .set_baseline("scenario-b", "amp", "run-2")
+            .unwrap();
 
-        let baselines = db.list_baselines().unwrap();
+        let baselines = test_db.db.list_baselines().unwrap();
         assert_eq!(baselines.len(), 2);
     }
 
     #[test]
     fn test_baseline_nonexistent_scenario() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record1 = create_test_record("run-1");
-        db.append(&record1).unwrap();
+        test_db.db.append(&record1).unwrap();
 
-        db.set_baseline("scenario-a", "opencode", "run-1").unwrap();
+        test_db
+            .db
+            .set_baseline("scenario-a", "opencode", "run-1")
+            .unwrap();
 
-        let baseline = db.load_baseline("scenario-b", "opencode").unwrap();
+        let baseline = test_db.db.load_baseline("scenario-b", "opencode").unwrap();
         assert!(baseline.is_none());
     }
 
@@ -1113,70 +1125,12 @@ mod tests {
         assert!(cache.get(&key).is_none());
     }
 
-    fn create_test_record(id: &str) -> ResultRecord {
-        create_test_record_with_scenario(id, "test-scenario")
-    }
-
-    fn create_test_record_with_scenario(id: &str, scenario_id: &str) -> ResultRecord {
-        create_test_record_with_tool(id, scenario_id, "opencode")
-    }
-
-    fn create_test_record_with_tool(id: &str, scenario_id: &str, tool: &str) -> ResultRecord {
-        ResultRecord {
-            id: id.to_string(),
-            scenario_id: scenario_id.to_string(),
-            scenario_hash: "hash123".to_string(),
-            tool: tool.to_string(),
-            model: "gpt-4o".to_string(),
-            qipu_commit: "abc123".to_string(),
-            timestamp: Utc::now(),
-            duration_secs: 45.5,
-            cost_usd: 0.01,
-            gates_passed: true,
-            metrics: EvaluationMetricsRecord {
-                gates_passed: 2,
-                gates_total: 2,
-                note_count: 1,
-                link_count: 0,
-                details: vec![],
-                efficiency: EfficiencyMetricsRecord {
-                    total_commands: 3,
-                    unique_commands: 2,
-                    error_count: 0,
-                    retry_count: 1,
-                    help_invocations: 0,
-                    first_try_success_rate: 1.0,
-                    iteration_ratio: 1.5,
-                },
-                quality: QualityMetricsRecord {
-                    avg_title_length: 10.0,
-                    avg_body_length: 50.0,
-                    avg_tags_per_note: 2.0,
-                    notes_without_tags: 0,
-                    links_per_note: 0.0,
-                    orphan_notes: 1,
-                    link_type_diversity: 0,
-                    type_distribution: HashMap::new(),
-                    total_notes: 1,
-                    total_links: 0,
-                },
-                composite_score: 0.9,
-            },
-            judge_score: Some(0.9),
-            outcome: "PASS".to_string(),
-            transcript_path: "/path/to/transcript.txt".to_string(),
-            cache_key: Some("cache-key-123".to_string()),
-            human_review: None,
-        }
-    }
-
     #[test]
     fn test_results_db_update_human_review() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record = create_test_record("run-1");
-        db.append(&record).unwrap();
+        test_db.db.append(&record).unwrap();
 
         let human_review = HumanReviewRecord {
             dimensions: {
@@ -1189,10 +1143,13 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        let updated = db.update_human_review("run-1", human_review).unwrap();
+        let updated = test_db
+            .db
+            .update_human_review("run-1", human_review)
+            .unwrap();
         assert!(updated.is_some());
 
-        let loaded = db.load_by_id("run-1").unwrap();
+        let loaded = test_db.db.load_by_id("run-1").unwrap();
         assert!(loaded.is_some());
         let loaded = loaded.unwrap();
         assert!(loaded.human_review.is_some());
@@ -1204,8 +1161,7 @@ mod tests {
 
     #[test]
     fn test_results_db_update_human_review_nonexistent() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let human_review = HumanReviewRecord {
             dimensions: HashMap::new(),
@@ -1213,24 +1169,26 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        let result = db.update_human_review("nonexistent", human_review).unwrap();
+        let result = test_db
+            .db
+            .update_human_review("nonexistent", human_review)
+            .unwrap();
         assert!(result.is_none());
     }
 
     #[test]
     fn test_results_db_load_pending_review() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = ResultsDB::new(temp_dir.path());
+        let test_db = TestDb::new();
 
         let record1 = create_test_record("run-1");
         let record2 = create_test_record("run-2");
         let record3 = create_test_record("run-3");
 
-        db.append(&record1).unwrap();
-        db.append(&record2).unwrap();
-        db.append(&record3).unwrap();
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
+        test_db.db.append(&record3).unwrap();
 
-        let pending = db.load_pending_review().unwrap();
+        let pending = test_db.db.load_pending_review().unwrap();
         assert_eq!(pending.len(), 3);
 
         let human_review = HumanReviewRecord {
@@ -1239,9 +1197,12 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        db.update_human_review("run-2", human_review).unwrap();
+        test_db
+            .db
+            .update_human_review("run-2", human_review)
+            .unwrap();
 
-        let pending = db.load_pending_review().unwrap();
+        let pending = test_db.db.load_pending_review().unwrap();
         assert_eq!(pending.len(), 2);
         let pending_ids: Vec<_> = pending.iter().map(|r| r.id.clone()).collect();
         assert!(pending_ids.contains(&"run-1".to_string()));

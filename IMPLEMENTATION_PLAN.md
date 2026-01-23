@@ -116,7 +116,11 @@ This document tracks completed implementation work. For exploratory future work 
   - Added gitignore entry for temp workspaces in `.qipu/workspaces/<name>/` format
   - Added 6 integration tests covering all scenarios (create, preserve, no-duplicate, non-temp)
   - All 448 CLI tests pass
-- [ ] `storage-format.md`: Wiki-link canonicalization (opt-in `--canonicalize-links` flag) (`src/lib/note/content.rs`)
+- [x] `storage-format.md`: Wiki-link canonicalization (opt-in `--rewrite-wiki-links` flag) (`src/lib/index/links.rs:153-199`)
+  - Implementation already complete: `rewrite_wiki_links()` function converts `[[id]]` and `[[id|label]]` to markdown links
+  - Added `--rewrite-wiki-links` flag to `qipu index` command (not `--canonicalize-links` as originally planned)
+  - Added test `test_index_rewrites_wiki_links` to verify behavior
+  - Note: Flag name differs from plan (`--rewrite-wiki-links` vs `--canonicalize-links`), but matches commit `a889f25` implementation
 - [ ] `cli-interface.md`: `qipu capture` default type (default to `fleeting`) (`src/commands/capture.rs`)
 - [ ] `graph-traversal.md`: Context walk command (`qipu context --walk`) (`src/commands/context/walk.rs`)
 - [ ] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/stats.rs`)

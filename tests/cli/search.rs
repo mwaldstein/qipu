@@ -135,6 +135,7 @@ fn test_search_json_format() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"title\": \"Search Test Note\""))
+        .stdout(predicate::str::contains("\"path\":"))
         .stdout(predicate::str::contains("\"relevance\":"));
 }
 

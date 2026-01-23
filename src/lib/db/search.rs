@@ -101,7 +101,7 @@ impl super::Database {
             r#"
             WITH ranked_results AS (
               SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
                 bm25(notes_fts, {}, {}, {}) +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
@@ -111,7 +111,7 @@ impl super::Database {
               UNION ALL
 
               SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
                 bm25(notes_fts, {}, {}, {}) + {} +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
@@ -121,14 +121,14 @@ impl super::Database {
               UNION ALL
 
               SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value,
+                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
                 bm25(notes_fts, {}, {}, {}) + 3.0 +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?3 {}
             )
-            SELECT rowid, id, title, path, type, tags, value, MAX(rank) AS rank
+            SELECT rowid, id, title, path, type, tags, value, created, updated, MAX(rank) AS rank
             FROM ranked_results
             GROUP BY rowid
             ORDER BY rank DESC
@@ -199,13 +199,25 @@ impl super::Database {
             let value: Option<i64> = row
                 .get(6)
                 .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
-            let rank: f64 = row
+            let created: Option<String> = row
                 .get(7)
+                .map_err(|e| QipuError::Other(format!("failed to get created: {}", e)))?;
+            let updated: Option<String> = row
+                .get(8)
+                .map_err(|e| QipuError::Other(format!("failed to get updated: {}", e)))?;
+            let rank: f64 = row
+                .get(9)
                 .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
 
             let note_type = NoteType::from_str(&note_type_str).unwrap_or(NoteType::Fleeting);
             let tags = parse_tags(&tags_str);
             let value_opt = value.and_then(|v| u8::try_from(v).ok());
+            let created_opt = created
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc));
+            let updated_opt = updated
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc));
 
             results.push(SearchResult {
                 id,
@@ -217,6 +229,8 @@ impl super::Database {
                 relevance: rank,
                 via: None,
                 value: value_opt,
+                created: created_opt,
+                updated: updated_opt,
             });
         }
 

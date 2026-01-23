@@ -31,7 +31,11 @@ This document tracks completed implementation work. For exploratory future work 
   - Updated all logging tests to check stderr instead of stdout
   - Updated `test_verbose_flag` and `test_workspace_delete_with_unmerged_changes` to check stderr
   - **Note**: 6 CLI integration tests fail when `/tmp/.qipu` exists from previous test runs (test isolation issue, tests pass in isolation)
-- [ ] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
+- [x] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
+  - Added `created` and `updated` fields to `SearchResult` struct
+  - Updated SQL query to select `created` and `updated` columns from notes table
+  - Updated JSON output to include `path`, `created`, and `updated` fields
+  - Updated `test_search_json_format` to verify `path` field is present
 - [ ] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
 - [ ] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/mod.rs`)
 - [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)

@@ -104,6 +104,12 @@ pub struct SearchResult {
     /// Note importance/quality score (0-100)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<u8>,
+    /// Creation timestamp
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created: Option<DateTime<Utc>>,
+    /// Last update timestamp
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated: Option<DateTime<Utc>>,
 }
 
 /// The complete index structure

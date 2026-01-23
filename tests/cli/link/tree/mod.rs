@@ -5,5 +5,6 @@ mod format;
 mod min_value;
 mod semantic_inversion;
 mod spanning_tree;
+mod spanning_tree_correct;
 mod truncation;
 mod type_filter;

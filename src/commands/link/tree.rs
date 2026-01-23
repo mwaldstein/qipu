@@ -4,11 +4,12 @@ use std::collections::{HashMap, HashSet};
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
+use crate::lib::graph::types::SpanningTreeEntry;
 use crate::lib::index::{Index, IndexBuilder};
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
-use super::{resolve_note_id, TreeLink, TreeOptions, TreeResult};
+use super::{resolve_note_id, TreeOptions, TreeResult};
 
 /// Execute the link tree command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) -> Result<()> {
@@ -169,10 +170,11 @@ fn output_tree_human(
     }
 
     // Build tree structure for pretty printing
-    // Use links (not spanning_tree) to include back-edges for (seen) rendering
-    let mut children: HashMap<String, Vec<&TreeLink>> = HashMap::new();
-    for link in &result.links {
-        children.entry(link.from.clone()).or_default().push(link);
+    // Use spanning_tree (not links) to ensure nodes are expanded at most once
+    // Per spec: "Render the spanning tree as the primary tree view"
+    let mut children: HashMap<String, Vec<&SpanningTreeEntry>> = HashMap::new();
+    for entry in &result.spanning_tree {
+        children.entry(entry.from.clone()).or_default().push(entry);
     }
 
     struct TreePrintConfig<'a> {
@@ -186,7 +188,7 @@ fn output_tree_human(
     // Print tree recursively
     fn print_tree(
         id: &str,
-        children: &HashMap<String, Vec<&TreeLink>>,
+        children: &HashMap<String, Vec<&SpanningTreeEntry>>,
         index: &Index,
         visited: &HashSet<String>,
         config: &TreePrintConfig<'_>,

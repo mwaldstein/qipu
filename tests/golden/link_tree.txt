@@ -1,7 +1,4 @@
 qp-moc123 "Research MOC"
 qp-a1b2c3 "Research Note"
-└── qp-moc123 "Research MOC" (seen)
 qp-d4e5f6 "Quick Idea"
-└── qp-moc123 "Research MOC" (seen)
 qp-g7h8i9 "Paper Review"
-└── qp-moc123 "Research MOC" (seen)

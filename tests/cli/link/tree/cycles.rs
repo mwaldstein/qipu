@@ -68,5 +68,17 @@ fn test_link_tree_cycle_shows_seen() {
     assert!(stdout.contains("Node B"));
     assert!(stdout.contains("Node C"));
 
-    assert!(stdout.contains("(seen)"));
+    // All three nodes should appear exactly once (no duplicates)
+    let a_count = stdout.matches(&id_a).count();
+    let b_count = stdout.matches(&id_b).count();
+    let c_count = stdout.matches(&id_c).count();
+    assert_eq!(a_count, 1, "Node A should appear exactly once");
+    assert_eq!(b_count, 1, "Node B should appear exactly once");
+    assert_eq!(c_count, 1, "Node C should appear exactly once");
+
+    // No "(seen)" because spanning tree ensures each node appears once
+    assert!(
+        !stdout.contains("(seen)"),
+        "No nodes should be marked as (seen) in spanning tree"
+    );
 }

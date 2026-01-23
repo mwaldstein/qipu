@@ -56,8 +56,14 @@ This document tracks completed implementation work. For exploratory future work 
 - [x] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)
   - Fixed: Changed `default_value = "true"` to `default_value = "false"` for both Tree and Path subcommands
   - Updated help text to indicate "weighted by default"
-  - All 7 ignore_value tests verify correct behavior
-- [ ] `graph-traversal.md`: `link tree` human view expands from `result.links` (not `spanning_tree`) and can expand nodes multiple times (`src/commands/link/tree.rs:171-293`)
+   - All 7 ignore_value tests verify correct behavior
+ - [x] `graph-traversal.md`: `link tree` human view expands from `result.links` (not `spanning_tree`) and can expand nodes multiple times (`src/commands/link/tree.rs:171-293`)
+  - Fixed: Changed from using `result.links` to `result.spanning_tree` for building children map
+  - Updated function signature to use `&SpanningTreeEntry` instead of `&TreeLink`
+  - Updated test `test_link_tree_cycle_shows_seen` to verify nodes appear exactly once (no duplicates)
+  - Added test `test_link_tree_spanning_tree_not_all_links` to verify spanning tree behavior
+  - Updated golden test `link_tree.txt` to reflect correct behavior (nodes appear once)
+  - Note: Tree indentation issue (first-level children appear at same level as root) is a pre-existing bug in original code, not introduced by this fix
 - [ ] `llm-context.md`: `context --format json` omits per-note `path` (`src/commands/context/json.rs:171-195`)
 - [ ] `records-output.md`: Link records headers use store-root path (not CWD-relative) (`src/commands/link/records.rs:176-186`)
 - [ ] `compaction.md`: Link JSON outputs omit compaction annotations/truncation indicators (`src/commands/link/json.rs:7-86`, `src/commands/link/tree.rs:120-153`)
@@ -168,6 +174,15 @@ This document tracks completed implementation work. For exploratory future work 
 |------|----------|
 | File size monitoring | High - add CI check for files >500 lines |
 | Function complexity monitoring | High - flag functions >100 lines |
+| Refactor large files and functions | High |
+| - `src/lib/graph/bfs.rs` (842 lines): Split `dijkstra_search` (116 lines) and `bfs_search` (88 lines) functions | |
+| - `src/commands/doctor/content.rs` (829 lines): Consider modularizing check functions | |
+| - `src/commands/setup.rs` (780 lines): Mostly constants and tests; consider extracting constants to separate file | |
+| - `src/commands/doctor/database.rs` (722 lines): Check for large functions | |
+| - `src/lib/similarity/mod.rs` (635 lines): Check for large functions | |
+| - `src/commands/context/mod.rs` (627 lines): Check for large functions | |
+| - `src/lib/db/notes/read.rs` (609 lines): Check for large functions | |
+| - `src/commands/show.rs` (570 lines): Check for large functions | |
 | Model pricing externalization | Medium - move to config file |
 | Output format consolidation | Medium - shared OutputFormatter trait |
 

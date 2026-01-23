@@ -2,15 +2,44 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::{Edge, LinkSource};
 use crate::lib::note::{LinkType, Note};
 use rusqlite::{params, Connection};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+
+fn build_path_to_id_map(conn: &Connection) -> Result<HashMap<PathBuf, String>> {
+    let mut stmt = conn
+        .prepare("SELECT id, path FROM notes")
+        .map_err(|e| QipuError::Other(format!("failed to prepare path query: {}", e)))?;
+
+    let mut rows = stmt
+        .query([])
+        .map_err(|e| QipuError::Other(format!("failed to execute path query: {}", e)))?;
+
+    let mut path_to_id = HashMap::new();
+
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| QipuError::Other(format!("failed to read path: {}", e)))?
+    {
+        let id: String = row
+            .get(0)
+            .map_err(|e| QipuError::Other(format!("failed to get id: {}", e)))?;
+        let path: String = row
+            .get(1)
+            .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?;
+
+        let path_buf = PathBuf::from(path);
+        path_to_id.insert(path_buf, id);
+    }
+
+    Ok(path_to_id)
+}
 
 impl super::Database {
     pub fn insert_edges(&self, note: &Note, existing_ids: &HashSet<String>) -> Result<()> {
         use crate::lib::index::links;
-        use std::collections::HashMap;
 
         let mut unresolved = HashSet::new();
-        let path_to_id = HashMap::new();
+        let path_to_id = build_path_to_id_map(&self.conn)?;
 
         if note.path.is_some() {
             let edges = links::extract_links(
@@ -95,11 +124,10 @@ impl super::Database {
         ids: &std::collections::HashSet<String>,
     ) -> Result<()> {
         use crate::lib::index::links;
-        use std::collections::HashMap;
         use std::collections::HashSet;
 
         let mut unresolved = HashSet::new();
-        let path_to_id = HashMap::new();
+        let path_to_id = build_path_to_id_map(conn)?;
 
         if note.path.is_some() {
             let edges = links::extract_links(

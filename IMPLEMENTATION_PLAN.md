@@ -21,7 +21,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| Refactor `src/commands/setup.rs` (780 lines) | Medium |
 | Refactor `src/commands/doctor/database.rs` (722 lines) | Medium |
 | Externalize model pricing to config | Low |
 | Shared `OutputFormatter` trait | Low |
@@ -36,6 +35,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 8** (2026-01-23): Refactored `src/commands/setup.rs` (781→710 lines). Extracted test helper functions (`assert_unknown_tool_error`, `setup_agents_md`, `assert_install_success`, `assert_execute_ok`) to eliminate code duplication across 24 test functions.
 
 **Revision 7** (2026-01-23): Refactored `src/commands/doctor/content.rs` (724→723 lines). Added `Note::id_string()` and `Note::path_display()` helper methods to eliminate repeated code patterns across multiple check functions.
 

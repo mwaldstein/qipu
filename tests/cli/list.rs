@@ -589,3 +589,215 @@ fn test_list_records_format_multiple_notes() {
     assert!(stdout.contains("tags=urgent"));
     assert!(stdout.matches("tags=-").count() >= 2); // Notes without tags show "-"
 }
+
+#[test]
+fn test_list_filter_by_custom_string() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note with Custom"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &note_id, "status", "in-progress"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "status=in-progress"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Note with Custom"));
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "status=completed"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes found"));
+}
+
+#[test]
+fn test_list_filter_by_custom_number() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "High Priority Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &note_id, "priority", "10"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "priority=10"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("High Priority Note"));
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "priority=5"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes found"));
+}
+
+#[test]
+fn test_list_filter_by_custom_boolean() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Active Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let note1_id = extract_id(&output1);
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Inactive Note"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let note2_id = extract_id(&output2);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &note1_id, "active", "true"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &note2_id, "active", "false"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "active=true"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Active Note"))
+        .stdout(predicate::str::contains("Inactive Note").not());
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "active=false"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Inactive Note"))
+        .stdout(predicate::str::contains("Active Note").not());
+}
+
+#[test]
+fn test_list_filter_by_custom_with_tag() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "work", "Work Note with Custom"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let work_id = extract_id(&output1);
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "personal", "Personal Note with Custom"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let personal_id = extract_id(&output2);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &work_id, "status", "review"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &personal_id, "status", "review"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--tag", "work", "--custom", "status=review"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Work Note with Custom"))
+        .stdout(predicate::str::contains("Personal Note with Custom").not());
+}

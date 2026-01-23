@@ -102,7 +102,7 @@ This document tracks completed implementation work. For exploratory future work 
     - `test_workspace_merge_rename_strategy_no_conflicts`: Verifies rename strategy works with no conflicts
     - `test_workspace_merge_rename_strategy_preserves_unique_notes`: Verifies unique notes are added correctly
   - Note: Link rewriting tests revealed merge bug (broken links after merge) - tracked separately
-- [ ] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`src/commands/list/mod.rs:41-53`, `src/commands/doctor/content.rs:181-205`)
+- [x] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`tests/cli/list.rs:632-890`, `tests/cli/doctor.rs:713-809`)
 
 ### P3: Unimplemented But Ready
 

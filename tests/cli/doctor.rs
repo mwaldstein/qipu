@@ -709,3 +709,183 @@ This is a note about quantum computing and other systems."#;
         .stdout(predicate::str::contains("qp-weight1"))
         .stdout(predicate::str::contains("qp-weight2"));
 }
+
+// ============================================================================
+// Custom metadata tests (per specs/custom-metadata.md)
+// ============================================================================
+
+#[test]
+fn test_doctor_custom_metadata_empty() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note without custom metadata
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note Without Custom"])
+        .assert()
+        .success();
+
+    // Doctor should show no issues for normal custom metadata
+    qipu()
+        .current_dir(dir.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Store is healthy"));
+}
+
+#[test]
+fn test_doctor_custom_metadata_normal_size() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with small custom metadata
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note with Small Custom"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "set", &note_id, "status", "in-progress"])
+        .assert()
+        .success();
+
+    // Doctor should show no issues for normal-sized custom metadata
+    qipu()
+        .current_dir(dir.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Store is healthy"));
+}
+
+#[test]
+fn test_doctor_custom_metadata_large() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with very large custom metadata (>10KB)
+    let note_content = r#"---
+id: qp-large-custom
+title: Note with Large Custom
+custom:
+  large_data: "PLACEHOLDER"
+---
+This is a note."#;
+
+    // Replace placeholder with large data (>10KB)
+    let large_value = "x".repeat(12 * 1024); // 12KB
+    let note_content = note_content.replace("PLACEHOLDER", &large_value);
+
+    fs::write(
+        dir.path()
+            .join(".qipu/notes/qp-large-custom-note-with-large.md"),
+        note_content,
+    )
+    .unwrap();
+
+    // Doctor should warn about large custom metadata
+    qipu()
+        .current_dir(dir.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("large-custom-metadata"))
+        .stdout(predicate::str::contains("qp-large-custom"));
+}
+
+#[test]
+fn test_doctor_custom_metadata_multiple_notes() {
+    use std::fs;
+
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create multiple notes with different custom metadata sizes
+    let note1_content = r#"---
+id: qp-note1
+title: Normal Note 1
+custom:
+  status: active
+---
+Normal note 1."#;
+
+    let note2_content = r#"---
+id: qp-note2
+title: Normal Note 2
+custom:
+  status: inactive
+  priority: 5
+---
+Normal note 2."#;
+
+    // Note with large custom data
+    let large_value = "data".repeat(3 * 1024); // 12KB
+    let note3_content = format!(
+        r#"---
+id: qp-note3
+title: Large Custom Note
+custom:
+  large_field: "{}"
+---
+Note with large custom field."#,
+        large_value
+    );
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note1-normal-note-1.md"),
+        note1_content,
+    )
+    .unwrap();
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note2-normal-note-2.md"),
+        note2_content,
+    )
+    .unwrap();
+
+    fs::write(
+        dir.path().join(".qipu/notes/qp-note3-large-custom-note.md"),
+        note3_content,
+    )
+    .unwrap();
+
+    // Doctor should warn about the large custom metadata but not the normal ones
+    qipu()
+        .current_dir(dir.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("large-custom-metadata"))
+        .stdout(predicate::str::contains("qp-note3"))
+        .stdout(predicate::str::contains("qp-note1").not())
+        .stdout(predicate::str::contains("qp-note2").not());
+}

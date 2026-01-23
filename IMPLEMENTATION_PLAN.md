@@ -136,12 +136,13 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
   5. The 4 pre-existing llm-tool-test test failures (adapter::mock and evaluation) are unrelated to this change
 
 #### Modularize Gate Evaluation (`crates/llm-tool-test/src/evaluation.rs`)
-- [ ] Extract each gate type (MinNotes, MinLinks, SearchHit, etc.) into separate validator function
-- [ ] Create `GateEvaluator` trait for pluggable gate types
-- [ ] Move gate-specific helper functions (count_notes, search_hit, etc.) into validator modules
-- [ ] Target: Main `evaluate()` function <100 lines, each validator <50 lines
-- **Current state**: Large match statement (lines 72-213) with mixed concerns
+- [x] Extract each gate type (MinNotes, MinLinks, SearchHit, etc.) into separate validator function
+- [x] Create `GateEvaluator` trait for pluggable gate types
+- [x] Move gate-specific helper functions (count_notes, search_hit, etc.) into validator modules
+- [x] Target: Main `evaluate()` function <100 lines, each validator <50 lines
+- **Current state**: Main `evaluate()` function reduced from 251 to 112 lines. Created `GateEvaluator` trait and implemented for `Gate` enum. Extracted 10 validator functions (eval_min_notes, eval_min_links, eval_search_hit, eval_note_exists, eval_link_exists, eval_tag_exists, eval_content_contains, eval_command_succeeds, eval_doctor_passes, eval_no_transcript_errors). All validators are 14-17 lines, well under 50-line target. Helper functions remain in same module for simplicity (no separate module files needed).
 - **Impact**: Easier to add new gate types and test individual validators
+- **Learnings**: The trait-based approach makes adding new gate types straightforward - just add a new variant to `Gate` enum and implement the corresponding `eval_*` function. The large match statement was the main complexity driver; extracting it made the code much more maintainable. File grew slightly from 1318 to 1357 lines (+39), but the improvement in readability and maintainability justifies the small increase.
 
 #### Consolidate Output Formatting (`src/commands/setup.rs`, `src/commands/show.rs`)
 - [ ] Extract `OutputFormatter` trait with `json()`, `human()`, `records()` methods

@@ -9,6 +9,186 @@ use std::fmt;
 use std::path::Path;
 use std::process::Command;
 
+pub trait GateEvaluator {
+    fn evaluate(&self, env_root: &Path) -> GateResult;
+}
+
+impl GateEvaluator for Gate {
+    fn evaluate(&self, env_root: &Path) -> GateResult {
+        match self {
+            Gate::MinNotes { count } => eval_min_notes(*count, env_root),
+            Gate::MinLinks { count } => eval_min_links(*count, env_root),
+            Gate::SearchHit { query } => eval_search_hit(query, env_root),
+            Gate::NoteExists { id } => eval_note_exists(id, env_root),
+            Gate::LinkExists {
+                from,
+                to,
+                link_type,
+            } => eval_link_exists(from, to, link_type, env_root),
+            Gate::TagExists { tag } => eval_tag_exists(tag, env_root),
+            Gate::ContentContains { id, substring } => {
+                eval_content_contains(id, substring, env_root)
+            }
+            Gate::CommandSucceeds { command } => eval_command_succeeds(command, env_root),
+            Gate::DoctorPasses => eval_doctor_passes(env_root),
+            Gate::NoTranscriptErrors => eval_no_transcript_errors(env_root),
+        }
+    }
+}
+
+fn eval_min_notes(count: usize, env_root: &Path) -> GateResult {
+    match count_notes(env_root).context("Failed to count notes") {
+        Ok(note_count) => GateResult {
+            gate_type: "MinNotes".to_string(),
+            passed: note_count >= count,
+            message: format!("Expected >= {}, found {}", count, note_count),
+        },
+        Err(e) => GateResult {
+            gate_type: "MinNotes".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_min_links(count: usize, env_root: &Path) -> GateResult {
+    match count_links(env_root).context("Failed to count links") {
+        Ok(link_count) => GateResult {
+            gate_type: "MinLinks".to_string(),
+            passed: link_count >= count,
+            message: format!("Expected >= {}, found {}", count, link_count),
+        },
+        Err(e) => GateResult {
+            gate_type: "MinLinks".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_search_hit(query: &str, env_root: &Path) -> GateResult {
+    match search_hit(query, env_root) {
+        Ok(hit) => GateResult {
+            gate_type: "SearchHit".to_string(),
+            passed: hit,
+            message: format!("Query '{}' found: {}", query, hit),
+        },
+        Err(e) => GateResult {
+            gate_type: "SearchHit".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_note_exists(id: &str, env_root: &Path) -> GateResult {
+    match note_exists(id, env_root) {
+        Ok(exists) => GateResult {
+            gate_type: "NoteExists".to_string(),
+            passed: exists,
+            message: format!("Note '{}' exists: {}", id, exists),
+        },
+        Err(e) => GateResult {
+            gate_type: "NoteExists".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> GateResult {
+    match link_exists(from, to, link_type, env_root) {
+        Ok(exists) => GateResult {
+            gate_type: "LinkExists".to_string(),
+            passed: exists,
+            message: format!(
+                "Link {} --[{}]--> {} exists: {}",
+                from, link_type, to, exists
+            ),
+        },
+        Err(e) => GateResult {
+            gate_type: "LinkExists".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_tag_exists(tag: &str, env_root: &Path) -> GateResult {
+    match tag_exists(tag, env_root) {
+        Ok(exists) => GateResult {
+            gate_type: "TagExists".to_string(),
+            passed: exists,
+            message: format!("Tag '{}' exists: {}", tag, exists),
+        },
+        Err(e) => GateResult {
+            gate_type: "TagExists".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_content_contains(id: &str, substring: &str, env_root: &Path) -> GateResult {
+    match content_contains(id, substring, env_root) {
+        Ok(contains) => GateResult {
+            gate_type: "ContentContains".to_string(),
+            passed: contains,
+            message: format!("Note '{}' contains '{}': {}", id, substring, contains),
+        },
+        Err(e) => GateResult {
+            gate_type: "ContentContains".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_command_succeeds(command: &str, env_root: &Path) -> GateResult {
+    match command_succeeds(command, env_root) {
+        Ok(succeeds) => GateResult {
+            gate_type: "CommandSucceeds".to_string(),
+            passed: succeeds,
+            message: format!("Command '{}' succeeded: {}", command, succeeds),
+        },
+        Err(e) => GateResult {
+            gate_type: "CommandSucceeds".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_doctor_passes(env_root: &Path) -> GateResult {
+    match doctor_passes(env_root) {
+        Ok(passes) => GateResult {
+            gate_type: "DoctorPasses".to_string(),
+            passed: passes,
+            message: format!("Store passes 'qipu doctor': {}", passes),
+        },
+        Err(e) => GateResult {
+            gate_type: "DoctorPasses".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
+fn eval_no_transcript_errors(env_root: &Path) -> GateResult {
+    match no_transcript_errors(env_root) {
+        Ok(no_errors) => GateResult {
+            gate_type: "NoTranscriptErrors".to_string(),
+            passed: no_errors,
+            message: format!("Transcript has no command errors: {}", no_errors),
+        },
+        Err(e) => GateResult {
+            gate_type: "NoTranscriptErrors".to_string(),
+            passed: false,
+            message: format!("Evaluation error: {:#}", e),
+        },
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ScoreTier {
     Excellent,
@@ -70,147 +250,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     let mut gates_passed = 0;
 
     for gate in &scenario.evaluation.gates {
-        let result = match gate {
-            Gate::MinNotes { count } => {
-                match count_notes(env_root).context("Failed to count notes") {
-                    Ok(note_count) => {
-                        let passed = note_count >= *count;
-                        GateResult {
-                            gate_type: "MinNotes".to_string(),
-                            passed,
-                            message: format!("Expected >= {}, found {}", count, note_count),
-                        }
-                    }
-                    Err(e) => GateResult {
-                        gate_type: "MinNotes".to_string(),
-                        passed: false,
-                        message: format!("Evaluation error: {:#}", e),
-                    },
-                }
-            }
-            Gate::MinLinks { count } => {
-                match count_links(env_root).context("Failed to count links") {
-                    Ok(link_count) => {
-                        let passed = link_count >= *count;
-                        GateResult {
-                            gate_type: "MinLinks".to_string(),
-                            passed,
-                            message: format!("Expected >= {}, found {}", count, link_count),
-                        }
-                    }
-                    Err(e) => GateResult {
-                        gate_type: "MinLinks".to_string(),
-                        passed: false,
-                        message: format!("Evaluation error: {:#}", e),
-                    },
-                }
-            }
-            Gate::SearchHit { query } => match search_hit(query, env_root) {
-                Ok(hit) => GateResult {
-                    gate_type: "SearchHit".to_string(),
-                    passed: hit,
-                    message: format!("Query '{}' found: {}", query, hit),
-                },
-                Err(e) => GateResult {
-                    gate_type: "SearchHit".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::NoteExists { id } => match note_exists(id, env_root) {
-                Ok(exists) => GateResult {
-                    gate_type: "NoteExists".to_string(),
-                    passed: exists,
-                    message: format!("Note '{}' exists: {}", id, exists),
-                },
-                Err(e) => GateResult {
-                    gate_type: "NoteExists".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::LinkExists {
-                from,
-                to,
-                link_type,
-            } => match link_exists(from, to, link_type, env_root) {
-                Ok(exists) => GateResult {
-                    gate_type: "LinkExists".to_string(),
-                    passed: exists,
-                    message: format!(
-                        "Link {} --[{}]--> {} exists: {}",
-                        from, link_type, to, exists
-                    ),
-                },
-                Err(e) => GateResult {
-                    gate_type: "LinkExists".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::TagExists { tag } => match tag_exists(tag, env_root) {
-                Ok(exists) => GateResult {
-                    gate_type: "TagExists".to_string(),
-                    passed: exists,
-                    message: format!("Tag '{}' exists: {}", tag, exists),
-                },
-                Err(e) => GateResult {
-                    gate_type: "TagExists".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::ContentContains { id, substring } => {
-                match content_contains(id, substring, env_root) {
-                    Ok(contains) => GateResult {
-                        gate_type: "ContentContains".to_string(),
-                        passed: contains,
-                        message: format!("Note '{}' contains '{}': {}", id, substring, contains),
-                    },
-                    Err(e) => GateResult {
-                        gate_type: "ContentContains".to_string(),
-                        passed: false,
-                        message: format!("Evaluation error: {:#}", e),
-                    },
-                }
-            }
-            Gate::CommandSucceeds { command } => match command_succeeds(command, env_root) {
-                Ok(succeeds) => GateResult {
-                    gate_type: "CommandSucceeds".to_string(),
-                    passed: succeeds,
-                    message: format!("Command '{}' succeeded: {}", command, succeeds),
-                },
-                Err(e) => GateResult {
-                    gate_type: "CommandSucceeds".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::DoctorPasses => match doctor_passes(env_root) {
-                Ok(passes) => GateResult {
-                    gate_type: "DoctorPasses".to_string(),
-                    passed: passes,
-                    message: format!("Store passes 'qipu doctor': {}", passes),
-                },
-                Err(e) => GateResult {
-                    gate_type: "DoctorPasses".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-            Gate::NoTranscriptErrors => match no_transcript_errors(env_root) {
-                Ok(no_errors) => GateResult {
-                    gate_type: "NoTranscriptErrors".to_string(),
-                    passed: no_errors,
-                    message: format!("Transcript has no command errors: {}", no_errors),
-                },
-                Err(e) => GateResult {
-                    gate_type: "NoTranscriptErrors".to_string(),
-                    passed: false,
-                    message: format!("Evaluation error: {:#}", e),
-                },
-            },
-        };
+        let result = gate.evaluate(env_root);
 
         if result.passed {
             println!("Gate {} passed: {}", result.gate_type, result.message);

@@ -230,10 +230,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Status: **Complete**. Implemented per-scenario timeout support. The effective timeout is calculated as `s.run.as_ref().and_then(|r| r.timeout_secs).unwrap_or(timeout_secs)`, which uses scenario timeout if present, otherwise falls back to CLI timeout (which defaults to 300). This is passed to both setup step commands and adapter execution. Added 2 integration tests verifying scenario timeout overrides CLI timeout and CLI timeout is used when scenario doesn't specify.
 - **Learnings**: The timeout logic follows the same pattern as budget enforcement (lines 320-325), using `Option` handling with `unwrap_or` for fallback. Tests use zero budget to fail early and avoid fixture setup complexity, which is a good pattern for testing parameter parsing without full scenario execution.
 #### Store Snapshot Artifact (`specs/llm-user-validation.md:297-298`)
-- [ ] After test run, copy `.qipu/` directory to `store_snapshot/` in transcript dir
-- [ ] Include `export.json` via `qipu dump --format json`
-- [ ] Enables post-hoc analysis of store state
+- [x] After test run, copy `.qipu/` directory to `store_snapshot/` in transcript dir
+- [x] Include `export.json` via `qipu dump --format json`
+- [x] Enables post-hoc analysis of store state
 - Files: `crates/llm-tool-test/src/run.rs`, `crates/llm-tool-test/src/transcript.rs`
+- Status: **Complete**. Implemented full store snapshot functionality that copies the `.qipu/` directory recursively and generates `export.json` via `qipu dump --format json`. The `create_store_snapshot()` method in `transcript.rs` creates a `store_snapshot/` directory containing both the complete `.qipu/` directory structure and the `export.json` file for easy post-hoc analysis. Added `copy_dir()` helper for recursive directory copying.
+- **Learnings**: The implementation uses graceful error handling for both the directory copy and qipu dump operations. If either operation fails, it logs a warning but doesn't fail the entire test run, ensuring test execution can continue for debugging purposes. This pattern is important for test infrastructure where a failed artifact shouldn't block results collection.
 
 ### P3: Optional Enhancements
 

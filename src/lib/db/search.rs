@@ -6,6 +6,13 @@ use crate::lib::index::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
 use crate::lib::note::NoteType;
 use std::str::FromStr;
 
+fn convert_qipu_error_to_sqlite(e: QipuError) -> rusqlite::Error {
+    match e {
+        QipuError::Other(msg) => rusqlite::Error::ToSqlConversionFailure(Box::from(msg)),
+        _ => rusqlite::Error::ToSqlConversionFailure(Box::from(format!("{:?}", e))),
+    }
+}
+
 /// Parse tags from a space-separated string
 fn parse_tags(tags_str: &str) -> Vec<String> {
     tags_str
@@ -209,7 +216,8 @@ impl super::Database {
                 .get(9)
                 .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
 
-            let note_type = NoteType::from_str(&note_type_str).unwrap_or(NoteType::Fleeting);
+            let note_type =
+                NoteType::from_str(&note_type_str).map_err(convert_qipu_error_to_sqlite)?;
             let tags = parse_tags(&tags_str);
             let value_opt = value.and_then(|v| u8::try_from(v).ok());
             let created_opt = created

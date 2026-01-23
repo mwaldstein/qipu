@@ -6,6 +6,13 @@ use rusqlite::params;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+fn convert_qipu_error_to_sqlite(e: QipuError) -> rusqlite::Error {
+    match e {
+        QipuError::Other(msg) => rusqlite::Error::ToSqlConversionFailure(Box::from(msg)),
+        _ => rusqlite::Error::ToSqlConversionFailure(Box::from(format!("{:?}", e))),
+    }
+}
+
 impl super::super::Database {
     pub fn get_max_mtime(&self) -> Result<Option<i64>> {
         self.conn
@@ -29,7 +36,7 @@ impl super::super::Database {
             let updated: Option<String> = row.get(5)?;
             let value: Option<i64> = row.get(6)?;
 
-            let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
+            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
 
             let created_dt = created
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
@@ -174,7 +181,7 @@ impl super::super::Database {
                 .get(6)
                 .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
 
-            let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
+            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
 
             let created_dt = created
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
@@ -245,7 +252,7 @@ impl super::super::Database {
             let prompt_hash: Option<String> = row.get(14)?;
             let custom_json: String = row.get(15)?;
 
-            let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
+            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
 
             let created_dt = created
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
@@ -470,7 +477,7 @@ impl super::super::Database {
                 .get(15)
                 .map_err(|e| QipuError::Other(format!("failed to get custom_json: {}", e)))?;
 
-            let note_type = NoteType::from_str(&type_str).unwrap_or(NoteType::Fleeting);
+            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
 
             let created_dt = created
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())

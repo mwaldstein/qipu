@@ -44,7 +44,11 @@ This document tracks completed implementation work. For exploratory future work 
 - [x] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
   - Fixed: Changed `QipuError::Other` to `QipuError::UsageError` for missing selection criteria (exit code 2)
   - Updated test to expect exit code 2 instead of exit code 1
-- [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
+- [x] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
+  - Fixed: Removed `.unwrap_or(NoteType::Fleeting)` from 5 locations and replaced with proper error propagation
+  - Added `convert_qipu_error_to_sqlite` helper functions in `read.rs` and `search.rs` to convert `QipuError` to `rusqlite::Error`
+  - Added test `test_unknown_note_type_rejected` to verify rejection of invalid note types
+  - **Note**: All tests pass; 6 CLI tests fail when `/tmp/.qipu` exists from previous runs (pre-existing test isolation issue)
 - [ ] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:13-22`)
 - [ ] `value-model.md`: `link path` defaults to `--ignore-value` (unweighted) despite spec “weighted by default” (`src/cli/link.rs:154-155`)
 - [ ] `graph-traversal.md`: `link tree` human view expands from `result.links` (not `spanning_tree`) and can expand nodes multiple times (`src/commands/link/tree.rs:171-293`)

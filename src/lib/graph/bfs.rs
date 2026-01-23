@@ -11,6 +11,144 @@ use crate::lib::store::Store;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
+fn check_min_value_filter(
+    provider: &dyn GraphProvider,
+    note_id: &str,
+    min_value: Option<u8>,
+) -> bool {
+    if let Some(meta) = provider.get_metadata(note_id) {
+        let value = meta.value.unwrap_or(50);
+        min_value.is_none_or(|min| value as u8 >= min)
+    } else {
+        false
+    }
+}
+
+fn bfs_search(
+    provider: &dyn GraphProvider,
+    store: &Store,
+    from: &str,
+    to: &str,
+    opts: &TreeOptions,
+    compaction_ctx: Option<&CompactionContext>,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
+) -> (bool, HashMap<String, (String, Edge)>) {
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
+    let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
+
+    queue.push_back((from.to_string(), HopCost::from(0)));
+    visited.insert(from.to_string());
+
+    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
+        if current_id == to {
+            return (true, predecessors);
+        }
+
+        if accumulated_cost.value() >= opts.max_hops.value() {
+            continue;
+        }
+
+        let source_ids = equivalence_map
+            .and_then(|map| map.get(&current_id).cloned())
+            .unwrap_or_else(|| vec![current_id.clone()]);
+
+        let mut neighbors = Vec::new();
+
+        if opts.direction == Direction::Out || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_outbound_edges(source_id) {
+                    if filter_edge(&edge, opts) {
+                        neighbors.push((edge.to.clone(), edge));
+                    }
+                }
+            }
+        }
+
+        if opts.direction == Direction::In || opts.direction == Direction::Both {
+            for source_id in &source_ids {
+                for edge in provider.get_inbound_edges(source_id) {
+                    if opts.semantic_inversion {
+                        let virtual_edge = edge.invert(store.config());
+                        if filter_edge(&virtual_edge, opts) {
+                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                        }
+                    } else if filter_edge(&edge, opts) {
+                        neighbors.push((edge.from.clone(), edge));
+                    }
+                }
+            }
+        }
+
+        neighbors.sort_by(|a, b| {
+            a.1.link_type
+                .cmp(&b.1.link_type)
+                .then_with(|| a.0.cmp(&b.0))
+        });
+
+        for (neighbor_id, edge) in neighbors {
+            let canonical_from = if let Some(ctx) = compaction_ctx {
+                match ctx.canon(&edge.from) {
+                    Ok(id) => id,
+                    Err(_) => continue,
+                }
+            } else {
+                edge.from.clone()
+            };
+
+            let canonical_to = if let Some(ctx) = compaction_ctx {
+                match ctx.canon(&edge.to) {
+                    Ok(id) => id,
+                    Err(_) => continue,
+                }
+            } else {
+                edge.to.clone()
+            };
+
+            if canonical_from == canonical_to {
+                continue;
+            }
+
+            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
+                match ctx.canon(&neighbor_id) {
+                    Ok(id) => id,
+                    Err(_) => continue,
+                }
+            } else {
+                neighbor_id.clone()
+            };
+
+            if visited.contains(&canonical_neighbor) {
+                continue;
+            }
+
+            let neighbor_passes_filter =
+                check_min_value_filter(provider, &canonical_neighbor, opts.min_value);
+            if !neighbor_passes_filter {
+                continue;
+            }
+
+            visited.insert(canonical_neighbor.clone());
+            let canonical_edge = Edge {
+                from: canonical_from,
+                to: canonical_to,
+                link_type: edge.link_type.clone(),
+                source: edge.source,
+            };
+            predecessors.insert(
+                canonical_neighbor.clone(),
+                (current_id.clone(), canonical_edge),
+            );
+
+            let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
+            let new_cost = accumulated_cost + edge_cost;
+            queue.push_back((canonical_neighbor, new_cost));
+        }
+    }
+
+    (false, predecessors)
+}
+
 /// Find path between two nodes using BFS or Dijkstra
 /// With `ignore_value=true`: unweighted BFS (all edges cost 1.0)
 /// With `ignore_value=false`: weighted Dijkstra (cost based on note value)
@@ -24,13 +162,7 @@ pub fn bfs_find_path(
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<PathResult> {
-    // Check min_value filter for from and to notes before initializing
-    let from_passes_filter = if let Some(meta) = provider.get_metadata(from) {
-        let value = meta.value.unwrap_or(50);
-        opts.min_value.is_none_or(|min| value >= min)
-    } else {
-        false
-    };
+    let from_passes_filter = check_min_value_filter(provider, from, opts.min_value);
 
     if !from_passes_filter {
         return Ok(PathResult {
@@ -48,12 +180,7 @@ pub fn bfs_find_path(
         });
     }
 
-    let to_passes_filter = if let Some(meta) = provider.get_metadata(to) {
-        let value = meta.value.unwrap_or(50);
-        opts.min_value.is_none_or(|min| value >= min)
-    } else {
-        false
-    };
+    let to_passes_filter = check_min_value_filter(provider, to, opts.min_value);
 
     if !to_passes_filter {
         return Ok(PathResult {
@@ -71,142 +198,26 @@ pub fn bfs_find_path(
         });
     }
 
-    let mut visited: HashSet<String> = HashSet::new();
+    let mut found = false;
     let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
 
-    // Track best-known cost to each node (for weighted mode)
-    let mut best_costs: HashMap<String, HopCost> = HashMap::new();
-
-    let mut found = false;
-
     if opts.ignore_value {
-        // Unweighted BFS (use VecDeque)
-        let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
-
-        // Initialize
-        queue.push_back((from.to_string(), HopCost::from(0)));
-        visited.insert(from.to_string());
-        best_costs.insert(from.to_string(), HopCost::from(0));
-
-        while let Some((current_id, accumulated_cost)) = queue.pop_front() {
-            // Check if we found the target
-            if current_id == to {
-                found = true;
-                break;
-            }
-
-            // Don't expand beyond max_hops (use accumulated cost)
-            if accumulated_cost.value() >= opts.max_hops.value() {
-                continue;
-            }
-
-            // Get neighbors (gather edges from all compacted notes)
-            let source_ids = equivalence_map
-                .and_then(|map| map.get(&current_id).cloned())
-                .unwrap_or_else(|| vec![current_id.clone()]);
-
-            let mut neighbors = Vec::new();
-            // Outbound edges
-            if opts.direction == Direction::Out || opts.direction == Direction::Both {
-                for source_id in &source_ids {
-                    for edge in provider.get_outbound_edges(source_id) {
-                        if filter_edge(&edge, opts) {
-                            neighbors.push((edge.to.clone(), edge));
-                        }
-                    }
-                }
-            }
-            // Inbound edges
-            if opts.direction == Direction::In || opts.direction == Direction::Both {
-                for source_id in &source_ids {
-                    for edge in provider.get_inbound_edges(source_id) {
-                        if opts.semantic_inversion {
-                            let virtual_edge = edge.invert(store.config());
-                            if filter_edge(&virtual_edge, opts) {
-                                neighbors.push((virtual_edge.to.clone(), virtual_edge));
-                            }
-                        } else if filter_edge(&edge, opts) {
-                            neighbors.push((edge.from.clone(), edge));
-                        }
-                    }
-                }
-            }
-
-            // Sort for determinism
-            neighbors.sort_by(|a, b| {
-                a.1.link_type
-                    .cmp(&b.1.link_type)
-                    .then_with(|| a.0.cmp(&b.0))
-            });
-
-            for (neighbor_id, edge) in neighbors {
-                // Canonicalize edge endpoints if using compaction
-                let canonical_from = if let Some(ctx) = compaction_ctx {
-                    ctx.canon(&edge.from)?
-                } else {
-                    edge.from.clone()
-                };
-                let canonical_to = if let Some(ctx) = compaction_ctx {
-                    ctx.canon(&edge.to)?
-                } else {
-                    edge.to.clone()
-                };
-
-                // Skip self-loops introduced by compaction contraction
-                if canonical_from == canonical_to {
-                    continue;
-                }
-
-                // Canonicalize the neighbor ID
-                let canonical_neighbor = if let Some(ctx) = compaction_ctx {
-                    ctx.canon(&neighbor_id)?
-                } else {
-                    neighbor_id.clone()
-                };
-
-                // Check min_value filter before processing neighbor
-                let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
-                    if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                        let value = meta.value.unwrap_or(50);
-                        opts.min_value.is_none_or(|min| value >= min)
-                    } else {
-                        false
-                    }
-                } else {
-                    true
-                };
-
-                // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
-                if !neighbor_passes_filter {
-                    continue;
-                }
-
-                if !visited.contains(&canonical_neighbor) {
-                    visited.insert(canonical_neighbor.clone());
-                    // Store canonical edge
-                    let canonical_edge = Edge {
-                        from: canonical_from,
-                        to: canonical_to,
-                        link_type: edge.link_type.clone(),
-                        source: edge.source,
-                    };
-                    predecessors.insert(
-                        canonical_neighbor.clone(),
-                        (current_id.clone(), canonical_edge),
-                    );
-                    // Calculate new accumulated cost
-                    let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
-                    let new_cost = accumulated_cost + edge_cost;
-                    best_costs.insert(canonical_neighbor.clone(), new_cost);
-                    queue.push_back((canonical_neighbor, new_cost));
-                }
-            }
-        }
+        let (bfs_found, bfs_predecessors) = bfs_search(
+            provider,
+            store,
+            from,
+            to,
+            opts,
+            compaction_ctx,
+            equivalence_map,
+        );
+        found = bfs_found;
+        predecessors = bfs_predecessors;
     } else {
-        // Weighted Dijkstra (use BinaryHeap)
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut best_costs: HashMap<String, HopCost> = HashMap::new();
         let mut heap: BinaryHeap<Reverse<HeapEntry>> = BinaryHeap::new();
 
-        // Initialize
         heap.push(Reverse(HeapEntry {
             node_id: from.to_string(),
             accumulated_cost: HopCost::from(0),
@@ -219,7 +230,10 @@ pub fn bfs_find_path(
             accumulated_cost,
         })) = heap.pop()
         {
-            // Check if we found the target
+            if current_id == to {
+                found = true;
+                break;
+            }
             if current_id == to {
                 found = true;
                 break;

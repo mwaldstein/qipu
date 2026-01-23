@@ -107,13 +107,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 **Critical for LLM Usage**: Large files and complex functions make code difficult to work with and understand. These refactorings focus on breaking down monolithic files into smaller, more maintainable modules.
 
 #### Split `bfs_find_path` Function (`src/lib/graph/bfs.rs`)
-- [ ] Extract BFS logic (unweighted, `ignore_value=true`) into separate function
+- [x] Extract BFS logic (unweighted, `ignore_value=true`) into separate function
 - [ ] Extract Dijkstra logic (weighted, `ignore_value=false`) into separate function
 - [ ] Deduplicate neighbor collection code between both algorithms
 - [ ] Extract filter checking logic into helper function
 - [ ] Target: Main function should be <100 lines, sub-functions <150 lines each
-- **Current state**: Single 400-line function with significant duplication
+- **Current state**: Main function reduced from 400 to 265 lines. Added `check_min_value_filter` and `bfs_search` helper functions.
 - **Impact**: Critical for graph pathfinding clarity and maintainability
+- **Learnings**: Extracting the BFS algorithm reduced the main function by 135 lines. The `bfs_search` function returns `(bool, HashMap)` tuple, which is assigned to `found` and `predecessors` variables in the main function. Filter checking logic extracted to `check_min_value_filter` to eliminate duplication. The Dijkstra logic remains inline in the else block for now.
 
 #### Extract Model Pricing Logic (`crates/llm-tool-test/src/results.rs`)
 - [ ] Move `get_model_pricing()` function (lines 447-513) to new module `pricing.rs`

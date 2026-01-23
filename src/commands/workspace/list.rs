@@ -12,8 +12,7 @@ use tracing::debug;
 fn get_last_updated(store: &Store) -> String {
     match store.db().get_max_mtime() {
         Ok(Some(mtime)) => {
-            let dt =
-                chrono::DateTime::from_timestamp(mtime, 0).unwrap_or_else(chrono::Utc::now);
+            let dt = chrono::DateTime::from_timestamp(mtime, 0).unwrap_or_else(chrono::Utc::now);
             dt.format("%Y-%m-%d %H:%M").to_string()
         }
         _ => "Never".to_string(),

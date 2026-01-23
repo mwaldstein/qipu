@@ -31,6 +31,9 @@ fn main() -> ExitCode {
             // structured error envelope.
             if argv_format_json {
                 let qipu_error = match err.kind() {
+                    // Help and version are informational, not errors - let clap handle them
+                    clap::error::ErrorKind::DisplayHelp
+                    | clap::error::ErrorKind::DisplayVersion => err.exit(),
                     clap::error::ErrorKind::ValueValidation
                     | clap::error::ErrorKind::InvalidValue
                     | clap::error::ErrorKind::InvalidSubcommand

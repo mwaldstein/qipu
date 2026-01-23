@@ -81,7 +81,7 @@ pub fn execute(
                 "id": note.id(),
                 "title": note.title(),
                 "type": note.note_type().to_string(),
-                
+
                 "tags": note.frontmatter.tags,
                 "created": note.frontmatter.created,
                 "updated": note.frontmatter.updated,

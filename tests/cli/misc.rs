@@ -38,6 +38,42 @@ fn test_subcommand_help() {
         .stdout(predicate::str::contains("Create a new note"));
 }
 
+#[test]
+fn test_format_json_help_exits_zero() {
+    qipu()
+        .args(["--format", "json", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: qipu"));
+}
+
+#[test]
+fn test_format_json_equals_help_exits_zero() {
+    qipu()
+        .args(["--format=json", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: qipu"));
+}
+
+#[test]
+fn test_format_json_version_exits_zero() {
+    qipu()
+        .args(["--format", "json", "--version"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("qipu"));
+}
+
+#[test]
+fn test_format_json_equals_version_exits_zero() {
+    qipu()
+        .args(["--format=json", "--version"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("qipu"));
+}
+
 // ============================================================================
 // Exit code tests (per specs/cli-tool.md)
 // ============================================================================

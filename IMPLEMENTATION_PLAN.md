@@ -4,8 +4,8 @@ This document tracks completed implementation work. For exploratory future work 
 
 ## Status
 
-- **Test baseline**: 778 tests pass (excludes performance tests)
-- **Revision 2 complete**: 2026-01-23
+- **Test baseline**: 791 tests pass (excludes performance tests)
+- **Revision 3 complete**: 2026-01-23
 - **Last audited**: 2026-01-23
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
 

@@ -245,9 +245,10 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] Fix `adapter::mock::tests::test_end_to_end_command_succeeds_gate`
 - [ ] Fix `adapter::mock::tests::test_end_to_end_with_search_and_tags`
 - [ ] Fix `adapter::mock::tests::test_end_to_end_scenario_execution`
-- [ ] Fix `evaluation::tests::test_doctor_passes_gate`
-- Files: `crates/llm-tool-test/src/adapter/mock.rs`, `crates/llm-tool-test/src/evaluation.rs`
-- Status: **Not started**. These 4 tests have been failing since before Revision 2. They test end-to-end scenario execution with the mock adapter and gate evaluation.
+- [x] Fix `evaluation::tests::test_doctor_passes_gate`
+- Files: `crates/llm-tool-test/src/adapter/mock.rs`, `crates/llm-tool-test/src/evaluation.rs`, `src/commands/list/format/json.rs`
+- Status: **In Progress**. Fixed `test_doctor_passes_gate` by adding `path` field to `qipu list --format json` output. Remaining 3 adapter::mock tests fail due to MockAdapter generating invalid qipu commands (uses `--title`, `--content`, `--id` flags which don't exist). All main qipu tests pass (757 tests).
+- **Learnings**: The Note struct already contains a `path` field (Option<PathBuf>) that is populated when loading from the database. Adding this to JSON output is straightforward and useful for debugging/testing. The spec guidance about not requiring consumers to understand storage layout refers to `show` command for integration purposes, but having path available for tooling/debugging is valuable.
 
 #### Safety Guard: `LLM_TOOL_TEST_ENABLED` (`specs/llm-user-validation.md:464`)
 - [x] Check for `LLM_TOOL_TEST_ENABLED=1` before running any tests

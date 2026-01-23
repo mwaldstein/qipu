@@ -22,9 +22,10 @@ pub fn output_json(
                 "title": n.title(),
                 "type": n.note_type().to_string(),
                 "tags": n.frontmatter.tags,
-                
+
                 "created": n.frontmatter.created,
                 "updated": n.frontmatter.updated,
+                "path": n.path,
             });
 
             add_compaction_annotations(cli, n, &mut json, compaction_ctx, note_map);

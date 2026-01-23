@@ -139,8 +139,11 @@ fn test_unknown_command_json_equals_format_usage_error() {
 #[test]
 fn test_missing_store_exit_code_3() {
     let dir = tempdir().unwrap();
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
     qipu()
         .current_dir(dir.path())
+        .env("QIPU_STORE", &nonexistent_store)
         .arg("list")
         .assert()
         .code(3)
@@ -288,8 +291,11 @@ fn test_root_flag_affects_discovery_start_dir() {
         .success();
 
     // Without --root, discovery from subdir should fail
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
     qipu()
         .current_dir(&subdir)
+        .env("QIPU_STORE", &nonexistent_store)
         .arg("list")
         .assert()
         .code(3)
@@ -401,10 +407,13 @@ fn test_invalid_value_json_format() {
 #[test]
 fn test_quiet_flag() {
     let dir = tempdir().unwrap();
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
 
     // With --quiet, error output should be suppressed
     qipu()
         .current_dir(dir.path())
+        .env("QIPU_STORE", &nonexistent_store)
         .args(["--quiet", "list"])
         .assert()
         .code(3)

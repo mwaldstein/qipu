@@ -6,6 +6,41 @@ use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 use base64::{engine::general_purpose, Engine as _};
 
+/// Convert serde_yaml::Value to serde_json::Value
+fn serde_yaml_to_json(yaml: &serde_yaml::Value) -> serde_json::Value {
+    match yaml {
+        serde_yaml::Value::Null => serde_json::Value::Null,
+        serde_yaml::Value::Bool(b) => serde_json::Value::Bool(*b),
+        serde_yaml::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                serde_json::Value::Number(i.into())
+            } else if let Some(u) = n.as_u64() {
+                serde_json::Value::Number(u.into())
+            } else if let Some(f) = n.as_f64() {
+                serde_json::Number::from_f64(f)
+                    .map(serde_json::Value::Number)
+                    .unwrap_or(serde_json::Value::Null)
+            } else {
+                serde_json::Value::Null
+            }
+        }
+        serde_yaml::Value::String(s) => serde_json::Value::String(s.clone()),
+        serde_yaml::Value::Sequence(seq) => {
+            serde_json::Value::Array(seq.iter().map(serde_yaml_to_json).collect())
+        }
+        serde_yaml::Value::Mapping(map) => {
+            let obj: serde_json::Map<String, serde_json::Value> = map
+                .iter()
+                .filter_map(|(k, v)| {
+                    k.as_str().map(|key| (key.to_string(), serde_yaml_to_json(v)))
+                })
+                .collect();
+            serde_json::Value::Object(obj)
+        }
+        serde_yaml::Value::Tagged(tagged) => serde_yaml_to_json(&tagged.value),
+    }
+}
+
 /// Serialize pack in readable format (for human/JSON output)
 #[allow(dead_code)]
 pub fn serialize_pack_readable(
@@ -53,6 +88,12 @@ pub fn serialize_pack_readable(
             prompt_hash: note.frontmatter.prompt_hash.clone(),
             verified: note.frontmatter.verified,
             value: note.frontmatter.value,
+            custom: note
+                .frontmatter
+                .custom
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_yaml_to_json(v)))
+                .collect(),
         })
         .collect();
 
@@ -144,6 +185,14 @@ pub fn serialize_pack_records(
         }
         if let Some(verified) = note.frontmatter.verified {
             output.push_str(&format!(" verified={}", verified));
+        }
+        if let Some(value) = note.frontmatter.value {
+            output.push_str(&format!(" value={}", value));
+        }
+        if !note.frontmatter.custom.is_empty() {
+            let custom_json = serde_json::to_string(&note.frontmatter.custom).unwrap_or_default();
+            let encoded_custom = general_purpose::STANDARD.encode(custom_json.as_bytes());
+            output.push_str(&format!(" custom={}", encoded_custom));
         }
         output.push('\n');
 

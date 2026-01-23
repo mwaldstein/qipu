@@ -139,6 +139,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                 let mut prompt_hash = None;
                 let mut verified = None;
                 let mut value = None;
+                let mut custom: HashMap<String, serde_json::Value> = HashMap::new();
 
                 // Split metadata_str carefully to handle quoted values
                 let mut current_pos = 0;
@@ -212,6 +213,17 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                             "prompt_hash" => prompt_hash = Some(val),
                             "verified" => verified = val.parse().ok(),
                             "value" => value = val.parse().ok(),
+                            "custom" => {
+                                if let Ok(decoded) = general_purpose::STANDARD.decode(&val) {
+                                    if let Ok(json_str) = String::from_utf8(decoded) {
+                                        if let Ok(parsed) =
+                                            serde_json::from_str::<HashMap<String, serde_json::Value>>(&json_str)
+                                        {
+                                            custom = parsed;
+                                        }
+                                    }
+                                }
+                            }
                             _ => {}
                         }
                     } else {
@@ -237,6 +249,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                     prompt_hash,
                     verified,
                     value,
+                    custom,
                 });
             }
         } else if line.starts_with("B ") {

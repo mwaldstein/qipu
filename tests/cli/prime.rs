@@ -167,10 +167,13 @@ fn test_prime_records_format() {
 #[test]
 fn test_prime_missing_store() {
     let dir = tempdir().unwrap();
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
 
     // No init - should fail with exit code 3
     qipu()
         .current_dir(dir.path())
+        .env("QIPU_STORE", &nonexistent_store)
         .arg("prime")
         .assert()
         .code(3)

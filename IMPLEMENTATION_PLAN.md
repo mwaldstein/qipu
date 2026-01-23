@@ -4,7 +4,7 @@ This document tracks completed implementation work. For exploratory future work 
 
 ## Status
 
-- **Test baseline**: 757 tests pass (excludes performance tests)
+- **Test baseline**: 778 tests pass (excludes performance tests)
 - **Revision 2 complete**: 2026-01-23
 - **Last audited**: 2026-01-23
 - Related: [`specs/README.md`](specs/README.md) - Specification status tracking
@@ -22,7 +22,7 @@ This document tracks completed implementation work. For exploratory future work 
 - [x] `cli-tool.md`: Store discovery stops at project root markers, not filesystem root (`src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120`)
   - Fixed logic: removed `passed_project_root` flag and changed to stop immediately when project marker detected
   - Added 3 unit tests for project root marker stopping behavior (`.git`, `Cargo.toml`, and missing store case)
-  - **Note**: Some CLI integration tests fail when `/tmp/.qipu` exists from previous test runs (test isolation issue unrelated to fix)
+
 - [x] `cli-tool.md`: `--format json --help/--version` likely treated as error envelope instead of exit 0 (`src/main.rs:32-41`)
   - Fixed: Added checks for `DisplayHelp` and `DisplayVersion` error kinds to let clap handle them normally (exit 0)
   - Added 4 integration tests: `test_format_json_help_exits_zero`, `test_format_json_equals_help_exits_zero`, `test_format_json_version_exits_zero`, `test_format_json_equals_version_exits_zero`
@@ -30,7 +30,7 @@ This document tracks completed implementation work. For exploratory future work 
   - Fixed: Added `.with_writer(std::io::stderr)` to write logs to stderr instead of stdout
   - Updated all logging tests to check stderr instead of stdout
   - Updated `test_verbose_flag` and `test_workspace_delete_with_unmerged_changes` to check stderr
-  - **Note**: 6 CLI integration tests fail when `/tmp/.qipu` exists from previous test runs (test isolation issue, tests pass in isolation)
+
 - [x] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
   - Added `created` and `updated` fields to `SearchResult` struct
   - Updated SQL query to select `created` and `updated` columns from notes table
@@ -48,7 +48,7 @@ This document tracks completed implementation work. For exploratory future work 
   - Fixed: Removed `.unwrap_or(NoteType::Fleeting)` from 5 locations and replaced with proper error propagation
   - Added `convert_qipu_error_to_sqlite` helper functions in `read.rs` and `search.rs` to convert `QipuError` to `rusqlite::Error`
   - Added test `test_unknown_note_type_rejected` to verify rejection of invalid note types
-  - **Note**: All tests pass; 6 CLI tests fail when `/tmp/.qipu` exists from previous runs (pre-existing test isolation issue)
+
  - [x] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:8-35`)
    - Fixed: Added `build_path_to_id_map()` function to query all note paths and IDs from database
    - Updated both `insert_edges()` and `insert_edges_internal()` to use the populated `path_to_id` HashMap
@@ -71,9 +71,19 @@ This document tracks completed implementation work. For exploratory future work 
    - Updated `output_path_records` to use CWD-relative store path
    - Added unit tests for `path_relative_to_cwd`
    - Verified existing link records format tests pass
- - [ ] `compaction.md`: Link JSON outputs omit compaction annotations/truncation indicators (`src/commands/link/json.rs:7-86`, `src/commands/link/tree.rs:120-153`)
-- [ ] `pack.md`: Pack dump/load is lossy (value not serialized; custom dropped; merge-links semantics restricted) (`src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246`)
-- [ ] `distribution.md`: Release workflow is disabled + installers hardcode repo slug inconsistent with Cargo metadata (`.github/workflows/release.yml:3-13`, `scripts/install.sh:13-16`, `Cargo.toml:4-12`)
+ - [x] `compaction.md`: Link JSON outputs omit compaction annotations/truncation indicators (`src/commands/link/json.rs:7-86`, `src/commands/link/tree.rs:120-153`)
+   - Implementation already complete: JSON includes `compacts`, `compaction_pct`, `compacted_ids`, and `compacted_ids_truncated`
+   - Fixed test assertions to match actual JSON format (spaces after colons, numeric types)
+- [x] `pack.md`: Pack dump/load is lossy (value not serialized; custom dropped; merge-links semantics restricted) (`src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246`)
+   - Added `value` field to records format serialization
+   - Added `custom` field (base64-encoded JSON) to records format serialization
+   - Added `custom` field to `PackNote` model (both dump and load)
+   - Added `serde_yaml_to_json` and `serde_json_to_yaml` conversion helpers
+   - Updated deserializer to parse `custom` field from pack records
+   - Added `test_pack_preserves_value_and_custom_metadata` integration test
+- [x] `distribution.md`: Release workflow is disabled + installers hardcode repo slug inconsistent with Cargo metadata (`.github/workflows/release.yml:3-13`, `scripts/install.sh:13-16`, `Cargo.toml:4-12`)
+   - Fixed: Updated Cargo.toml repository URL from `anomalyco/qipu` to `mwaldstein/qipu` to match install.sh
+   - Note: Release workflow intentionally disabled pending GitHub Actions enablement (external dependency)
 
 ### P2: Missing Test Coverage
 

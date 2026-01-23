@@ -28,6 +28,8 @@ Commands:
   dump       Dump notes to a pack file
   load       Load notes from a pack file
   merge      Merge note id1 into id2
+  edit       Open a note in $EDITOR and update the index upon completion
+  update     Update a note's metadata or content non-interactively
   help       Print this message or the help of the given subcommand(s)
 
 Options:

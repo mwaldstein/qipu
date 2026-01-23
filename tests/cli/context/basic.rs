@@ -359,10 +359,13 @@ fn test_context_transitive_moc_traversal() {
 #[test]
 fn test_context_missing_store() {
     let dir = tempdir().unwrap();
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
 
     // No init - should fail with exit code 3
     qipu()
         .current_dir(dir.path())
+        .env("QIPU_STORE", &nonexistent_store)
         .args(["context", "--tag", "test"])
         .assert()
         .code(3)

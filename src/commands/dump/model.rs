@@ -1,5 +1,6 @@
 use crate::lib::graph::Direction;
 use serde::Serialize;
+use std::collections::HashMap;
 
 /// Options for the dump command
 pub struct DumpOptions<'a> {
@@ -50,6 +51,8 @@ pub struct PackNote {
     pub prompt_hash: Option<String>,
     pub verified: Option<bool>,
     pub value: Option<u8>,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub custom: HashMap<String, serde_json::Value>,
 }
 
 /// Pack entry for a source reference

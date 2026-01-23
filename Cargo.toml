@@ -3,12 +3,12 @@ members = [".", "crates/llm-tool-test"]
 
 [package]
 name = "qipu"
-version = "0.1.100"
+version = "0.2.6"
 edition = "2021"
 description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
 authors = ["Qipu Contributors"]
 license = "MIT"
-repository = "https://github.com/anomalyco/qipu"
+repository = "https://github.com/mwaldstein/qipu"
 keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
 categories = ["command-line-utilities"]
 

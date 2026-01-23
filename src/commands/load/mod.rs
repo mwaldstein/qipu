@@ -27,6 +27,36 @@ enum LoadStrategy {
     MergeLinks,
 }
 
+/// Convert serde_json::Value to serde_yaml::Value
+fn serde_json_to_yaml(json: &serde_json::Value) -> serde_yaml::Value {
+    match json {
+        serde_json::Value::Null => serde_yaml::Value::Null,
+        serde_json::Value::Bool(b) => serde_yaml::Value::Bool(*b),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                serde_yaml::Value::Number(serde_yaml::Number::from(i))
+            } else if let Some(u) = n.as_u64() {
+                serde_yaml::Value::Number(serde_yaml::Number::from(u))
+            } else if let Some(f) = n.as_f64() {
+                serde_yaml::Value::Number(serde_yaml::Number::from(f))
+            } else {
+                serde_yaml::Value::Null
+            }
+        }
+        serde_json::Value::String(s) => serde_yaml::Value::String(s.clone()),
+        serde_json::Value::Array(arr) => {
+            serde_yaml::Value::Sequence(arr.iter().map(serde_json_to_yaml).collect())
+        }
+        serde_json::Value::Object(obj) => {
+            let map: serde_yaml::Mapping = obj
+                .iter()
+                .map(|(k, v)| (serde_yaml::Value::String(k.clone()), serde_json_to_yaml(v)))
+                .collect();
+            serde_yaml::Value::Mapping(map)
+        }
+    }
+}
+
 fn parse_strategy(s: &str) -> Result<LoadStrategy> {
     match s.to_lowercase().as_str() {
         "skip" => Ok(LoadStrategy::Skip),
@@ -242,7 +272,11 @@ fn load_notes(
             prompt_hash: pack_note.prompt_hash.clone(),
             verified: pack_note.verified,
             value: pack_note.value,
-            custom: std::collections::HashMap::new(),
+            custom: pack_note
+                .custom
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json_to_yaml(v)))
+                .collect(),
         };
 
         // Create note with path from pack if available

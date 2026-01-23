@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Pack file header
 #[derive(Debug, Deserialize, Serialize)]
@@ -32,6 +33,8 @@ pub struct PackNote {
     pub prompt_hash: Option<String>,
     pub verified: Option<bool>,
     pub value: Option<u8>,
+    #[serde(default)]
+    pub custom: HashMap<String, serde_json::Value>,
 }
 
 /// Pack entry for a source reference

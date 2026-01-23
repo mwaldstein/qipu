@@ -6,6 +6,45 @@
 pub mod status;
 
 pub use status::{
-    add_compaction_to_json, build_compaction_annotations, format_custom_value, print_json_status,
-    print_records_header, wrap_records_body,
+    add_compaction_to_json, build_compaction_annotations, format_custom_value, format_tags_csv,
+    format_value, print_json_status, print_records_data, print_records_header,
+    print_records_summary, wrap_records_body,
 };
+
+use crate::cli::Cli;
+use crate::lib::compaction::CompactionContext;
+use crate::lib::note::Note;
+
+/// Compaction information for a note
+pub struct CompactionInfo {
+    pub count: usize,
+    pub percentage: Option<f32>,
+    pub compacted_ids: Vec<String>,
+    pub truncated: bool,
+}
+
+/// Calculate compaction information for a note
+pub fn calculate_compaction_info(
+    cli: &Cli,
+    note: &Note,
+    note_map: &std::collections::HashMap<&str, &Note>,
+    compaction_ctx: &CompactionContext,
+) -> CompactionInfo {
+    let count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+    let percentage = compaction_ctx.get_compaction_pct(note, note_map);
+    let (compacted_ids, truncated) = if cli.with_compaction_ids && count > 0 {
+        let depth = cli.compaction_depth.unwrap_or(1);
+        compaction_ctx
+            .get_compacted_ids(&note.frontmatter.id, depth, cli.compaction_max_nodes)
+            .unwrap_or((Vec::new(), false))
+    } else {
+        (Vec::new(), false)
+    };
+
+    CompactionInfo {
+        count,
+        percentage,
+        compacted_ids,
+        truncated,
+    }
+}

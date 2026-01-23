@@ -1,6 +1,7 @@
 //! Status message formatting helpers
 
 use crate::lib::error::Result;
+use crate::lib::records::escape_quotes;
 use serde_json::json;
 
 /// Print a JSON status message with optional fields
@@ -120,6 +121,60 @@ pub fn wrap_records_body(id: &str, body: &str) {
         println!("{}", line);
     }
     println!("B-END");
+}
+
+/// Print a Records format data line
+///
+/// # Examples
+/// ```ignore
+/// print_records_data("path", "AGENTS.md");
+/// print_records_data("message", "File created successfully");
+/// ```
+pub fn print_records_data(key: &str, value: &str) {
+    println!("D {} {}", key, escape_quotes(value));
+}
+
+/// Format tags as CSV string, using "-" for empty tags
+///
+/// # Examples
+/// ```ignore
+/// format_tags_csv(&["tag1", "tag2"]) // "tag1,tag2"
+/// format_tags_csv(&[]) // "-"
+/// ```
+pub fn format_tags_csv(tags: &[String]) -> String {
+    if tags.is_empty() {
+        "-".to_string()
+    } else {
+        tags.join(",")
+    }
+}
+
+/// Format value as string, using "-" for None
+///
+/// # Examples
+/// ```ignore
+/// format_value(Some(42u8)) // "42"
+/// format_value(None) // "-"
+/// ```
+pub fn format_value(value: Option<u8>) -> String {
+    value
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| "-".to_string())
+}
+
+/// Print a Records format summary line
+///
+/// Only outputs first line of summary per spec
+///
+/// # Examples
+/// ```ignore
+/// print_records_summary("qp-123", "This is a summary\nwith multiple lines");
+/// ```
+pub fn print_records_summary(id: &str, summary: &str) {
+    if !summary.is_empty() {
+        let first_line = summary.lines().next().unwrap_or(summary);
+        println!("S {} {}", id, first_line);
+    }
 }
 
 #[cfg(test)]

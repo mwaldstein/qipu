@@ -9,7 +9,9 @@ use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::format::{
-    add_compaction_to_json, build_compaction_annotations, format_custom_value, wrap_records_body,
+    add_compaction_to_json, build_compaction_annotations, calculate_compaction_info,
+    format_custom_value, format_tags_csv, format_value, print_records_data, print_records_summary,
+    wrap_records_body,
 };
 use crate::commands::link::LinkEntry;
 use crate::lib::compaction::CompactionContext;
@@ -103,27 +105,15 @@ pub fn execute(
             }
 
             // Add compaction annotations for digest notes
-            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-            let compaction_pct = compaction_ctx.get_compaction_pct(&note, &note_map);
-            let (compacted_ids, truncated) = if cli.with_compaction_ids && compacts_count > 0 {
-                let depth = cli.compaction_depth.unwrap_or(1);
-                compaction_ctx.get_compacted_ids(
-                    &note.frontmatter.id,
-                    depth,
-                    cli.compaction_max_nodes,
-                )
-            } else {
-                None
-            }
-            .unwrap_or((Vec::new(), false));
+            let compaction_info = calculate_compaction_info(cli, &note, &note_map, &compaction_ctx);
 
             if let Some(obj) = output.as_object_mut() {
                 add_compaction_to_json(
                     obj,
-                    compacts_count,
-                    compaction_pct,
-                    Some(compacted_ids),
-                    truncated,
+                    compaction_info.count,
+                    compaction_info.percentage,
+                    Some(compaction_info.compacted_ids),
+                    compaction_info.truncated,
                 );
             }
 
@@ -143,22 +133,16 @@ pub fn execute(
             );
 
             // Note metadata line with compaction annotations
-            let tags_csv = if note.frontmatter.tags.is_empty() {
-                "-".to_string()
-            } else {
-                note.frontmatter.tags.join(",")
-            };
-            let value_str = note
-                .frontmatter
-                .value
-                .map(|v| v.to_string())
-                .unwrap_or_else(|| "-".to_string());
+            let tags_csv = format_tags_csv(&note.frontmatter.tags);
+            let value_str = format_value(note.frontmatter.value);
 
             // Build compaction annotations for digest notes
-            let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-            let compaction_pct = compaction_ctx.get_compaction_pct(&note, &note_map);
-            let annotations =
-                build_compaction_annotations(via.as_deref(), compacts_count, compaction_pct);
+            let compaction_info = calculate_compaction_info(cli, &note, &note_map, &compaction_ctx);
+            let annotations = build_compaction_annotations(
+                via.as_deref(),
+                compaction_info.count,
+                compaction_info.percentage,
+            );
 
             println!(
                 "N {} {} \"{}\" tags={} value={}{}",
@@ -172,23 +156,20 @@ pub fn execute(
 
             // Show compacted IDs if --with-compaction-ids is set
             // Per spec (specs/compaction.md line 131)
-            if cli.with_compaction_ids && compacts_count > 0 {
-                let depth = cli.compaction_depth.unwrap_or(1);
-                if let Some((ids, truncated)) = compaction_ctx.get_compacted_ids(
-                    &note.frontmatter.id,
-                    depth,
-                    cli.compaction_max_nodes,
-                ) {
-                    for id in &ids {
-                        println!("D compacted {} from={}", id, note.id());
-                    }
-                    if truncated {
-                        println!(
-                            "D compacted_truncated max={} total={}",
-                            cli.compaction_max_nodes.unwrap_or(ids.len()),
-                            compacts_count
-                        );
-                    }
+            if !compaction_info.compacted_ids.is_empty() {
+                for id in &compaction_info.compacted_ids {
+                    print_records_data("compacted", &format!("{} from={}", id, note.id()));
+                }
+                if compaction_info.truncated {
+                    print_records_data(
+                        "compacted_truncated",
+                        &format!(
+                            "max={} total={}",
+                            cli.compaction_max_nodes
+                                .unwrap_or(compaction_info.compacted_ids.len()),
+                            compaction_info.count
+                        ),
+                    );
                 }
             }
 
@@ -200,12 +181,7 @@ pub fn execute(
             }
 
             // Summary line
-            let summary = note.summary();
-            if !summary.is_empty() {
-                // Only output first line of summary per spec
-                let first_line = summary.lines().next().unwrap_or(&summary);
-                println!("S {} {}", note.id(), first_line);
-            }
+            print_records_summary(note.id(), &note.summary());
 
             // Body lines with terminator
             wrap_records_body(note.id(), &note.body);

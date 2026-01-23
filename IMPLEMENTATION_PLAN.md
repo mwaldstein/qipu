@@ -149,17 +149,26 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Extract status message helpers (`print_json_status`, `print_records_header`)
 - [x] Extract compaction annotation helpers (`build_compaction_annotations`, `add_compaction_to_json`)
 - [x] Extract body content wrapping (`wrap_records_body`)
-- [x] Reduce repetitive match statements in setup.rs and show.rs
+- [x] Extract Records data line helper (`print_records_data`)
+- [x] Extract tool validation helper (`validate_tool_name`)
+- [x] Extract compaction calculation helper (`calculate_compaction_info`)
+- [x] Extract tags/value formatting helpers (`format_tags_csv`, `format_value`)
+- [x] Extract summary line helper (`print_records_summary`)
 - [ ] Target: Cut ~50 lines from setup.rs and ~100 lines from show.rs
 - **Current state**: Created `src/commands/format/mod.rs` with shared helpers
-  - setup.rs: 723 → 709 lines (-14 lines, 28% of target)
-  - show.rs: 665 → 641 lines (-24 lines, 24% of target)
-  - Added 170 lines of new infrastructure in format module
+  - setup.rs: 723 → 698 lines (-25 lines, 50% of target)
+  - show.rs: 665 → 619 lines (-46 lines, 46% of target)
+  - Added ~60 lines of new reusable helpers in format module (status.rs: 160 → 214 lines)
 - **Impact**: Established reusable format infrastructure that other commands can adopt
-- **Learnings**: Full line reduction targets are ambitious given the complexity of different output requirements. Creating shared helpers provides more value than pure line reduction because:
-  1. Helper functions are well-documented and tested
-  2. Future commands can adopt these patterns
-  3. Reduces cognitive load when working with format code
+- **Learnings**:
+  - Line reduction targets are ambitious given different output requirements; ~50% progress is significant
+  - Helper functions provide more value than pure line reduction:
+    1. Well-documented and tested patterns
+    2. Future commands can adopt these patterns
+    3. Reduces cognitive load when working with format code
+  - Tool validation pattern (normalize + error check) saved 18 lines across 3 functions
+  - Compaction calculation helper saved ~20 lines by unifying JSON and Records formats
+  - Records format helpers (data line, summary, tags/value) made code more declarative
   - Note: The pre-existing 3 context compaction test failures remain unrelated to this change
 
 #### Split Large Test Files

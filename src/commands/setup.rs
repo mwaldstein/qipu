@@ -4,7 +4,9 @@
 //! At minimum, supports the AGENTS.md standard (cross-tool compatible).
 
 use crate::cli::{Cli, OutputFormat};
-use crate::commands::format::{print_json_status, print_records_header, wrap_records_body};
+use crate::commands::format::{
+    print_json_status, print_records_data, print_records_header, wrap_records_body,
+};
 use crate::lib::error::QipuError;
 use std::path::PathBuf;
 
@@ -13,6 +15,17 @@ fn get_agents_md_path(cli: &Cli) -> PathBuf {
         Some(root) => root.join("AGENTS.md"),
         None => PathBuf::from("AGENTS.md"),
     }
+}
+
+fn validate_tool_name(tool: &str) -> Result<&str, QipuError> {
+    let normalized = tool.to_lowercase().replace('_', "-");
+    if normalized != "agents-md" {
+        return Err(QipuError::UsageError(format!(
+            "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
+            tool
+        )));
+    }
+    Ok(tool)
 }
 
 const AGENTS_MD_CONTENT: &str = r#"# Qipu Agent Integration
@@ -201,15 +214,7 @@ fn execute_print(cli: &Cli) -> Result<(), QipuError> {
 
 /// Install integration for a specific tool
 fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    // Normalize tool name
-    let normalized = tool.to_lowercase().replace('_', "-");
-
-    if normalized != "agents-md" {
-        return Err(QipuError::UsageError(format!(
-            "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
-            tool
-        )));
-    }
+    validate_tool_name(tool)?;
 
     // Check if AGENTS.md already exists
     let agents_md_path = get_agents_md_path(cli);
@@ -224,7 +229,7 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
             }
             OutputFormat::Records => {
                 print_records_header("setup.install", &[("integration", "agents-md"), ("status", "exists")]);
-                println!("D message \"AGENTS.md already exists. Use --print to see recommended content.\"");
+                print_records_data("message", "AGENTS.md already exists. Use --print to see recommended content.");
                 Ok(())
             }
             OutputFormat::Human => {
@@ -253,7 +258,7 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
                 "setup.install",
                 &[("integration", "agents-md"), ("status", "installed")],
             );
-            println!("D path AGENTS.md");
+            print_records_data("path", "AGENTS.md");
         }
         OutputFormat::Human => {
             println!("✓ Created AGENTS.md");
@@ -270,15 +275,7 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
 
 /// Check if integration is installed
 fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    // Normalize tool name
-    let normalized = tool.to_lowercase().replace('_', "-");
-
-    if normalized != "agents-md" {
-        return Err(QipuError::UsageError(format!(
-            "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
-            tool
-        )));
-    }
+    validate_tool_name(tool)?;
 
     let agents_md_path = get_agents_md_path(cli);
     let exists = agents_md_path.exists();
@@ -299,7 +296,7 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
                 &[("integration", "agents-md"), ("status", status)],
             );
             if exists {
-                println!("D path AGENTS.md");
+                print_records_data("path", "AGENTS.md");
             }
         }
         OutputFormat::Human => {
@@ -319,15 +316,7 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
 
 /// Remove integration
 fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    // Normalize tool name
-    let normalized = tool.to_lowercase().replace('_', "-");
-
-    if normalized != "agents-md" {
-        return Err(QipuError::UsageError(format!(
-            "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
-            tool
-        )));
-    }
+    validate_tool_name(tool)?;
 
     let agents_md_path = get_agents_md_path(cli);
 

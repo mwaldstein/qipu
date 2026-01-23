@@ -21,7 +21,7 @@ fn test_log_level_debug_shows_debug_messages() {
         .args(["--log-level", "debug", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args"));
+        .stderr(predicate::str::contains("parse_args"));
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_log_level_warn_hides_debug_messages() {
         .args(["--log-level", "warn", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args").not());
+        .stderr(predicate::str::contains("parse_args").not());
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_verbose_shows_debug_messages() {
         .args(["--verbose", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args"));
+        .stderr(predicate::str::contains("parse_args"));
 }
 
 #[test]
@@ -75,9 +75,9 @@ fn test_log_json_produces_valid_json() {
         .args(["--log-json", "--log-level", "debug", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"timestamp\""))
-        .stdout(predicate::str::contains("\"level\""))
-        .stdout(predicate::str::contains("\"message\""));
+        .stderr(predicate::str::contains("\"timestamp\""))
+        .stderr(predicate::str::contains("\"level\""))
+        .stderr(predicate::str::contains("\"message\""));
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn test_qipu_log_env_overrides_cli_flags() {
         .args(["--log-level", "warn", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args"));
+        .stderr(predicate::str::contains("parse_args"));
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn test_qipu_log_env_without_target() {
         .args(["list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args"));
+        .stderr(predicate::str::contains("parse_args"));
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn test_default_log_policy_is_warn() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("parse_args").not()); // No debug messages
+        .stderr(predicate::str::contains("parse_args").not()); // No debug messages
 
     // Verify warn-level messages would be shown by creating a condition that triggers a warning
     // Note: In normal operation, list doesn't produce warnings, so we just verify debug is off

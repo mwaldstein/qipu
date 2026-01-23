@@ -432,7 +432,7 @@ fn test_workspace_delete_with_unmerged_changes() {
         .args(["workspace", "delete", "test-workspace"])
         .assert()
         .failure()
-        .stdout(predicate::str::contains("unmerged"))
+        .stderr(predicate::str::contains("unmerged"))
         .stderr(predicate::str::contains("--force"));
 }
 

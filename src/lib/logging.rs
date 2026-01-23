@@ -32,11 +32,22 @@ fn init_with_level(level: &str, log_json: bool) -> Result<(), Box<dyn std::error
 
     if log_json {
         registry
-            .with(fmt::layer().json().with_ansi(false))
+            .with(
+                fmt::layer()
+                    .json()
+                    .with_writer(std::io::stderr)
+                    .with_ansi(false),
+            )
             .try_init()?;
     } else {
         registry
-            .with(fmt::layer().compact().with_target(false).with_ansi(false))
+            .with(
+                fmt::layer()
+                    .compact()
+                    .with_target(false)
+                    .with_writer(std::io::stderr)
+                    .with_ansi(false),
+            )
             .try_init()?;
     }
 

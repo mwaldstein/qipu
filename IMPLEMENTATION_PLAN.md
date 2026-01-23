@@ -26,7 +26,11 @@ This document tracks completed implementation work. For exploratory future work 
 - [x] `cli-tool.md`: `--format json --help/--version` likely treated as error envelope instead of exit 0 (`src/main.rs:32-41`)
   - Fixed: Added checks for `DisplayHelp` and `DisplayVersion` error kinds to let clap handle them normally (exit 0)
   - Added 4 integration tests: `test_format_json_help_exits_zero`, `test_format_json_equals_help_exits_zero`, `test_format_json_version_exits_zero`, `test_format_json_equals_version_exits_zero`
-- [ ] `cli-tool.md` / `structured-logging.md`: Logs appear on stdout (breaks machine output expectations) (`tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40`)
+- [x] `cli-tool.md` / `structured-logging.md`: Logs appear on stdout (breaks machine output expectations) (`tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40`)
+  - Fixed: Added `.with_writer(std::io::stderr)` to write logs to stderr instead of stdout
+  - Updated all logging tests to check stderr instead of stdout
+  - Updated `test_verbose_flag` and `test_workspace_delete_with_unmerged_changes` to check stderr
+  - **Note**: 6 CLI integration tests fail when `/tmp/.qipu` exists from previous test runs (test isolation issue, tests pass in isolation)
 - [ ] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
 - [ ] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
 - [ ] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/mod.rs`)

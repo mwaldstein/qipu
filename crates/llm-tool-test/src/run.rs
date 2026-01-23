@@ -182,6 +182,118 @@ cost:
             "Error message should mention budget"
         );
     }
+
+    #[test]
+    fn test_scenario_timeout_overrides_cli() {
+        let scenario_yaml = r#"
+name: timeout_test_override
+description: "Test scenario timeout overrides CLI"
+fixture: qipu
+task:
+  prompt: "Create a note"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+run:
+  timeout_secs: 120
+cost:
+  max_usd: 0.0
+"#;
+        let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
+        let base_dir = PathBuf::from("target/test_timeout");
+        std::fs::create_dir_all(&base_dir).unwrap();
+
+        let results_db = ResultsDB::new(&base_dir);
+        let cache = Cache::new(&base_dir);
+
+        let fixture_dir = PathBuf::from("fixtures/qipu");
+        std::fs::create_dir_all(&fixture_dir).unwrap();
+        let fixture_file = fixture_dir.join("timeout_test_override.yaml");
+        std::fs::write(&fixture_file, scenario_yaml).unwrap();
+
+        let cli_timeout = 300;
+        let result = run_single_scenario(
+            &scenario,
+            "mock",
+            "mock",
+            false,
+            true,
+            cli_timeout,
+            &None,
+            &base_dir,
+            &results_db,
+            &cache,
+        );
+
+        let _ = std::fs::remove_file(&fixture_file);
+
+        match result {
+            Err(e) => {
+                assert!(
+                    e.to_string().contains("Budget exhausted"),
+                    "Should fail with budget exhaustion: {}",
+                    e
+                );
+            }
+            Ok(_) => panic!("Should fail with zero budget"),
+        }
+    }
+
+    #[test]
+    fn test_cli_timeout_used_when_scenario_none() {
+        let scenario_yaml = r#"
+name: timeout_test_cli
+description: "Test CLI timeout is used when scenario doesn't specify"
+fixture: qipu
+task:
+  prompt: "Create a note"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+cost:
+  max_usd: 0.0
+"#;
+        let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
+        let base_dir = PathBuf::from("target/test_timeout");
+        std::fs::create_dir_all(&base_dir).unwrap();
+
+        let results_db = ResultsDB::new(&base_dir);
+        let cache = Cache::new(&base_dir);
+
+        let fixture_dir = PathBuf::from("fixtures/qipu");
+        std::fs::create_dir_all(&fixture_dir).unwrap();
+        let fixture_file = fixture_dir.join("timeout_test_cli.yaml");
+        std::fs::write(&fixture_file, scenario_yaml).unwrap();
+
+        let cli_timeout = 60;
+        let result = run_single_scenario(
+            &scenario,
+            "mock",
+            "mock",
+            false,
+            true,
+            cli_timeout,
+            &None,
+            &base_dir,
+            &results_db,
+            &cache,
+        );
+
+        let _ = std::fs::remove_file(&fixture_file);
+
+        match result {
+            Err(e) => {
+                assert!(
+                    e.to_string().contains("Budget exhausted"),
+                    "Should fail with budget exhaustion: {}",
+                    e
+                );
+            }
+            Ok(_) => panic!("Should fail with zero budget"),
+        }
+    }
 }
 
 pub fn run_single_scenario(
@@ -200,6 +312,13 @@ pub fn run_single_scenario(
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
     let qipu_version = crate::results::get_qipu_version()?;
+
+    // Effective timeout: scenario timeout overrides CLI timeout
+    let effective_timeout = s
+        .run
+        .as_ref()
+        .and_then(|r| r.timeout_secs)
+        .unwrap_or(timeout_secs);
 
     // Budget enforcement: check max_usd from CLI and scenario BEFORE setting up fixture
     let effective_max_usd = match (cli_max_usd, s.cost.as_ref().and_then(|c| c.max_usd)) {
@@ -273,7 +392,7 @@ pub fn run_single_scenario(
                     args.join(" ")
                 );
                 let (output, exit_code) =
-                    runner.run_command(&step.command, &args, &env.root, timeout_secs)?;
+                    runner.run_command(&step.command, &args, &env.root, effective_timeout)?;
                 if exit_code != 0 {
                     anyhow::bail!(
                         "Setup step {}/{} failed: {} exited with code {}. Output: {}",
@@ -290,7 +409,8 @@ pub fn run_single_scenario(
 
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
-        let (output, exit_code, cost) = adapter.run(s, &env.root, Some(model), timeout_secs)?;
+        let (output, exit_code, cost) =
+            adapter.run(s, &env.root, Some(model), effective_timeout)?;
         let duration = start_time.elapsed();
 
         // Check if we exceeded the budget

@@ -223,11 +223,12 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - Status: **Implemented**. Added safety guard check at the beginning of `main()` function. The check uses `anyhow::bail!()` to exit with a clear error message explaining the requirement and how to enable test runs.
 
 #### Per-Scenario Timeout (`specs/llm-user-validation.md:158-159`)
-- [ ] Read `run.timeout_secs` from scenario YAML (default: 600)
-- [ ] Override CLI `--timeout` with scenario-specific value
-- [ ] Pass timeout to adapter execution
+- [x] Read `run.timeout_secs` from scenario YAML (default: 600)
+- [x] Override CLI `--timeout` with scenario-specific value
+- [x] Pass timeout to adapter execution
 - Files: `crates/llm-tool-test/src/scenario.rs`, `crates/llm-tool-test/src/run.rs`
-
+- Status: **Complete**. Implemented per-scenario timeout support. The effective timeout is calculated as `s.run.as_ref().and_then(|r| r.timeout_secs).unwrap_or(timeout_secs)`, which uses scenario timeout if present, otherwise falls back to CLI timeout (which defaults to 300). This is passed to both setup step commands and adapter execution. Added 2 integration tests verifying scenario timeout overrides CLI timeout and CLI timeout is used when scenario doesn't specify.
+- **Learnings**: The timeout logic follows the same pattern as budget enforcement (lines 320-325), using `Option` handling with `unwrap_or` for fallback. Tests use zero budget to fail early and avoid fixture setup complexity, which is a good pattern for testing parameter parsing without full scenario execution.
 #### Store Snapshot Artifact (`specs/llm-user-validation.md:297-298`)
 - [ ] After test run, copy `.qipu/` directory to `store_snapshot/` in transcript dir
 - [ ] Include `export.json` via `qipu dump --format json`

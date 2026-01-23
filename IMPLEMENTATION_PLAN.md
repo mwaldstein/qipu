@@ -21,7 +21,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| Refactor `src/commands/doctor/content.rs` (724 lines, reduced from 830) | High |
 | Refactor `src/commands/setup.rs` (780 lines) | Medium |
 | Refactor `src/commands/doctor/database.rs` (722 lines) | Medium |
 | Externalize model pricing to config | Low |
@@ -37,6 +36,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 7** (2026-01-23): Refactored `src/commands/doctor/content.rs` (724→723 lines). Added `Note::id_string()` and `Note::path_display()` helper methods to eliminate repeated code patterns across multiple check functions.
 
 **Revision 6** (2026-01-23): Refactored `src/lib/graph/bfs.rs` (842→820 lines). Extracted helper functions (`get_note_value`, `canonicalize_with_context`) to eliminate code duplication in neighbor processing loops across `bfs_search` and `dijkstra_search`.
 

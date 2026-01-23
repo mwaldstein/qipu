@@ -99,7 +99,7 @@ pub fn check_required_fields(notes: &[Note], result: &mut DoctorResult) {
                 severity: Severity::Error,
                 category: "missing-field".to_string(),
                 message: format!("Note '{}' is missing required 'title' field", note.id()),
-                note_id: Some(note.id().to_string()),
+                note_id: Some(note.id_string()),
                 path: Some(path.clone()),
                 fixable: false,
             });
@@ -169,8 +169,8 @@ pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
                         note.id(),
                         value
                     ),
-                    note_id: Some(note.id().to_string()),
-                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    note_id: Some(note.id_string()),
+                    path: note.path_display(),
                     fixable: false,
                 });
             }
@@ -195,8 +195,8 @@ pub fn check_custom_metadata(notes: &[Note], result: &mut DoctorResult) {
                         note.id(),
                         json_str.len()
                     ),
-                    note_id: Some(note.id().to_string()),
-                    path: note.path.as_ref().map(|p| p.display().to_string()),
+                    note_id: Some(note.id_string()),
+                    path: note.path_display(),
                     fixable: false,
                 });
             }
@@ -211,7 +211,7 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
         .expect("Invalid attachment regex pattern");
 
     for note in notes {
-        let from_id = note.id().to_string();
+        let from_id = note.id_string();
         let note_path = note
             .path
             .as_ref()
@@ -221,7 +221,6 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
         for cap in attachment_re.captures_iter(&note.body) {
             let rel_path_str = &cap[1];
             let full_path = note_path.join(rel_path_str);
-            let note_path_display = note.path.as_ref().map(|p| p.display().to_string());
 
             if let Ok(canonical_path) = fs::canonicalize(&full_path) {
                 if let Ok(canonical_attachments_dir) = fs::canonicalize(&attachments_dir) {
@@ -237,7 +236,7 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
                                     from_id, rel_path_str
                                 ),
                                 note_id: Some(from_id.clone()),
-                                path: note_path_display,
+                                path: note.path_display(),
                                 fixable: false,
                             });
                         }
@@ -252,7 +251,7 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
                         from_id, rel_path_str
                     ),
                     note_id: Some(from_id.clone()),
-                    path: note_path_display,
+                    path: note.path_display(),
                     fixable: false,
                 });
             }
@@ -317,8 +316,8 @@ pub fn check_bare_link_lists(notes: &[Note], result: &mut DoctorResult) {
                                 note.id(),
                                 line_idx + 1
                             ),
-                            note_id: Some(note.id().to_string()),
-                            path: note.path.as_ref().map(|p| p.display().to_string()),
+                            note_id: Some(note.id_string()),
+                            path: note.path_display(),
                             fixable: false,
                         });
                         break;
@@ -356,8 +355,8 @@ pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
                     note.id(),
                     reason
                 ),
-                note_id: Some(note.id().to_string()),
-                path: note.path.as_ref().map(|p| p.display().to_string()),
+                note_id: Some(note.id_string()),
+                path: note.path_display(),
                 fixable: false,
             });
         }

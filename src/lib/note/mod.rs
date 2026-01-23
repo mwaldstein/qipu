@@ -38,9 +38,19 @@ impl Note {
         &self.frontmatter.id
     }
 
+    /// Get the note ID as a String
+    pub fn id_string(&self) -> String {
+        self.id().to_string()
+    }
+
     /// Get the note title
     pub fn title(&self) -> &str {
         &self.frontmatter.title
+    }
+
+    /// Get the path as a display string (if available)
+    pub fn path_display(&self) -> Option<String> {
+        self.path.as_ref().map(|p| p.display().to_string())
     }
 
     /// Get the note type

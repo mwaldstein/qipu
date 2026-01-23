@@ -173,16 +173,41 @@ pub fn execute(
                 "id": note_id,
                 "title": note.title(),
                 "type": note.note_type().to_string(),
+
                 "tags": note.frontmatter.tags,
-                "value": note.frontmatter.value,
+                "created": note.frontmatter.created,
+                "updated": note.frontmatter.updated,
+                "source": note.frontmatter.source,
+                "author": note.frontmatter.author,
+                "generated_by": note.frontmatter.generated_by,
+                "prompt_hash": note.frontmatter.prompt_hash,
+                "verified": note.frontmatter.verified,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         OutputFormat::Human => {
-            println!("Updated note: {}", note_id);
+            println!("{}", note_id);
         }
         OutputFormat::Records => {
-            println!("N id=\"{}\" status=updated", note_id);
+            use crate::lib::records::escape_quotes;
+
+            println!(
+                "H qipu=1 records=1 store={} mode=update",
+                store.root().display()
+            );
+
+            let tags_csv = if note.frontmatter.tags.is_empty() {
+                "-".to_string()
+            } else {
+                note.frontmatter.tags.join(",")
+            };
+            println!(
+                "N {} {} \"{}\" tags={}",
+                note.id(),
+                note.note_type(),
+                escape_quotes(note.title()),
+                tags_csv
+            );
         }
     }
 

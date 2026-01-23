@@ -14,9 +14,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### P1: Correctness
 
-| Task | Details |
-|------|---------|
-| Align `update` output with `create` | JSON missing: `created`, `updated`, `source`, `author`, `generated_by`, `prompt_hash`, `verified`. Human: `"Updated note: {id}"` → `{id}`. Records: add header line + full record format. See `src/commands/update.rs:169-187` vs `src/commands/create.rs:78-119`. |
+*No pending P1 items*
 
 ### P2: Technical Debt
 

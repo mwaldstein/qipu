@@ -43,7 +43,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|--------|-----------|
-| Git integration for temp workspaces | Auto-add to .gitignore | 142 |
 | Merge creates git commit | Design needed for commit message format | 143 |
 
 ### llm-user-validation.md
@@ -62,8 +61,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| Tag-triggered GitHub Release automation | Workflow exists but is disabled + manual-only; blocked on Actions enablement | 18-35 |
-| Canonical repo slug for installers | Installers hardcode `mwaldstein/qipu` but Cargo metadata points elsewhere; decide canonical repo | 18-35 |
 | Homebrew tap | Requires separate repository setup | 62-69 |
 | crates.io publishing | Account setup and verification needed | 92 |
 | AUR (Arch Linux) | Medium priority package manager | 71-81 |
@@ -97,7 +94,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| Wiki-link canonicalization to markdown links | Spec says "optional; opt-in" but no flag/config defined | 113-114 |
 | Per-note attachment folders | Open question: `attachments/<id>/...`? | 147 |
 
 ### indexing-search.md
@@ -132,7 +128,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | Item | Source | Status |
 |------|--------|--------|
 | Interactive fzf-style pickers | `specs/cli-interface.md` line 189 | Open question - optional UX sugar |
-| `qipu capture` default type | `specs/cli-interface.md` line 190 | Open question - default to `--type fleeting`? |
 | `qipu sync` git integration | `specs/cli-interface.md` line 191 | Open question - manage git commits? |
 | Verbose timing keys | `specs/README.md` line 89 | Low priority - only `discover_store` instrumented |
 
@@ -149,7 +144,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 |------|--------|--------|
 | Inline link materialization | `specs/graph-traversal.md` line 33 | Optional: rewrite inline to frontmatter |
 | Additional traversal queries | `specs/graph-traversal.md` line 217 | Future: `neighbors`, `subgraph`, `cycles` |
-| Context walk command | `specs/graph-traversal.md` line 209 | Future: `qipu context --walk` |
 | Custom link types ecosystem | `specs/semantic-graph.md` line 94-106 | Extensibility exists, adoption depends on usage |
 
 ### LLM Integration
@@ -164,7 +158,6 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | Item | Source | Status |
 |------|--------|--------|
 | Query statistics | `specs/operational-database.md` line 174 | Observability enhancement |
-| Database size/stats reporting | `specs/operational-database.md` line 175 | Diagnostic enhancement |
 
 ### Provenance
 

@@ -43,6 +43,33 @@ Common flags:
 - `--tag <tag>` (repeatable)
 - `--open` (open in `$EDITOR`)
 
+### `qipu edit <id-or-path>`
+Open an existing note in `$EDITOR` and update the index upon completion.
+
+- **Atomic update**: updates the file and the database index in one operation (per `specs/operational-database.md`).
+- If no editor is configured/detected, fails with usage error.
+
+Common flags:
+- `--editor <cmd>`: override default editor
+
+### `qipu update <id-or-path>`
+Update an existing note's metadata or content non-interactively (scripting/LLM mode).
+
+- **Atomic update**: updates the file and the database index in one operation.
+- Only provided flags are applied; omitted fields remain unchanged.
+- Reading from stdin replaces the note body (preserving frontmatter).
+
+Flags:
+- `--title <text>`: Rename the note (updates filename).
+- `--type <type>`: Change note type.
+- `--tag <tag>`: Add one or more tags.
+- `--remove-tag <tag>`: Remove one or more tags.
+- `--value <n>`: Set the note's value score (0-100).
+
+Examples:
+- `qipu update qp-a1b2 --tag reviewed --value 90`
+- `cat new-body.md | qipu update qp-a1b2 --title "Revised Title"`
+
 ### `qipu capture`
 Create a new note from stdin.
 

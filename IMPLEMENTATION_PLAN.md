@@ -24,6 +24,7 @@ This document tracks completed implementation work. For exploratory future work 
 - [ ] `cli-tool.md` / `structured-logging.md`: Logs appear on stdout (breaks machine output expectations) (`tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40`)
 - [ ] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)
 - [ ] `cli-interface.md`: Inbox JSON omits `path` (`src/commands/dispatch/notes.rs:160-177`)
+- [ ] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/mod.rs`)
 - [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
 - [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
 - [ ] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:13-22`)
@@ -44,6 +45,11 @@ This document tracks completed implementation work. For exploratory future work 
 ### P3: Unimplemented But Ready
 
 - [ ] `llm-user-validation.md`: Enforce per-run budget env var and per-scenario `cost.max_usd` preflight (`crates/llm-tool-test/src/run.rs:323-339`, `crates/llm-tool-test/src/scenario.rs:27-33`)
+- [ ] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/create.rs`)
+- [ ] `storage-format.md`: Wiki-link canonicalization (opt-in `--canonicalize-links` flag) (`src/lib/note/content.rs`)
+- [ ] `cli-interface.md`: `qipu capture` default type (default to `fleeting`) (`src/commands/capture.rs`)
+- [ ] `graph-traversal.md`: Context walk command (`qipu context --walk`) (`src/commands/context/walk.rs`)
+- [ ] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/stats.rs`)
 
 ## Revision 2 (2026-01-23)
 

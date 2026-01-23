@@ -76,7 +76,27 @@ qipu capture --type literature \
   --tag oauth --tag security
 ```
 
-### 4. Graph Navigation
+### 4. Editing Knowledge
+
+Allow your application to modify existing knowledge:
+
+```bash
+# Programmatic/LLM update (non-interactive)
+# Updates metadata and optionally replaces body from stdin atomically
+qipu update qp-oauth-research --tag reviewed --value 90
+echo "New body content" | qipu update qp-oauth-research --title "Revised Title"
+
+# Open an existing note in system editor (interactive)
+# Updates both the file and search index atomically
+qipu edit qp-oauth-research
+
+# Use a specific editor
+qipu edit qp-oauth-research --editor "code --wait"
+```
+
+**For programmatic integration and LLMs, prefer `qipu update` over `qipu edit`**. The `update` command is non-interactive, atomic, and suitable for script-based workflows.
+
+### 5. Graph Navigation
 
 Traverse the knowledge graph programmatically:
 
@@ -163,6 +183,22 @@ qipu context --note qp-a1b2 --custom
 
 # Include custom when viewing a single note
 qipu show qp-a1b2 --custom --format json
+```
+
+**JSON Output Structure:**
+
+```json
+{
+  "id": "qp-a1b2",
+  "title": "API Rate Limiting Strategy",
+  "value": 85,
+  "custom": {
+    "workflow_state": "review",
+    "priority": 1,
+    "assignee": "alice@example.com"
+  },
+  "content": "..."
+}
 ```
 
 This opt-in design prevents LLMs from seeing (and potentially hallucinating about) your application's internal metadata.

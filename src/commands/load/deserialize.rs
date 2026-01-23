@@ -216,9 +216,11 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                             "custom" => {
                                 if let Ok(decoded) = general_purpose::STANDARD.decode(&val) {
                                     if let Ok(json_str) = String::from_utf8(decoded) {
-                                        if let Ok(parsed) =
-                                            serde_json::from_str::<HashMap<String, serde_json::Value>>(&json_str)
-                                        {
+                                        if let Ok(parsed) = serde_json::from_str::<
+                                            HashMap<String, serde_json::Value>,
+                                        >(
+                                            &json_str
+                                        ) {
                                             custom = parsed;
                                         }
                                     }

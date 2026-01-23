@@ -131,9 +131,13 @@ This document tracks completed implementation work. For exploratory future work 
     - Added walk-specific options: `--walk-direction`, `--walk-max-hops`, `--walk-type`, `--walk-exclude-type`, `--walk-typed-only`, `--walk-inline-only`, `--walk-max-nodes`, `--walk-max-edges`, `--walk-max-fanout`, `--walk-min-value`, `--walk-ignore-value`
     - Implemented `walk_for_context()` function to perform graph traversal using existing link tree traversal logic
     - Updated context command to use walk results as note selection criteria
-    - Added 5 integration tests: `test_context_walk_basic`, `test_context_walk_max_hops`, `test_context_walk_direction`, `test_context_walk_with_type_filter`, `test_context_walk_json_format`
-    - All 47 context tests pass
-  - [ ] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/stats.rs`)
+     - Added 5 integration tests: `test_context_walk_basic`, `test_context_walk_max_hops`, `test_context_walk_direction`, `test_context_walk_with_type_filter`, `test_context_walk_json_format`
+     - All 47 context tests pass
+   - [x] `operational-database.md`: Database size/stats reporting (`qipu store stats`) (`src/commands/store/mod.rs`)
+     - Implemented: Added `qipu store stats` command that reports database size, schema version, and counts for notes, tags, links, and unresolved links
+     - Supports all three output formats: human, json, records
+     - Added 4 integration tests covering empty store, populated store, JSON format, and records format
+     - All tests pass
 
 ## Revision 2 (2026-01-23)
 

@@ -1,0 +1,8 @@
+use clap::Subcommand;
+
+/// Store subcommands
+#[derive(Subcommand, Debug)]
+pub enum StoreCommands {
+    /// Show database and store statistics
+    Stats {},
+}

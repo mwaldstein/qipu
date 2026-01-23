@@ -21,6 +21,7 @@ pub mod prime;
 pub mod search;
 pub mod setup;
 pub mod show;
+pub mod store;
 pub mod sync;
 pub mod update;
 pub mod verify;

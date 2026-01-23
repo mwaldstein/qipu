@@ -32,7 +32,8 @@ fn serde_yaml_to_json(yaml: &serde_yaml::Value) -> serde_json::Value {
             let obj: serde_json::Map<String, serde_json::Value> = map
                 .iter()
                 .filter_map(|(k, v)| {
-                    k.as_str().map(|key| (key.to_string(), serde_yaml_to_json(v)))
+                    k.as_str()
+                        .map(|key| (key.to_string(), serde_yaml_to_json(v)))
                 })
                 .collect();
             serde_json::Value::Object(obj)

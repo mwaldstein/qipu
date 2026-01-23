@@ -6,7 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use crate::cli::{Cli, Commands, OutputFormat, TagsCommands};
+use crate::cli::{Cli, Commands, OutputFormat, StoreCommands, TagsCommands};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::store::Store;
 use tracing::debug;
@@ -314,6 +314,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             *value,
             start,
         ),
+
+        Some(Commands::Store { command }) => handle_store(cli, &root, command, start),
     }
 }
 
@@ -572,6 +574,18 @@ fn handle_custom(
                 &store, id_or_path, key, format, cli.quiet,
             )?;
             debug!(elapsed = ?start.elapsed(), "custom_unset");
+            Ok(())
+        }
+    }
+}
+
+fn handle_store(cli: &Cli, root: &PathBuf, command: &StoreCommands, start: Instant) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        StoreCommands::Stats {} => {
+            crate::commands::store::execute_stats(cli, &store)?;
+            debug!(elapsed = ?start.elapsed(), "store_stats");
             Ok(())
         }
     }

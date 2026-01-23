@@ -20,6 +20,7 @@ mod rewrite_links;
 mod search;
 mod setup;
 mod show;
+mod store;
 pub mod support;
 mod sync;
 mod value;

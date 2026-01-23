@@ -8,6 +8,7 @@ use crate::cli::compact::CompactCommands;
 use crate::cli::custom::CustomCommands;
 use crate::cli::link::LinkCommands;
 use crate::cli::parse::parse_note_type;
+use crate::cli::store::StoreCommands;
 use crate::cli::tags::TagsCommands;
 use crate::cli::value::ValueCommands;
 use crate::cli::workspace::WorkspaceCommands;
@@ -535,5 +536,11 @@ pub enum Commands {
         /// Set the note's value score (0-100)
         #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         value: Option<u8>,
+    },
+
+    /// Manage the qipu store
+    Store {
+        #[command(subcommand)]
+        command: StoreCommands,
     },
 }

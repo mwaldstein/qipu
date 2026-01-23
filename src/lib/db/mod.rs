@@ -159,6 +159,43 @@ impl Database {
 
         Ok(())
     }
+
+    pub fn get_note_count(&self) -> Result<i64> {
+        self.conn
+            .query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to get note count: {}", e)))
+    }
+
+    pub fn get_tag_count(&self) -> Result<i64> {
+        self.conn
+            .query_row("SELECT COUNT(DISTINCT tag) FROM tags", [], |r| r.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to get tag count: {}", e)))
+    }
+
+    pub fn get_edge_count(&self) -> Result<i64> {
+        self.conn
+            .query_row("SELECT COUNT(*) FROM edges", [], |r| r.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to get edge count: {}", e)))
+    }
+
+    pub fn get_unresolved_count(&self) -> Result<i64> {
+        self.conn
+            .query_row("SELECT COUNT(*) FROM unresolved", [], |r| r.get(0))
+            .map_err(|e| QipuError::Other(format!("failed to get unresolved count: {}", e)))
+    }
+
+    pub fn get_schema_version(&self) -> Result<i64> {
+        self.conn
+            .query_row(
+                "SELECT value FROM index_meta WHERE key = 'schema_version'",
+                [],
+                |r| {
+                    let s: String = r.get(0)?;
+                    Ok(s.parse().unwrap_or(6))
+                },
+            )
+            .map_err(|e| QipuError::Other(format!("failed to get schema version: {}", e)))
+    }
 }
 
 impl Drop for Database {

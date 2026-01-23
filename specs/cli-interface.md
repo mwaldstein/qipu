@@ -73,6 +73,11 @@ Examples:
 ### `qipu capture`
 Create a new note from stdin.
 
+Common flags:
+- `--title <text>`: specify the note title (auto-generated from content if omitted)
+- `--type <fleeting|literature|permanent|moc>`: note type (default: `fleeting`)
+- `--tag <tag>` (repeatable): add tags to the note
+
 Examples:
 - `pbpaste | qipu capture --type fleeting --tag docs`
 - `qipu capture --title "Thoughts on indexing" < notes.txt`
@@ -237,5 +242,4 @@ At minimum, each note entry includes:
 
 ## Open questions
 - Should qipu support interactive pickers (fzf-style) as optional UX sugar?
-- Should `qipu capture` default to `--type fleeting`?
 - Should `qipu sync` manage git commits/pushes, or stay index/validate-only?

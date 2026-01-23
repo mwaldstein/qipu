@@ -40,7 +40,7 @@ This document tracks completed implementation work. For exploratory future work 
   - Added `path` field to inbox JSON output
   - Updated JSON formatting to include path from note's `Option<PathBuf>` field
   - Added test `test_inbox_json_format_includes_path` to verify spec compliance
-- [ ] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/mod.rs`)
+- [x] `cli-interface.md` / `operational-database.md`: `qipu edit` and `qipu update` commands (atomic update + re-index) (`src/commands/edit.rs`, `src/commands/update.rs`, `src/commands/dispatch/notes.rs:67-130`, `src/commands/dispatch/mod.rs:271-288`)
 - [ ] `cli-interface.md`: `context` missing-selection returns exit 1 (not usage exit 2) (`src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101`)
 - [ ] `knowledge-model.md`: DB reads coerce unknown `type` to `fleeting` instead of rejecting (`src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207`)
 - [ ] `indexing-search.md`: DB edge insertion passes empty `path_to_id`, so `(...).md` relative links can be missed in backlinks/traversal (`src/lib/db/edges.rs:13-22`)

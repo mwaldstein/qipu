@@ -1,0 +1,190 @@
+//! `qipu update` command - update a note's metadata or content non-interactively
+//!
+//! Per spec (specs/cli-interface.md):
+//! - `qipu update <id-or-path>` - non-interactive update for scripting/LLM mode
+//! - Atomic update: updates file and database index in one operation
+//! - Only provided flags are applied; omitted fields remain unchanged
+//! - Reading from stdin replaces note body (preserving frontmatter)
+
+use std::io::Read;
+use std::path::Path;
+
+use tracing::debug;
+
+use crate::cli::{Cli, OutputFormat};
+use crate::lib::error::{QipuError, Result};
+use crate::lib::note::Note;
+use crate::lib::store::Store;
+
+/// Execute the update command
+#[allow(clippy::too_many_arguments)]
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    id_or_path: &str,
+    title: Option<&str>,
+    note_type: Option<crate::lib::note::NoteType>,
+    tags: &[String],
+    remove_tags: &[String],
+    value: Option<u8>,
+) -> Result<()> {
+    // Load the note (either by ID or path)
+    let mut note = if Path::new(id_or_path).exists() {
+        let content = std::fs::read_to_string(id_or_path)?;
+        Note::parse(&content, Some(id_or_path.into()))?
+    } else {
+        store.get_note(id_or_path)?
+    };
+
+    let note_id = note.id().to_string();
+    let note_path = note
+        .path
+        .as_ref()
+        .ok_or_else(|| QipuError::Other("note has no path".to_string()))?
+        .clone();
+
+    // Check if stdin has data (try to peek, but only if not reading from terminal)
+    use std::io::IsTerminal;
+    let read_body_from_stdin = !std::io::stdin().is_terminal();
+
+    let mut modified = false;
+
+    // Update title if provided
+    if let Some(new_title) = title {
+        note.frontmatter.title = new_title.to_string();
+        modified = true;
+
+        // Rename the file if title changed
+        if new_title != note.title() {
+            let note_id_ref = crate::lib::id::NoteId::new_unchecked(note_id.clone());
+            let new_file_name = crate::lib::id::filename(&note_id_ref, new_title);
+            let new_file_path = note_path
+                .parent()
+                .ok_or_else(|| QipuError::Other("cannot determine parent directory".to_string()))?
+                .join(&new_file_name);
+
+            if new_file_path != note_path {
+                std::fs::rename(&note_path, &new_file_path)?;
+                note.path = Some(new_file_path.clone());
+            }
+        }
+    }
+
+    // Update type if provided
+    if let Some(new_type) = note_type {
+        note.frontmatter.note_type = Some(new_type);
+        modified = true;
+
+        // Move file to appropriate directory if type changed
+        if let Some(path) = &note.path {
+            let is_moc = matches!(new_type, crate::lib::note::NoteType::Moc);
+            let was_moc: bool = path
+                .parent()
+                .and_then(|p: &std::path::Path| p.file_name())
+                .and_then(|n| n.to_str())
+                .map(|n| n == "mocs")
+                .unwrap_or(false);
+
+            if is_moc != was_moc {
+                let target_dir = if is_moc {
+                    store.root().join(crate::lib::store::paths::MOCS_DIR)
+                } else {
+                    store.root().join(crate::lib::store::paths::NOTES_DIR)
+                };
+
+                let new_file_path = target_dir
+                    .join(path.file_name().ok_or_else(|| {
+                        QipuError::Other("cannot determine filename".to_string())
+                    })?);
+
+                std::fs::rename(path, &new_file_path)?;
+                note.path = Some(new_file_path);
+            }
+        }
+    }
+
+    // Add tags if provided
+    if !tags.is_empty() {
+        let mut current_tags = note.frontmatter.tags.clone();
+        for tag in tags {
+            if !current_tags.contains(tag) {
+                current_tags.push(tag.clone());
+            }
+        }
+        note.frontmatter.tags = current_tags;
+        modified = true;
+    }
+
+    // Remove tags if provided
+    if !remove_tags.is_empty() {
+        note.frontmatter.tags.retain(|t| !remove_tags.contains(t));
+        modified = true;
+    }
+
+    // Update value if provided
+    if let Some(new_value) = value {
+        note.frontmatter.value = Some(new_value);
+        modified = true;
+    }
+
+    // Read body from stdin if data is available
+    if read_body_from_stdin {
+        let mut body = String::new();
+        std::io::stdin()
+            .read_to_string(&mut body)
+            .map_err(|e| QipuError::Other(format!("failed to read from stdin: {}", e)))?;
+        note.body = body;
+        modified = true;
+    }
+
+    if !modified {
+        // No changes to apply
+        match cli.format {
+            OutputFormat::Json => {
+                let output = serde_json::json!({
+                    "id": note_id,
+                    "message": "no changes to apply"
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
+            OutputFormat::Human => {
+                if !cli.quiet {
+                    println!("No changes to apply");
+                }
+            }
+            OutputFormat::Records => {
+                println!("N id=\"{}\" status=unchanged", note_id);
+            }
+        }
+        return Ok(());
+    }
+
+    // Save the note (this updates both file and database atomically)
+    store.save_note(&mut note)?;
+
+    if cli.verbose {
+        debug!(note_id = note.id(), "save_note");
+    }
+
+    // Output the updated note info
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "id": note_id,
+                "title": note.title(),
+                "type": note.note_type().to_string(),
+                "tags": note.frontmatter.tags,
+                "value": note.frontmatter.value,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Human => {
+            println!("Updated note: {}", note_id);
+        }
+        OutputFormat::Records => {
+            println!("N id=\"{}\" status=updated", note_id);
+        }
+    }
+
+    Ok(())
+}

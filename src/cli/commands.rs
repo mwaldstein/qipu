@@ -452,4 +452,40 @@ pub enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+
+    /// Open a note in $EDITOR and update the index upon completion
+    Edit {
+        /// Note ID or file path
+        id_or_path: String,
+
+        /// Override default editor
+        #[arg(long)]
+        editor: Option<String>,
+    },
+
+    /// Update a note's metadata or content non-interactively
+    Update {
+        /// Note ID or file path
+        id_or_path: String,
+
+        /// Rename the note (updates filename)
+        #[arg(long, short = 't')]
+        title: Option<String>,
+
+        /// Change note type
+        #[arg(long, short = 'T', value_parser = parse_note_type)]
+        r#type: Option<NoteType>,
+
+        /// Add one or more tags
+        #[arg(long, action = clap::ArgAction::Append)]
+        tag: Vec<String>,
+
+        /// Remove one or more tags
+        #[arg(long, action = clap::ArgAction::Append)]
+        remove_tag: Vec<String>,
+
+        /// Set the note's value score (0-100)
+        #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
+        value: Option<u8>,
+    },
 }

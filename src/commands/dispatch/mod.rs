@@ -267,6 +267,29 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         Some(Commands::Merge { id1, id2, dry_run }) => {
             notes::handle_merge(cli, &root, id1, id2, *dry_run, start)
         }
+
+        Some(Commands::Edit { id_or_path, editor }) => {
+            notes::handle_edit(cli, &root, id_or_path, editor.as_deref(), start)
+        }
+
+        Some(Commands::Update {
+            id_or_path,
+            title,
+            r#type,
+            tag,
+            remove_tag,
+            value,
+        }) => notes::handle_update(
+            cli,
+            &root,
+            id_or_path,
+            title.as_deref(),
+            *r#type,
+            tag,
+            remove_tag,
+            *value,
+            start,
+        ),
     }
 }
 

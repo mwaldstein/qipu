@@ -366,6 +366,7 @@ pub(super) fn handle_context(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_merge(
     cli: &Cli,
     root: &PathBuf,
@@ -379,6 +380,56 @@ pub(super) fn handle_merge(
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
     commands::merge::execute(cli, &store, id1, id2, dry_run)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
+}
+
+pub(super) fn handle_edit(
+    cli: &Cli,
+    root: &PathBuf,
+    id_or_path: &str,
+    editor: Option<&str>,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "discover_store");
+    }
+    commands::edit::execute(cli, &store, id_or_path, editor)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "execute_command");
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn handle_update(
+    cli: &Cli,
+    root: &PathBuf,
+    id_or_path: &str,
+    title: Option<&str>,
+    note_type: Option<crate::lib::note::NoteType>,
+    tags: &[String],
+    remove_tags: &[String],
+    value: Option<u8>,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "discover_store");
+    }
+    commands::update::execute(
+        cli,
+        &store,
+        id_or_path,
+        title,
+        note_type,
+        tags,
+        remove_tags,
+        value,
+    )?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

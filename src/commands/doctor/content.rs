@@ -1,4 +1,4 @@
-use super::types::{DoctorResult, Issue, Severity};
+use super::types::{CheckContext, DoctorCheck, DoctorResult, Issue, Severity};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
@@ -672,5 +672,127 @@ mod tests {
             .issues
             .iter()
             .any(|i| i.category == "orphaned-attachment" && i.message.contains("orphaned.txt")));
+    }
+}
+
+pub struct CheckRequiredFields;
+
+impl DoctorCheck for CheckRequiredFields {
+    fn name(&self) -> &str {
+        "required-fields"
+    }
+
+    fn description(&self) -> &str {
+        "Validates that all notes have required frontmatter fields (id, title)"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_required_fields(notes, result);
+    }
+}
+
+pub struct CheckValueRange;
+
+impl DoctorCheck for CheckValueRange {
+    fn name(&self) -> &str {
+        "value-range"
+    }
+
+    fn description(&self) -> &str {
+        "Validates that note values are within the valid range (0-100)"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_value_range(notes, result);
+    }
+}
+
+pub struct CheckCustomMetadata;
+
+impl DoctorCheck for CheckCustomMetadata {
+    fn name(&self) -> &str {
+        "custom-metadata"
+    }
+
+    fn description(&self) -> &str {
+        "Validates custom metadata size and structure"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_custom_metadata(notes, result);
+    }
+}
+
+pub struct CheckCompactionInvariants;
+
+impl DoctorCheck for CheckCompactionInvariants {
+    fn name(&self) -> &str {
+        "compaction-invariants"
+    }
+
+    fn description(&self) -> &str {
+        "Validates compaction graph invariants (no cycles, no self-compaction, no multiple compactors)"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_compaction_invariants(notes, result);
+    }
+}
+
+pub struct CheckBareLinkLists;
+
+impl DoctorCheck for CheckBareLinkLists {
+    fn name(&self) -> &str {
+        "bare-link-lists"
+    }
+
+    fn description(&self) -> &str {
+        "Warns about bare link lists without descriptive context"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_bare_link_lists(notes, result);
+    }
+}
+
+pub struct CheckNoteComplexity;
+
+impl DoctorCheck for CheckNoteComplexity {
+    fn name(&self) -> &str {
+        "note-complexity"
+    }
+
+    fn description(&self) -> &str {
+        "Warns about overly complex or long notes"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(notes) = ctx.notes else { return };
+        check_note_complexity(notes, result);
+    }
+}
+
+pub struct CheckNearDuplicates;
+
+impl DoctorCheck for CheckNearDuplicates {
+    fn name(&self) -> &str {
+        "near-duplicates"
+    }
+
+    fn description(&self) -> &str {
+        "Finds near-duplicate notes based on content similarity"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(index) = ctx.index else { return };
+        let Some(threshold) = ctx.threshold else {
+            return;
+        };
+        check_near_duplicates(index, threshold, result);
     }
 }

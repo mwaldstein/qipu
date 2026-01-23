@@ -1,4 +1,4 @@
-use super::types::{DoctorResult, Issue, Severity};
+use super::types::{CheckContext, DoctorCheck, DoctorResult, Issue, Severity};
 use crate::lib::store::Store;
 use std::collections::{HashMap, HashSet};
 
@@ -650,5 +650,73 @@ mod tests {
                 .count(),
             0
         );
+    }
+}
+
+pub struct CheckDuplicateIds;
+
+impl DoctorCheck for CheckDuplicateIds {
+    fn name(&self) -> &str {
+        "duplicate-id"
+    }
+
+    fn description(&self) -> &str {
+        "Checks for duplicate note IDs in the store"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(store) = ctx.store else { return };
+        check_duplicate_ids(store, result);
+    }
+}
+
+pub struct CheckMissingFiles;
+
+impl DoctorCheck for CheckMissingFiles {
+    fn name(&self) -> &str {
+        "missing-file"
+    }
+
+    fn description(&self) -> &str {
+        "Checks for notes in database that are missing from the filesystem"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(store) = ctx.store else { return };
+        check_missing_files(store, result);
+    }
+}
+
+pub struct CheckBrokenLinks;
+
+impl DoctorCheck for CheckBrokenLinks {
+    fn name(&self) -> &str {
+        "broken-link"
+    }
+
+    fn description(&self) -> &str {
+        "Checks for links that reference non-existent notes"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(store) = ctx.store else { return };
+        check_broken_links(store, result);
+    }
+}
+
+pub struct CheckSemanticLinkTypes;
+
+impl DoctorCheck for CheckSemanticLinkTypes {
+    fn name(&self) -> &str {
+        "semantic-link-misuse"
+    }
+
+    fn description(&self) -> &str {
+        "Checks for semantic link type misuse (self-references, conflicts, cycles)"
+    }
+
+    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
+        let Some(store) = ctx.store else { return };
+        check_semantic_link_types(store, result);
     }
 }

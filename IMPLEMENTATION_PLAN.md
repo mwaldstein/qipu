@@ -225,12 +225,16 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 #### Improve Doctor Command Structure (`src/commands/doctor/mod.rs`)
 - [x] Extract individual check implementations into separate modules (`checks/broken_links.rs`, `checks/compaction.rs`)
-- [ ] Create `DoctorCheck` trait for uniform check interface
+- [x] Create `DoctorCheck` trait for uniform check interface
 - [x] Move check-specific test cases to their respective modules
 - [x] Target: mod.rs <200 lines (orchestration only)
 - **Current state**: mod.rs reduced from 796 to 116 lines (orchestration only). Check implementations already organized in `content.rs`, `database.rs`, `structure.rs` modules. All 22 tests moved from mod.rs to their respective modules (content.rs: 12 tests, database.rs: 10 tests).
 - **Impact**: Easier to add new checks and maintain existing ones
-- **Status**: **Partially complete**. Tests moved successfully, mod.rs reduced to 116 lines (<200 target). Remaining items: `DoctorCheck` trait for uniform interface and further check module extraction. The current re-export pattern through `checks.rs` provides good organization, but a trait would enable dynamic check registration.
+- **Status**: **Complete**. Created `DoctorCheck` trait in `types.rs` with `CheckContext` struct for flexible input handling. Implemented trait for all 11 check types:
+  - Structure: `CheckStoreStructure`
+  - Database: `CheckDuplicateIds`, `CheckMissingFiles`, `CheckBrokenLinks`, `CheckSemanticLinkTypes`
+  - Content: `CheckRequiredFields`, `CheckValueRange`, `CheckCustomMetadata`, `CheckCompactionInvariants`, `CheckBareLinkLists`, `CheckNoteComplexity`, `CheckNearDuplicates`
+  - All tests pass (757 tests). The trait enables dynamic registration and execution of checks, providing a uniform interface across all check implementations.
 
 #### Simplify Similarity Engine (`src/lib/similarity/mod.rs`)
 - [x] Extract field weighting logic into separate module

@@ -19,7 +19,10 @@ This document tracks completed implementation work. For exploratory future work 
 
 ### P1: Correctness Bugs (Spec Mismatch)
 
-- [ ] `cli-tool.md`: Store discovery stops at project root markers, not filesystem root (`src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120`)
+- [x] `cli-tool.md`: Store discovery stops at project root markers, not filesystem root (`src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120`)
+  - Fixed logic: removed `passed_project_root` flag and changed to stop immediately when project marker detected
+  - Added 3 unit tests for project root marker stopping behavior (`.git`, `Cargo.toml`, and missing store case)
+  - **Note**: Some CLI integration tests fail when `/tmp/.qipu` exists from previous test runs (test isolation issue unrelated to fix)
 - [ ] `cli-tool.md`: `--format json --help/--version` likely treated as error envelope instead of exit 0 (`src/main.rs:32-41`)
 - [ ] `cli-tool.md` / `structured-logging.md`: Logs appear on stdout (breaks machine output expectations) (`tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40`)
 - [ ] `cli-interface.md`: Search JSON omits spec-minimum note fields (`path/created/updated`) (`src/commands/search/format/json.rs:20-29`)

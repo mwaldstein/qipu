@@ -58,7 +58,6 @@ fn check_config_for_custom_path(store_dir: &Path) -> Option<PathBuf> {
 
 pub fn discover_store(root: &Path) -> Result<PathBuf> {
     let mut current = root.to_path_buf();
-    let mut passed_project_root = false;
 
     loop {
         // Check for default hidden store
@@ -95,20 +94,16 @@ pub fn discover_store(root: &Path) -> Result<PathBuf> {
             return Ok(visible_path);
         }
 
-        // Check if this directory is a project root
+        // Check if this directory is a project root - if so, stop discovery
         if is_project_root(&current) {
-            passed_project_root = true;
+            return Err(QipuError::StoreNotFound {
+                search_root: root.to_path_buf(),
+            });
         }
 
         // Move up to parent directory
         match current.parent() {
             Some(parent) if parent != current => {
-                // Stop if we already passed a project root
-                if passed_project_root {
-                    return Err(QipuError::StoreNotFound {
-                        search_root: root.to_path_buf(),
-                    });
-                }
                 current = parent.to_path_buf();
             }
             _ => {

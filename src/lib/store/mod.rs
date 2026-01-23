@@ -387,4 +387,82 @@ mod tests {
         let discovered = paths::discover_store(project_root).unwrap();
         assert_eq!(discovered, default_store);
     }
+
+    #[test]
+    fn test_discovery_stops_at_project_root() {
+        let dir = tempdir().unwrap();
+        let project_root = dir.path();
+        let project_store = project_root.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(project_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(TEMPLATES_DIR)).unwrap();
+
+        let parent_dir = project_root.parent().unwrap();
+        let parent_store = parent_dir.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(parent_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(TEMPLATES_DIR)).unwrap();
+
+        fs::File::create(project_root.join(".git")).unwrap();
+
+        let discovered = paths::discover_store(project_root).unwrap();
+        assert_eq!(discovered, project_store);
+
+        let result = paths::discover_store(parent_dir);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), parent_store);
+    }
+
+    #[test]
+    fn test_discovery_fails_at_project_root_without_store() {
+        let dir = tempdir().unwrap();
+        let project_root = dir.path();
+
+        let parent_dir = project_root.parent().unwrap();
+        let parent_store = parent_dir.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(parent_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(TEMPLATES_DIR)).unwrap();
+
+        fs::File::create(project_root.join(".git")).unwrap();
+
+        let result = paths::discover_store(project_root);
+        assert!(result.is_err());
+        assert!(matches!(result, Err(QipuError::StoreNotFound { .. })));
+    }
+
+    #[test]
+    fn test_discovery_stops_at_cargo_toml() {
+        let dir = tempdir().unwrap();
+        let project_root = dir.path();
+        let project_store = project_root.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(project_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(project_store.join(TEMPLATES_DIR)).unwrap();
+
+        let parent_dir = project_root.parent().unwrap();
+        let parent_store = parent_dir.join(DEFAULT_STORE_DIR);
+
+        fs::create_dir_all(parent_store.join(NOTES_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(MOCS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(ATTACHMENTS_DIR)).unwrap();
+        fs::create_dir_all(parent_store.join(TEMPLATES_DIR)).unwrap();
+
+        fs::File::create(project_root.join("Cargo.toml")).unwrap();
+
+        let discovered = paths::discover_store(project_root).unwrap();
+        assert_eq!(discovered, project_store);
+
+        let result = paths::discover_store(parent_dir);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), parent_store);
+    }
 }

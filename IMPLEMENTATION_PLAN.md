@@ -224,6 +224,14 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 
 ### P2: LLM Tool Test Enhancements
 
+#### Fix Pre-existing Test Failures
+- [ ] Fix `adapter::mock::tests::test_end_to_end_command_succeeds_gate`
+- [ ] Fix `adapter::mock::tests::test_end_to_end_with_search_and_tags`
+- [ ] Fix `adapter::mock::tests::test_end_to_end_scenario_execution`
+- [ ] Fix `evaluation::tests::test_doctor_passes_gate`
+- Files: `crates/llm-tool-test/src/adapter/mock.rs`, `crates/llm-tool-test/src/evaluation.rs`
+- Status: **Not started**. These 4 tests have been failing since before Revision 2. They test end-to-end scenario execution with the mock adapter and gate evaluation.
+
 #### Safety Guard: `LLM_TOOL_TEST_ENABLED` (`specs/llm-user-validation.md:464`)
 - [x] Check for `LLM_TOOL_TEST_ENABLED=1` before running any tests
 - [x] Exit with clear error message if not set

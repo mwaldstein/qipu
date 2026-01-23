@@ -102,11 +102,17 @@ This document tracks completed implementation work. For exploratory future work 
     - `test_workspace_merge_rename_strategy_no_conflicts`: Verifies rename strategy works with no conflicts
     - `test_workspace_merge_rename_strategy_preserves_unique_notes`: Verifies unique notes are added correctly
   - Note: Link rewriting tests revealed merge bug (broken links after merge) - tracked separately
-- [x] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`tests/cli/list.rs:632-890`, `tests/cli/doctor.rs:713-809`)
+ - [x] `custom-metadata.md`: Add tests for `qipu list --custom ...` and doctor custom checks (`tests/cli/list.rs:632-890`, `tests/cli/doctor.rs:713-809`)
+- [x] `llm-user-validation.md`: Enforce per-run budget env var and per-scenario `cost.max_usd` preflight (`crates/llm-tool-test/src/commands.rs:51-71`)
+   - Implemented: Read `LLM_TOOL_TEST_BUDGET_USD` env var as session budget
+   - CLI `--max-usd` flag overrides env var
+   - Env var parsed as float, validated non-negative
+   - Added 3 unit tests for env var parsing (valid, invalid, negative)
+   - All 158 tests pass
 
 ### P3: Unimplemented But Ready
 
-- [ ] `llm-user-validation.md`: Enforce per-run budget env var and per-scenario `cost.max_usd` preflight (`crates/llm-tool-test/src/run.rs:323-339`, `crates/llm-tool-test/src/scenario.rs:27-33`)
+- [ ] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/create.rs`)
 - [ ] `workspaces.md`: Git integration for temp workspaces (auto-add to `.gitignore`) (`src/commands/workspace/create.rs`)
 - [ ] `storage-format.md`: Wiki-link canonicalization (opt-in `--canonicalize-links` flag) (`src/lib/note/content.rs`)
 - [ ] `cli-interface.md`: `qipu capture` default type (default to `fleeting`) (`src/commands/capture.rs`)

@@ -54,6 +54,26 @@ pub fn handle_run_command(
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }
 
+    let effective_max_usd = if cli_max_usd.is_some() {
+        *cli_max_usd
+    } else if let Ok(env_budget) = std::env::var("LLM_TOOL_TEST_BUDGET_USD") {
+        let budget = env_budget.parse::<f64>().map_err(|_| {
+            anyhow::anyhow!(
+                "Invalid LLM_TOOL_TEST_BUDGET_USD value: '{}'. Must be a number.",
+                env_budget
+            )
+        })?;
+        if budget < 0.0 {
+            anyhow::bail!(
+                "LLM_TOOL_TEST_BUDGET_USD cannot be negative: ${:.2}",
+                budget
+            );
+        }
+        Some(budget)
+    } else {
+        None
+    };
+
     let scenarios_to_run = if all {
         let mut scenarios = Vec::new();
         let fixtures_dir = PathBuf::from("fixtures");
@@ -108,7 +128,7 @@ pub fn handle_run_command(
                 dry_run,
                 no_cache,
                 timeout_secs,
-                cli_max_usd,
+                &effective_max_usd,
                 base_dir,
                 results_db,
                 cache,
@@ -557,6 +577,39 @@ pub fn handle_baseline_list_command(results_db: &ResultsDB) -> anyhow::Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_env_budget_var_valid() {
+        std::env::set_var("LLM_TOOL_TEST_BUDGET_USD", "5.50");
+        let budget = std::env::var("LLM_TOOL_TEST_BUDGET_USD");
+        assert_eq!(budget, Ok("5.50".to_string()));
+
+        let parsed = budget.unwrap().parse::<f64>();
+        assert_eq!(parsed, Ok(5.50));
+        std::env::remove_var("LLM_TOOL_TEST_BUDGET_USD");
+    }
+
+    #[test]
+    fn test_env_budget_var_invalid() {
+        std::env::set_var("LLM_TOOL_TEST_BUDGET_USD", "invalid");
+        let budget = std::env::var("LLM_TOOL_TEST_BUDGET_USD");
+        assert_eq!(budget, Ok("invalid".to_string()));
+
+        let parsed = budget.unwrap().parse::<f64>();
+        assert!(parsed.is_err());
+        std::env::remove_var("LLM_TOOL_TEST_BUDGET_USD");
+    }
+
+    #[test]
+    fn test_env_budget_var_negative() {
+        std::env::set_var("LLM_TOOL_TEST_BUDGET_USD", "-1.00");
+        let budget = std::env::var("LLM_TOOL_TEST_BUDGET_USD");
+        assert_eq!(budget, Ok("-1.00".to_string()));
+
+        let parsed = budget.unwrap().parse::<f64>();
+        assert_eq!(parsed, Ok(-1.00));
+        std::env::remove_var("LLM_TOOL_TEST_BUDGET_USD");
+    }
 
     #[test]
     fn test_find_scenarios() {

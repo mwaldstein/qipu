@@ -248,13 +248,25 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 ### P2: LLM Tool Test Enhancements
 
 #### Fix Pre-existing Test Failures
-- [ ] Fix `adapter::mock::tests::test_end_to_end_command_succeeds_gate`
-- [ ] Fix `adapter::mock::tests::test_end_to_end_with_search_and_tags`
-- [ ] Fix `adapter::mock::tests::test_end_to_end_scenario_execution`
+- [x] Fix `adapter::mock::tests::test_end_to_end_command_succeeds_gate`
+- [x] Fix `adapter::mock::tests::test_end_to_end_with_search_and_tags`
+- [x] Fix `adapter::mock::tests::test_end_to_end_scenario_execution`
 - [x] Fix `evaluation::tests::test_doctor_passes_gate`
-- Files: `crates/llm-tool-test/src/adapter/mock.rs`, `crates/llm-tool-test/src/evaluation.rs`, `src/commands/list/format/json.rs`
-- Status: **In Progress**. Fixed `test_doctor_passes_gate` by adding `path` field to `qipu list --format json` output. Remaining 3 adapter::mock tests fail due to MockAdapter generating invalid qipu commands (uses `--title`, `--content`, `--id` flags which don't exist). All main qipu tests pass (757 tests).
-- **Learnings**: The Note struct already contains a `path` field (Option<PathBuf>) that is populated when loading from the database. Adding this to JSON output is straightforward and useful for debugging/testing. The spec guidance about not requiring consumers to understand storage layout refers to `show` command for integration purposes, but having path available for tooling/debugging is valuable.
+- Files: `crates/llm-tool-test/src/adapter/mock.rs`, `crates/llm-tool-test/src/evaluation.rs`, `src/commands/list/format/json.rs`, `crates/llm-tool-test/Cargo.toml`
+- Status: **Complete**. All 4 failing tests now pass (total 155 llm-tool-test tests, 757 main qipu tests). Fixed issues:
+  - Added `shlex` crate to properly parse quoted command-line arguments
+  - Updated `qipu create` commands to use positional title argument instead of `--title` flag
+  - Removed `--content` flag (not supported) from generated commands
+  - Updated `qipu link` command to use new `qipu link add` subcommand syntax
+  - Fixed `qipu init` output capture to include in test assertions
+  - Updated test scenario to create both notes before linking them
+- **Learnings**: The root cause was that MockAdapter was generating invalid qipu commands based on outdated CLI syntax. Key fixes:
+  1. `qipu create` uses positional title, not `--title` flag
+  2. Content cannot be passed via `--content` flag; must be added to note file after creation
+  3. `qipu link` changed to `qipu link add --type <TYPE> <FROM> <TO>`
+  4. Shell argument parsing requires proper quote handling (shlex crate) - `split_whitespace()` doesn't respect quotes
+  5. Test scenarios must be coherent (create both notes before linking them)
+  6. `qipu init` output must be captured and included in test output assertions
 
 #### Safety Guard: `LLM_TOOL_TEST_ENABLED` (`specs/llm-user-validation.md:464`)
 - [x] Check for `LLM_TOOL_TEST_ENABLED=1` before running any tests

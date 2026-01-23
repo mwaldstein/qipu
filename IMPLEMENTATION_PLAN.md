@@ -298,7 +298,7 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [x] Consider merging `qipu init` + `qipu setup` or adding `qipu onboard`
 - [x] Review beads' `--stealth` flag (combines init + gitignore + agent setup)
 - [x] Assess if qipu help is too verbose for agent discovery of key commands
-- [ ] Discourage direct file reading of `.qipu/notes/` - agents should use CLI
+- [x] Discourage direct file reading of `.qipu/notes/` - agents should use CLI
   - Options: AGENTS.md guidance, directory naming, or tooling hints
   - Intent: CLI provides consistent formatting, budget control, and graph context
 - Reference: `bd --help`, `bd onboard --help`, `bd init --help`
@@ -312,8 +312,8 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
     - `bd init` → `qipu init` ✓
     - `bd setup <recipe>` → `qipu setup <integration>` ✓
     - `bd onboard` → `qipu onboard` ✓ (newly added)
-    - `bd prime` → `qipu prime` ✓
-  - Remaining item: discourage direct `.qipu/notes/` file reading (optional enhancement)
+   - `bd prime` → `qipu prime` ✓
+   - Discourage direct `.qipu/notes/` file reading: Added guidance to AGENTS.md snippets (ONBOARD_SNIPPET and AGENTS_MD_CONTENT) directing agents to always use the CLI for consistent formatting, budget control, and graph context preservation.
 
 #### Tag Aliases (`specs/knowledge-model.md:53`)
 - [x] Add `tag_aliases` field to config for tag mappings (e.g., `ml: machine-learning`)

@@ -31,6 +31,8 @@ Run `qipu prime` for workflow context and session-start primer.
 - `qipu context` - Build context bundle for LLM
 - `qipu link tree <id>` - Show note neighborhood
 
+**Important:** Always use the CLI—never directly read `.qipu/notes/` files. The CLI provides consistent formatting, budget control, and preserves graph context.
+
 ---
 
 **Why minimal?**
@@ -69,6 +71,15 @@ Add this section to your agent tool's configuration or prompt:
 ## Qipu Knowledge Memory
 
 You have access to qipu, a knowledge management CLI for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
+
+### Important: Always Use the CLI
+
+**Never directly read files from `.qipu/notes/` or `.qipu/mocs/`.** Always use the qipu CLI commands:
+
+- The CLI provides consistent formatting (human, json, records)
+- Budget control with `--max-chars` ensures you stay within context limits
+- Graph context is preserved (links, tags, relationships are resolved correctly)
+- Compaction and other internal features work correctly via CLI queries
 
 ### Core Commands
 

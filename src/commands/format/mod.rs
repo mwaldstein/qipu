@@ -6,9 +6,8 @@
 pub mod status;
 
 pub use status::{
-    add_compaction_to_json, build_compaction_annotations, format_custom_value, format_tags_csv,
-    format_value, print_json_status, print_records_data, print_records_header,
-    print_records_summary, wrap_records_body,
+    add_compaction_to_json, format_custom_value, format_tags_csv, format_value, print_json_status,
+    print_note_records, print_records_data, print_records_header, wrap_records_body,
 };
 
 use crate::cli::Cli;

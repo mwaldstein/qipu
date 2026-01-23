@@ -1,8 +1,13 @@
 //! Status message formatting helpers
 
+use crate::cli::Cli;
 use crate::lib::error::Result;
+use crate::lib::note::Note;
 use crate::lib::records::escape_quotes;
+use crate::lib::store::Store;
 use serde_json::json;
+
+use super::CompactionInfo;
 
 /// Print a JSON status message with optional fields
 ///
@@ -175,6 +180,63 @@ pub fn print_records_summary(id: &str, summary: &str) {
         let first_line = summary.lines().next().unwrap_or(summary);
         println!("S {} {}", id, first_line);
     }
+}
+
+/// Print a note in Records format
+///
+/// # Examples
+/// ```ignore
+/// print_note_records(&cli, &note, &store, via, show_custom, compaction_info);
+/// ```
+pub fn print_note_records(
+    cli: &Cli,
+    note: &Note,
+    _store: &Store,
+    via: Option<&str>,
+    show_custom: bool,
+    compaction_info: CompactionInfo,
+) {
+    let tags_csv = format_tags_csv(&note.frontmatter.tags);
+    let value_str = format_value(note.frontmatter.value);
+
+    let annotations =
+        build_compaction_annotations(via, compaction_info.count, compaction_info.percentage);
+
+    println!(
+        "N {} {} \"{}\" tags={} value={}{}",
+        note.id(),
+        note.note_type(),
+        escape_quotes(note.title()),
+        tags_csv,
+        value_str,
+        annotations
+    );
+
+    if !compaction_info.compacted_ids.is_empty() {
+        for id in &compaction_info.compacted_ids {
+            print_records_data("compacted", &format!("{} from={}", id, note.id()));
+        }
+        if compaction_info.truncated {
+            print_records_data(
+                "compacted_truncated",
+                &format!(
+                    "max={} total={}",
+                    cli.compaction_max_nodes
+                        .unwrap_or(compaction_info.compacted_ids.len()),
+                    compaction_info.count
+                ),
+            );
+        }
+    }
+
+    if show_custom && !note.frontmatter.custom.is_empty() {
+        for (key, value) in &note.frontmatter.custom {
+            println!("C {} {}={}", note.id(), key, format_custom_value(value));
+        }
+    }
+
+    print_records_summary(note.id(), &note.summary());
+    wrap_records_body(note.id(), &note.body);
 }
 
 #[cfg(test)]

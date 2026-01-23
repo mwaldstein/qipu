@@ -157,19 +157,20 @@ This document tracks **concrete implementation tasks** - bugs to fix, features t
 - [ ] Target: Cut ~50 lines from setup.rs and ~100 lines from show.rs
 - **Current state**: Created `src/commands/format/mod.rs` with shared helpers
   - setup.rs: 723 → 698 lines (-25 lines, 50% of target)
-  - show.rs: 665 → 619 lines (-46 lines, 46% of target)
-  - Added ~60 lines of new reusable helpers in format module (status.rs: 160 → 214 lines)
+  - show.rs: 618 → 570 lines (-48 lines, 94% of target)
+  - Added `print_note_records()` helper to reduce Records format duplication in show.rs (48 lines saved)
+  - status.rs: 160 → 232 lines (new helper functions)
 - **Impact**: Established reusable format infrastructure that other commands can adopt
 - **Learnings**:
-  - Line reduction targets are ambitious given different output requirements; ~50% progress is significant
+  - Line reduction targets are ambitious given different output requirements; near-complete progress achieved for show.rs
   - Helper functions provide more value than pure line reduction:
     1. Well-documented and tested patterns
     2. Future commands can adopt these patterns
     3. Reduces cognitive load when working with format code
+  - Records format helper extraction is particularly effective - large format blocks become single function calls
   - Tool validation pattern (normalize + error check) saved 18 lines across 3 functions
   - Compaction calculation helper saved ~20 lines by unifying JSON and Records formats
-  - Records format helpers (data line, summary, tags/value) made code more declarative
-  - Note: The pre-existing 3 context compaction test failures remain unrelated to this change
+  - Note: The pre-existing 4 context test failures remain unrelated to this change
 
 #### Split Large Test Files
 - [x] Evaluate `tests/cli/export.rs` (2,038 lines) for split by feature

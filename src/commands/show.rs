@@ -9,9 +9,7 @@ use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::format::{
-    add_compaction_to_json, build_compaction_annotations, calculate_compaction_info,
-    format_custom_value, format_tags_csv, format_value, print_records_data, print_records_summary,
-    wrap_records_body,
+    add_compaction_to_json, calculate_compaction_info, print_note_records,
 };
 use crate::commands::link::LinkEntry;
 use crate::lib::compaction::CompactionContext;
@@ -125,66 +123,21 @@ pub fn execute(
             print!("{}", content);
         }
         OutputFormat::Records => {
-            // Header line per spec (specs/records-output.md)
             println!(
                 "H qipu=1 records=1 store={} mode=show id={}",
                 store.root().display(),
                 note.id()
             );
 
-            // Note metadata line with compaction annotations
-            let tags_csv = format_tags_csv(&note.frontmatter.tags);
-            let value_str = format_value(note.frontmatter.value);
-
-            // Build compaction annotations for digest notes
             let compaction_info = calculate_compaction_info(cli, &note, &note_map, &compaction_ctx);
-            let annotations = build_compaction_annotations(
+            print_note_records(
+                &cli,
+                &note,
+                store,
                 via.as_deref(),
-                compaction_info.count,
-                compaction_info.percentage,
+                show_custom,
+                compaction_info,
             );
-
-            println!(
-                "N {} {} \"{}\" tags={} value={}{}",
-                note.id(),
-                note.note_type(),
-                escape_quotes(note.title()),
-                tags_csv,
-                value_str,
-                annotations
-            );
-
-            // Show compacted IDs if --with-compaction-ids is set
-            // Per spec (specs/compaction.md line 131)
-            if !compaction_info.compacted_ids.is_empty() {
-                for id in &compaction_info.compacted_ids {
-                    print_records_data("compacted", &format!("{} from={}", id, note.id()));
-                }
-                if compaction_info.truncated {
-                    print_records_data(
-                        "compacted_truncated",
-                        &format!(
-                            "max={} total={}",
-                            cli.compaction_max_nodes
-                                .unwrap_or(compaction_info.compacted_ids.len()),
-                            compaction_info.count
-                        ),
-                    );
-                }
-            }
-
-            // Custom metadata lines if requested (opt-in)
-            if show_custom && !note.frontmatter.custom.is_empty() {
-                for (key, value) in &note.frontmatter.custom {
-                    println!("C {} {}={}", note.id(), key, format_custom_value(value));
-                }
-            }
-
-            // Summary line
-            print_records_summary(note.id(), &note.summary());
-
-            // Body lines with terminator
-            wrap_records_body(note.id(), &note.body);
         }
     }
 

@@ -20,7 +20,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| CI check for file size (>500 lines) | High |
 | CI check for function complexity (>100 lines) | High |
 | Refactor `src/lib/graph/bfs.rs` (842 lines) | High |
 | Refactor `src/commands/doctor/content.rs` (829 lines) | High |
@@ -39,6 +38,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 4** (2026-01-23): Added CI check for file size (>500 lines) with grandfathering for existing violations.
 
 **Revision 3** (2026-01-23): Spec audit - 14 correctness fixes, 4 test coverage items, 6 new features including `qipu context --walk`, `qipu store stats`, and custom metadata.
 

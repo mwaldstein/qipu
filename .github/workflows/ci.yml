@@ -61,6 +61,47 @@ jobs:
     - name: Build
       run: cargo build --release --verbose
     
+    - name: Check file size limits
+      run: |
+        # Files grandfathered in (already >500 lines when check was added)
+        allowed=(
+          "src/cli/commands.rs"
+          "src/commands/list/mod.rs"
+          "src/commands/context/mod.rs"
+          "src/commands/setup.rs"
+          "src/commands/show.rs"
+          "src/commands/doctor/content.rs"
+          "src/commands/doctor/database.rs"
+          "src/commands/dispatch/mod.rs"
+          "src/lib/db/tests.rs"
+          "src/lib/db/notes/read.rs"
+          "src/lib/similarity/mod.rs"
+          "src/lib/graph/bfs.rs"
+          "src/lib/graph/algos/dijkstra.rs"
+        )
+        
+        # Check for violations
+        violation_found=false
+        while IFS= read -r -d '' file; do
+          rel_path=${file#./}
+          if [[ ! " ${allowed[@]} " =~ " ${rel_path} " ]]; then
+            lines=$(wc -l < "$file")
+            if [ "$lines" -gt 500 ]; then
+              echo "ERROR: $rel_path has $lines lines (>500)"
+              violation_found=true
+            fi
+          fi
+        done < <(find src -name "*.rs" -print0)
+        
+        if [ "$violation_found" = true ]; then
+          echo ""
+          echo "Files exceeding 500 lines trigger CI failure. Options:"
+          echo "  - Refactor to reduce size"
+          echo "  - Request exception in IMPLEMENTATION_PLAN.md"
+          exit 1
+        fi
+      shell: bash
+    
     - name: Run tests
       run: cargo test --verbose
 

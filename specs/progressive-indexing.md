@@ -16,6 +16,51 @@ This spec defines strategies for progressive indexing, user feedback during inde
 
 ## Indexing Strategies
 
+### 0. Auto-Indexing on Store Open
+
+When opening a store (e.g., `qipu init`, `qipu search`, `qipu list`), automatically index notes if needed, but use intelligent selection based on note count to avoid unexpected delays.
+
+**Implementation:**
+- Check if index exists and is valid
+- If no index or corrupted: determine best indexing strategy based on note count
+- For small repos (<1k notes): Full index immediately (fast)
+- For medium repos (1k-10k notes): Incremental index (mtime-based) or Quick index
+- For large repos (10k+ notes): Quick index only (MOCs + 100 recent), with background full index option
+
+**Auto-Indexing Decision Table:**
+
+| Note Count | Index Strategy | Rationale |
+|-----------|----------------|-----------|
+| <1k | Full index | Fast enough to complete in <5s |
+| 1k-10k | Incremental (mtime-based) | Only changed notes; typically <15s |
+| 10k-50k | Quick index (MOCs + 100 recent) | Fast startup (<3s); offers critical notes for exploration |
+| >50k | Quick index + prompt for background | Immediate usability; user can choose to run full index |
+
+**Use Cases:**
+- `qipu init` on cloned repo with existing knowledge base
+- Opening store after pulling git changes
+- Store auto-opened by first command
+
+**User Feedback:**
+```
+qipu search "topic"
+Detected 12,450 notes (no index). Quick-indexing MOCs + recent notes...
+Indexed 120 notes in 1.2s (MOCs + 100 recent)
+Search results from quick index. For full search, run: qipu index
+```
+
+or for large repos:
+```
+qipu init
+Detected 45,000 notes. Quick-indexing critical notes...
+Indexed 120 notes in 1.8s (MOCs + 100 recent)
+Store ready with quick index.
+For full search across all notes, run: qipu index
+Run in background now? [Y/n]
+```
+
+### 1. Incremental Indexing (mtime-based)
+
 ### 1. Incremental Indexing (mtime-based)
 
 Only re-index notes that have been modified since the last index update.
@@ -119,6 +164,30 @@ Defer indexing until a note is actually accessed, then build index gradually.
 - Large knowledge bases where only subset is regularly used
 - Development/exploration workspaces
 - Cold starts where full index isn't immediately needed
+
+## Configuration Options
+
+### Auto-Indexing Behavior
+
+Add configuration for automatic indexing on store open:
+
+```toml
+[auto_index]
+enabled = true                # Enable/disable auto-indexing (default: true)
+strategy = "adaptive"          # "full", "incremental", "quick", "adaptive" (default: "adaptive")
+adaptive_threshold = 10000      # Note count threshold for adaptive strategy (default: 10000)
+quick_notes = 100            # Notes for --quick mode (default: 100)
+```
+
+**Strategies:**
+- `full`: Always do full index on open (fast for small repos)
+- `incremental`: Always do incremental index on open (skip unchanged)
+- `quick`: Always do quick index on open (MOCs + recent)
+- `adaptive`: Choose based on note count (see Auto-Indexing on Store Open section)
+
+**Environment Variable:**
+- `QIPU_AUTO_INDEX=0`: Disable auto-indexing
+- `QIPU_AUTO_INDEX_STRATEGY=quick`: Force specific strategy
 
 ## User Feedback and Status
 
@@ -294,6 +363,21 @@ CREATE TABLE IF NOT EXISTS index_metadata (
 
 ## CLI Interface
 
+### `qipu init` Command Updates
+
+```bash
+qipu init [OPTIONS]
+```
+
+**New Options:**
+- `--no-index`: Skip automatic indexing on store initialization
+- `--index-strategy <strategy>`: Override auto-indexing strategy (full, incremental, quick)
+
+**Behavior:**
+- Default: Auto-index using adaptive strategy (see Auto-Indexing on Store Open)
+- `--no-index`: Create store without indexing; user must run `qipu index` manually
+- `--index-strategy`: Force specific indexing strategy regardless of config
+
 ### `qipu index` Command
 
 ```bash
@@ -321,23 +405,27 @@ qipu index [OPTIONS]
 
 ## Open Questions
 
-1. Should `qipu init` automatically run an initial index?
-   - Pro: Ready to use immediately
-   - Con: Adds delay to init; may surprise users
-
-2. Should we detect if index is "stale" and prompt user?
+1. Should we detect if index is "stale" and prompt user?
    - Definition: More than N% of notes have mtime newer than index mtime
    - Threshold: e.g., 30% stale → suggest re-index
 
-3. Should background indexing write logs to a specific file?
+2. Should background indexing write logs to a specific file?
    - Default: `.qipu/indexing.log`
    - Configurable via config file
 
-4. Should we provide `qipu index --watch` for continuous indexing?
+3. Should we provide `qipu index --watch` for continuous indexing?
    - Watches file changes and auto-indexes
    - Could be resource-intensive
 
 ## Implementation Phases
+
+### Phase 0: Auto-Indexing on Store Open
+- Implement intelligent auto-indexing on store open/init
+- Add note count detection for strategy selection
+- Implement adaptive strategy: full/incremental/quick based on thresholds
+- Add `--no-index` and `--index-strategy` flags to `qipu init`
+- Add config options for auto-indexing behavior
+- Target: P1, prevents unexpected delays on large knowledge bases
 
 ### Phase 1: Incremental Indexing (Core)
 - Add mtime tracking to index_metadata table

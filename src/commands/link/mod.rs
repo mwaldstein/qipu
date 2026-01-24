@@ -21,7 +21,7 @@ pub use crate::lib::graph::{Direction, TreeOptions};
 use std::collections::HashMap;
 
 use crate::lib::error::Result;
-use crate::lib::graph::{TreeLink, TreeResult};
+use crate::lib::graph::TreeResult;
 use crate::lib::index::{Edge, Index, LinkSource};
 use crate::lib::store::Store;
 
@@ -42,6 +42,9 @@ pub struct LinkEntry {
     pub link_type: String,
     /// Link source (typed or inline)
     pub source: String,
+    /// Via annotation - the original note ID before canonicalization (if different)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 /// Resolve a note ID or path to a canonical note ID
@@ -112,6 +115,7 @@ pub fn filter_and_convert(
         title,
         link_type: edge.link_type.to_string(),
         source: edge.source.to_string(),
+        via: None,
     })
 }
 
@@ -162,6 +166,7 @@ pub fn filter_and_convert_inbound(
         title,
         link_type: edge.link_type.to_string(),
         source: edge.source.to_string(),
+        via: None,
     })
 }
 

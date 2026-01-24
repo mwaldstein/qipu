@@ -25,6 +25,11 @@ pub fn output_json(
                     obj_mut.insert("title".to_string(), serde_json::json!(title));
                 }
             }
+            if let Some(via) = &entry.via {
+                if let Some(obj_mut) = json.as_object_mut() {
+                    obj_mut.insert("via".to_string(), serde_json::json!(via));
+                }
+            }
 
             if let Some(ctx) = compaction_ctx {
                 let compacts_count = ctx.get_compacts_count(&entry.id);

@@ -90,9 +90,14 @@ pub fn execute(
                 {
                     // Canonicalize the target ID if compaction is enabled
                     if let Some(ref ctx) = compaction_ctx {
+                        let original_id = entry.id.clone();
                         entry.id = ctx.canon(&entry.id)?;
                         if entry.id == canonical_id {
                             continue;
+                        }
+                        // Set via annotation if ID changed due to canonicalization
+                        if entry.id != original_id {
+                            entry.via = Some(original_id);
                         }
                         // Update title if it changed due to canonicalization
                         if let Some(meta) = index.get_metadata(&entry.id) {
@@ -120,9 +125,14 @@ pub fn execute(
                 ) {
                     // Canonicalize the source ID if compaction is enabled
                     if let Some(ref ctx) = compaction_ctx {
+                        let original_id = entry.id.clone();
                         entry.id = ctx.canon(&entry.id)?;
                         if entry.id == canonical_id {
                             continue;
+                        }
+                        // Set via annotation if ID changed due to canonicalization
+                        if entry.id != original_id {
+                            entry.via = Some(original_id);
                         }
                         // Update title if it changed due to canonicalization
                         if let Some(meta) = index.get_metadata(&entry.id) {

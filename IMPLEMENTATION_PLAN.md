@@ -75,11 +75,14 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### compaction.md
 
-- [ ] Link JSON outputs omit `via` annotation
+- [x] Link JSON outputs omit `via` annotation
   - **Location**: `src/commands/link/json.rs:7-86`, `src/commands/link/mod.rs:31-45`
   - **Issue**: `LinkEntry` struct lacks `via` field
   - **Spec requires**: Optional breadcrumb when digest appears because compacted source was matched
   - **Impact**: Cannot distinguish "digest shown naturally" vs "digest shown because compacted note matched"
+  - **Resolution**: Added `via` field to `LinkEntry` struct (optional String), populated when canonicalization changes an ID
+  - **Implementation**: JSON output includes `via` field when ID is canonicalized; human and records output exclude `via` (optional per spec)
+  - **Learnings**: Spec describes `via` as optional for human output, so only included in JSON for machine readability
 
 ### provenance.md
 

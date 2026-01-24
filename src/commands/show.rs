@@ -187,12 +187,18 @@ fn execute_show_links(
                 title: index.get_metadata(&edge.to).map(|m| m.title.clone()),
                 link_type: edge.link_type.to_string(),
                 source: edge.source.to_string(),
+                via: None,
             };
 
             if let Some(ctx) = compaction_ctx {
+                let original_id = entry.id.clone();
                 entry.id = ctx.canon(&entry.id)?;
                 if entry.id == note_id {
                     continue;
+                }
+                // Set via annotation if ID changed due to canonicalization
+                if entry.id != original_id {
+                    entry.via = Some(original_id);
                 }
                 entry.title = index.get_metadata(&entry.id).map(|m| m.title.clone());
             }
@@ -215,6 +221,7 @@ fn execute_show_links(
                         .map(|m| m.title.clone()),
                     link_type: virtual_edge.link_type.to_string(),
                     source: virtual_edge.source.to_string(),
+                    via: None,
                 }
             } else {
                 // Semantic inversion disabled: show raw backlink with original type
@@ -224,13 +231,19 @@ fn execute_show_links(
                     title: index.get_metadata(&edge.from).map(|m| m.title.clone()),
                     link_type: edge.link_type.to_string(),
                     source: edge.source.to_string(),
+                    via: None,
                 }
             };
 
             if let Some(ctx) = compaction_ctx {
+                let original_id = entry.id.clone();
                 entry.id = ctx.canon(&entry.id)?;
                 if entry.id == note_id {
                     continue;
+                }
+                // Set via annotation if ID changed due to canonicalization
+                if entry.id != original_id {
+                    entry.via = Some(original_id);
                 }
                 entry.title = index.get_metadata(&entry.id).map(|m| m.title.clone());
             }

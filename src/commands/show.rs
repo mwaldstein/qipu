@@ -204,12 +204,27 @@ fn execute_show_links(
     // Inbound edges (backlinks TO this note or any compacted source)
     for source_id in &source_ids {
         for edge in index.get_inbound_edges(source_id) {
-            let mut entry = LinkEntry {
-                direction: "in".to_string(),
-                id: edge.from.clone(),
-                title: index.get_metadata(&edge.from).map(|m| m.title.clone()),
-                link_type: edge.link_type.to_string(),
-                source: edge.source.to_string(),
+            let mut entry = if !cli.no_semantic_inversion {
+                // Semantic inversion enabled: show virtual outbound link with inverted type
+                let virtual_edge = edge.invert(store.config());
+                LinkEntry {
+                    direction: "out".to_string(),
+                    id: virtual_edge.to.clone(),
+                    title: index
+                        .get_metadata(&virtual_edge.to)
+                        .map(|m| m.title.clone()),
+                    link_type: virtual_edge.link_type.to_string(),
+                    source: virtual_edge.source.to_string(),
+                }
+            } else {
+                // Semantic inversion disabled: show raw backlink with original type
+                LinkEntry {
+                    direction: "in".to_string(),
+                    id: edge.from.clone(),
+                    title: index.get_metadata(&edge.from).map(|m| m.title.clone()),
+                    link_type: edge.link_type.to_string(),
+                    source: edge.source.to_string(),
+                }
             };
 
             if let Some(ctx) = compaction_ctx {

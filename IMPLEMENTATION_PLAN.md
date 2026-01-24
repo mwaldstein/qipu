@@ -65,10 +65,13 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### semantic-graph.md
 
-- [ ] `show --links` ignores `--no-semantic-inversion` flag
+- [x] `show --links` ignores `--no-semantic-inversion` flag
   - **Location**: `src/commands/show.rs:204-225`
   - **Issue**: Always shows raw backlinks (`direction="in"`) regardless of flag
   - **Expected**: With flag: show raw backlinks; without flag: show virtual inverted links (`direction="out"`)
+  - **Resolution**: Added semantic inversion logic following same pattern as `link list` command. When `--no-semantic-inversion` is false (default), inbound edges are inverted and shown as virtual outbound links. When true, raw backlinks are shown.
+  - **Implementation**: Uses `edge.invert(store.config())` to create virtual edges when semantic inversion is enabled
+  - **Learnings**: Golden test needed to be updated to reflect correct behavior - backlinks now appear as "Outbound links (virtual)" by default instead of "Inbound links"
 
 ### compaction.md
 

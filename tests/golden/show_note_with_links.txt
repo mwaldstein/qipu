@@ -1,4 +1,4 @@
 Links for qp-a1b2c3 "Research Note":
 
-Inbound links (1):
-  <- qp-moc123  "Research MOC" [related] (inline)
+Outbound links (1):
+  -> qp-moc123  "Research MOC" [related] (virtual)

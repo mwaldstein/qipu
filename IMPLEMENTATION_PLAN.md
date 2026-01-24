@@ -46,10 +46,12 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### similarity-ranking.md
 
-- [ ] Search wraps query in quotes (phrase search instead of AND/OR semantics)
+- [x] Search wraps query in quotes (phrase search instead of AND/OR semantics)
   - **Location**: `src/lib/db/search.rs:47`
   - **Issue**: `format!("\"{}\"", query.replace('"', "\"\""))` forces exact phrase search
   - **Impact**: Searching "rust programming" fails when terms appear separately
+  - **Resolution**: Changed to use unquoted FTS5 queries (AND semantics) and replace hyphens with spaces to avoid special character interpretation
+  - **Implementation**: Multi-word queries now use AND semantics, allowing terms to appear separately in documents
 
 - [ ] Search uses additive boosts instead of multiplicative field weights
   - **Location**: `src/lib/db/search.rs:112-132`

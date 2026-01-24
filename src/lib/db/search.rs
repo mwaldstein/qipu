@@ -42,9 +42,9 @@ impl super::Database {
             return Ok(Vec::new());
         }
 
-        // Wrap query in double quotes to treat it as a phrase search
-        // This prevents FTS5 from interpreting hyphens as column references
-        let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
+        // Use unquoted query for AND semantics (terms can appear separately)
+        // Replace hyphens with spaces to avoid FTS5 special character interpretation
+        let fts_query = query.replace('-', " ").replace('"', "\"\"");
         let title_query = format!("title:{}", &fts_query);
         let tags_query = format!("tags:{}", &fts_query);
 

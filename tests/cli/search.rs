@@ -1216,3 +1216,51 @@ fn test_search_exclude_mocs_with_min_value() {
     );
     assert_eq!(results_array[0]["type"].as_str().unwrap(), "permanent");
 }
+
+#[test]
+fn test_search_multi_word_and_semantics() {
+    // Test that multi-word queries use AND semantics (terms can appear separately)
+    // rather than phrase search (terms must appear together)
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note where "rust" and "programming" appear separately (not as a phrase)
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Rust Concepts"])
+        .assert()
+        .success();
+
+    // Modify note to have words separately
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note_files: Vec<_> = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(note_files.len(), 1);
+    let note_path = note_files[0].path();
+    let mut content = fs::read_to_string(&note_path).unwrap();
+    // Words appear separately, not as phrase "rust programming"
+    content.push_str("\nThis note discusses the rust language and programming concepts.");
+    fs::write(&note_path, content).unwrap();
+
+    // Rebuild index
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    // Search for "rust programming" - should find the note even though words appear separately
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "rust programming"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Rust Concepts"));
+}

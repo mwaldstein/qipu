@@ -103,12 +103,12 @@ pub trait ToolAdapter: Send + Sync {
     }
 
     /// Run the tool with the given scenario in the specified working directory.
-    /// Returns the tool output, exit code, and estimated cost in USD.
+    /// Returns the tool output, exit code, and estimated cost in USD (if available).
     fn run(
         &self,
         scenario: &Scenario,
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, f64)>;
+    ) -> anyhow::Result<(String, i32, Option<f64>)>;
 }

@@ -409,17 +409,21 @@ pub fn run_single_scenario(
 
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
-        let (output, exit_code, cost) =
+        let (output, exit_code, cost_opt) =
             adapter.run(s, &env.root, Some(model), effective_timeout)?;
         let duration = start_time.elapsed();
 
+        let cost = cost_opt.unwrap_or(0.0);
+
         // Check if we exceeded the budget
         if let Some(max_usd) = effective_max_usd {
-            if cost > max_usd {
-                eprintln!(
-                    "WARNING: Run cost ${:.4} exceeded budget ${:.4}",
-                    cost, max_usd
-                );
+            if let Some(cost) = cost_opt {
+                if cost > max_usd {
+                    eprintln!(
+                        "WARNING: Run cost ${:.4} exceeded budget ${:.4}",
+                        cost, max_usd
+                    );
+                }
             }
         }
 

@@ -1,5 +1,4 @@
 use super::ToolAdapter;
-use crate::results::estimate_cost;
 use crate::scenario::Scenario;
 use crate::session::SessionRunner;
 use std::fs;
@@ -65,21 +64,12 @@ impl ToolAdapter for ClaudeCodeAdapter {
         })?;
 
         let duration = start.elapsed();
-        let input_tokens = full_prompt.len() / 4; // rough estimate
-        let output_tokens = output.len() / 4;
 
         Ok(super::ExecutionResult {
             exit_code,
             duration,
-            token_usage: Some(super::TokenUsage {
-                input: input_tokens,
-                output: output_tokens,
-            }),
-            cost_estimate: Some(estimate_cost(
-                "default",
-                input_tokens * 4,
-                output_tokens * 4,
-            )),
+            token_usage: None,
+            cost_estimate: None,
         })
     }
 
@@ -106,7 +96,7 @@ impl ToolAdapter for ClaudeCodeAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, f64)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>)> {
         let runner = SessionRunner::new();
 
         let mut args = vec!["run"];
@@ -118,16 +108,8 @@ impl ToolAdapter for ClaudeCodeAdapter {
         let prompt_path = cwd.join("prompt.txt");
         fs::write(&prompt_path, &scenario.task.prompt)?;
 
-        args.push("--prompt-file");
-        args.push("prompt.txt");
-
-        let input_chars = scenario.task.prompt.len();
-        let model_name = model.unwrap_or("default");
-
         let (output, exit_code) = runner.run_command("claude", &args, cwd, timeout_secs)?;
-        let output_chars = output.len();
-        let cost = estimate_cost(model_name, input_chars, output_chars);
 
-        Ok((output, exit_code, cost))
+        Ok((output, exit_code, None))
     }
 }

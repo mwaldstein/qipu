@@ -115,11 +115,12 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### llm-user-validation.md
 
-- [ ] Token usage estimation uses character-based approximation
+- [x] Token usage estimation uses character-based approximation
   - **Location**: `crates/llm-tool-test/src/adapter/claude_code.rs:68-69`, `crates/llm-tool-test/src/adapter/opencode.rs:64-65`, `crates/llm-tool-test/src/adapter/amp.rs:72-73`, `crates/llm-tool-test/src/results.rs:448-449`
   - **Issue**: Uses `len() / 4` character-based estimate instead of actual token count from tool output
   - **Impact**: Token counts and cost estimates are inaccurate; should read from actual LLM tool responses
-  - **Resolution**: Remove `len() / 4` estimation; parse token counts from tool output if available, otherwise return `None`. Tools (amp, opencode, claude) are responsible for reporting their actual API token usage.
+  - **Resolution**: Removed `len() / 4` estimation; all adapters now return `None` for `token_usage` and `cost_estimate`. Tools (amp, opencode, claude) are responsible for reporting their actual API token usage if available.
+  - **Implementation**: Updated all adapters (claude_code, opencode, amp, mock) to return `None` for both `token_usage` and `cost_estimate` in `execute_task()`. Updated `run()` method signature to return `Option<f64>` for cost, and updated all call sites to handle `None` cost appropriately. Removed unused `estimate_cost` imports from adapter files.
 
 - [ ] Budget warning doesn't enforce limits
   - **Location**: `crates/llm-tool-test/src/run.rs:417-424`

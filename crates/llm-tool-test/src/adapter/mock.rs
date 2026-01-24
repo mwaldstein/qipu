@@ -181,18 +181,13 @@ impl ToolAdapter for MockAdapter {
 
         let start = Instant::now();
 
-        // For now, just return a mock result
-        // In the future, this could parse context.task_prompt and generate appropriate commands
         let duration = start.elapsed();
 
         Ok(super::ExecutionResult {
             exit_code: 0,
             duration,
-            token_usage: Some(super::TokenUsage {
-                input: context.system_prompt.len() + context.task_prompt.len(),
-                output: 100,
-            }),
-            cost_estimate: Some(0.001),
+            token_usage: None,
+            cost_estimate: None,
         })
     }
 
@@ -213,7 +208,7 @@ impl ToolAdapter for MockAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, f64)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>)> {
         let runner = SessionRunner::new();
 
         let transcript = self.generate_transcript(scenario);
@@ -257,12 +252,7 @@ impl ToolAdapter for MockAdapter {
             }
         }
 
-        let input_chars = scenario.task.prompt.len();
-        let output_chars = full_output.len();
-        let model_name = model.unwrap_or("mock");
-        let cost = estimate_cost(model_name, input_chars, output_chars);
-
-        Ok((full_output, exit_code, cost))
+        Ok((full_output, exit_code, None))
     }
 }
 
@@ -628,9 +618,11 @@ evaluation:
         let result = adapter.run(&scenario, temp_dir.path(), Some("mock"), 30);
 
         match result {
-            Ok((_output, _exit_code, cost)) => {
-                assert!(cost >= 0.0, "Cost should be non-negative");
-                assert!(cost < 1.0, "Mock adapter cost should be very low");
+            Ok((_output, _exit_code, cost_opt)) => {
+                assert!(
+                    cost_opt.is_none(),
+                    "Cost should be None when not reported by tool"
+                );
             }
             Err(e) => {
                 let err_str = e.to_string();

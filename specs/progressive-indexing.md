@@ -2,9 +2,79 @@
 
 ## Purpose
 
-For large knowledge bases (10k+ notes), full indexing can take minutes or longer. Since qipu stores raw notes in git, full re-indexing from raw files is a common operation (e.g., after cloning a repo or after significant changes).
+For large knowledge bases (10k+ notes), full text indexing can take minutes or longer. Since qipu stores raw notes in git, full re-indexing from raw files is a common operation (e.g., after cloning a repo or after significant changes).
 
-This spec defines strategies for progressive indexing, user feedback during indexing, and selective indexing options to handle the cost of indexing large knowledge bases.
+This spec defines a **two-level indexing approach**:
+1. **Basic indexing** (fast): Index metadata for ALL notes - title, type, links, tags, sources
+2. **Full-text indexing** (slower): Index note body content for comprehensive search
+
+This strategy ensures immediate queryability across all notes while deferring expensive full-text indexing.
+
+## Indexing Levels
+
+### Level 1: Basic Indexing (Metadata-Only)
+
+Index lightweight metadata for all notes, enabling queries without full text search.
+
+**Indexed Fields:**
+- Note ID
+- Title
+- Note type (permanent, ephemeral, moc, spec)
+- Tags
+- Creation/updated timestamps
+- Links (inbound/outbound with types)
+- Sources (URLs, titles)
+- Value score
+- Custom metadata keys (optional, for filtering)
+
+**Not Indexed:**
+- Note body text
+- Note summary
+
+**Performance:**
+- O(total notes) but very fast: ~100-200 notes/sec
+- Minimal I/O: reads frontmatter only
+- 10k notes: ~1-2 minutes
+- 50k notes: ~5-10 minutes
+
+**Query Capabilities with Basic Index:**
+- Search by title, type, tags, sources
+- Traverse graph by links (all link types)
+- Filter by value, custom metadata
+- List notes with metadata
+- Show note with metadata
+
+**Query Limitations without Full-Text Index:**
+- Cannot search body content
+- Cannot search for specific text phrases within notes
+- Similarity search not available
+- Search relevance is based on metadata matches only
+
+### Level 2: Full-Text Indexing
+
+Index complete note content (body + summary) for comprehensive search.
+
+**Indexed Fields (in addition to Level 1):**
+- Note body text (FTS5 full-text search)
+- Note summary text
+
+**Performance:**
+- O(total notes) but slower: ~50-100 notes/sec
+- Full I/O: reads entire note files
+- 10k notes: ~2-4 minutes
+- 50k notes: ~10-20 minutes
+
+**Query Capabilities with Full-Text Index:**
+- All Level 1 capabilities
+- Search body content
+- Phrase search, BM25 ranking
+- Similarity search
+- Context-aware search (semantic matching)
+
+**Query Graceful Degradation:**
+- Search works with Level 1 (basic index) even if full-text isn't indexed
+- Results limited to metadata-only matches when full-text unavailable
+- Clear indication when full-text search is limited (e.g., "Basic index only: search limited to metadata")
 
 ## Goals
 
@@ -17,6 +87,63 @@ This spec defines strategies for progressive indexing, user feedback during inde
 ## Indexing Strategies
 
 ### 0. Auto-Indexing on Store Open
+
+When opening a store (e.g., `qipu init`, `qipu search`, `qipu list`), automatically index notes if needed, using intelligent two-level approach to avoid unexpected delays.
+
+**Two-Level Approach:**
+1. Always run **Basic Indexing** (metadata-only) for all notes - fast, enables immediate queries
+2. Conditionally run **Full-Text Indexing** based on note count and config
+   - Small repos (<1k notes): Full-text immediately (fast enough)
+   - Medium repos (1k-10k notes): Full-text immediately or prompt user
+   - Large repos (10k+ notes): Basic only initially; defer full-text via explicit command or background
+
+**Basic Indexing (Always Runs):**
+- Index metadata for ALL notes (title, type, links, tags, sources, timestamps)
+- Skips note body content
+- Very fast (~100-200 notes/sec)
+- Enables: search by metadata, graph traversal, listing, filtering
+
+**Full-Text Indexing (Conditional):**
+- Index note body and summary text (FTS5)
+- Slower (~50-100 notes/sec)
+- Enables: body content search, phrase search, BM25 ranking, similarity
+
+**Auto-Indexing Decision Table (Basic + Full-Text):**
+
+| Note Count | Basic Index | Full-Text Index | Rationale |
+|-----------|--------------|-------------------|-----------|
+| <1k | ✓ Always | ✓ Always | Fast enough to complete in <1s total |
+| 1k-10k | ✓ Always | ✓ Always | Acceptable startup time (<30s) |
+| 10k-50k | ✓ Always | ✗ Prompt/Optional | Basic index provides immediate value; user chooses full-text |
+| >50k | ✓ Always | ✗ Optional | Basic index sufficient for exploration; full-text on-demand |
+
+**User Feedback:**
+
+For large repos (10k+ notes) where full-text is deferred:
+
+```
+qipu search "topic"
+Detected 12,450 notes.
+Basic index: Complete (12,450 notes) ✓
+Full-text index: Not available (deferred)
+Search results: Limited to metadata (title, type, tags, links).
+Tip: Run `qipu index --full` for comprehensive text search, or `qipu index --quick` for MOCs + recent.
+```
+
+For medium repos (1k-10k notes) where both indexes are available:
+
+```
+qipu init
+Detected 4,500 notes.
+Basic index: Complete (4,500 notes) ✓
+Full-text index: Complete (4,500 notes) ✓
+Store ready for full search.
+```
+
+**Use Cases:**
+- `qipu init` on cloned repo with existing knowledge base
+- Opening store after pulling git changes
+- Store auto-opened by first command
 
 When opening a store (e.g., `qipu init`, `qipu search`, `qipu list`), automatically index notes if needed, but use intelligent selection based on note count to avoid unexpected delays.
 
@@ -55,8 +182,7 @@ qipu init
 Detected 45,000 notes. Quick-indexing critical notes...
 Indexed 120 notes in 1.8s (MOCs + 100 recent)
 Store ready with quick index.
-For full search across all notes, run: qipu index
-Run in background now? [Y/n]
+Tip: For full search across all notes, run: qipu index
 ```
 
 ### 1. Incremental Indexing (mtime-based)
@@ -149,19 +275,20 @@ qipu index --modified-since "24 hours ago"
 - Low-resource environments
 - Quick recovery from index corruption
 
-### 5. Lazy/On-Demand Indexing
+### 5. Lazy/On-Demand Indexing (OPTIONAL - for future consideration only)
 
 Defer indexing until a note is actually accessed, then build index gradually.
 
-**Implementation:**
+**Note:** This approach is NOT recommended for primary use due to complexity. The recommended approach is auto-indexing with adaptive strategy on store open.
+
+**Implementation (for future consideration):**
 - Maintain "indexed" flag per note (default false)
 - When note is accessed (via search, show, context):
   - If not indexed, index it immediately
   - Set indexed flag
-- Optional: `qipu index --lazy` to trigger background lazy indexing
 
 **Use Cases:**
-- Large knowledge bases where only subset is regularly used
+- Very large knowledge bases where only subset is regularly used
 - Development/exploration workspaces
 - Cold starts where full index isn't immediately needed
 
@@ -295,7 +422,7 @@ qipu index --tag research --type permanent --recent 500
 - Useful for targeted work
 - Multiple filters are AND-combined
 
-### Background Mode: Detached
+### Background Mode (NON-GOAL - see Non-Goals section)
 
 ```bash
 qipu index --background
@@ -305,17 +432,231 @@ qipu index --background
 - Logs progress to file or stderr
 - Returns immediately with PID
 
+**Note:** Background indexing is NOT recommended for LLM tool usage. LLMs are primary users and need immediate, synchronous access to the knowledge base.
+
 ## Performance Targets
 
 | Operation | Target | Notes |
 |-----------|--------|-------|
-| Incremental index (100 changed notes) | <1s | Most common case |
-| Quick index (MOCs + 100 recent) | <1s | Exploration mode |
-| Selective index (1k notes) | <2s | Targeted work |
-| Full index (10k notes) | <30s | Common large repo |
-| Full index (50k notes) | <2m | Very large repos |
+| Basic index (all notes, metadata-only) | <1s | <1k notes |
+| Basic index (all notes, metadata-only) | <2s | 1k-5k notes |
+| Basic index (all notes, metadata-only) | <4s | 5k-10k notes |
+| Basic index (all notes, metadata-only) | <8s | 10k-50k notes |
+| Incremental full-text index (100 changed notes) | <2s | Most common case |
+| Quick index (MOCs + 100 recent, full-text) | <2s | Exploration mode |
+| Selective index (1k notes, full-text) | <5s | Targeted work |
+| Full index (1k notes, full-text) | <3s | Small repos |
+| Full index (5k notes, full-text) | <10s | Medium repos |
+| Full index (10k notes, full-text) | <25s | Common large repo |
+| Full index (50k notes, full-text) | <2m | Very large repos |
 
 **Note:** These targets assume SSD storage. Adjust expectations for HDD or network filesystems.
+
+## Incremental Test Strategy
+
+Start with 1k notes and build up to 10k notes to ensure early feedback on performance issues:
+
+1. Run all 1k, 2k, 5k scenario tests first (fast, catch regressions early)
+2. Once 1k tests pass, move to 10k scenario tests
+3. This prevents spending multiple minutes on a 10k test only to find a 1k-level issue
+4. CI pipeline should fail fast if 1k/2k tests exceed targets
+
+## Performance Testing
+
+**Scenario 1: Cold Start on Small Repo (1k notes)**
+- Setup: Fresh qipu init on 1k notes (no index)
+- Expected: Basic index <2s, then prompt for full-text
+- Measure: Total time to interactive prompt
+
+**Scenario 2: Cold Start on Small-Medium Repo (2k notes)**
+- Setup: Fresh qipu init on 2k notes (no index)
+- Expected: Basic index <3s, then prompt for full-text
+- Measure: Total time to interactive prompt
+
+**Scenario 3: Cold Start on Medium Repo (5k notes)**
+- Setup: Fresh qipu init on 5k notes (no index)
+- Expected: Basic index <5s, then prompt for full-text
+- Measure: Total time to interactive prompt
+
+**Scenario 4: Cold Start on Large Repo (10k notes)**
+- Setup: Fresh qipu init on 10k notes (no index)
+- Expected: Basic index <8s, then prompt for full-text
+- Measure: Total time to interactive prompt
+
+**Scenario 5: Cold Start on Large Repo (50k notes)**
+- Setup: Fresh qipu init on 50k notes (no index)
+- Expected: Basic index <20s, then prompt for full-text
+- Measure: Total time to interactive prompt
+
+**Scenario 6: Incremental Update on Medium Repo (2k notes)**
+- Setup: 2k notes, modify 100 notes, run qipu search
+- Expected: Basic index auto-runs <1s (unchanged notes skipped)
+- Measure: Time to search result
+
+**Scenario 7: Incremental Update on Large Repo (10k notes)**
+- Setup: 10k notes, modify 100 notes, run qipu search
+- Expected: Basic index auto-runs <3s (unchanged notes skipped)
+- Measure: Time to search result
+
+**Scenario 8: Quick Mode on Medium Repo (5k notes)**
+- Setup: 5k notes, run `qipu index --quick`
+- Expected: MOCs + 100 recent indexed <1s
+- Measure: Index time, notes indexed
+
+**Scenario 9: Quick Mode on Large Repo (10k notes)**
+- Setup: 10k notes, run `qipu index --quick`
+- Expected: MOCs + 100 recent indexed <2s
+- Measure: Index time, notes indexed
+
+**Scenario 10: Full Text Rebuild on Small Repo (1k notes)**
+- Setup: 1k notes, run `qipu index --force`
+- Expected: <3s for full-text indexing
+- Measure: Total index time, memory usage
+
+**Scenario 11: Full Text Rebuild on Medium Repo (5k notes)**
+- Setup: 5k notes, run `qipu index --force`
+- Expected: <10s for full-text indexing
+- Measure: Total index time, memory usage
+
+**Scenario 12: Full Text Rebuild on Large Repo (10k notes)**
+- Setup: 10k notes, run `qipu index --force`
+- Expected: <25s for full-text indexing
+- Measure: Total index time, memory usage
+
+### Test Infrastructure
+
+**Benchmark Command:**
+```bash
+qipu benchmark index --size 10000 --iterations 5
+```
+
+Output format:
+```
+Indexing Benchmark (5 iterations, 10,000 notes)
+---------------------------------------------
+Basic index: 1.2s ±0.1s (min: 1.0s, max: 1.4s)
+Full-text index: 4.5s ±0.3s (min: 4.1s, max: 5.0s)
+Memory peak: 45MB
+Disk reads: 12,450 (all notes)
+Batch size: 1000 notes
+```
+
+**Automated Tests:**
+```rust
+#[test]
+fn bench_basic_indexing_1k_notes() {
+    // Setup 1k notes
+    // Measure basic indexing time
+    // Assert <2s target
+}
+
+#[test]
+fn bench_basic_indexing_2k_notes() {
+    // Setup 2k notes
+    // Measure basic indexing time
+    // Assert <3s target
+}
+
+#[test]
+fn bench_basic_indexing_5k_notes() {
+    // Setup 5k notes
+    // Measure basic indexing time
+    // Assert <4s target
+}
+
+#[test]
+fn bench_basic_indexing_10k_notes() {
+    // Setup 10k notes
+    // Measure basic indexing time
+    // Assert <5s target
+}
+
+#[test]
+fn bench_basic_indexing_50k_notes() {
+    // Setup 50k notes
+    // Measure basic indexing time
+    // Assert <20s target
+}
+
+#[test]
+fn bench_incremental_indexing_100_changed_1k_notes() {
+    // Setup 1k notes, modify 10
+    // Measure incremental indexing time
+    // Assert <1s target for changed notes
+}
+
+#[test]
+fn bench_incremental_indexing_100_changed_2k_notes() {
+    // Setup 2k notes, modify 100
+    // Measure incremental indexing time
+    // Assert <1s target for changed notes
+}
+
+#[test]
+fn bench_incremental_indexing_100_changed_10k_notes() {
+    // Setup 10k notes, modify 100
+    // Measure incremental indexing time
+    // Assert <2s target for changed notes
+}
+
+#[test]
+fn bench_full_text_indexing_1k_notes() {
+    // Setup 1k notes with basic index
+    // Measure full-text indexing time
+    // Assert <3s target (includes basic + full-text)
+}
+
+#[test]
+fn bench_full_text_indexing_5k_notes() {
+    // Setup 5k notes with basic index
+    // Measure full-text indexing time
+    // Assert <8s target (includes basic + full-text)
+}
+
+#[test]
+fn bench_full_text_indexing_10k_notes() {
+    // Setup 10k notes with basic index
+    // Measure full-text indexing time
+    // Assert <25s target (includes basic + full-text)
+}
+```
+
+### Performance Metrics to Track
+
+1. **Indexing Time:**
+   - Basic index time by note count buckets (1k, 10k, 50k)
+   - Full-text index time by note count buckets
+   - Incremental index time by changed note count (10, 100, 1000)
+
+2. **Memory Usage:**
+   - Peak memory during indexing
+   - Memory per note (target: <1KB per note during indexing)
+
+3. **I/O Operations:**
+   - File reads (notes read, total bytes)
+   - Database writes (transactions, rows inserted)
+   - Checkpoint writes (if batched)
+
+4. **Query Performance:**
+   - Metadata-only search latency (p99 <10ms)
+   - Full-text search latency (p99 <50ms)
+   - Graph traversal time (100 hops <100ms)
+
+### Performance Regression Testing
+
+Add to CI pipeline:
+```yaml
+- name: Benchmark indexing performance
+  run: |
+    cargo test bench_basic_indexing_10k_notes --release -- --nocapture
+    cargo test bench_full_text_indexing_10k --release -- --nocapture
+    cargo test bench_incremental_indexing --release -- --nocapture
+```
+
+**Alert Thresholds:**
+- Warning if performance degrades >30% from baseline
+- Fail if any benchmark exceeds target by >50%
+- Block merge if performance regresses significantly
 
 ## Error Handling
 

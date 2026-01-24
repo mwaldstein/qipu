@@ -156,23 +156,57 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### progressive-indexing.md
 
-- [ ] Phase 1: Incremental indexing (mtime-based)
+- [ ] Phase 0: Two-level indexing approach (basic + full-text)
+  - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`
+  - **Issue**: Single-level indexing - all or nothing. Large repos cause long delays.
+  - **Spec requires**: "Basic Indexing" (metadata-only for all notes) + "Full-Text Indexing" (conditional/slow)
+  - **Resolution**: Implement two-level indexing - always index metadata fast; conditionally index body content
+  - **Implementation**:
+    - Basic index: title, type, tags, links, sources, timestamps (~100-200 notes/sec)
+    - Full-text index: body + summary (~50-100 notes/sec)
+    - Add `index_level` column to track basic vs full-text per note
+    - Auto-indexing: basic always, full-text based on note count thresholds
+    - Graceful degradation: queries work with basic index if full-text unavailable
+
+- [ ] Phase 1: Auto-indexing on store open/init
+  - **Location**: `src/lib/db/mod.rs`, `src/commands/init.rs`
+  - **Issue**: Opening store with 50k notes causes immediate full-text indexing delay
+  - **Spec requires**: "Auto-Indexing on Store Open" - adaptive strategy based on note count
+  - **Resolution**:
+    - Implement note count detection on store open
+    - Add adaptive strategy: full (basic+full), incremental (basic only), quick (basic only, MOCs+100)
+    - Add `--no-index` and `--index-strategy` flags to `qipu init`
+    - Add config options: auto_index.enabled, auto_index.strategy, auto_index.adaptive_threshold
+    - Target: <1k notes in <5s, 1k-10k notes in <30s, 10k+ notes with basic-only + prompt
+
+- [ ] Phase 2: Incremental indexing (mtime-based)
   - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`
   - **Issue**: No mtime tracking; all notes re-indexed on every `qipu index`
   - **Spec requires**: "Incremental Indexing" - only re-index modified notes based on file mtime
   - **Resolution**: Add mtime comparison in database; skip unchanged notes during indexing; performance: O(changed) vs O(total)
 
-- [ ] Phase 2: Selective indexing options
+- [ ] Phase 3: Selective indexing options
   - **Location**: `src/cli/commands.rs`, `src/commands/index.rs`
   - **Issue**: No way to index subset of knowledge base; always indexes all notes
   - **Spec requires**: `--tag`, `--type`, `--quick`, `--recent` flags for selective indexing
   - **Resolution**: Add filter flags to index command; implement quick mode (MOCs + 100 recent); add status command
 
-- [ ] Phase 3: Progress reporting for large indexes
+- [ ] Phase 4: Progress reporting for large indexes
   - **Location**: `src/commands/index.rs`
   - **Issue**: No progress feedback during indexing; large repos appear to hang
   - **Spec requires**: Progress bars, ETA, checkpointing for batched indexing
   - **Resolution**: Add progress output (N/Total notes); implement batched indexing with checkpoints; allow interruption and resume
+
+- [ ] Phase 5: Performance testing and benchmarks
+  - **Location**: `tests/bench/`, `src/lib/db/tests.rs`, `src/commands/index.rs`
+  - **Issue**: No performance tests for indexing; targets undefined; no regression detection
+  - **Spec requires**: Performance targets (basic <5s for 10k, full-text <30s for 10k)
+  - **Resolution**:
+    - Add `tests/bench/` module with benchmark functions
+    - Test scenarios: cold start 10k/50k notes, incremental updates, quick mode
+    - Track metrics: time, memory, I/O operations, notes/sec
+    - Add CI benchmark job with alert thresholds (30% degradation = warning, 50% = fail)
+    - Target: basic indexing 100-200 notes/sec, full-text 50-100 notes/sec
 
 ### Code size reduction
 

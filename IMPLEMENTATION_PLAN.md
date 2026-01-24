@@ -21,7 +21,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 | Task | Priority |
 |------|----------|
-| Refactor `src/commands/doctor/database.rs` (722 lines) | Medium |
 | Externalize model pricing to config | Low |
 | Shared `OutputFormatter` trait | Low |
 
@@ -35,6 +34,8 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## Completed (Summary)
+
+**Revision 9** (2026-01-23): Refactored `src/commands/doctor/database.rs` (723→684 lines). Extracted helper functions (`get_note_path`, `report_semantic_link_misuse`, `check_self_referential_link`) to eliminate repeated patterns in `check_semantic_link_types`, `check_follows_cycles`, and `check_orphaned_notes`.
 
 **Revision 8** (2026-01-23): Refactored `src/commands/setup.rs` (781→710 lines). Extracted test helper functions (`assert_unknown_tool_error`, `setup_agents_md`, `assert_install_success`, `assert_execute_ok`) to eliminate code duplication across 24 test functions.
 

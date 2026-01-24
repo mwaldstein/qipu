@@ -84,6 +84,48 @@ pub fn check_broken_links(store: &Store, result: &mut DoctorResult) {
     }
 }
 
+fn get_note_path(db: &crate::lib::db::Database, note_id: &str) -> Option<String> {
+    db.get_note_metadata(note_id)
+        .ok()
+        .and_then(|metadata| metadata.map(|m| m.path))
+}
+
+fn report_semantic_link_misuse(
+    result: &mut DoctorResult,
+    note_id: &str,
+    message: String,
+    db: &crate::lib::db::Database,
+) {
+    result.add_issue(Issue {
+        severity: Severity::Warning,
+        category: "semantic-link-misuse".to_string(),
+        message,
+        note_id: Some(note_id.to_string()),
+        path: get_note_path(db, note_id),
+        fixable: false,
+    });
+}
+
+fn check_self_referential_link(
+    source_id: &str,
+    target_id: &str,
+    link_type_name: &str,
+    db: &crate::lib::db::Database,
+    result: &mut DoctorResult,
+) {
+    if source_id == target_id {
+        report_semantic_link_misuse(
+            result,
+            source_id,
+            format!(
+                "Note '{}' has self-referential '{}' link",
+                source_id, link_type_name
+            ),
+            db,
+        );
+    }
+}
+
 pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
     use crate::lib::note::LinkType;
 
@@ -125,69 +167,15 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
                     contradicts_targets.insert(target_id);
                 }
                 LinkType::SAME_AS => {
-                    // Check for self-referential same-as
-                    if source_id == target_id {
-                        let path = match db.get_note_metadata(source_id) {
-                            Ok(Some(metadata)) => Some(metadata.path),
-                            _ => None,
-                        };
-
-                        result.add_issue(Issue {
-                            severity: Severity::Warning,
-                            category: "semantic-link-misuse".to_string(),
-                            message: format!(
-                                "Note '{}' has self-referential 'same-as' link",
-                                source_id
-                            ),
-                            note_id: Some(source_id.clone()),
-                            path,
-                            fixable: false,
-                        });
-                    }
+                    check_self_referential_link(source_id, target_id, "same-as", db, result);
                     same_as_targets.insert(target_id);
                 }
                 LinkType::ALIAS_OF => {
-                    // Check for self-referential alias-of
-                    if source_id == target_id {
-                        let path = match db.get_note_metadata(source_id) {
-                            Ok(Some(metadata)) => Some(metadata.path),
-                            _ => None,
-                        };
-
-                        result.add_issue(Issue {
-                            severity: Severity::Warning,
-                            category: "semantic-link-misuse".to_string(),
-                            message: format!(
-                                "Note '{}' has self-referential 'alias-of' link",
-                                source_id
-                            ),
-                            note_id: Some(source_id.clone()),
-                            path,
-                            fixable: false,
-                        });
-                    }
+                    check_self_referential_link(source_id, target_id, "alias-of", db, result);
                     alias_of_targets.insert(target_id);
                 }
                 LinkType::PART_OF => {
-                    // Check for part-of self-loop
-                    if source_id == target_id {
-                        let path = match db.get_note_metadata(source_id) {
-                            Ok(Some(metadata)) => Some(metadata.path),
-                            _ => None,
-                        };
-
-                        result.add_issue(Issue {
-                            severity: Severity::Warning,
-                            category: "semantic-link-misuse".to_string(),
-                            message: format!(
-                                "Note '{}' has self-referential 'part-of' link",
-                                source_id
-                            ),
-                            note_id: Some(source_id.clone()),
-                            path,
-                            fixable: false,
-                        });
-                    }
+                    check_self_referential_link(source_id, target_id, "part-of", db, result);
                 }
                 LinkType::FOLLOWS => {
                     // Will check for cycles in a separate pass
@@ -203,22 +191,15 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
 
         if !conflicts.is_empty() {
             for target_id in conflicts {
-                let path = match db.get_note_metadata(source_id) {
-                    Ok(Some(metadata)) => Some(metadata.path),
-                    _ => None,
-                };
-
-                result.add_issue(Issue {
-                    severity: Severity::Warning,
-                    category: "semantic-link-misuse".to_string(),
-                    message: format!(
+                report_semantic_link_misuse(
+                    result,
+                    source_id,
+                    format!(
                         "Note '{}' both supports and contradicts note '{}'",
                         source_id, target_id
                     ),
-                    note_id: Some(source_id.clone()),
-                    path,
-                    fixable: false,
-                });
+                    db,
+                );
             }
         }
 
@@ -228,22 +209,15 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
 
         if !identity_conflicts.is_empty() {
             for target_id in identity_conflicts {
-                let path = match db.get_note_metadata(source_id) {
-                    Ok(Some(metadata)) => Some(metadata.path),
-                    _ => None,
-                };
-
-                result.add_issue(Issue {
-                    severity: Severity::Warning,
-                    category: "semantic-link-misuse".to_string(),
-                    message: format!(
+                report_semantic_link_misuse(
+                    result,
+                    source_id,
+                    format!(
                         "Note '{}' has both 'same-as' and 'alias-of' links to note '{}'",
                         source_id, target_id
                     ),
-                    note_id: Some(source_id.clone()),
-                    path,
-                    fixable: false,
-                });
+                    db,
+                );
             }
         }
     }
@@ -279,19 +253,12 @@ fn check_follows_cycles(
             if let Some(cycle) =
                 dfs_cycle_detect(node, &follows_graph, &mut visited, &mut rec_stack)
             {
-                let path = match db.get_note_metadata(&cycle[0]) {
-                    Ok(Some(metadata)) => Some(metadata.path),
-                    _ => None,
-                };
-
-                result.add_issue(Issue {
-                    severity: Severity::Warning,
-                    category: "semantic-link-misuse".to_string(),
-                    message: format!("Detected 'follows' cycle: {}", cycle.join(" -> ")),
-                    note_id: Some(cycle[0].clone()),
-                    path,
-                    fixable: false,
-                });
+                report_semantic_link_misuse(
+                    result,
+                    &cycle[0],
+                    format!("Detected 'follows' cycle: {}", cycle.join(" -> ")),
+                    db,
+                );
             }
         }
     }
@@ -339,17 +306,12 @@ pub fn check_orphaned_notes(store: &Store, result: &mut DoctorResult) {
     match db.get_orphaned_notes() {
         Ok(orphaned) => {
             for note_id in orphaned {
-                let path = match db.get_note_metadata(&note_id) {
-                    Ok(Some(metadata)) => Some(metadata.path),
-                    _ => None,
-                };
-
                 result.add_issue(Issue {
                     severity: Severity::Warning,
                     category: "orphaned-note".to_string(),
                     message: format!("Note '{}' has no incoming links", note_id),
-                    note_id: Some(note_id),
-                    path,
+                    note_id: Some(note_id.clone()),
+                    path: get_note_path(db, &note_id),
                     fixable: false,
                 });
             }

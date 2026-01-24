@@ -473,29 +473,26 @@ fn load_attachments(
             .decode(&pack_attachment.data)
             .map_err(|e| QipuError::Other(format!("failed to decode attachment data: {}", e)))?;
 
-        // Determine attachment path
-        let attachment_path = attachments_dir.join(&pack_attachment.name);
-
         // Validate path is within attachments directory (prevent path traversal)
+        // We canonicalize the parent directory (which exists) and check the final path
         let canonical_attachments_dir = std::fs::canonicalize(&attachments_dir).map_err(|e| {
             QipuError::Other(format!("failed to resolve attachments directory: {}", e))
         })?;
-        let canonical_attachment_path = std::fs::canonicalize(&attachment_path).map_err(|e| {
-            QipuError::Other(format!(
-                "failed to resolve attachment path '{}': {}",
-                pack_attachment.name, e
-            ))
-        })?;
 
-        if !canonical_attachment_path.starts_with(&canonical_attachments_dir) {
-            return Err(QipuError::Other(format!(
-                "invalid attachment path '{}': path must be within attachments directory",
-                pack_attachment.name
-            )));
-        }
+        // Construct the expected canonical path by joining the canonical dir with the filename
+        // This prevents path traversal attacks (e.g., "../secrets/file")
+        let file_name = std::path::Path::new(&pack_attachment.name)
+            .file_name()
+            .ok_or_else(|| {
+                QipuError::Other(format!(
+                    "invalid attachment name '{}': no filename component",
+                    pack_attachment.name
+                ))
+            })?;
+        let safe_attachment_path = canonical_attachments_dir.join(file_name);
 
         // Write attachment to file system
-        std::fs::write(&canonical_attachment_path, data).map_err(|e| {
+        std::fs::write(&safe_attachment_path, data).map_err(|e| {
             QipuError::Other(format!(
                 "failed to write attachment '{}': {}",
                 pack_attachment.name, e

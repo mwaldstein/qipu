@@ -1,6 +1,7 @@
 mod adapter;
 mod cli;
 mod commands;
+mod config;
 mod evaluation;
 mod fixture;
 mod judge;

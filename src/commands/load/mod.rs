@@ -476,8 +476,26 @@ fn load_attachments(
         // Determine attachment path
         let attachment_path = attachments_dir.join(&pack_attachment.name);
 
+        // Validate path is within attachments directory (prevent path traversal)
+        let canonical_attachments_dir = std::fs::canonicalize(&attachments_dir).map_err(|e| {
+            QipuError::Other(format!("failed to resolve attachments directory: {}", e))
+        })?;
+        let canonical_attachment_path = std::fs::canonicalize(&attachment_path).map_err(|e| {
+            QipuError::Other(format!(
+                "failed to resolve attachment path '{}': {}",
+                pack_attachment.name, e
+            ))
+        })?;
+
+        if !canonical_attachment_path.starts_with(&canonical_attachments_dir) {
+            return Err(QipuError::Other(format!(
+                "invalid attachment path '{}': path must be within attachments directory",
+                pack_attachment.name
+            )));
+        }
+
         // Write attachment to file system
-        std::fs::write(&attachment_path, data).map_err(|e| {
+        std::fs::write(&canonical_attachment_path, data).map_err(|e| {
             QipuError::Other(format!(
                 "failed to write attachment '{}': {}",
                 pack_attachment.name, e

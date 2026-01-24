@@ -27,11 +27,12 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
   - **Resolution**: Code correctly checks for stores first, then project markers per spec (line 169)
   - **Behavior**: Check store → check project root → move to parent (correct order)
 
-- [ ] Load attachment path traversal vulnerability
-  - **Location**: `src/commands/load/mod.rs:476-477`
-  - **Issue**: No validation that attachment names don't contain `../` sequences
-  - **Impact**: Malicious pack files could write outside attachments directory
-  - **Fix**: Add canonicalization and `starts_with()` validation before writing
+ - [x] Load attachment path traversal vulnerability
+   - **Location**: `src/commands/load/mod.rs:476-477`
+   - **Issue**: No validation that attachment names don't contain `../` sequences
+   - **Impact**: Malicious pack files could write outside attachments directory
+   - **Resolution**: Added canonicalization of both attachments dir and resolved path, with `starts_with()` validation before writing
+   - **Implementation**: Rejects paths outside attachments directory with clear error message
 
 ### llm-context.md
 

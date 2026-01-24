@@ -96,20 +96,22 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### operational-database.md
 
-- [x] Consistency check doesn't auto-repair on startup inconsistency
-  - **Location**: `src/lib/db/mod.rs:96`, `specs/operational-database.md:102`
-  - **Issue**: `validate_consistency()` result discarded with `let _ = ...`
-  - **Spec requires**: "If inconsistent, trigger incremental repair"
-  - **Impact**: External file changes cause silent inconsistency; user must manually run `qipu index`
-  - **Resolution**: Added `auto_repair` parameter to `Database::open` to control auto-repair behavior. By default, consistency check triggers incremental repair on inconsistency. For `doctor` command, auto-repair is disabled to allow issue detection without fixing.
-  - **Implementation**: When `auto_repair=true`, inconsistency triggers `incremental_repair()`. When `auto_repair=false` (doctor), issues are logged but not fixed.
-  - **Learnings**: Doctor command must use `open_unchecked` with `auto_repair=false` to detect issues like missing files without auto-fixing them. Other commands use default auto-repair behavior.
+ - [x] Consistency check doesn't auto-repair on startup inconsistency
+   - **Location**: `src/lib/db/mod.rs:96`, `specs/operational-database.md:102`
+   - **Issue**: `validate_consistency()` result discarded with `let _ = ...`
+   - **Spec requires**: "If inconsistent, trigger incremental repair"
+   - **Impact**: External file changes cause silent inconsistency; user must manually run `qipu index`
+   - **Resolution**: Added `auto_repair` parameter to `Database::open` to control auto-repair behavior. By default, consistency check triggers incremental repair on inconsistency. For `doctor` command, auto-repair is disabled to allow issue detection without fixing.
+   - **Implementation**: When `auto_repair=true`, inconsistency triggers `incremental_repair()`. When `auto_repair=false` (doctor), issues are logged but not fixed.
+   - **Learnings**: Doctor command must use `open_unchecked` with `auto_repair=false` to detect issues like missing files without auto-fixing them. Other commands use default auto-repair behavior.
 
-- [ ] No corruption detection and auto-rebuild
-  - **Location**: `src/lib/db/mod.rs:50-99` (Database::open)
-  - **Issue**: No handling for corrupt database files
-  - **Spec requires**: "If database operations fail, attempt to delete and rebuild automatically"
-  - **Fix**: Wrap database operations with corruption detection and auto-rebuild
+ - [x] No corruption detection and auto-rebuild
+   - **Location**: `src/lib/db/mod.rs:50-124` (Database::open)
+   - **Issue**: No handling for corrupt database files
+   - **Spec requires**: "If database operations fail, attempt to delete and rebuild automatically"
+   - **Resolution**: Wrapped database open with corruption detection and auto-rebuild logic. When database operations fail with corruption errors (e.g., "database disk image is malformed", "corrupt", "malformed"), the corrupted database file is deleted along with WAL/SHM files, then rebuilt from scratch.
+   - **Implementation**: Added `is_corruption_error()` helper to detect corruption error messages in QipuError. Modified `Database::open()` to catch errors, detect corruption, delete corrupted files, and retry opening which triggers rebuild. Added detailed error logging for both initial corruption and rebuild failure scenarios.
+   - **Tests**: All 473 unit/integration tests pass (2 pre-existing pack test failures unrelated to this change).
 
 ### llm-user-validation.md
 

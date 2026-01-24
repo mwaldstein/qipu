@@ -50,10 +50,54 @@ impl Database {
     ///
     /// If auto_repair is true, validates consistency and triggers incremental repair if needed.
     /// Set to false for operations like `doctor` that want to detect issues without fixing them.
+    ///
+    /// If database operations fail due to corruption, attempts to delete and rebuild automatically.
     pub fn open(store_root: &Path, auto_repair: bool) -> Result<Self> {
         let db_path = store_root.join("qipu.db");
 
-        let conn = Connection::open(&db_path).map_err(|e| {
+        let result = Self::open_internal(&db_path, store_root, auto_repair);
+
+        match result {
+            Ok(db) => Ok(db),
+            Err(e) => {
+                if Self::is_corruption_error(&e) && db_path.exists() {
+                    tracing::error!(
+                        "Database corruption detected at {}: {}. Attempting auto-rebuild...",
+                        db_path.display(),
+                        e
+                    );
+
+                    // Try to delete the corrupted database and rebuild
+                    if let Err(delete_err) = std::fs::remove_file(&db_path) {
+                        return Err(QipuError::Other(format!(
+                            "failed to delete corrupted database: {} (original error: {})",
+                            delete_err, e
+                        )));
+                    }
+
+                    // Also remove WAL files if they exist
+                    let wal_path = db_path.with_extension("db-wal");
+                    let shm_path = db_path.with_extension("db-shm");
+                    let _ = std::fs::remove_file(&wal_path);
+                    let _ = std::fs::remove_file(&shm_path);
+
+                    tracing::info!("Deleted corrupted database, attempting rebuild...");
+                    Self::open_internal(&db_path, store_root, auto_repair).map_err(|rebuild_err| {
+                        QipuError::Other(format!(
+                            "failed to rebuild database after corruption: {} (original error: {})",
+                            rebuild_err, e
+                        ))
+                    })
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    /// Internal implementation of database open
+    fn open_internal(db_path: &Path, store_root: &Path, auto_repair: bool) -> Result<Self> {
+        let conn = Connection::open(db_path).map_err(|e| {
             QipuError::Other(format!(
                 "failed to open database at {}: {}",
                 db_path.display(),
@@ -102,6 +146,20 @@ impl Database {
         }
 
         Ok(db)
+    }
+
+    /// Check if an error indicates database corruption
+    fn is_corruption_error(error: &QipuError) -> bool {
+        match error {
+            QipuError::Other(msg) => {
+                let msg_lower = msg.to_lowercase();
+                msg_lower.contains("database disk image is malformed")
+                    || msg_lower.contains("corrupt")
+                    || msg_lower.contains("malformed")
+                    || msg_lower.contains("database is malformed")
+            }
+            _ => false,
+        }
     }
 
     /// Rebuild the database from scratch by scanning all notes

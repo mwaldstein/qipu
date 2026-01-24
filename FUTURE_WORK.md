@@ -3,9 +3,9 @@
 Items in this file are NOT ready for immediate implementation. They require design decisions, spec clarification, or depend on unimplemented infrastructure.
 
 For concrete bugs and implementation tasks, see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).  
-For specification status, see [`specs/README.md`](specs/README.md).
+For specification status, see [`specs/README.md`](../specs/README.md).
 
-*Last updated: 2026-01-23*
+*Last updated: 2026-01-24*
 
 ---
 
@@ -25,25 +25,21 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 ## Needs Design Work
 
-### similarity-ranking.md
-
-| Item | Issue | Spec Line |
-|------|-------|-----------|
-| Merge/same-as link suggestions for duplicates | Spec mentions "suggest merging or adding a `same-as` link" but no design for UX/automation | 40 |
-| Related notes via 2-hop neighborhoods | TF-IDF exists but no explicit 2-hop relatedness algorithm | 65 |
-| MOC clustering from similarity | Spec mentions as use case but no design | 8 |
-
 ### llm-context.md
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
+| Prime command size semantics | Spec says "~1-2k tokens" but implementation uses count-based (5 MOCs, 5 notes) | 33-39 |
 | Automatic summarization for long notes | Open question: "Should qipu support lightweight automatic summarization (without an LLM)?" | 119 |
+| Backlinks in context bundles | Open question: Should backlinks be included by default or via `--backlinks` flag? | 121 |
 
-### workspaces.md
+### graph-traversal.md
 
 | Item | Issue | Spec Line |
-|------|--------|-----------|
-| Merge creates git commit | Design needed for commit message format | 143 |
+|------|-------|-----------|
+| Hop limit semantics | Spec says "max-hops <n>" (suggests integer) but implementation uses cost budget (f32 HopCost) | 86-92 |
+| Semantic inversion type filtering | When filtering by `--type supported-by` with inversion, should match virtual inverted edges or original stored links? | 44-58 |
+| Path result JSON shape | Spec mentions `notes`, `links`, `path_length` but implementation adds `from`, `to`, `direction`, `found` | 134-145 |
 
 ### llm-user-validation.md
 
@@ -79,6 +75,21 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 | Leaf source vs intermediate digest | Open question: first-class concept? | 274 |
 | Alternate size bases | Future flags beyond summary-sized estimates | 173 |
 
+### structured-logging.md
+
+| Item | Issue |
+|------|-------|
+| Full instrumentation | Deciding which functions warrant timing spans |
+| Resource usage metrics | Memory, cache hits - infrastructure not present |
+| Error chain trace format | Needs design for structured error context |
+
+### llm-user-validation.md (Additional)
+
+| Item | Issue | Spec Line |
+|------|-------|-----------|
+| Accurate cost estimation | Current implementation uses `len() / 4` character-based estimate; needs actual token counting | 412 |
+| Budget enforcement | Only warns when exceeded, doesn't prevent run | 417-424 |
+
 ---
 
 ## Needs Spec Clarification
@@ -87,8 +98,8 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| `source` vs `sources` semantics | Spec defines `source` only, but implementation uses `sources[]` heavily (context/export); decide canonical field + migration story | 11-17 |
-| Bibliography input field | Implementation reads only `sources[]` for bibliography export; spec does not define bibliography behavior | 58-61 |
+| `source` vs `sources[]` semantics | Spec defines `source` as singular string; implementation also has `sources[]` array with Source{url,title,accessed} structure; bibliography export only reads `sources[]` | 11-17 |
+| Bibliography input field | Implementation reads only `sources[]` for bibliography export; notes with singular `source` field (from `qipu capture --source`) are excluded | 58-61 |
 
 ### storage-format.md
 
@@ -123,20 +134,21 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 ## Open Questions from Specs
 
-### CLI Interface & User Experience
+### Value Model
 
 | Item | Source | Status |
 |------|--------|--------|
-| Interactive fzf-style pickers | `specs/cli-interface.md` line 189 | Open question - optional UX sugar |
-| `qipu sync` git integration | `specs/cli-interface.md` line 191 | Open question - manage git commits? |
-| Verbose timing keys | `specs/README.md` line 89 | Low priority - only `discover_store` instrumented |
+| Value in search ranking by default | `specs/value-model.md` line 187 | Currently only with `--sort value`; should it combine with relevance score? |
+| Value in compaction suggestions | `specs/value-model.md` line 189 | Should low-value notes be prioritized for compaction? |
+| Digest notes auto-value boost | `specs/value-model.md` line 188 | Should digest notes automatically receive higher value? |
 
 ### Knowledge Model
 
 | Item | Source | Status |
 |------|--------|--------|
 | Duplicate detection & merge | `specs/knowledge-model.md` line 101 | Similarity foundation exists, needs command surface |
-| Typed link set | `specs/knowledge-model.md` line 100 | Current set working, may expand based on usage |
+| Tag aliases | `specs/knowledge-model.md` line 56 | Marked as optional in spec |
+| MOC validation | Missing validation that MOCs contain links | Not in spec, could be enhancement |
 
 ### Graph & Traversal
 
@@ -144,27 +156,21 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 |------|--------|--------|
 | Inline link materialization | `specs/graph-traversal.md` line 33 | Optional: rewrite inline to frontmatter |
 | Additional traversal queries | `specs/graph-traversal.md` line 217 | Future: `neighbors`, `subgraph`, `cycles` |
-| Custom link types ecosystem | `specs/semantic-graph.md` line 94-106 | Extensibility exists, adoption depends on usage |
-
-### LLM Integration
-
-| Item | Source | Status |
-|------|--------|--------|
-| Beads usage audit | Research task | Observe agent workflows with `bd` vs `qipu` |
-| Backlinks in context | `specs/llm-context.md` line 121 | Open question: `--backlinks` flag |
 
 ### Storage & Database
 
 | Item | Source | Status |
 |------|--------|--------|
 | Query statistics | `specs/operational-database.md` line 174 | Observability enhancement |
+| Performance targets validation | `specs/operational-database.md` line 161-166 | <50ms search, <10ms backlinks, <100ms traversal |
 
-### Provenance
+### CLI Interface & User Experience
 
 | Item | Source | Status |
 |------|--------|--------|
-| Commit linking | `specs/provenance.md` line 53 | Not needed; git handles this |
-| Detailed activity tracking | `specs/provenance.md` line 54 | Future: `prompt_hash` → Activity Note |
+| Interactive fzf-style pickers | `specs/cli-interface.md` line 189 | Open question - optional UX sugar |
+| `qipu sync` git integration | `specs/cli-interface.md` line 191 | Open question - manage git commits? |
+| Verbose timing keys | `specs/README.md` line 89 | Low priority - only `discover_store` instrumented |
 
 ---
 

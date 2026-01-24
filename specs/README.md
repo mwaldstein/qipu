@@ -42,30 +42,30 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-23*
+*Last audited: 2026-01-24*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | Discovery stops at project roots; `--format json --help` behavior unclear |
-| `knowledge-model.md` | ✅ | ⚠️ | ⚠️ | DB unknown note types coerced to `fleeting` |
-| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Discovery boundary vs spec; load attachment path guards missing |
-| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Search/inbox JSON missing spec-minimum fields; context missing-selection exit code |
-| `indexing-search.md` | ✅ | ⚠️ | ⚠️ | DB edges miss some relative `.md` links; related notes only via context |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | Inversion works; `show --links` ignores inversion flag; direct tests sparse |
-| `graph-traversal.md` | ✅ | ⚠️ | ⚠️ | Tree view semantics differ; hop limit is a cost budget |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Field weights mismatch vs spec; search wraps query in quotes |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link record headers not CWD-relative; prefix overlaps (`C`, `S`) |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Context JSON missing per-note `path`; prime is count-based (not token budget) |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Events/budgets/dry-run behavior partial |
-| `provenance.md` | ✅ | ⚠️ | ⚠️ | Spec lacks `sources[]`; bibliography ignores `source` |
-| `export.md` | ✅ | ⚠️ | ✅ | Outline ordering uses wiki-links only |
-| `compaction.md` | ✅ | ⚠️ | ✅ | Link JSON missing compaction annotations/truncation markers |
-| `pack.md` | ✅ | ⚠️ | ⚠️ | Dump/load lossy (value/custom); merge-links semantics restricted |
-| `workspaces.md` | ✅ | ⚠️ | ⚠️ | Metadata file location mismatch; rename strategy untested |
-| `structured-logging.md` | ✅ | ⚠️ | ⚠️ | Logs appear on stdout; instrumentation not comprehensive |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Consistency check doesn’t auto-repair; no corruption rebuild |
-| `value-model.md` | ✅ | ⚠️ | ✅ | `link path` defaults unweighted; traversal hop is a cost budget |
-| `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts exist; release workflow disabled/manual; repo mismatch |
+| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | Discovery stops at project roots; project marker check order incorrect |
+| `knowledge-model.md` | ✅ | ✅ | ✅ | All note types, IDs, tags, typed links working; unknown types rejected (not coerced) |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Discovery boundary check order issue; load attachment path traversal vulnerability |
+| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Search/inbox/context JSON missing `path` field; exit code issue actually correct |
+| `indexing-search.md` | ✅ | ✅ | ⚠️ | Field weights correct (2.0/1.5/1.0); search wraps query in quotes (phrase search) |
+| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | `show --links` ignores `--no-semantic-inversion` flag; inversion tests sparse |
+| `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
+| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Search uses additive boosts instead of multiplicative weights; wraps query in quotes |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link commands use store-relative paths (not CWD-relative); `via` annotation missing in link JSON |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Context JSON missing per-note `path`; prime uses count-based limits (not token budget) |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
+| `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
+| `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
+| `compaction.md` | ✅ | ⚠️ | ✅ | Link JSON missing `via` annotation; truncation markers ARE present |
+| `pack.md` | ✅ | ✅ | ✅ | Value/custom correctly preserved; merge-links restricted to newly loaded notes |
+| `workspaces.md` | ✅ | ✅ | ⚠️ | Rename strategy link rewriting untested; metadata location per-workspace (spec ambiguous) |
+| `structured-logging.md` | ✅ | ✅ | ⚠️ | Logs correctly route to stderr; missing TRACE tests; structured fields not validated |
+| `operational-database.md` | ✅ | ⚠️ | ✅ | Consistency check result ignored (no auto-repair); no corruption detection/rebuild |
+| `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
+| `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts work; release workflow disabled; SHA256SUMS format incorrect |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
 | `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
 
@@ -81,34 +81,48 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Store discovery stops at project root markers | `src/lib/store/paths.rs:29-38`, `src/lib/store/paths.rs:98-120` |
-| `cli-tool.md` | `--format json --help/--version` likely treated as error | `src/main.rs:32-41` |
-| `structured-logging.md` | Logs show up on stdout (breaks machine output expectations) | `tests/cli/logging.rs:19-25`, `src/lib/logging.rs:33-40` |
-| `cli-interface.md` | Search JSON omits spec-minimum note fields (`path/created/updated`) | `src/commands/search/format/json.rs:20-29` |
-| `cli-interface.md` | Inbox JSON omits `path` | `src/commands/dispatch/notes.rs:160-177` |
-| `cli-interface.md` | `context` missing-selection returns exit 1 (not usage exit 2) | `src/commands/context/mod.rs:443-446`, `src/lib/error.rs:95-101` |
-| `knowledge-model.md` | DB reads coerce unknown `type` to `fleeting` | `src/lib/db/notes/read.rs:248-249`, `src/lib/db/search.rs:206-207` |
-| `indexing-search.md` | DB edge insertion misses relative `.md` links (empty `path_to_id`) | `src/lib/db/edges.rs:13-22` |
-| `graph-traversal.md` | Tree human view expands from `result.links` (not `spanning_tree`) | `src/commands/link/tree.rs:171-293` |
-| `value-model.md` | `link path` defaults to `--ignore-value` despite spec “weighted by default” | `src/cli/link.rs:154-155` |
-| `records-output.md` | Link records headers use store-root path (not CWD-relative) | `src/commands/link/records.rs:176-186` |
-| `llm-context.md` | `context --format json` omits per-note `path` | `src/commands/context/json.rs:171-195` |
-| `compaction.md` | Link JSON outputs omit compaction annotations/truncation markers | `src/commands/link/json.rs:7-86` |
-| `pack.md` | Dump/load lossy (value/custom dropped; merge-links restricted) | `src/commands/dump/serialize.rs:107-148`, `src/commands/load/mod.rs:95-104`, `src/commands/load/mod.rs:245-246` |
-| `distribution.md` | Release automation disabled + installers repo mismatch | `.github/workflows/release.yml:3-13`, `scripts/install.sh:13-16`, `Cargo.toml:4-12` |
+| `cli-tool.md` | Store discovery stops at project roots instead of continuing to filesystem root | `src/lib/store/paths.rs:97-102` |
+| `storage-format.md` | Discovery boundary check order incorrect (checks store before project marker) | `src/lib/store/paths.rs:62-102` |
+| `storage-format.md` | Load attachment path traversal vulnerability (no `../` validation) | `src/commands/load/mod.rs:476-477` |
+| `cli-interface.md` | Inbox JSON omits `path` field (only included when `Some`) | `src/commands/dispatch/notes.rs:160-181` |
+| `llm-context.md` | Context JSON omits per-note `path` field | `src/commands/context/json.rs:171-195` |
+| `llm-context.md` | Prime uses count-based limits (5 notes) not token budget (~1-2k tokens) | `src/commands/prime.rs:16-20` |
+| `similarity-ranking.md` | Search wraps query in quotes (phrase search vs AND/OR semantics) | `src/lib/db/search.rs:47` |
+| `similarity-ranking.md` | Search uses additive boosts instead of multiplicative field weights | `src/lib/db/search.rs:112-132` |
+| `records-output.md` | Link records use store-relative paths (not CWD-relative) | `src/commands/link/records.rs:103, 286` |
+| `semantic-graph.md` | `show --links` ignores `--no-semantic-inversion` flag | `src/commands/show.rs:204-225` |
+| `compaction.md` | Link JSON missing `via` annotation (breadcrumb for compacted sources) | `src/commands/link/json.rs:7-86`, `src/commands/link/mod.rs:31-45` |
+| `provenance.md` | Bibliography ignores `source` field (singular), uses `sources[]` only | `src/commands/export/emit/bibliography.rs:35` |
+| `operational-database.md` | Consistency check result ignored (no auto-repair) | `src/lib/db/mod.rs:96` |
+| `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
+| `llm-user-validation.md` | Budget cost estimation inaccurate (char/4 instead of token count) | `crates/llm-tool-test/src/run.rs:412` |
+| `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |
+| `distribution.md` | Release workflow disabled with incorrect triggers (not `v*` tags) | `.github/workflows/release.yml:3-13` |
+| `distribution.md` | SHA256SUMS file format incorrect (individual files instead of combined) | `.github/workflows/release.yml:99-152` |
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `semantic-graph.md` | Test coverage | Add direct CLI tests for inversion + type filtering + `source=virtual` |
-| `custom-metadata.md` | Test coverage | Add tests for `qipu list --custom ...` + doctor custom checks |
-| `workspaces.md` | Test coverage | Add tests for `workspace merge --strategy rename` |
-| `llm-user-validation.md` | Feature gap | Enforce per-run budgets (`LLM_TOOL_TEST_BUDGET_USD`, `cost.max_usd`) preflight |
-| `export.md` | Spec alignment | Decide whether outline ordering must include typed/markdown links (impl uses wiki-links only) (`src/commands/export/emit/outline.rs:92-121`) |
-| `provenance.md` | Spec clarification | Define `source` vs `sources[]` and bibliography behavior |
-| `structured-logging.md` | Design/test gap | Decide stdout/stderr routing guarantees for machine output; add tests |
-| `distribution.md` | External dependency | Enable Actions + tag-triggered releases; decide canonical repo slug |
+| `cli-tool.md` | Test coverage | Missing tests for duplicate `--format` detection; no performance tests |
+| `storage-format.md` | Test coverage | Missing security tests for discovery boundary with parent store; malicious attachment paths |
+| `cli-interface.md` | Test coverage | Missing tests asserting JSON schema compliance (required fields present) |
+| `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case; no direct 2-hop neighborhood CLI tests |
+| `semantic-graph.md` | Test coverage | Missing tests for `show --links --no-semantic-inversion`; sparse inversion tests for context walk/dump |
+| `graph-traversal.md` | Test coverage | Missing tests for max-fanout limit behavior; records format edge cases |
+| `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries; tests don't validate actual weight values |
+| `records-output.md` | Test coverage | Missing tests for CWD-relative paths from subdirectories; S prefix semantic distinction; truncation flags |
+| `llm-context.md` | Test coverage | Missing tests for `qipu prime --format json/records`; missing-selection exit codes; JSON `path` field presence |
+| `pack.md` | Test coverage | Missing tests for `--tag`/`--moc`/`--query` selectors in dump; graph traversal options; link preservation |
+| `workspaces.md` | Test coverage | Missing tests for rename strategy link rewriting; `--delete-source` flag |
+| `structured-logging.md` | Test coverage | Missing TRACE level tests; structured field validation; span/trace relationship tests |
+| `operational-database.md` | Test coverage | No FTS5 field weight tests; no performance benchmarks; no WAL concurrent read tests |
+| `value-model.md` | Test coverage | Missing tests for compaction suggest + value; context `--min-value` edge cases; search sort-by-value defaults |
+| `export.md` | Test coverage | Missing tests for outline with typed/markdown links; PDF edge cases; BibTeX/CSL-JSON edge cases |
+| `compaction.md` | Test coverage | Missing `via` annotation tests for link commands; multi-level compaction chains |
+| `provenance.md` | Test coverage | Missing bibliography test for `source` field; notes with both `source` and `sources[]` |
+| `llm-user-validation.md` | Test coverage | Missing tests for transcript report; event logging; human review; CLI commands; LLM judge; link parsing |
+| `distribution.md` | Test coverage | No install script tests; release workflow tests; checksum verification; version consistency; cross-platform binary tests |
 
 ### Not Applicable
 

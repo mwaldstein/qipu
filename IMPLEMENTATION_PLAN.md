@@ -36,11 +36,13 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### llm-context.md
 
-- [ ] Prime command uses count-based limits instead of character budget
+- [x] Prime command uses count-based limits instead of character budget
   - **Location**: `src/commands/prime.rs:16-20`
   - **Issue**: Uses `MAX_MOCS: usize = 5` and `MAX_RECENT_NOTES: usize = 5` (count-based)
   - **Spec requires**: "bounded size (target: ~4–8k characters)"
-  - **Fix**: Either implement character counting to ~4-8k characters, or update spec
+  - **Resolution**: Implemented character-based budgeting with TARGET_MIN_CHARS=4000 and TARGET_MAX_CHARS=8000
+  - **Implementation**: Added helper functions to estimate character counts and select notes within budget
+  - **Behavior**: Now dynamically includes MOCs and recent notes based on character budget instead of fixed counts
 
 ### similarity-ranking.md
 

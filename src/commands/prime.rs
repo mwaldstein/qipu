@@ -13,11 +13,8 @@ use crate::lib::note::NoteType;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
-/// Maximum number of MOCs to include in the primer
-const MAX_MOCS: usize = 5;
-
-/// Maximum number of recent notes to include in the primer
-const MAX_RECENT_NOTES: usize = 5;
+const TARGET_MIN_CHARS: usize = 4000;
+const TARGET_MAX_CHARS: usize = 8000;
 
 /// Execute the prime command
 pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
@@ -40,10 +37,8 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
         },
     );
 
-    // Get top MOCs
-    let top_mocs: Vec<_> = mocs.into_iter().take(MAX_MOCS).collect();
+    let top_mocs: Vec<_> = mocs.into_iter().collect();
 
-    // Get recent non-MOC notes sorted by updated/created
     let mut recent_notes: Vec<_> = notes
         .iter()
         .filter(|n| n.note_type() != NoteType::Moc)
@@ -68,10 +63,14 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
         }
     });
 
-    let recent_notes: Vec<_> = recent_notes.into_iter().take(MAX_RECENT_NOTES).collect();
+    let recent_notes: Vec<_> = recent_notes.into_iter().collect();
 
-    // Get store path for display (relative to current working directory per spec)
     let store_path = path_relative_to_cwd(store.root());
+
+    let selected_mocs =
+        select_notes_within_budget(&top_mocs, &recent_notes, &store_path, cli.format);
+    let selected_recent =
+        select_recent_within_budget(&recent_notes, &selected_mocs, &store_path, cli.format);
 
     match cli.format {
         OutputFormat::Json => {
@@ -90,7 +89,7 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
                         {"name": "qipu context", "description": "Build context bundle for LLM"},
                     ],
                 },
-                "mocs": top_mocs.iter().map(|n| {
+                "mocs": selected_mocs.iter().map(|n: &&crate::lib::note::Note| {
                     serde_json::json!({
                         "id": n.id(),
                         "title": n.title(),
@@ -98,7 +97,7 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
 
                     })
                 }).collect::<Vec<_>>(),
-                "recent_notes": recent_notes.iter().map(|n| {
+                "recent_notes": selected_recent.iter().map(|n: &&crate::lib::note::Note| {
                     serde_json::json!({
                         "id": n.id(),
                         "title": n.title(),
@@ -110,14 +109,160 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         OutputFormat::Human => {
-            output_human_primer(&store_path, &top_mocs, &recent_notes);
+            output_human_primer(&store_path, &selected_mocs, &selected_recent);
         }
         OutputFormat::Records => {
-            output_records_primer(&store_path, &top_mocs, &recent_notes);
+            output_records_primer(&store_path, &selected_mocs, &selected_recent);
         }
     }
 
     Ok(())
+}
+
+fn estimate_char_count(notes: &[&crate::lib::note::Note], format: OutputFormat) -> usize {
+    match format {
+        OutputFormat::Json => notes
+            .iter()
+            .map(|n| {
+                let id = n.id();
+                let title = n.title();
+                let tags = serde_json::to_string(&n.frontmatter.tags).unwrap_or_default();
+                id.len() + title.len() + tags.len() + 50
+            })
+            .sum(),
+        OutputFormat::Human => notes
+            .iter()
+            .map(|n| n.id().len() + n.title().len() + n.frontmatter.tags.join(", ").len() + 10)
+            .sum(),
+        OutputFormat::Records => notes
+            .iter()
+            .map(|n| n.id().len() + n.title().len() + n.frontmatter.tags.join(",").len() + 20)
+            .sum(),
+    }
+}
+
+fn select_notes_within_budget<'a>(
+    mocs: &'a [&'a crate::lib::note::Note],
+    _recent_notes: &[&crate::lib::note::Note],
+    store_path: &str,
+    format: OutputFormat,
+) -> Vec<&'a crate::lib::note::Note> {
+    let base_chars = estimate_base_char_count(store_path, format);
+    let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
+    let remaining = target.saturating_sub(base_chars);
+
+    let mut selected = Vec::new();
+    let mut current_count = 0;
+
+    for moc in mocs {
+        let moc_chars = estimate_single_note_char_count(*moc, format, true);
+        if current_count + moc_chars <= remaining {
+            selected.push(*moc);
+            current_count += moc_chars;
+        } else {
+            break;
+        }
+    }
+
+    selected
+}
+
+fn select_recent_within_budget<'a>(
+    recent_notes: &'a [&'a crate::lib::note::Note],
+    selected_mocs: &[&crate::lib::note::Note],
+    store_path: &str,
+    format: OutputFormat,
+) -> Vec<&'a crate::lib::note::Note> {
+    let base_chars = estimate_base_char_count(store_path, format);
+    let moc_chars = estimate_char_count(selected_mocs, format);
+    let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
+    let remaining = target.saturating_sub(base_chars + moc_chars);
+
+    let mut selected = Vec::new();
+    let mut current_count = 0;
+
+    for note in recent_notes {
+        let note_chars = estimate_single_note_char_count(*note, format, false);
+        if current_count + note_chars <= remaining {
+            selected.push(*note);
+            current_count += note_chars;
+        } else {
+            break;
+        }
+    }
+
+    selected
+}
+
+fn estimate_base_char_count(store_path: &str, format: OutputFormat) -> usize {
+    match format {
+        OutputFormat::Json => {
+            serde_json::json!({
+                "store": store_path,
+                "primer": {
+                    "description": "Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs).",
+                    "commands": [
+                        {"name": "qipu list", "description": "List notes"},
+                        {"name": "qipu search <query>", "description": "Search notes by title and body"},
+                        {"name": "qipu show <id>", "description": "Display a note"},
+                        {"name": "qipu create <title>", "description": "Create a new note"},
+                        {"name": "qipu capture", "description": "Create note from stdin"},
+                        {"name": "qipu link tree <id>", "description": "Show traversal tree from a note"},
+                        {"name": "qipu link path <from> <to>", "description": "Find path between notes"},
+                        {"name": "qipu context", "description": "Build context bundle for LLM"},
+                    ],
+                },
+                "mocs": [],
+                "recent_notes": [],
+            }).to_string().len()
+        }
+        OutputFormat::Human => {
+            "# Qipu Knowledge Store Primer\n\nStore: \n\n## About Qipu\n\nQipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\n\nNote types: fleeting (quick capture), literature (from sources), permanent (distilled insights), moc (index/map notes).\n\n## Quick Reference\n\n  qipu list              List notes\n  qipu search <query>    Search notes by title and body\n  qipu show <id>         Display a note\n  qipu create <title>    Create a new note\n  qipu capture           Create note from stdin\n  qipu link tree <id>    Show traversal tree from a note\n  qipu link path A B     Find path between notes\n  qipu context           Build context bundle for LLM\n\n".len() + store_path.len()
+        }
+        OutputFormat::Records => {
+            "H qipu=1 records=1 store= mode=prime mocs=0 recent=0 truncated=false\nD Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\nC list \"List notes\"\nC search \"Search notes by title and body\"\nC show \"Display a note\"\nC create \"Create a new note\"\nC capture \"Create note from stdin\"\nC link.tree \"Show traversal tree from a note\"\nC link.path \"Find path between notes\"\nC context \"Build context bundle for LLM\"\n".len() + store_path.len()
+        }
+    }
+}
+
+fn estimate_single_note_char_count(
+    note: &crate::lib::note::Note,
+    format: OutputFormat,
+    is_moc: bool,
+) -> usize {
+    match format {
+        OutputFormat::Json => {
+            if is_moc {
+                let tags = serde_json::to_string(&note.frontmatter.tags).unwrap_or_default();
+                note.id().len() + note.title().len() + tags.len() + 50
+            } else {
+                let tags = serde_json::to_string(&note.frontmatter.tags).unwrap_or_default();
+                note.id().len()
+                    + note.title().len()
+                    + note.note_type().to_string().len()
+                    + tags.len()
+                    + 50
+            }
+        }
+        OutputFormat::Human => {
+            if is_moc {
+                note.id().len() + note.title().len() + note.frontmatter.tags.join(", ").len() + 15
+            } else {
+                note.id().len() + note.title().len() + 5
+            }
+        }
+        OutputFormat::Records => {
+            if is_moc {
+                note.id().len() + note.title().len() + note.frontmatter.tags.join(",").len() + 15
+            } else {
+                note.id().len()
+                    + note.title().len()
+                    + note.note_type().to_string().len()
+                    + note.frontmatter.tags.join(",").len()
+                    + 20
+            }
+        }
+    }
 }
 
 /// Output primer in human-readable format
@@ -239,9 +384,8 @@ mod tests {
 
     #[test]
     #[allow(clippy::assertions_on_constants)]
-    fn test_max_constants() {
-        // Ensure we have reasonable defaults
-        assert!(MAX_MOCS > 0 && MAX_MOCS <= 10);
-        assert!(MAX_RECENT_NOTES > 0 && MAX_RECENT_NOTES <= 10);
+    fn test_budget_constants() {
+        assert!(TARGET_MIN_CHARS > 1000 && TARGET_MIN_CHARS <= 10000);
+        assert!(TARGET_MAX_CHARS > TARGET_MIN_CHARS && TARGET_MAX_CHARS <= 20000);
     }
 }

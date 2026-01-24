@@ -19,9 +19,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
  ### P2: Technical Debt
 
- | Task | Priority |
- |------|----------|
- | Shared `OutputFormatter` trait | Low |
+*No pending P2 items*
 
 ### Blocked
 
@@ -32,7 +30,9 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ---
 
-## Completed (Summary)
+ ## Completed (Summary)
+
+ **Revision 12** (2026-01-24): Shared compaction formatting functions across `search` and `list` commands. Created shared functions in `src/lib/format.rs` for building compaction annotations (`build_compaction_annotations`), outputting compaction IDs (`output_compaction_ids`), and adding compaction to JSON (`add_compaction_to_json`, `add_compacted_ids_to_json`). Updated both commands' format modules (human, json, records) to use these shared functions, eliminating ~70 lines of duplicated code.
 
  **Revision 11** (2026-01-24): Externalized model pricing to config. Added `llm-tool-test-config.example.toml` template file with default pricing for Claude, OpenAI, and Amp models. Updated documentation to explain configuration process.
 

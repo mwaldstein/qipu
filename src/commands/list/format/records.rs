@@ -2,6 +2,7 @@
 
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
+use crate::lib::format::build_compaction_annotations;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 use std::collections::HashMap;
@@ -38,7 +39,7 @@ fn output_note_record(
         note.frontmatter.tags.join(",")
     };
 
-    let annotations = build_compaction_annotations(note, compaction_ctx, note_map);
+    let annotations = build_compaction_annotations(note.id(), compaction_ctx, note_map);
 
     println!(
         "N {} {} \"{}\" tags={}{}",
@@ -49,58 +50,23 @@ fn output_note_record(
         annotations
     );
 
-    output_compaction_ids(cli, note, compaction_ctx);
-}
-
-/// Build compaction annotations for a note
-fn build_compaction_annotations(
-    note: &crate::lib::note::Note,
-    compaction_ctx: &CompactionContext,
-    note_map: &HashMap<&str, &crate::lib::note::Note>,
-) -> String {
-    let mut annotations = String::new();
     let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+    if cli.with_compaction_ids && compacts_count > 0 {
+        let depth = cli.compaction_depth.unwrap_or(1);
+        if let Some((ids, truncated)) =
+            compaction_ctx.get_compacted_ids(&note.frontmatter.id, depth, cli.compaction_max_nodes)
+        {
+            for id in &ids {
+                println!("D compacted {} from={}", id, note.id());
+            }
 
-    if compacts_count > 0 {
-        annotations.push_str(&format!(" compacts={}", compacts_count));
-
-        if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
-            annotations.push_str(&format!(" compaction={:.0}%", pct));
-        }
-    }
-
-    annotations
-}
-
-/// Output compacted IDs if requested
-fn output_compaction_ids(
-    cli: &Cli,
-    note: &crate::lib::note::Note,
-    compaction_ctx: &CompactionContext,
-) {
-    if !cli.with_compaction_ids {
-        return;
-    }
-
-    let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-    if compacts_count == 0 {
-        return;
-    }
-
-    let depth = cli.compaction_depth.unwrap_or(1);
-    if let Some((ids, truncated)) =
-        compaction_ctx.get_compacted_ids(&note.frontmatter.id, depth, cli.compaction_max_nodes)
-    {
-        for id in &ids {
-            println!("D compacted {} from={}", id, note.id());
-        }
-
-        if truncated {
-            println!(
-                "D compacted_truncated max={} total={}",
-                cli.compaction_max_nodes.unwrap_or(ids.len()),
-                compacts_count
-            );
+            if truncated {
+                println!(
+                    "D compacted_truncated max={} total={}",
+                    cli.compaction_max_nodes.unwrap_or(ids.len()),
+                    compacts_count
+                );
+            }
         }
     }
 }

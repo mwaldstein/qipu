@@ -320,3 +320,81 @@ fn test_export_bibliography_with_bib_alias() {
             "[Test Source](https://example.com/test)",
         ));
 }
+
+#[test]
+fn test_export_bibliography_singular_source_field() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with singular source field (as created by qipu capture --source)
+    let note_path = dir.path().join(".qipu/notes/qp-aaaa-singular-source.md");
+    fs::write(
+        &note_path,
+        "---\nid: qp-aaaa\ntitle: Captured Note\nsource: https://example.com/captured\n---\nBody captured from web",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Export should include the singular source field
+    qipu()
+        .current_dir(dir.path())
+        .args(["export", "--note", "qp-aaaa", "--mode", "bibliography"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# Bibliography"))
+        .stdout(predicate::str::contains("https://example.com/captured"))
+        .stdout(predicate::str::contains("— from: Captured Note"));
+}
+
+#[test]
+fn test_export_bibliography_both_source_fields() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create a note with both singular source and sources array
+    let note_path = dir.path().join(".qipu/notes/qp-aaaa-both-sources.md");
+    fs::write(
+        &note_path,
+        "---\nid: qp-aaaa\ntitle: Mixed Sources\nsource: https://example.com/singular\nsources:\n  - url: https://example.com/array1\n    title: Array Source 1\n  - url: https://example.com/array2\n    title: Array Source 2\n---\nBody",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let result = qipu()
+        .current_dir(dir.path())
+        .args(["export", "--note", "qp-aaaa", "--mode", "bibliography"])
+        .assert()
+        .success();
+
+    let output = String::from_utf8_lossy(&result.get_output().stdout);
+
+    // Verify all sources are present (singular + array)
+    assert!(output.contains("https://example.com/singular"));
+    assert!(output.contains("[Array Source 1](https://example.com/array1)"));
+    assert!(output.contains("[Array Source 2](https://example.com/array2)"));
+
+    // All should reference the same note
+    let source_count = output.matches("— from: Mixed Sources").count();
+    assert_eq!(
+        source_count, 3,
+        "All three sources (singular + 2 array) should reference Mixed Sources"
+    );
+}

@@ -86,11 +86,13 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### provenance.md
 
-- [ ] Bibliography ignores `source` field, uses `sources[]` only
+- [x] Bibliography ignores `source` field, uses `sources[]` only
   - **Location**: `src/commands/export/emit/bibliography.rs:35`
-  - **Issue**: Only iterates `note.frontmatter.sources` (array), ignores singular `source` field
-  - **Impact**: Notes created with `qipu capture --source` won't appear in bibliography exports
-  - **Clarification needed**: Define `source` vs `sources[]` semantics
+  - **Issue**: Only iterated `note.frontmatter.sources` (array), ignored singular `source` field
+  - **Impact**: Notes created with `qipu capture --source` wouldn't appear in bibliography exports
+  - **Resolution**: Added support for singular `source` field by creating temporary `Source` objects and including them in bibliography exports alongside the `sources` array
+  - **Implementation**: Now collects both singular `source` field and `sources` array, maintaining deterministic URL-based sorting
+  - **Tests**: Added `test_export_bibliography_singular_source_field` and `test_export_bibliography_both_source_fields` to verify correct behavior
 
 ### operational-database.md
 
@@ -363,6 +365,8 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 ---
 
  ## Completed (Summary)
+
+ **Revision 17** (2026-01-24): Fixed bibliography export to support singular `source` field alongside `sources` array. Previously, notes created with `qipu capture --source` would not appear in bibliography exports because only the `sources` array was processed. Updated `export_bibliography` function in `src/commands/export/emit/bibliography.rs` to collect both fields, creating temporary `Source` objects for the singular `source` field. Maintains deterministic URL-based sorting across all sources. Added comprehensive tests: `test_export_bibliography_singular_source_field` for singular field support and `test_export_bibliography_both_source_fields` for mixed usage. All 14 bibliography tests pass.
 
  **Revision 16** (2026-01-24): Added `via` annotation to link JSON outputs per spec requirement. Added `via` field to `LinkEntry` struct to track original note ID before canonicalization. Updated link list and show commands to populate `via` when ID changes during canonicalization. JSON output includes `via` field; human and records exclude it (optional per spec). All link-related tests pass. Updated IMPLEMENTATION_PLAN.md with completion.
 

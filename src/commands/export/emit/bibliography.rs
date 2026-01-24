@@ -1,5 +1,5 @@
 use crate::lib::error::{QipuError, Result};
-use crate::lib::note::Note;
+use crate::lib::note::{Note, Source};
 use serde_json::json;
 
 /// Bibliography output format
@@ -29,9 +29,38 @@ impl BibFormat {
 
 pub fn export_bibliography(notes: &[Note], format: BibFormat) -> Result<String> {
     let mut all_sources = Vec::new();
+    let mut temp_sources = Vec::new();
 
     // Collect all sources from all notes
     for note in notes {
+        // Include singular source field if present
+        if let Some(source_url) = &note.frontmatter.source {
+            temp_sources.push(Source {
+                url: source_url.clone(),
+                title: None,
+                accessed: None,
+            });
+        }
+    }
+
+    // Now add references to all sources (temp_sources + sources arrays)
+    for note in notes {
+        let temp_start = temp_sources.len();
+        // Count how many temp sources belong to this note
+        for _ in &note.frontmatter.sources {
+            // temp_sources is complete now, we can safely reference
+        }
+    }
+
+    // Re-scan to build the final all_sources vector
+    let mut temp_idx = 0;
+    for note in notes {
+        // Add singular source references
+        if note.frontmatter.source.is_some() {
+            all_sources.push((note, &temp_sources[temp_idx]));
+            temp_idx += 1;
+        }
+        // Add sources array references
         for source in &note.frontmatter.sources {
             all_sources.push((note, source));
         }

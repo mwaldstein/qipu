@@ -73,15 +73,25 @@ The harness checks that the specified tool is available before running:
 - **amp**: Must be in PATH and respond to `amp --version`
 - **opencode**: Must be in PATH and respond to `opencode --version`
 
-### API Keys (for LLM-as-judge)
+ ### API Keys (for LLM-as-judge)
 
-If your scenario uses judge evaluation, set:
+ If your scenario uses judge evaluation, set:
 
-```bash
-export OPENAI_API_KEY="sk-..."
-# or
-export LLM_TOOL_TEST_API_KEY="sk-..."
-```
+ ```bash
+ export OPENAI_API_KEY="sk-..."
+ # or
+ export LLM_TOOL_TEST_API_KEY="sk-..."
+ ```
+
+### Model Pricing Configuration
+
+ Cost tracking uses model pricing data. Customize pricing by creating a `llm-tool-test-config.toml` in your working directory:
+
+ ```bash
+ cp crates/llm-tool-test/llm-tool-test-config.example.toml llm-tool-test-config.toml
+ ```
+
+ Edit the file to update pricing for your specific models. If no config file is present, default pricing values are used.
 
 ## Commands
 

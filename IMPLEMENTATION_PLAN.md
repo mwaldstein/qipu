@@ -17,12 +17,11 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 *No pending P1 items*
 
-### P2: Technical Debt
+ ### P2: Technical Debt
 
-| Task | Priority |
-|------|----------|
-| Externalize model pricing to config | Low |
-| Shared `OutputFormatter` trait | Low |
+ | Task | Priority |
+ |------|----------|
+ | Shared `OutputFormatter` trait | Low |
 
 ### Blocked
 
@@ -35,7 +34,9 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Completed (Summary)
 
-**Revision 10** (2026-01-24): Aligned `qipu update` output format with `qipu create`. JSON now includes all fields (`created`, `updated`, `source`, `author`, `generated_by`, `prompt_hash`, `verified`). Human output simplified to just ID. Records output now includes header line.
+ **Revision 11** (2026-01-24): Externalized model pricing to config. Added `llm-tool-test-config.example.toml` template file with default pricing for Claude, OpenAI, and Amp models. Updated documentation to explain configuration process.
+
+ **Revision 10** (2026-01-24): Aligned `qipu update` output format with `qipu create`. JSON now includes all fields (`created`, `updated`, `source`, `author`, `generated_by`, `prompt_hash`, `verified`). Human output simplified to just ID. Records output now includes header line.
 
 **Revision 9** (2026-01-23): Refactored `src/commands/doctor/database.rs` (723→684 lines). Extracted helper functions (`get_note_path`, `report_semantic_link_misuse`, `check_self_referential_link`) to eliminate repeated patterns in `check_semantic_link_types`, `check_follows_cycles`, and `check_orphaned_notes`.
 

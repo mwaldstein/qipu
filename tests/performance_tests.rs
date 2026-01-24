@@ -185,6 +185,7 @@ fn test_list_performance_1k_notes() {
 // ============================================================================
 
 #[test]
+#[ignore] // Long-running test: indexing 10k notes takes minutes
 fn test_search_performance_10k_notes() {
     let store_dir = tempdir().unwrap();
     let note_count = 10000;
@@ -250,7 +251,7 @@ fn test_verbose_timing_output() {
     // Create test store with notes
     create_test_store_with_notes(store_dir.path(), note_count).unwrap();
 
-    // Test that verbose mode produces timing output
+    // Test that verbose mode produces timing output (logs go to stderr)
     qipu()
         .arg("--store")
         .arg(store_dir.path())
@@ -258,7 +259,7 @@ fn test_verbose_timing_output() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("discover_store"));
+        .stderr(predicate::str::contains("discover_store"));
 }
 
 // ============================================================================

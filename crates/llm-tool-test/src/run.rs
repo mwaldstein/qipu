@@ -417,13 +417,12 @@ pub fn run_single_scenario(
 
         // Check if we exceeded the budget
         if let Some(max_usd) = effective_max_usd {
-            if let Some(cost) = cost_opt {
-                if cost > max_usd {
-                    eprintln!(
-                        "WARNING: Run cost ${:.4} exceeded budget ${:.4}",
-                        cost, max_usd
-                    );
-                }
+            if cost > max_usd {
+                anyhow::bail!(
+                    "Budget exhausted: Run cost ${:.4} exceeded budget ${:.4}",
+                    cost,
+                    max_usd
+                );
             }
         }
 

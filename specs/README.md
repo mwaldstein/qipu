@@ -55,7 +55,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Search uses additive boosts instead of multiplicative weights; wraps query in quotes |
 | `records-output.md` | ✅ | ⚠️ | ⚠️ | `via` annotation missing in link JSON; missing truncation/S-prefix tests |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime uses count-based limits (not character budget) |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime uses count-based limits (not character budget); `--max-tokens` flag out of scope |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
@@ -91,7 +91,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `provenance.md` | Bibliography ignores `source` field (singular), uses `sources[]` only | `src/commands/export/emit/bibliography.rs:35` |
 | `operational-database.md` | Consistency check result ignored (no auto-repair) | `src/lib/db/mod.rs:96` |
 | `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
-| `llm-user-validation.md` | Budget cost estimation inaccurate (char/4 instead of token count) | `crates/llm-tool-test/src/run.rs:412` |
+| `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
 | `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |
 | `distribution.md` | Release workflow disabled with incorrect triggers (not `v*` tags) | `.github/workflows/release.yml:3-13` |
 | `distribution.md` | SHA256SUMS file format incorrect (individual files instead of combined) | `.github/workflows/release.yml:99-152` |
@@ -109,6 +109,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries; tests don't validate actual weight values |
 | `records-output.md` | Test coverage | Missing tests for S prefix semantic distinction; truncation flags |
 | `llm-context.md` | Test coverage | Missing tests for `qipu prime --format json/records`; missing-selection exit codes |
+| `llm-context.md` | Out of scope | `--max-tokens` flag and tiktoken dependency should be removed (character-only budgets) |
 | `pack.md` | Test coverage | Missing tests for `--tag`/`--moc`/`--query` selectors in dump; graph traversal options; link preservation |
 | `workspaces.md` | Test coverage | Missing tests for rename strategy link rewriting; `--delete-source` flag |
 | `structured-logging.md` | Test coverage | Missing TRACE level tests; structured field validation; span/trace relationship tests |

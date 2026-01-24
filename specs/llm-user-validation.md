@@ -271,6 +271,17 @@ pub struct ToolStatus {
 | opencode | `opencode <prompt>` | PTY capture |
 | claude | `claude --prompt <text>` | PTY capture |
 
+### Token Usage and Cost Collection
+
+Token counts and costs should be obtained from actual LLM tool responses when available:
+
+- Tools (amp, opencode, claude) may report actual API token usage and/or cost in their output
+- Adapters parse token counts and/or cost from tool output when available
+- If token counts are not available in tool output, return `None` for `token_usage`
+- If actual cost is available in tool output, use it instead of estimating from tokens
+- Do not use `len() / 4` or other character-based approximations for token counts
+- Do not estimate cost from character counts
+
 ### PTY Session Capture
 
 Use pseudo-terminal capture to get complete interaction including:

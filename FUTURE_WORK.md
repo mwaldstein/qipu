@@ -29,7 +29,8 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| Prime command size semantics | Spec says "~1-2k tokens" but implementation uses count-based (5 MOCs, 5 notes) | 33-39 |
+| Prime command size semantics | Spec says "~4-8k characters" - implemented correctly | 24 |
+| Remove `--max-tokens` flag | Qipu standardizes on character-based budgets only | 38 |
 | Automatic summarization for long notes | Open question: "Should qipu support lightweight automatic summarization (without an LLM)?" | 119 |
 | Backlinks in context bundles | Open question: Should backlinks be included by default or via `--backlinks` flag? | 121 |
 
@@ -87,7 +88,7 @@ The telemetry spec is explicitly marked as draft with "DO NOT IMPLEMENT" warning
 
 | Item | Issue | Spec Line |
 |------|-------|-----------|
-| Accurate cost estimation | Current implementation uses `len() / 4` character-based estimate; needs actual token counting | 412 |
+| Accurate cost estimation | Current implementation uses `len() / 4` character-based approximation; should parse actual token counts from tool output | 266-283 |
 | Budget enforcement | Only warns when exceeded, doesn't prevent run | 417-424 |
 
 ---

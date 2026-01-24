@@ -26,15 +26,14 @@ Start each LLM session with qipu's primer:
 qipu prime
 ```
 
-This outputs a compact (~1-2k tokens) introduction to qipu that teaches the LLM:
+This outputs a compact (~4-8k characters) introduction to qipu that teaches the LLM:
 - What qipu is and how it works
 - Available commands and their purposes
 - The current store location
 - Key MOCs and recently updated notes
 
 **Recommended:** Inject `qipu prime` output into your system prompt or initial context automatically.
-
-Note: `qipu prime` is internally size-bounded, but does not currently accept `--max-chars` / `--max-tokens` flags.
+Note: `qipu prime` is internally size-bounded using character counts. Qipu uses character-based budgets, not token counting, as it manages text output rather than tokenized API responses. Use `--max-chars` for exact character budgets.
 
 ### 2. Dynamic Context Injection
 
@@ -314,7 +313,7 @@ Track generation metadata beyond qipu's core provenance fields:
 qipu capture --type permanent --generated-by "claude-3.5-sonnet" \
   --author "research-agent" < generated-summary.md
 
-# Add custom tracking
+# Add custom tracking (token counts from external tool, not qipu)
 qipu custom set qp-def789 generation_cost_usd 0.042
 qipu custom set qp-def789 input_token_count 8234
 qipu custom set qp-def789 temperature 0.7

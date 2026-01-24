@@ -115,10 +115,11 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### llm-user-validation.md
 
-- [ ] Budget cost estimation inaccurate
-  - **Location**: `crates/llm-tool-test/src/run.rs:412`, `adapter/amp.rs:72-73`
-  - **Issue**: Uses `len() / 4` character-based estimate instead of actual token count
-  - **Impact**: Budget limits may be exceeded unexpectedly
+- [ ] Token usage estimation uses character-based approximation
+  - **Location**: `crates/llm-tool-test/src/adapter/claude_code.rs:68-69`, `crates/llm-tool-test/src/adapter/opencode.rs:64-65`, `crates/llm-tool-test/src/adapter/amp.rs:72-73`, `crates/llm-tool-test/src/results.rs:448-449`
+  - **Issue**: Uses `len() / 4` character-based estimate instead of actual token count from tool output
+  - **Impact**: Token counts and cost estimates are inaccurate; should read from actual LLM tool responses
+  - **Resolution**: Remove `len() / 4` estimation; parse token counts from tool output if available, otherwise return `None`. Tools (amp, opencode, claude) are responsible for reporting their actual API token usage.
 
 - [ ] Budget warning doesn't enforce limits
   - **Location**: `crates/llm-tool-test/src/run.rs:417-424`
@@ -144,6 +145,14 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## P2: Technical Debt & Test Coverage
+
+### llm-context.md
+
+- [ ] Remove `--max-tokens` flag and token counting code
+  - **Location**: `src/cli/commands.rs:327-329`, `src/commands/context/mod.rs`, `src/commands/context/budget.rs`, `src/commands/dispatch/mod.rs`, `src/commands/dispatch/notes.rs`
+  - **Issue**: Qipu standardizes on character-based budgets only; `--max-tokens` flag and tiktoken dependency are out of scope
+  - **Impact**: Removes unnecessary code and complexity; aligns with spec that uses character counts
+  - **Implementation**: Remove `--max-tokens` flag from CLI, remove `max_tokens` parameter from context options, remove `tiktoken_rs` dependency and token counting code
 
 ### Code size reduction
 
@@ -318,93 +327,3 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 - [ ] No version consistency tests (`qipu --version` matches git tag/Cargo.toml)
 - [ ] No cross-platform binary tests
 
----
-
-## P3: Unimplemented but Ready
-
-### indexing-search.md
-
-- [ ] Attachment content search (PDF, etc.) - Open question: include in search?
-
-### value-model.md
-
-- [ ] Resolve: Should value influence search ranking by default? (Currently only with `--sort value`)
-- [ ] Resolve: Should `qipu compact suggest` factor in value?
-- [ ] Resolve: Should digest notes automatically receive value boost?
-
-### records-output.md
-
-- [ ] Add `--format version=1` selector (currently hardcoded)
-- [ ] Resolve: Should edges be included by default?
-- [ ] Resolve: Should summaries be included by default?
-
-### compaction.md
-
-- [ ] Add MOC/spec note filter to `qipu compact suggest` (spec line 272)
-
-### structured-logging.md
-
-- [ ] Resource usage logging (memory, cache hits) - Infrastructure not present
-- [ ] Error chain trace logging - needs design
-
-### llm-context.md
-
-- [ ] Resolve: Automatic summarization for long notes (open question in spec)
-- [ ] Resolve: Should backlinks be included in context by default? (open question)
-
-### export.md
-
-- [ ] Resolve: Should outline ordering include typed/markdown links or only wiki-links?
-
----
-
-## Blocked
-
-| Item | Blocker |
-|------|---------|
-| Release workflow | GitHub Actions enablement |
-| `telemetry.md` | DRAFT spec; prohibits implementation |
-| Homebrew tap | Requires separate repository setup |
-| crates.io publishing | Account setup and verification needed |
-
----
-
- ## Completed (Summary)
-
- **Revision 18** (2026-01-24): Implemented auto-repair on database inconsistency per spec. Added `auto_repair` parameter to `Database::open` to control auto-repair behavior. When enabled (default), inconsistency triggers `incremental_repair()` to sync database with filesystem. For `doctor` command, auto-repair is disabled to allow issue detection without fixing. Updated `Store::open_unchecked` to accept and pass through the `auto_repair` parameter. Modified doctor handler to always use `open_unchecked` with `auto_repair=false` to detect issues like missing files. All unit and integration tests pass (excluding 2 pre-existing pack test failures unrelated to this change).
-
- **Revision 17** (2026-01-24): Fixed bibliography export to support singular `source` field alongside `sources` array. Previously, notes created with `qipu capture --source` would not appear in bibliography exports because only the `sources` array was processed. Updated `export_bibliography` function in `src/commands/export/emit/bibliography.rs` to collect both fields, creating temporary `Source` objects for the singular `source` field. Maintains deterministic URL-based sorting across all sources. Added comprehensive tests: `test_export_bibliography_singular_source_field` for singular field support and `test_export_bibliography_both_source_fields` for mixed usage. All 14 bibliography tests pass.
-
- **Revision 16** (2026-01-24): Added `via` annotation to link JSON outputs per spec requirement. Added `via` field to `LinkEntry` struct to track original note ID before canonicalization. Updated link list and show commands to populate `via` when ID changes during canonicalization. JSON output includes `via` field; human and records exclude it (optional per spec). All link-related tests pass. Updated IMPLEMENTATION_PLAN.md with completion.
-
- **Revision 15** (2026-01-24): Added code size reduction tasks for 13 grandfathered files exceeding 500-line CI limit. Files range from 511-975 lines; refactoring strategy involves splitting test modules, extracting helper functions, and splitting modules. After each refactor, file must be removed from CI allowed list. Added tasks to todo list and IMPLEMENTATION_PLAN.md.
-
- **Revision 14** (2026-01-24): Clarified spec semantics for store discovery (stops at project root via .git/Cargo.toml or filesystem root, whichever first), removed `path` field from JSON/records output requirements (all interactions use IDs), updated context budget terminology from "tokens" to "character count" (we manage text, not tokenized output). Updated llm-context.md, records-output.md, semantic-graph.md, compaction.md, specs/README.md, and IMPLEMENTATION_PLAN.md accordingly.
-
- **Revision 13** (2026-01-24): Comprehensive spec audit across 19 specifications. Corrected status for knowledge-model.md (unknown types rejected, not coerced), operational-database.md (field weights correct at 2.0/1.5/1.0), pack.md (value/custom correctly preserved), value-model.md (ignore_value default false = weighted by default), structured-logging.md (logs correctly route to stderr). Identified 17 P1 correctness bugs, 60+ P2 test coverage gaps. Updated IMPLEMENTATION_PLAN.md with categorized items, updated FUTURE_WORK.md with design questions, updated specs/README.md status table and gaps.
-
- **Revision 12** (2026-01-24): Shared compaction formatting functions across `search` and `list` commands. Created shared functions in `src/lib/format.rs` for building compaction annotations (`build_compaction_annotations`), outputting compaction IDs (`output_compaction_ids`), and adding compaction to JSON (`add_compaction_to_json`, `add_compacted_ids_to_json`). Updated both commands' format modules (human, json, records) to use these shared functions, eliminating ~70 lines of duplicated code.
-
- **Revision 11** (2026-01-24): Externalized model pricing to config. Added `llm-tool-test-config.example.toml` template file with default pricing for Claude, OpenAI, and Amp models. Updated documentation to explain configuration process.
-
- **Revision 10** (2026-01-24): Aligned `qipu update` output format with `qipu create`. JSON now includes all fields (`created`, `updated`, `source`, `author`, `generated_by`, `prompt_hash`, `verified`). Human output simplified to just ID. Records output now includes header line.
-
-**Revision 9** (2026-01-23): Refactored `src/commands/doctor/database.rs` (723→684 lines). Extracted helper functions (`get_note_path`, `report_semantic_link_misuse`, `check_self_referential_link`) to eliminate repeated patterns in `check_semantic_link_types`, `check_follows_cycles`, and `check_orphaned_notes`.
-
-**Revision 8** (2026-01-23): Refactored `src/commands/setup.rs` (781→710 lines). Extracted test helper functions (`assert_unknown_tool_error`, `setup_agents_md`, `assert_install_success`, `assert_execute_ok`) to eliminate code duplication across 24 test functions.
-
-**Revision 7** (2026-01-23): Refactored `src/commands/doctor/content.rs` (724→723 lines). Added `Note::id_string()` and `Note::path_display()` helper methods to eliminate repeated code patterns across multiple check functions.
-
-**Revision 6** (2026-01-23): Refactored `src/lib/graph/bfs.rs` (842→820 lines). Extracted helper functions (`get_note_value`, `canonicalize_with_context`) to eliminate code duplication in neighbor processing loops across `bfs_search` and `dijkstra_search`.
-
-**Revision 5** (2026-01-23): Added CI check for function complexity (>100 lines) with grandfathering for existing violations.
-
-**Revision 4** (2026-01-23): Added CI check for file size (>500 lines) with grandfathering for existing violations.
-
-**Revision 3** (2026-01-23): Spec audit - 14 correctness fixes, 4 test coverage items, 6 new features including `qipu context --walk`, `qipu store stats`, and custom metadata.
-
-**Revision 2** (2026-01-23): Machine-readable output for `value`/`custom`, budget truncation, search breadcrumbs, major refactoring (bfs_find_path 400→59 lines, DoctorCheck trait).
-
-**Revision 1** (2026-01-22): Core correctness fixes (Dijkstra ordering, JSON envelopes, value validation), 100+ new tests, custom metadata, export improvements.
-
-See git history for full details.

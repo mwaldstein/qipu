@@ -22,10 +22,10 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### storage-format.md
 
-- [ ] Discovery boundary check order incorrect
+- [x] Discovery boundary check order verified correct
   - **Location**: `src/lib/store/paths.rs:62-102`
-  - **Issue**: Checks for `.qipu/` directories before checking project markers
-  - **Impact**: May find parent store when at project root boundary without store
+  - **Resolution**: Code correctly checks for stores first, then project markers per spec (line 169)
+  - **Behavior**: Check store → check project root → move to parent (correct order)
 
 - [ ] Load attachment path traversal vulnerability
   - **Location**: `src/commands/load/mod.rs:476-477`

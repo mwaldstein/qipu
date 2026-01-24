@@ -48,7 +48,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- | --- | --- |
 | `cli-tool.md` | ✅ | ✅ | ⚠️ | Missing performance tests for --help/--version, list, search |
 | `knowledge-model.md` | ✅ | ✅ | ✅ | All note types, IDs, tags, typed links working; unknown types rejected (not coerced) |
-| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Discovery boundary check order issue; load attachment path traversal vulnerability |
+| `storage-format.md` | ✅ | ⚠️ | ⚠️ | Load attachment path traversal vulnerability |
 | `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Exit code issue actually correct |
 | `indexing-search.md` | ✅ | ✅ | ⚠️ | Field weights correct (2.0/1.5/1.0); search wraps query in quotes (phrase search) |
 | `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | `show --links` ignores `--no-semantic-inversion` flag; inversion tests sparse |
@@ -81,7 +81,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `storage-format.md` | Discovery boundary check order incorrect (checks store before project marker) | `src/lib/store/paths.rs:62-102` |
+
 | `storage-format.md` | Load attachment path traversal vulnerability (no `../` validation) | `src/commands/load/mod.rs:476-477` |
 | `llm-context.md` | Prime uses count-based limits (5 notes) not character budget (~4-8k characters) | `src/commands/prime.rs:16-20` |
 | `similarity-ranking.md` | Search wraps query in quotes (phrase search vs AND/OR semantics) | `src/lib/db/search.rs:47` |

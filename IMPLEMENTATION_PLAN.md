@@ -151,11 +151,12 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### llm-context.md
 
-- [ ] Remove `--max-tokens` flag and token counting code
+- [x] Remove `--max-tokens` flag and token counting code
   - **Location**: `src/cli/commands.rs:327-329`, `src/commands/context/mod.rs`, `src/commands/context/budget.rs`, `src/commands/dispatch/mod.rs`, `src/commands/dispatch/notes.rs`
   - **Issue**: Qipu standardizes on character-based budgets only; `--max-tokens` flag and tiktoken dependency are out of scope
   - **Impact**: Removes unnecessary code and complexity; aligns with spec that uses character counts
-  - **Implementation**: Remove `--max-tokens` flag from CLI, remove `max_tokens` parameter from context options, remove `tiktoken_rs` dependency and token counting code
+  - **Implementation**: Removed `--max-tokens` flag from CLI, removed `max_tokens` parameter from context options, removed `tiktoken_rs` dependency and token counting code
+  - **Learnings**: All tests pass (306 unit tests + 458 CLI tests + 11 workspace merge tests = 775 total)
 
 ### progressive-indexing.md
 

@@ -1,17 +1,14 @@
 use super::types::SelectedNote;
 use crate::lib::note::Note;
 use std::time::Instant;
-use tiktoken_rs::get_bpe_from_model;
 
-/// Apply character and token budget to notes
+/// Apply character budget to notes
 /// Returns (truncated, notes_to_output, excluded_notes)
 /// Note: This function now includes all notes to support per-note content truncation
 /// instead of excluding entire notes. The excluded_notes vector will be empty.
 pub fn apply_budget<'a>(
     notes: &'a [SelectedNote<'a>],
     max_chars: Option<usize>,
-    max_tokens: Option<usize>,
-    model: &str,
     with_body: bool,
 ) -> (bool, Vec<&'a SelectedNote<'a>>, Vec<&'a SelectedNote<'a>>) {
     let start = Instant::now();
@@ -19,37 +16,21 @@ pub fn apply_budget<'a>(
     tracing::debug!(
         input_notes = notes.len(),
         max_chars,
-        max_tokens,
-        model,
         with_body,
         "apply_budget"
     );
 
-    if max_chars.is_none() && max_tokens.is_none() {
+    if max_chars.is_none() {
         return (false, notes.iter().collect(), Vec::new());
     }
-
-    let bpe = if max_tokens.is_some() {
-        get_bpe_from_model(model).ok()
-    } else {
-        None
-    };
 
     let mut truncated = false;
 
     // Conservative header estimate with buffer
     // Different formats have different header sizes, so we use a conservative estimate
     let header_estimate_chars = 250;
-    let header_estimate_tokens = if let Some(ref bpe) = bpe {
-        bpe.encode_with_special_tokens("# Qipu Context Bundle\nStore: .qipu/\n\n")
-            .len()
-            + 20
-    } else {
-        0
-    };
 
     let mut used_chars = header_estimate_chars;
-    let mut used_tokens = header_estimate_tokens;
 
     // Include all notes - per-note truncation will be handled by output formatters
     let result: Vec<&'a SelectedNote<'a>> = notes.iter().collect();
@@ -57,29 +38,19 @@ pub fn apply_budget<'a>(
     // Calculate total size to determine if truncation is needed
     for note in notes {
         let note_size_chars = estimate_note_size(note.note, with_body);
-        let note_size_tokens = if let Some(ref bpe) = bpe {
-            estimate_note_tokens(note.note, with_body, bpe)
-        } else {
-            0
-        };
 
         // Add safety buffer to ensure actual output doesn't exceed budget
         let note_size_chars_with_buffer = note_size_chars + (note_size_chars / 10);
-        let note_size_tokens_with_buffer = note_size_tokens + (note_size_tokens / 10);
 
         let char_ok = max_chars
             .map(|limit| used_chars + note_size_chars_with_buffer <= limit)
             .unwrap_or(true);
-        let token_ok = max_tokens
-            .map(|limit| used_tokens + note_size_tokens_with_buffer <= limit)
-            .unwrap_or(true);
 
-        if !char_ok || !token_ok {
+        if !char_ok {
             truncated = true;
         }
 
         used_chars += note_size_chars_with_buffer;
-        used_tokens += note_size_tokens_with_buffer;
     }
 
     tracing::debug!(
@@ -91,35 +62,6 @@ pub fn apply_budget<'a>(
     );
 
     (truncated, result, Vec::new())
-}
-
-/// Estimate the output size of a note in tokens
-pub fn estimate_note_tokens(note: &Note, with_body: bool, bpe: &tiktoken_rs::CoreBPE) -> usize {
-    let mut text = String::new();
-
-    // Rough approximation of the markdown output format
-    text.push_str(&format!("## Note: {} ({})\n", note.title(), note.id()));
-    text.push_str(&format!("Type: {}\n", note.note_type()));
-    if !note.frontmatter.tags.is_empty() {
-        text.push_str(&format!("Tags: {}\n", note.frontmatter.tags.join(", ")));
-    }
-
-    if !note.frontmatter.sources.is_empty() {
-        text.push_str("Sources:\n");
-        for source in &note.frontmatter.sources {
-            text.push_str(&format!("- {}\n", source.url));
-        }
-    }
-    text.push_str("\n---\n");
-
-    if with_body {
-        text.push_str(&note.body);
-    } else {
-        text.push_str(&note.summary());
-    }
-    text.push_str("\n---\n");
-
-    bpe.encode_with_special_tokens(&text).len()
 }
 
 /// Estimate the output size of a note

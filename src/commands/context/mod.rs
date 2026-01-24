@@ -177,8 +177,6 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             moc_id = options.moc_id,
             query = options.query,
             max_chars = options.max_chars,
-            max_tokens = options.max_tokens,
-            model = options.model,
             transitive = options.transitive,
             with_body = options.with_body,
             safety_banner = options.safety_banner,
@@ -595,13 +593,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     // Apply budgeting (records format handles its own exact budget)
     let (truncated, notes_to_output, excluded_notes) = match cli.format {
         OutputFormat::Records => (false, selected_notes.iter().collect(), Vec::new()),
-        _ => budget::apply_budget(
-            &selected_notes,
-            options.max_chars,
-            options.max_tokens,
-            options.model,
-            options.with_body,
-        ),
+        _ => budget::apply_budget(&selected_notes, options.max_chars, options.with_body),
     };
 
     // Output in requested format (paths are relative to current working directory per spec)

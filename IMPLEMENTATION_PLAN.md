@@ -182,6 +182,8 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 
 - [ ] Missing tests for duplicate `--format` detection
 - [ ] Missing performance tests for `--help`/`--version` (<100ms), `list` (~1k notes <200ms), `search` (~10k notes <1s)
+- [ ] Find viable strategy for 10k note search performance test (current test ignored - indexing 10k notes takes minutes)
+  - Options: pre-generated fixture store, direct DB population bypassing file creation, reduced note count with extrapolation
 - [ ] Missing determinism test coverage for all commands
 
 ### storage-format.md

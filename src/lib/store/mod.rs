@@ -64,7 +64,7 @@ impl Store {
         let templates_dir = path.join(TEMPLATES_DIR);
         io::ensure_default_templates(&templates_dir)?;
 
-        let db = Database::open(path)?;
+        let db = Database::open(path, true)?;
 
         let cache_dir = path.join(".cache");
         if cache_dir.exists() {
@@ -82,8 +82,12 @@ impl Store {
     }
 
     /// Open a store without validation.
+    ///
+    /// The auto_repair parameter controls whether the database will automatically
+    /// repair inconsistencies on open. Set to false for operations like `doctor`
+    /// that want to detect issues without fixing them.
     #[tracing::instrument(skip(path), fields(path = %path.display()))]
-    pub fn open_unchecked(path: &Path) -> Result<Self> {
+    pub fn open_unchecked(path: &Path, auto_repair: bool) -> Result<Self> {
         if !path.is_dir() {
             return Err(QipuError::StoreNotFound {
                 search_root: path.to_path_buf(),
@@ -98,7 +102,7 @@ impl Store {
             StoreConfig::default()
         };
 
-        let db = Database::open(path)?;
+        let db = Database::open(path, auto_repair)?;
 
         let cache_dir = path.join(".cache");
         if cache_dir.exists() {
@@ -217,7 +221,7 @@ impl Store {
             git::checkout_branch(repo_root, &orig_branch)?;
         }
 
-        let db = Database::open(store_root)?;
+        let db = Database::open(store_root, true)?;
 
         Ok(Store {
             root: store_root.to_path_buf(),

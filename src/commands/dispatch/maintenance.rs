@@ -20,24 +20,18 @@ pub(super) fn handle_doctor(
     threshold: f64,
     start: Instant,
 ) -> Result<()> {
-    let store = match discover_or_open_store(cli, root) {
-        Ok(store) => store,
-        Err(_) => {
-            // For doctor, try unchecked open if discovery fails
-            let qipu_path = root.join(".qipu");
-            if qipu_path.is_dir() {
-                Store::open_unchecked(&qipu_path)?
-            } else {
-                let visible_path = root.join("qipu");
-                if visible_path.is_dir() {
-                    Store::open_unchecked(&visible_path)?
-                } else {
-                    return Err(QipuError::StoreNotFound {
-                        search_root: root.clone(),
-                    });
-                }
-            }
-        }
+    // For doctor, always use unchecked open to avoid auto-repair
+    // We want to detect issues, not fix them automatically
+    let qipu_path = root.join(".qipu");
+    let visible_path = root.join("qipu");
+    let store = if qipu_path.is_dir() {
+        Store::open_unchecked(&qipu_path, false)?
+    } else if visible_path.is_dir() {
+        Store::open_unchecked(&visible_path, false)?
+    } else {
+        return Err(QipuError::StoreNotFound {
+            search_root: root.clone(),
+        });
     };
 
     if cli.verbose {

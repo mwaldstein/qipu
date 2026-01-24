@@ -96,11 +96,14 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### operational-database.md
 
-- [ ] Consistency check doesn't auto-repair on startup inconsistency
-  - **Location**: `src/lib/db/mod.rs:96`
+- [x] Consistency check doesn't auto-repair on startup inconsistency
+  - **Location**: `src/lib/db/mod.rs:96`, `specs/operational-database.md:102`
   - **Issue**: `validate_consistency()` result discarded with `let _ = ...`
   - **Spec requires**: "If inconsistent, trigger incremental repair"
   - **Impact**: External file changes cause silent inconsistency; user must manually run `qipu index`
+  - **Resolution**: Added `auto_repair` parameter to `Database::open` to control auto-repair behavior. By default, consistency check triggers incremental repair on inconsistency. For `doctor` command, auto-repair is disabled to allow issue detection without fixing.
+  - **Implementation**: When `auto_repair=true`, inconsistency triggers `incremental_repair()`. When `auto_repair=false` (doctor), issues are logged but not fixed.
+  - **Learnings**: Doctor command must use `open_unchecked` with `auto_repair=false` to detect issues like missing files without auto-fixing them. Other commands use default auto-repair behavior.
 
 - [ ] No corruption detection and auto-rebuild
   - **Location**: `src/lib/db/mod.rs:50-99` (Database::open)
@@ -365,6 +368,8 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 ---
 
  ## Completed (Summary)
+
+ **Revision 18** (2026-01-24): Implemented auto-repair on database inconsistency per spec. Added `auto_repair` parameter to `Database::open` to control auto-repair behavior. When enabled (default), inconsistency triggers `incremental_repair()` to sync database with filesystem. For `doctor` command, auto-repair is disabled to allow issue detection without fixing. Updated `Store::open_unchecked` to accept and pass through the `auto_repair` parameter. Modified doctor handler to always use `open_unchecked` with `auto_repair=false` to detect issues like missing files. All unit and integration tests pass (excluding 2 pre-existing pack test failures unrelated to this change).
 
  **Revision 17** (2026-01-24): Fixed bibliography export to support singular `source` field alongside `sources` array. Previously, notes created with `qipu capture --source` would not appear in bibliography exports because only the `sources` array was processed. Updated `export_bibliography` function in `src/commands/export/emit/bibliography.rs` to collect both fields, creating temporary `Source` objects for the singular `source` field. Maintains deterministic URL-based sorting across all sources. Added comprehensive tests: `test_export_bibliography_singular_source_field` for singular field support and `test_export_bibliography_both_source_fields` for mixed usage. All 14 bibliography tests pass.
 

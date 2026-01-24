@@ -47,7 +47,10 @@ impl Database {
     }
 
     /// Open or create the database at the given store root
-    pub fn open(store_root: &Path) -> Result<Self> {
+    ///
+    /// If auto_repair is true, validates consistency and triggers incremental repair if needed.
+    /// Set to false for operations like `doctor` that want to detect issues without fixing them.
+    pub fn open(store_root: &Path, auto_repair: bool) -> Result<Self> {
         let db_path = store_root.join("qipu.db");
 
         let conn = Connection::open(&db_path).map_err(|e| {
@@ -91,9 +94,11 @@ impl Database {
             // see stale data in WAL mode.
             let _ = db.conn.pragma_update(None, "wal_checkpoint", "PASSIVE");
 
-            // Just validate consistency and warn if issues found
-            // Doctor command will check and optionally fix with --fix flag
-            let _ = db.validate_consistency(store_root)?;
+            // Validate consistency and trigger incremental repair if needed (unless disabled)
+            if auto_repair && !db.validate_consistency(store_root)? {
+                tracing::info!("Database inconsistent, triggering incremental repair");
+                db.incremental_repair(store_root)?;
+            }
         }
 
         Ok(db)

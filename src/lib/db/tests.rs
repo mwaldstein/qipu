@@ -11,7 +11,7 @@ fn test_database_open_creates_tables() {
     let dir = tempdir().unwrap();
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
 
     let count: i64 = db
         .conn
@@ -37,7 +37,7 @@ fn test_database_rebuild_populates_notes() {
         .create_note("Test Note 2", None, &["tag2".to_string()], None)
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let note_count: i64 = db
@@ -68,7 +68,7 @@ fn test_database_rebuild_cleans_old_data() {
         .create_note("Test Note", None, &["tag1".to_string()], None)
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let initial_count: i64 = db
@@ -114,7 +114,7 @@ fn test_insert_note_with_fts() {
         )
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let fts_count: i64 = db
@@ -142,7 +142,7 @@ fn test_empty_store_rebuild() {
     let dir = tempdir().unwrap();
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let note_count: i64 = db
@@ -180,7 +180,7 @@ fn test_search_fts_basic() {
         )
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db.search("test", None, None, None, None, 10).unwrap();
@@ -215,7 +215,7 @@ fn test_search_fts_tag_boost() {
         )
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db.search("test", None, None, None, None, 10).unwrap();
@@ -237,7 +237,7 @@ fn test_search_with_type_filter() {
         .create_note_with_content("Test MOC", Some(NoteType::Moc), &[], "test", None)
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db
@@ -273,7 +273,7 @@ fn test_search_with_tag_filter() {
         )
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db
@@ -293,7 +293,7 @@ fn test_search_empty_query() {
         .create_note("Test Note", None, &["test-tag".to_string()], None)
         .unwrap();
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db.search("", None, None, None, None, 10).unwrap();
@@ -312,7 +312,7 @@ fn test_search_limit() {
             .unwrap();
     }
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root()).unwrap();
 
     let results = db.search("test", None, None, None, None, 3).unwrap();
@@ -588,7 +588,7 @@ fn test_startup_validation_rebuilds_if_empty_db_has_notes() {
 
     let _ = std::fs::remove_file(&db_path);
 
-    let db = Database::open(store.root()).unwrap();
+    let db = Database::open(store.root(), true).unwrap();
 
     let note_count: i64 = db
         .conn
@@ -607,7 +607,7 @@ fn test_startup_validation_skips_rebuild_if_empty_db_no_notes() {
 
     let _ = std::fs::remove_file(&db_path);
 
-    let db = Database::open(&dir.path().join(".qipu")).unwrap();
+    let db = Database::open(&dir.path().join(".qipu"), true).unwrap();
 
     let note_count: i64 = db
         .conn
@@ -720,7 +720,7 @@ fn test_schema_version_outdated_rebuilds() {
 
     crate::lib::db::schema::force_set_schema_version(&db.conn, 0).unwrap();
 
-    let result = Database::open(store.root());
+    let result = Database::open(store.root(), true);
     assert!(
         result.is_ok(),
         "Database should auto-rebuild on outdated schema version"

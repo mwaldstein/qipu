@@ -364,6 +364,8 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 
  ## Completed (Summary)
 
+ **Revision 16** (2026-01-24): Added `via` annotation to link JSON outputs per spec requirement. Added `via` field to `LinkEntry` struct to track original note ID before canonicalization. Updated link list and show commands to populate `via` when ID changes during canonicalization. JSON output includes `via` field; human and records exclude it (optional per spec). All link-related tests pass. Updated IMPLEMENTATION_PLAN.md with completion.
+
  **Revision 15** (2026-01-24): Added code size reduction tasks for 13 grandfathered files exceeding 500-line CI limit. Files range from 511-975 lines; refactoring strategy involves splitting test modules, extracting helper functions, and splitting modules. After each refactor, file must be removed from CI allowed list. Added tasks to todo list and IMPLEMENTATION_PLAN.md.
 
  **Revision 14** (2026-01-24): Clarified spec semantics for store discovery (stops at project root via .git/Cargo.toml or filesystem root, whichever first), removed `path` field from JSON/records output requirements (all interactions use IDs), updated context budget terminology from "tokens" to "character count" (we manage text, not tokenized output). Updated llm-context.md, records-output.md, semantic-graph.md, compaction.md, specs/README.md, and IMPLEMENTATION_PLAN.md accordingly.

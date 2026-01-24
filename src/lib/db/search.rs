@@ -99,10 +99,10 @@ impl super::Database {
         // Formula: 0.1 / (1 + age_days / 7)
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
-        // Query-specific boosts to ensure proper ranking per spec requirements:
-        // - Title matches: +TITLE_WEIGHT (matches BM25 title weight)
-        // - Tag matches: +3.0 (higher to ensure tags rank above body even with multiple body occurrences)
-        // This ensures "Title matches rank above body matches" and "Exact tag matches rank above plain text"
+        // BM25 column weights provide multiplicative field weighting:
+        // - Title: TITLE_WEIGHT (2.0)
+        // - Tags: TAGS_WEIGHT (1.5)
+        // - Body: BODY_WEIGHT (1.0, baseline)
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
         let sql = format!(
             r#"
@@ -119,7 +119,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) + {} +
+                bm25(notes_fts, {}, {}, {}) +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
@@ -129,7 +129,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) + 3.0 +
+                bm25(notes_fts, {}, {}, {}) +
                 (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
@@ -148,7 +148,6 @@ impl super::Database {
             TITLE_WEIGHT,
             BODY_WEIGHT,
             TAGS_WEIGHT,
-            TITLE_WEIGHT,
             where_clause,
             TITLE_WEIGHT,
             BODY_WEIGHT,

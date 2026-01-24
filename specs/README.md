@@ -24,6 +24,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`records-output.md`](records-output.md) | Output | Line-oriented records for context injection |
 | [`llm-context.md`](llm-context.md) | LLM integration | `prime` + context bundles, budgeting, safety |
 | [`llm-user-validation.md`](llm-user-validation.md) | LLM user test | Validate LLM can use qipu as primary user |
+| [`progressive-indexing.md`](progressive-indexing.md) | Indexing | Progressive re-indexing for large knowledge bases |
 | [`provenance.md`](provenance.md) | Trust | Author/source/trust metadata for LLM content |
 | [`export.md`](export.md) | Export | Bundling/outlines/bibliographies, deterministic ordering |
 | [`compaction.md`](compaction.md) | Compaction | Digest-first navigation and lossless decay |
@@ -57,6 +58,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `records-output.md` | ✅ | ⚠️ | ⚠️ | `via` annotation missing in link JSON; missing truncation/S-prefix tests |
 | `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime uses count-based limits (not character budget); `--max-tokens` flag out of scope |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
+| `progressive-indexing.md` | ⚠️ | ❌ | New spec - not implemented |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
 | `compaction.md` | ✅ | ⚠️ | ✅ | Link JSON missing `via` annotation; truncation markers ARE present |

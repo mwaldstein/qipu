@@ -154,6 +154,26 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
   - **Impact**: Removes unnecessary code and complexity; aligns with spec that uses character counts
   - **Implementation**: Remove `--max-tokens` flag from CLI, remove `max_tokens` parameter from context options, remove `tiktoken_rs` dependency and token counting code
 
+### progressive-indexing.md
+
+- [ ] Phase 1: Incremental indexing (mtime-based)
+  - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`
+  - **Issue**: No mtime tracking; all notes re-indexed on every `qipu index`
+  - **Spec requires**: "Incremental Indexing" - only re-index modified notes based on file mtime
+  - **Resolution**: Add mtime comparison in database; skip unchanged notes during indexing; performance: O(changed) vs O(total)
+
+- [ ] Phase 2: Selective indexing options
+  - **Location**: `src/cli/commands.rs`, `src/commands/index.rs`
+  - **Issue**: No way to index subset of knowledge base; always indexes all notes
+  - **Spec requires**: `--tag`, `--type`, `--quick`, `--recent` flags for selective indexing
+  - **Resolution**: Add filter flags to index command; implement quick mode (MOCs + 100 recent); add status command
+
+- [ ] Phase 3: Progress reporting for large indexes
+  - **Location**: `src/commands/index.rs`
+  - **Issue**: No progress feedback during indexing; large repos appear to hang
+  - **Spec requires**: Progress bars, ETA, checkpointing for batched indexing
+  - **Resolution**: Add progress output (N/Total notes); implement batched indexing with checkpoints; allow interruption and resume
+
 ### Code size reduction
 
 The following 13 files are grandfathered in the CI file size check (>500 lines limit). Each needs to be refactored and removed from the allowed list:
@@ -210,9 +230,11 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 ### cli-tool.md
 
 - [ ] Missing tests for duplicate `--format` detection
-- [ ] Missing performance tests for `--help`/`--version` (<100ms), `list` (~1k notes <200ms), `search` (~10k notes <1s)
+- [ ] Missing performance tests for `--help`/`--version` (<100ms), `list` (~1k notes <200ms)
 - [ ] Find viable strategy for 10k note search performance test (current test ignored - indexing 10k notes takes minutes)
-  - Options: pre-generated fixture store, direct DB population bypassing file creation, reduced note count with extrapolation
+  - Note: New spec `progressive-indexing.md` defines strategies for large knowledge bases
+  - Options: Use incremental indexing, selective indexing (--quick), or pre-generated fixture store
+  - For tests: Pre-generated fixture store, direct DB population bypassing file creation, reduced note count with extrapolation
 - [ ] Missing determinism test coverage for all commands
 
 ### storage-format.md
@@ -231,6 +253,8 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 - [ ] Missing explicit test for incremental repair behavior (mtime-based indexing)
 - [ ] Configurable ranking parameters (hardcoded boost values: +3.0 tag, 0.1/7.0 recency decay)
 - [ ] Review and remove unjustified `#[allow(dead_code)]` attributes (src/lib/db/repair.rs:103, src/lib/db/traverse.rs:7)
+
+**Note:** `progressive-indexing.md` spec defines comprehensive indexing improvements for large knowledge bases, including incremental indexing, selective indexing, progress reporting, and batched indexing with checkpoints.
 
 ### semantic-graph.md
 

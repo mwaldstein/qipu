@@ -202,7 +202,6 @@ These items are explicitly out of scope or rejected:
 |------|--------|
 | Ripgrep-based search | Removed in favor of SQLite FTS5 |
 | Date-partitioned note paths | Spec explicitly uses flat structure |
-| External code indexing | Store limited to qipu notes only |
 
 ---
 

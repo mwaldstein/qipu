@@ -180,7 +180,7 @@ Proposed minimal shape:
   "max_hops": 3,
   "truncated": false,
   "notes": [
-    {"id": "qp-a1b2", "title": "…", "type": "…", "tags": ["…"], "path": "…"}
+    {"id": "qp-a1b2", "title": "…", "type": "…", "tags": ["…"]}
   ],
   "links": [
     {"from": "qp-a1b2", "to": "qp-f14c3", "type": "related", "source": "inline"},

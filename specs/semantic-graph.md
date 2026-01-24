@@ -80,7 +80,7 @@ Not all hops are equal.
 *   `related` (and inline links) are high-volume/low-signal.
 *   Typed links are high-signal.
 *   **Traversal Default**: Include ALL types.
-*   **Context Default**: When generating `qipu context`, strongly prefer typed links (especially `part-of` and `supports`) over generic `related` links if token budget is tight.
+*   **Context Default**: When generating `qipu context`, strongly prefer typed links (especially `part-of` and `supports`) over generic `related` links if context budget is tight.
 
 ## 4. Extensibility & Defaults
 Qipu supports custom knowledge graphs while enforcing a "common dialect" for interoperability.

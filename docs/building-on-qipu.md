@@ -55,7 +55,7 @@ qipu context --moc qp-api-design --tag security --min-value 70 --max-chars 10000
 ```
 
 **Key points:**
-- Always use `--max-chars` to control token budget precisely
+- Always use `--max-chars` to control context budget precisely (character-based)
 - `--format json` for programmatic consumption
 - `--format records` for line-oriented parsing
 - Default format (`--format human`) is human-friendly markdown for direct LLM injection

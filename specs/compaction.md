@@ -241,7 +241,7 @@ Print stable, copy/pasteable guidance intended for LLM tools (and humans) to per
 Guidance should include:
 1. How to choose a candidate (`qipu compact suggest`).
 2. How to review candidate summaries (`qipu context --format records` in summaries-first mode).
-3. How to author a digest note (externally) with a "high signal, low tokens" structure.
+3. How to author a digest note (externally) with a "high signal, low character count" structure.
 4. How to register compaction (`qipu compact apply`).
 5. How to validate (`qipu compact report`, plus a resolved traversal/search sanity check).
 

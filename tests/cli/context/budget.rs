@@ -170,9 +170,9 @@ fn test_context_max_tokens() {
             .success();
     }
 
-    // Get context with small token budget - should truncate
-    // A typical small note is ~50-100 tokens with headers.
-    // 150 tokens should allow about 1-2 notes.
+    // Get context with small character budget - should truncate
+    // A typical small note is ~200-400 characters with headers.
+    // 600 characters should allow about 1-2 notes.
     qipu()
         .current_dir(dir.path())
         .args(["context", "--tag", "token-budget", "--max-tokens", "150"])

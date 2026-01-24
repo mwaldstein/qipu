@@ -232,7 +232,7 @@ With `--format json`, commands should emit either:
 - JSON lines (one object per note)
 
 At minimum, each note entry includes:
-- `id`, `title`, `type`, `tags`, `path`, `created`, `updated`
+- `id`, `title`, `type`, `tags`, `created`, `updated`
 
 ## Error handling and exit codes
 - `0`: success

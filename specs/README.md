@@ -46,16 +46,16 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ⚠️ | ⚠️ | Discovery stops at project roots; project marker check order incorrect |
+| `cli-tool.md` | ✅ | ✅ | ⚠️ | Missing performance tests for --help/--version, list, search |
 | `knowledge-model.md` | ✅ | ✅ | ✅ | All note types, IDs, tags, typed links working; unknown types rejected (not coerced) |
 | `storage-format.md` | ✅ | ⚠️ | ⚠️ | Discovery boundary check order issue; load attachment path traversal vulnerability |
-| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Search/inbox/context JSON missing `path` field; exit code issue actually correct |
+| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Exit code issue actually correct |
 | `indexing-search.md` | ✅ | ✅ | ⚠️ | Field weights correct (2.0/1.5/1.0); search wraps query in quotes (phrase search) |
 | `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | `show --links` ignores `--no-semantic-inversion` flag; inversion tests sparse |
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Search uses additive boosts instead of multiplicative weights; wraps query in quotes |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | Link commands use store-relative paths (not CWD-relative); `via` annotation missing in link JSON |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Context JSON missing per-note `path`; prime uses count-based limits (not token budget) |
+| `records-output.md` | ✅ | ⚠️ | ⚠️ | `via` annotation missing in link JSON; missing truncation/S-prefix tests |
+| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime uses count-based limits (not character budget) |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
@@ -81,15 +81,11 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Store discovery stops at project roots instead of continuing to filesystem root | `src/lib/store/paths.rs:97-102` |
 | `storage-format.md` | Discovery boundary check order incorrect (checks store before project marker) | `src/lib/store/paths.rs:62-102` |
 | `storage-format.md` | Load attachment path traversal vulnerability (no `../` validation) | `src/commands/load/mod.rs:476-477` |
-| `cli-interface.md` | Inbox JSON omits `path` field (only included when `Some`) | `src/commands/dispatch/notes.rs:160-181` |
-| `llm-context.md` | Context JSON omits per-note `path` field | `src/commands/context/json.rs:171-195` |
-| `llm-context.md` | Prime uses count-based limits (5 notes) not token budget (~1-2k tokens) | `src/commands/prime.rs:16-20` |
+| `llm-context.md` | Prime uses count-based limits (5 notes) not character budget (~4-8k characters) | `src/commands/prime.rs:16-20` |
 | `similarity-ranking.md` | Search wraps query in quotes (phrase search vs AND/OR semantics) | `src/lib/db/search.rs:47` |
 | `similarity-ranking.md` | Search uses additive boosts instead of multiplicative field weights | `src/lib/db/search.rs:112-132` |
-| `records-output.md` | Link records use store-relative paths (not CWD-relative) | `src/commands/link/records.rs:103, 286` |
 | `semantic-graph.md` | `show --links` ignores `--no-semantic-inversion` flag | `src/commands/show.rs:204-225` |
 | `compaction.md` | Link JSON missing `via` annotation (breadcrumb for compacted sources) | `src/commands/link/json.rs:7-86`, `src/commands/link/mod.rs:31-45` |
 | `provenance.md` | Bibliography ignores `source` field (singular), uses `sources[]` only | `src/commands/export/emit/bibliography.rs:35` |
@@ -111,8 +107,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `semantic-graph.md` | Test coverage | Missing tests for `show --links --no-semantic-inversion`; sparse inversion tests for context walk/dump |
 | `graph-traversal.md` | Test coverage | Missing tests for max-fanout limit behavior; records format edge cases |
 | `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries; tests don't validate actual weight values |
-| `records-output.md` | Test coverage | Missing tests for CWD-relative paths from subdirectories; S prefix semantic distinction; truncation flags |
-| `llm-context.md` | Test coverage | Missing tests for `qipu prime --format json/records`; missing-selection exit codes; JSON `path` field presence |
+| `records-output.md` | Test coverage | Missing tests for S prefix semantic distinction; truncation flags |
+| `llm-context.md` | Test coverage | Missing tests for `qipu prime --format json/records`; missing-selection exit codes |
 | `pack.md` | Test coverage | Missing tests for `--tag`/`--moc`/`--query` selectors in dump; graph traversal options; link preservation |
 | `workspaces.md` | Test coverage | Missing tests for rename strategy link rewriting; `--delete-source` flag |
 | `structured-logging.md` | Test coverage | Missing TRACE level tests; structured field validation; span/trace relationship tests |

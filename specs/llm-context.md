@@ -21,7 +21,7 @@ This spec intentionally follows beads' pattern:
 Requirements:
 - deterministic ordering
 - stable formatting
-- bounded size (target: ~1–2k tokens)
+- bounded size (target: ~4–8k characters)
 
 Recommended contents:
 - short explanation of what qipu is (knowledge memory, not tasks)
@@ -76,7 +76,6 @@ Proposed format:
 Store: .qipu/
 
 ## Note: <title> (<id>)
-Path: <relative-path>
 Type: <type>
 Tags: <comma-separated>
 Sources:
@@ -93,7 +92,7 @@ Rules:
 - Use `---` as a hard separator between notes.
 - Include metadata headers even if note content is empty.
 - Preserve original note markdown as-is.
-- Store paths and note paths should be relative to the current working directory.
+- Store paths should be relative to the current working directory.
 
 ## Bundle output format (`--format json`)
 For integration with tools, `qipu context --format json` should emit:

@@ -15,10 +15,10 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### cli-tool.md
 
-- [ ] Store discovery stops at project roots instead of continuing to filesystem root
-  - **Location**: `src/lib/store/paths.rs:97-102`
-  - **Issue**: Implementation stops at project markers (`.git`, `Cargo.toml`) but spec requires continuing to filesystem root
-  - **Impact**: Users cannot discover stores in parent directories beyond project boundaries
+- [x] Store discovery stops at project roots (spec corrected 2026-01-24)
+  - **Location**: `src/lib/store/paths.rs:97-102`, `specs/cli-tool.md:78-87`
+  - **Resolution**: Spec updated to require stopping at project root (`.git` or `Cargo.toml`) or filesystem root, whichever comes first
+  - **Impact**: Behavior now matches spec; discovery no longer continues beyond project boundaries
 
 ### storage-format.md
 
@@ -33,25 +33,13 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
   - **Impact**: Malicious pack files could write outside attachments directory
   - **Fix**: Add canonicalization and `starts_with()` validation before writing
 
-### cli-interface.md
-
-- [ ] Inbox JSON omits `path` field
-  - **Location**: `src/commands/dispatch/notes.rs:160-181`
-  - **Issue**: `path` field only included when `Some`, but spec requires as minimum field
-  - **Impact**: Scripts expecting `path` in inbox JSON fail when absent
-
 ### llm-context.md
 
-- [ ] Context JSON omits per-note `path` field
-  - **Location**: `src/commands/context/json.rs:171-195`
-  - **Issue**: JSON output builds note object without path field (human format includes it)
-  - **Impact**: LLMs receive incomplete location information
-
-- [ ] Prime command uses count-based limits instead of token budget
+- [ ] Prime command uses count-based limits instead of character budget
   - **Location**: `src/commands/prime.rs:16-20`
   - **Issue**: Uses `MAX_MOCS: usize = 5` and `MAX_RECENT_NOTES: usize = 5` (count-based)
-  - **Spec requires**: "bounded size (target: ~1–2k tokens)"
-  - **Fix**: Either implement token counting to ~1-2k tokens, or update spec
+  - **Spec requires**: "bounded size (target: ~4–8k characters)"
+  - **Fix**: Either implement character counting to ~4-8k characters, or update spec
 
 ### similarity-ranking.md
 
@@ -67,12 +55,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
   - **Fix**: Remove additive boosts, rely only on BM25 column weights (2.0x/1.5x/1.0x)
 
 ### records-output.md
-
-- [ ] Link commands use store-relative paths instead of CWD-relative
-  - **Location**: `src/commands/link/records.rs:103, 286`
-  - **Issue**: Uses `meta.path` directly (relative to store) instead of CWD-relative
-  - **Spec requires**: "path field should be relative to current working directory"
-  - **Impact**: Path values incorrect when running from subdirectories
 
 ### semantic-graph.md
 
@@ -125,12 +107,12 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### distribution.md
 
-- [ ] Release workflow disabled with incorrect triggers
+- [ ] Release workflow disabled with incorrect triggers (BLOCKED: GitHub Actions not enabled)
   - **Location**: `.github/workflows/release.yml:3-13, 11-12`
   - **Issue**: Workflow triggers only on `workflow_dispatch`, not `v*` tags; commented as disabled
   - **Impact**: Automated releases don't work; manual intervention required
 
-- [ ] SHA256SUMS file format incorrect
+- [ ] SHA256SUMS file format incorrect (BLOCKED: GitHub Actions not enabled)
   - **Location**: `.github/workflows/release.yml:99-152`
   - **Issue**: Generates individual `.sha256` files instead of combined `SHA256SUMS`
   - **Impact**: Install scripts expect single combined file
@@ -142,6 +124,59 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
 ## P2: Technical Debt & Test Coverage
+
+### Code size reduction
+
+The following 13 files are grandfathered in the CI file size check (>500 lines limit). Each needs to be refactored and removed from the allowed list:
+
+**High priority (>700 lines):**
+- [ ] `src/lib/db/tests.rs` (975 lines) - split into test modules
+- [ ] `src/lib/graph/bfs.rs` (820 lines) - extract helper functions
+- [ ] `src/commands/doctor/content.rs` (723 lines) - extract helper functions
+- [ ] `src/commands/setup.rs` (710 lines) - extract helper functions
+- [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
+
+**Dead/unused code:**
+- [ ] Audit codebase for dead/unused code (29 `#[allow(dead_code)]` annotations found)
+  - Run `cargo clippy -- -W unused_variables -W dead_code` to find unused items
+  - Review and remove unused functions, unused imports, and dead exports
+  - **Review all `#[allow(dead_code)]` annotations** - each must have strong justification (e.g., public API, test infrastructure, future use with TODO comment)
+  - Remove unjustified `#[allow(dead_code)]` attributes and the dead code they suppress
+
+  Files with `#[allow(dead_code)]` annotations:
+  - src/commands/doctor/database.rs (1)
+  - src/commands/dump/serialize.rs (1)
+  - src/commands/dump/model.rs (3)
+  - src/commands/link/mod.rs (2)
+  - src/lib/db/mod.rs (1)
+  - src/lib/db/schema.rs (2)
+  - src/lib/db/validate.rs (1)
+  - src/lib/db/traverse.rs (1)
+  - src/lib/db/notes/delete.rs (1)
+  - src/lib/index/types.rs (1)
+  - src/lib/store/mod.rs (2)
+  - src/lib/store/query.rs (1)
+  - src/lib/config.rs (2)
+  - src/lib/similarity/mod.rs (3)
+  - src/lib/graph/types.rs (1)
+  - src/lib/graph/traversal.rs (2)
+  - src/lib/text/mod.rs (1)
+  - src/lib/note/types.rs (2)
+  - src/lib/compaction/context.rs (1)
+
+**Medium priority (600-700 lines):**
+- [ ] `src/commands/context/mod.rs` (667 lines) - split modules or extract helpers
+- [ ] `src/lib/similarity/mod.rs` (635 lines) - split modules or extract helpers
+- [ ] `src/lib/db/notes/read.rs` (609 lines) - extract helper functions
+- [ ] `src/commands/dispatch/mod.rs` (592 lines) - extract helper functions
+- [ ] `src/commands/show.rs` (570 lines) - extract helper functions
+
+**Low priority (500-600 lines):**
+- [ ] `src/commands/list/mod.rs` (560 lines) - extract helper functions
+- [ ] `src/cli/commands.rs` (547 lines) - extract helper functions
+- [ ] `src/lib/graph/algos/dijkstra.rs` (511 lines) - extract helper functions
+
+After refactoring each file, remove it from the `allowed` array in `.github/workflows/ci.yml:67-81`.
 
 ### cli-tool.md
 
@@ -157,12 +192,14 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ### cli-interface.md
 
 - [ ] Missing tests asserting JSON schema compliance (all required fields present)
-- [ ] Missing inbox JSON tests for notes without paths
 
 ### indexing-search.md
 
 - [ ] Missing test for relative `.md` links cross-directory edge case
 - [ ] No direct CLI tests for 2-hop neighborhoods
+- [ ] Missing explicit test for incremental repair behavior (mtime-based indexing)
+- [ ] Configurable ranking parameters (hardcoded boost values: +3.0 tag, 0.1/7.0 recency decay)
+- [ ] Review and remove unjustified `#[allow(dead_code)]` attributes (src/lib/db/repair.rs:103, src/lib/db/traverse.rs:7)
 
 ### semantic-graph.md
 
@@ -183,7 +220,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### records-output.md
 
-- [ ] Missing tests for CWD-relative path handling from subdirectories
 - [ ] Missing tests for S prefix semantic distinction (summary vs sources)
 - [ ] Missing truncation flag tests for prime/list/search/export
 - [ ] Missing integration tests for "get index, then fetch bodies" workflow
@@ -192,7 +228,6 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 - [ ] Missing tests for `qipu prime --format json` and `--format records`
 - [ ] Missing tests for prime command missing-selection exit codes
-- [ ] Missing tests for JSON `path` field presence
 
 ### pack.md
 
@@ -313,6 +348,10 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ---
 
  ## Completed (Summary)
+
+ **Revision 15** (2026-01-24): Added code size reduction tasks for 13 grandfathered files exceeding 500-line CI limit. Files range from 511-975 lines; refactoring strategy involves splitting test modules, extracting helper functions, and splitting modules. After each refactor, file must be removed from CI allowed list. Added tasks to todo list and IMPLEMENTATION_PLAN.md.
+
+ **Revision 14** (2026-01-24): Clarified spec semantics for store discovery (stops at project root via .git/Cargo.toml or filesystem root, whichever first), removed `path` field from JSON/records output requirements (all interactions use IDs), updated context budget terminology from "tokens" to "character count" (we manage text, not tokenized output). Updated llm-context.md, records-output.md, semantic-graph.md, compaction.md, specs/README.md, and IMPLEMENTATION_PLAN.md accordingly.
 
  **Revision 13** (2026-01-24): Comprehensive spec audit across 19 specifications. Corrected status for knowledge-model.md (unknown types rejected, not coerced), operational-database.md (field weights correct at 2.0/1.5/1.0), pack.md (value/custom correctly preserved), value-model.md (ignore_value default false = weighted by default), structured-logging.md (logs correctly route to stderr). Identified 17 P1 correctness bugs, 60+ P2 test coverage gaps. Updated IMPLEMENTATION_PLAN.md with categorized items, updated FUTURE_WORK.md with design questions, updated specs/README.md status table and gaps.
 

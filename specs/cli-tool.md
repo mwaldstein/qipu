@@ -75,6 +75,8 @@ Constraints:
 
 Qipu commands operate against a "store root" directory.
 
+A "project root" is the first directory encountered while walking upward that contains either a `.git` directory or `Cargo.toml` file. If neither marker is found, the filesystem root serves as the project root.
+
 Resolution order:
 
 1. If `--store` is provided:
@@ -83,7 +85,7 @@ Resolution order:
 2. Otherwise, discover a store by walking up from `--root` (or cwd):
    - At each directory, if `.qipu/` exists, treat it as the store root and stop.
    - If `.qipu/` is absent but `qipu/` exists, treat `qipu/` as the store root and stop.
-   - If the filesystem root is reached with no store found, the store is "missing".
+   - If the project root or filesystem root (whichever comes first) is reached with no store found, the store is "missing".
 
 Missing-store behavior:
 

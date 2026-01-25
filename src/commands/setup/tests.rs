@@ -250,7 +250,9 @@ mod tests {
 
     #[test]
     fn test_execute_json_output_all_branches() {
-        let cli = create_cli(OutputFormat::Json);
+        let temp_dir = TempDir::new().unwrap();
+        let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
+        setup_agents_md(&temp_dir.path().to_path_buf());
 
         let result = execute(&cli, true, None, false, false, false);
         assert!(result.is_ok());
@@ -267,7 +269,9 @@ mod tests {
 
     #[test]
     fn test_execute_records_output_all_branches() {
-        let cli = create_cli(OutputFormat::Records);
+        let temp_dir = TempDir::new().unwrap();
+        let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
+        setup_agents_md(&temp_dir.path().to_path_buf());
 
         let result = execute(&cli, true, None, false, false, false);
         assert!(result.is_ok());

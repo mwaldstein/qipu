@@ -416,7 +416,14 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 
 ### semantic-graph.md
 
-- [ ] Missing tests for `show --links --no-semantic-inversion`
+- [x] Missing tests for `show --links --no-semantic-inversion`
+  - **Implementation**: Added 4 comprehensive tests in `tests/cli/show.rs`:
+    - `test_show_links_semantic_inversion_default` - JSON format verifies virtual outbound links with inverted types
+    - `test_show_links_semantic_inversion_disabled` - JSON format verifies raw inbound links with original types
+    - `test_show_links_semantic_inversion_human_format` - Human format verifies outbound links header and inverted types
+    - `test_show_links_semantic_inversion_disabled_human_format` - Human format verifies inbound links header and original types
+  - All tests verify semantic inversion behavior matches spec (inbound edges shown as virtual outbound links by default, raw inbound links with `--no-semantic-inversion`)
+  - All 812 tests pass (306 unit + 464 CLI + 15 pack + 18 workspace + 6 performance + 3 misc)
 - [ ] Sparse inversion tests for `context walk` and `dump` commands
 - [ ] Missing integration tests for custom link costs affecting traversal
 

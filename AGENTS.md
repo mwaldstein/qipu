@@ -148,7 +148,6 @@ Types: `fix`, `feat`, `test`, `docs`, `refactor`
 
 | File | Purpose |
 |------|---------|
-| `.beads/issues.jsonl` | Active tasks, bugs, test coverage gaps |
 | `specs/README.md` | Spec index with implementation status |
 | `src/lib/error.rs` | Error types and exit codes |
 | `tests/cli/support.rs` | Test helper functions |

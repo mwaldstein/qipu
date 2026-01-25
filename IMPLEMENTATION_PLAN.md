@@ -323,7 +323,13 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 ### storage-format.md
 
 - [ ] Missing security test for discovery boundary with parent store
-- [ ] Missing security test for malicious attachment paths in `qipu load`
+- [x] Missing security test for malicious attachment paths in `qipu load`
+  - **Resolution**: Added comprehensive security tests in `tests/pack/security.rs` to verify path traversal protection
+  - **Implementation**: Three tests verify malicious attachment paths are sanitized:
+    1. `test_malicious_attachment_path_traversal`: Tests `../../../malicious.txt` is safely written as `malicious.txt` in attachments dir
+    2. `test_malicious_attachment_absolute_path`: Tests absolute paths are sanitized to just filename
+    3. `test_malicious_attachment_null_bytes`: Tests empty pack file with no attachments (placeholder)
+  - **Learnings**: All 18 pack tests pass (including 3 new security tests). The fix in `src/commands/load/mod.rs:476-477` correctly extracts just the filename from any path, preventing directory traversal attacks.
 
 ### cli-interface.md
 

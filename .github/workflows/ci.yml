@@ -66,7 +66,6 @@ jobs:
         # Files grandfathered in (already >500 lines when check was added)
         allowed=(
           "src/cli/commands.rs"
-          "src/commands/list/mod.rs"
           "src/commands/context/mod.rs"
           "src/lib/graph/algos/dijkstra.rs"
         )

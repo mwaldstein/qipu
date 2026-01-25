@@ -366,7 +366,10 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
     - **Learnings**: Used pattern from `src/commands/dispatch/mod.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Test count increased from 812 to 822 (likely due to new tests added in other areas).
 
 **Low priority (500-600 lines):**
-- [ ] `src/commands/list/mod.rs` (560 lines) - extract helper functions
+- [x] `src/commands/list/mod.rs` (560 lines) - extract helper functions
+  - **Implementation**: Moved 495-line test module to `list/tests.rs` following same pattern as `show/mod.rs` and `dispatch/mod.rs` modules.
+  - **Results**: Main file reduced from 560 to 66 lines (-494 line reduction). Tests file is 395 lines. All 306 unit + 466 CLI tests pass.
+  - **Learnings**: Used pattern from `src/commands/show/mod.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Fixed `create_test_store()` to return `(TempDir, Store)` tuple to keep tempdir alive during tests.
 - [ ] `src/cli/commands.rs` (547 lines) - extract helper functions
 - [ ] `src/lib/graph/algos/dijkstra.rs` (511 lines) - extract helper functions
 

@@ -1,17 +1,14 @@
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::NoteMetadata;
-use crate::lib::note::{Note, NoteFrontmatter, NoteType};
+use crate::lib::note::{Note, NoteType};
 use chrono::Utc;
 use rusqlite::params;
 use std::path::PathBuf;
-use std::str::FromStr;
 
-fn convert_qipu_error_to_sqlite(e: QipuError) -> rusqlite::Error {
-    match e {
-        QipuError::Other(msg) => rusqlite::Error::ToSqlConversionFailure(Box::from(msg)),
-        _ => rusqlite::Error::ToSqlConversionFailure(Box::from(format!("{:?}", e))),
-    }
-}
+use super::helpers::{
+    build_frontmatter, load_compacts, load_custom, load_links, load_sources, load_tags,
+    parse_datetime, parse_note_type, parse_note_type_sqlite, parse_value, parse_verified,
+};
 
 impl super::super::Database {
     pub fn get_max_mtime(&self) -> Result<Option<i64>> {
@@ -36,15 +33,10 @@ impl super::super::Database {
             let updated: Option<String> = row.get(5)?;
             let value: Option<i64> = row.get(6)?;
 
-            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
-
-            let created_dt = created
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let updated_dt = updated
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let value_opt = value.and_then(|v| u8::try_from(v).ok());
+            let note_type = parse_note_type_sqlite(&type_str)?;
+            let created_dt = parse_datetime(created);
+            let updated_dt = parse_datetime(updated);
+            let value_opt = parse_value(value);
 
             Ok((
                 id, title, note_type, path, created_dt, updated_dt, value_opt,
@@ -53,25 +45,7 @@ impl super::super::Database {
 
         match note_opt {
             Ok((id, title, note_type, path, created, updated, value)) => {
-                let mut tag_stmt = self
-                    .conn
-                    .prepare("SELECT tag FROM tags WHERE note_id = ?1")
-                    .map_err(|e| QipuError::Other(format!("failed to prepare tag query: {}", e)))?;
-
-                let mut tags = Vec::new();
-                let mut tag_rows = tag_stmt
-                    .query(params![&id])
-                    .map_err(|e| QipuError::Other(format!("failed to query tags: {}", e)))?;
-
-                while let Some(row) = tag_rows
-                    .next()
-                    .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?
-                {
-                    tags.push(
-                        row.get(0)
-                            .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?,
-                    );
-                }
+                let tags = load_tags(&self.conn, &id)?;
 
                 Ok(Some(NoteMetadata {
                     id,
@@ -181,35 +155,12 @@ impl super::super::Database {
                 .get(6)
                 .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
 
-            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
+            let note_type = parse_note_type(&type_str)?;
+            let created_dt = parse_datetime(created);
+            let updated_dt = parse_datetime(updated);
+            let value_opt = parse_value(value);
 
-            let created_dt = created
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let updated_dt = updated
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let value_opt = value.and_then(|v| u8::try_from(v).ok());
-
-            let mut tag_stmt = self
-                .conn
-                .prepare("SELECT tag FROM tags WHERE note_id = ?1")
-                .map_err(|e| QipuError::Other(format!("failed to prepare tag query: {}", e)))?;
-
-            let mut tags = Vec::new();
-            let mut tag_rows = tag_stmt
-                .query(params![&id])
-                .map_err(|e| QipuError::Other(format!("failed to query tags: {}", e)))?;
-
-            while let Some(row) = tag_rows
-                .next()
-                .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?
-            {
-                tags.push(
-                    row.get(0)
-                        .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?,
-                );
-            }
+            let tags = load_tags(&self.conn, &id)?;
 
             results.push(NoteMetadata {
                 id,
@@ -252,16 +203,11 @@ impl super::super::Database {
             let prompt_hash: Option<String> = row.get(14)?;
             let custom_json: String = row.get(15)?;
 
-            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
-
-            let created_dt = created
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let updated_dt = updated
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let value_opt = value.and_then(|v| u8::try_from(v).ok());
-            let verified_opt = verified.map(|v| v != 0);
+            let note_type = parse_note_type_sqlite(&type_str)?;
+            let created_dt = parse_datetime(created);
+            let updated_dt = parse_datetime(updated);
+            let value_opt = parse_value(value);
+            let verified_opt = parse_verified(verified);
 
             Ok((
                 id,
@@ -302,74 +248,21 @@ impl super::super::Database {
                 prompt_hash,
                 custom_json,
             )) => {
-                let mut tag_stmt = self
-                    .conn
-                    .prepare("SELECT tag FROM tags WHERE note_id = ?1")
-                    .map_err(|e| QipuError::Other(format!("failed to prepare tag query: {}", e)))?;
+                let tags = load_tags(&self.conn, &id)?;
+                let links = load_links(&self.conn, &id)?;
+                let compacts = load_compacts(&compacts_json);
+                let sources = load_sources(&sources_json);
+                let custom = load_custom(&custom_json);
 
-                let mut tags = Vec::new();
-                let mut tag_rows = tag_stmt
-                    .query(params![&id])
-                    .map_err(|e| QipuError::Other(format!("failed to query tags: {}", e)))?;
-
-                while let Some(row) = tag_rows
-                    .next()
-                    .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?
-                {
-                    tags.push(
-                        row.get(0)
-                            .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?,
-                    );
-                }
-
-                let mut edge_stmt = self
-                    .conn
-                    .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
-                    .map_err(|e| {
-                        QipuError::Other(format!("failed to prepare edge query: {}", e))
-                    })?;
-
-                let mut links = Vec::new();
-                let mut edge_rows = edge_stmt
-                    .query(params![&id])
-                    .map_err(|e| QipuError::Other(format!("failed to query edges: {}", e)))?;
-
-                while let Some(row) = edge_rows
-                    .next()
-                    .map_err(|e| QipuError::Other(format!("failed to read edge: {}", e)))?
-                {
-                    let target_id: String = row.get(0)?;
-                    let link_type_str: String = row.get(1)?;
-                    let inline: i64 = row.get(2)?;
-
-                    // Only include typed links (inline=0) in frontmatter
-                    // Inline links (inline=1) exist only in the note body
-                    if inline == 0 {
-                        let link_type = crate::lib::note::LinkType::from(link_type_str);
-                        links.push(crate::lib::note::TypedLink {
-                            id: target_id,
-                            link_type,
-                        });
-                    }
-                }
-
-                let compacts: Vec<String> =
-                    serde_json::from_str(&compacts_json).unwrap_or_default();
-                let sources: Vec<crate::lib::note::Source> =
-                    serde_json::from_str(&sources_json).unwrap_or_default();
-                let custom: std::collections::HashMap<String, serde_yaml::Value> =
-                    serde_json::from_str(&custom_json).unwrap_or_default();
-
-                let frontmatter = NoteFrontmatter {
-                    id: id.clone(),
+                let frontmatter = build_frontmatter(
+                    id.clone(),
                     title,
-                    note_type: Some(note_type),
+                    note_type,
                     created,
                     updated,
                     tags,
                     sources,
                     links,
-                    summary: None,
                     compacts,
                     source,
                     author,
@@ -378,7 +271,7 @@ impl super::super::Database {
                     verified,
                     value,
                     custom,
-                };
+                );
 
                 Ok(Some(Note {
                     frontmatter,
@@ -477,91 +370,36 @@ impl super::super::Database {
                 .get(15)
                 .map_err(|e| QipuError::Other(format!("failed to get custom_json: {}", e)))?;
 
-            let note_type = NoteType::from_str(&type_str).map_err(convert_qipu_error_to_sqlite)?;
+            let note_type = parse_note_type_sqlite(&type_str)?;
+            let created_dt = parse_datetime(created);
+            let updated_dt = parse_datetime(updated);
+            let value_opt = parse_value(value);
+            let verified_opt = parse_verified(verified);
 
-            let created_dt = created
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let updated_dt = updated
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let value_opt = value.and_then(|v| u8::try_from(v).ok());
-            let verified_opt = verified.map(|v| v != 0);
+            let tags = load_tags(&self.conn, &id)?;
+            let links = load_links(&self.conn, &id)?;
+            let compacts = load_compacts(&compacts_json);
+            let sources = load_sources(&sources_json);
+            let custom = load_custom(&custom_json);
 
-            let mut tag_stmt = self
-                .conn
-                .prepare("SELECT tag FROM tags WHERE note_id = ?1")
-                .map_err(|e| QipuError::Other(format!("failed to prepare tag query: {}", e)))?;
-
-            let mut tags = Vec::new();
-            let mut tag_rows = tag_stmt
-                .query(params![&id])
-                .map_err(|e| QipuError::Other(format!("failed to query tags: {}", e)))?;
-
-            while let Some(row) = tag_rows
-                .next()
-                .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?
-            {
-                tags.push(
-                    row.get(0)
-                        .map_err(|e| QipuError::Other(format!("failed to read tag: {}", e)))?,
-                );
-            }
-
-            let mut edge_stmt = self
-                .conn
-                .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
-                .map_err(|e| QipuError::Other(format!("failed to prepare edge query: {}", e)))?;
-
-            let mut links = Vec::new();
-            let mut edge_rows = edge_stmt
-                .query(params![&id])
-                .map_err(|e| QipuError::Other(format!("failed to query edges: {}", e)))?;
-
-            while let Some(row) = edge_rows
-                .next()
-                .map_err(|e| QipuError::Other(format!("failed to read edge: {}", e)))?
-            {
-                let target_id: String = row.get(0)?;
-                let link_type_str: String = row.get(1)?;
-                let inline: i64 = row.get(2)?;
-
-                // Only include typed links (inline=0) in frontmatter
-                // Inline links (inline=1) exist only in the note body
-                if inline == 0 {
-                    let link_type = crate::lib::note::LinkType::from(link_type_str);
-                    links.push(crate::lib::note::TypedLink {
-                        id: target_id,
-                        link_type,
-                    });
-                }
-            }
-
-            let compacts: Vec<String> = serde_json::from_str(&compacts_json).unwrap_or_default();
-            let sources: Vec<crate::lib::note::Source> =
-                serde_json::from_str(&sources_json).unwrap_or_default();
-            let custom: std::collections::HashMap<String, serde_yaml::Value> =
-                serde_json::from_str(&custom_json).unwrap_or_default();
-
-            let frontmatter = NoteFrontmatter {
-                id: id.clone(),
+            let frontmatter = build_frontmatter(
+                id.clone(),
                 title,
-                note_type: Some(note_type),
-                created: created_dt,
-                updated: updated_dt,
+                note_type,
+                created_dt,
+                updated_dt,
                 tags,
                 sources,
                 links,
-                summary: None,
                 compacts,
                 source,
                 author,
                 generated_by,
                 prompt_hash,
-                verified: verified_opt,
-                value: value_opt,
+                verified_opt,
+                value_opt,
                 custom,
-            };
+            );
 
             results.push(Note {
                 frontmatter,

@@ -346,7 +346,16 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
    - **Implementation**: Moved 553-line test module to `similarity/tests.rs` following same pattern as `context.rs` and `bfs.rs` modules. Tests now in separate directory with same module name.
    - **Results**: Main file reduced from 633 to 82 lines (551 line reduction). Tests file is 553 lines. All 812 tests pass.
    - **Learnings**: Used pattern from `src/lib/graph/bfs.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Fixed import issue by explicitly importing `SimilarityEngine` instead of using `use super::*` in separate test file.
-- [ ] `src/lib/db/notes/read.rs` (609 lines) - extract helper functions
+ - [x] `src/lib/db/notes/read.rs` (609 lines) - extract helper functions
+   - **Implementation**: Created `helpers.rs` module with 11 helper functions for common database operations:
+     - `parse_note_type_sqlite` - parse note type with sqlite error conversion (for closures)
+     - `parse_note_type` - parse note type with QipuError
+     - `parse_datetime`, `parse_value`, `parse_verified` - parse common field types
+     - `load_tags`, `load_links` - load tags and links from database
+     - `load_compacts`, `load_sources`, `load_custom` - load JSON fields
+     - `build_frontmatter` - build NoteFrontmatter from components
+   - **Results**: read.rs reduced from 609 to 447 lines (-162 lines). helpers.rs is 138 lines. Net: -24 lines.
+   - **Learnings**: Extracted repeated code from 4 functions (get_note_metadata, list_notes, get_note, list_notes_full). All 812 tests pass.
 - [ ] `src/commands/dispatch/mod.rs` (592 lines) - extract helper functions
 - [ ] `src/commands/show.rs` (570 lines) - extract helper functions
 

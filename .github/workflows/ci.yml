@@ -69,7 +69,6 @@ jobs:
           "src/commands/list/mod.rs"
           "src/commands/context/mod.rs"
           "src/commands/show.rs"
-          "src/commands/doctor/database.rs"
           "src/commands/dispatch/mod.rs"
           "src/lib/db/notes/read.rs"
           "src/lib/similarity/mod.rs"

@@ -30,6 +30,8 @@ cargo test --test cli_tests cli::search          # Module path
 cargo test --test bench_tests --release -- --ignored
 ```
 
+**Note:** This is a binary crate—do not use `cargo test --lib` (no library target exists).
+
 ## Project Structure
 
 ```

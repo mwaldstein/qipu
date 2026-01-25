@@ -299,7 +299,10 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
     - **Implementation**: Moved 288-line test module to `setup/tests.rs` following same pattern as `content.rs` module. Tests now in separate directory with same module name.
     - **Results**: Main file reduced from 711 to 423 lines. Tests file is 288 lines. All 764 tests pass (306 unit + 458 CLI).
     - **Learnings**: Used pattern from `src/commands/doctor/content.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Test helpers (create_cli, etc.) kept in tests.rs for test-only use.
- - [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
+ - [x] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
+   - **Implementation**: Moved 289-line test module to `database/tests.rs` following same pattern as `content.rs` module.
+   - **Results**: Main file reduced from 684 to 393 lines. Tests file is 289 lines. All 812 tests pass.
+   - **Learnings**: Used pattern from `src/commands/doctor/content.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file.
 
 **Dead/unused code:**
 - [x] Audit codebase for dead/unused code (29 `#[allow(dead_code)]` annotations found)

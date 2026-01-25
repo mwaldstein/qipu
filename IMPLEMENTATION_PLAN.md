@@ -194,11 +194,13 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
      - Adaptive logic: < adaptive_threshold (10k default) → full index, ≥ adaptive_threshold → quick index
    - **Learnings**: All 306 unit tests + 458 CLI tests + 11 workspace merge tests + 15 pack tests + 15 pack tests + 6 performance tests + 1 workspace tests = 812 tests pass.
 
-- [ ] Phase 2: Incremental indexing (mtime-based)
-  - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`
-  - **Issue**: No mtime tracking; all notes re-indexed on every `qipu index`
-  - **Spec requires**: "Incremental Indexing" - only re-index modified notes based on file mtime
-  - **Resolution**: Add mtime comparison in database; skip unchanged notes during indexing; performance: O(changed) vs O(total)
+ - [x] Phase 2: Incremental indexing (mtime-based)
+   - **Location**: `src/lib/db/repair.rs:10-148`, `src/lib/db/tests.rs:854-879`
+   - **Issue**: No mtime tracking; all notes re-indexed on every `qipu index`
+   - **Spec requires**: "Incremental Indexing" - only re-index modified notes based on file mtime
+   - **Resolution**: Implemented per-note mtime comparison; skip unchanged notes during indexing; performance: O(changed) vs O(total)
+   - **Implementation**: Modified `incremental_repair()` to compare file mtime with stored database mtime for each note; removed global `last_sync` timestamp; updated test to verify unchanged notes are skipped
+   - **Learnings**: mtime column already existed in schema; needed to implement per-note comparison instead of global timestamp comparison; test updated from checking `last_sync` to verifying unchanged notes are skipped
 
 - [ ] Phase 3: Selective indexing options
   - **Location**: `src/cli/commands.rs`, `src/commands/index.rs`

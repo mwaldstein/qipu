@@ -851,11 +851,11 @@ fn test_incremental_repair_removes_deleted_notes() {
 }
 
 #[test]
-fn test_incremental_repair_updates_last_sync() {
+fn test_incremental_repair_skips_unchanged_notes() {
     let dir = tempdir().unwrap();
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
-    store
+    let note = store
         .create_note("Test Note", None, &["tag".to_string()], None)
         .unwrap();
 
@@ -863,20 +863,29 @@ fn test_incremental_repair_updates_last_sync() {
 
     db.incremental_repair(store.root()).unwrap();
 
-    let before_sync = chrono::Utc::now().timestamp();
-    std::thread::sleep(std::time::Duration::from_millis(10));
-    db.incremental_repair(store.root()).unwrap();
-
-    let last_sync: String = db
+    let mtime_after_first: i64 = db
         .conn
         .query_row(
-            "SELECT value FROM index_meta WHERE key = 'last_sync'",
-            [],
+            "SELECT mtime FROM notes WHERE id = ?1",
+            params![note.id()],
             |row| row.get(0),
         )
         .unwrap();
-    let last_sync_ts: i64 = last_sync.parse().unwrap();
-    assert!(last_sync_ts >= before_sync);
+
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    db.incremental_repair(store.root()).unwrap();
+
+    let mtime_after_second: i64 = db
+        .conn
+        .query_row(
+            "SELECT mtime FROM notes WHERE id = ?1",
+            params![note.id()],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert_eq!(mtime_after_first, mtime_after_second);
 }
 
 #[test]

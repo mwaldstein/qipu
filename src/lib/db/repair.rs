@@ -3,35 +3,15 @@ use rusqlite::params;
 use std::path::Path;
 
 impl super::Database {
-    /// Incremental repair: update only changed notes since last sync
+    /// Incremental repair: update only notes with file mtime newer than database mtime
     ///
-    /// Finds files changed since the last sync timestamp, re-parses and updates
-    /// those entries, and removes entries for deleted files.
+    /// Compares file modification time (mtime) with stored database mtime for each note.
+    /// Only re-indexes notes where file mtime > database mtime, or new notes.
+    /// Removes entries for deleted files.
     pub fn incremental_repair(&self, store_root: &Path) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
-
-        let last_sync: i64 = match self.conn.query_row(
-            "SELECT value FROM index_meta WHERE key = 'last_sync'",
-            [],
-            |row| row.get::<_, String>(0),
-        ) {
-            Ok(s) => match s.parse::<i64>() {
-                Ok(v) => v,
-                Err(_) => {
-                    tracing::warn!("Invalid last_sync value in database, resetting to 0");
-                    0
-                }
-            },
-            Err(rusqlite::Error::QueryReturnedNoRows) => 0,
-            Err(e) => {
-                return Err(QipuError::Other(format!(
-                    "failed to query last_sync: {}",
-                    e
-                )));
-            }
-        };
 
         let mut changed_notes = Vec::new();
         let mut existing_paths = std::collections::HashSet::new();
@@ -48,7 +28,7 @@ impl super::Database {
             {
                 let path = entry.path();
                 if path.extension().is_some_and(|e| e == "md") {
-                    let mtime = std::fs::metadata(path)
+                    let file_mtime = std::fs::metadata(path)
                         .ok()
                         .and_then(|m| m.modified().ok())
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
@@ -57,18 +37,35 @@ impl super::Database {
 
                     existing_paths.insert(path.to_path_buf());
 
-                    if mtime >= last_sync {
-                        tracing::debug!(
-                            path = %path.display(),
-                            "File changed since last sync, re-parsing"
-                        );
+                    match Note::parse(&std::fs::read_to_string(path)?, Some(path.to_path_buf())) {
+                        Ok(note) => {
+                            let note_id = note.id();
+                            let db_mtime: Option<i64> = self
+                                .conn
+                                .query_row(
+                                    "SELECT mtime FROM notes WHERE id = ?1",
+                                    params![note_id],
+                                    |row| row.get(0),
+                                )
+                                .ok();
 
-                        match Note::parse(&std::fs::read_to_string(path)?, Some(path.to_path_buf()))
-                        {
-                            Ok(note) => changed_notes.push(note),
-                            Err(e) => {
-                                tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
+                            let needs_index = match db_mtime {
+                                Some(stored_mtime) => file_mtime > stored_mtime,
+                                None => true,
+                            };
+
+                            if needs_index {
+                                tracing::debug!(
+                                    note_id = %note_id,
+                                    file_mtime = file_mtime,
+                                    db_mtime = ?db_mtime,
+                                    "Note needs re-indexing"
+                                );
+                                changed_notes.push(note);
                             }
+                        }
+                        Err(e) => {
+                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
                         }
                     }
                 }
@@ -127,13 +124,6 @@ impl super::Database {
             Self::delete_note_internal(&tx, id)?;
             tracing::debug!(id = %id, "Deleted note from database");
         }
-
-        let now = chrono::Utc::now().timestamp();
-        tx.execute(
-            "INSERT OR REPLACE INTO index_meta (key, value) VALUES ('last_sync', ?1)",
-            params![now.to_string()],
-        )
-        .map_err(|e| QipuError::Other(format!("failed to update last_sync: {}", e)))?;
 
         tx.commit()
             .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;

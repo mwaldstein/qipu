@@ -287,7 +287,10 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
   - All modules now under 200 lines, making them much more maintainable
   - All 812 tests pass
   - **Learnings**: Organized tests by functionality area (open, rebuild, search, etc.) which makes navigation and maintenance easier. Each module focuses on a specific aspect of database behavior.
-- [ ] `src/lib/graph/bfs.rs` (820 lines) - extract helper functions
+- [x] `src/lib/graph/bfs.rs` (820 lines) - extract helper functions
+   - **Implementation**: Extracted duplicate code from bfs_search and dijkstra_search into helper functions: ProcessedEdge struct, canonicalize_edge(), check_can_visit(), check_dijkstra_can_visit(). Moved 426-line test module to tests.rs.
+   - **Results**: Main file reduced from 821 to 430 lines. Tests file is 426 lines. All 812 tests pass.
+   - **Learnings**: Main complexity was in neighbor processing loop duplicated between BFS and Dijkstra. Extracting to common ProcessedEdge struct and helper functions reduced duplication while maintaining clarity.
 - [ ] `src/commands/doctor/content.rs` (723 lines) - extract helper functions
 - [ ] `src/commands/setup.rs` (710 lines) - extract helper functions
 - [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions

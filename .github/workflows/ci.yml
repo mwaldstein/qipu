@@ -75,7 +75,6 @@ jobs:
           "src/commands/dispatch/mod.rs"
           "src/lib/db/notes/read.rs"
           "src/lib/similarity/mod.rs"
-          "src/lib/graph/bfs.rs"
           "src/lib/graph/algos/dijkstra.rs"
         )
         

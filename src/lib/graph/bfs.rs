@@ -83,6 +83,53 @@ fn collect_neighbors(
     neighbors
 }
 
+struct ProcessedEdge {
+    canonical_from: String,
+    canonical_to: String,
+    canonical_neighbor: String,
+    original_edge: Edge,
+}
+
+fn canonicalize_edge(
+    edge: &Edge,
+    neighbor_id: &str,
+    compaction_ctx: Option<&CompactionContext>,
+) -> Option<ProcessedEdge> {
+    let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
+        return None;
+    };
+    let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
+        return None;
+    };
+
+    if canonical_from == canonical_to {
+        return None;
+    }
+
+    let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, neighbor_id) else {
+        return None;
+    };
+
+    Some(ProcessedEdge {
+        canonical_from,
+        canonical_to,
+        canonical_neighbor,
+        original_edge: edge.clone(),
+    })
+}
+
+fn check_can_visit(
+    provider: &dyn GraphProvider,
+    neighbor_id: &str,
+    visited: &HashSet<String>,
+    min_value: Option<u8>,
+) -> bool {
+    if visited.contains(neighbor_id) {
+        return false;
+    }
+    check_min_value_filter(provider, neighbor_id, min_value)
+}
+
 fn bfs_search(
     provider: &dyn GraphProvider,
     store: &Store,
@@ -111,49 +158,55 @@ fn bfs_search(
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
-            let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
-                continue;
-            };
-            let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
+            let Some(processed) = canonicalize_edge(&edge, &neighbor_id, compaction_ctx) else {
                 continue;
             };
 
-            if canonical_from == canonical_to {
+            if !check_can_visit(
+                provider,
+                &processed.canonical_neighbor,
+                &visited,
+                opts.min_value,
+            ) {
                 continue;
             }
 
-            let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, &neighbor_id)
-            else {
-                continue;
-            };
-
-            if visited.contains(&canonical_neighbor) {
-                continue;
-            }
-
-            if !check_min_value_filter(provider, &canonical_neighbor, opts.min_value) {
-                continue;
-            }
-
-            visited.insert(canonical_neighbor.clone());
+            visited.insert(processed.canonical_neighbor.clone());
             let canonical_edge = Edge {
-                from: canonical_from,
-                to: canonical_to,
+                from: processed.canonical_from,
+                to: processed.canonical_to,
                 link_type: edge.link_type.clone(),
                 source: edge.source,
             };
             predecessors.insert(
-                canonical_neighbor.clone(),
+                processed.canonical_neighbor.clone(),
                 (current_id.clone(), canonical_edge),
             );
 
             let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
             let new_cost = accumulated_cost + edge_cost;
-            queue.push_back((canonical_neighbor, new_cost));
+            queue.push_back((processed.canonical_neighbor, new_cost));
         }
     }
 
     (false, predecessors)
+}
+
+fn check_dijkstra_can_visit(
+    provider: &dyn GraphProvider,
+    neighbor_id: &str,
+    visited: &HashSet<String>,
+    min_value: Option<u8>,
+) -> bool {
+    if visited.contains(neighbor_id) {
+        return true;
+    }
+    if let Some(meta) = provider.get_metadata(neighbor_id) {
+        let value = meta.value.unwrap_or(50);
+        min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    }
 }
 
 fn dijkstra_search(
@@ -193,68 +246,51 @@ fn dijkstra_search(
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
         for (neighbor_id, edge) in neighbors {
-            let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
-                continue;
-            };
-            let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
+            let Some(processed) = canonicalize_edge(&edge, &neighbor_id, compaction_ctx) else {
                 continue;
             };
 
-            if canonical_from == canonical_to {
+            if !check_dijkstra_can_visit(
+                provider,
+                &processed.canonical_neighbor,
+                &visited,
+                opts.min_value,
+            ) {
                 continue;
             }
 
-            let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, &neighbor_id)
-            else {
-                continue;
-            };
-
-            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
-                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                    let value = meta.value.unwrap_or(50);
-                    opts.min_value.is_none_or(|min| value >= min)
-                } else {
-                    false
-                }
-            } else {
-                true
-            };
-
-            if !neighbor_passes_filter {
-                continue;
-            }
-
-            let edge_cost = match get_note_value(provider, &canonical_neighbor) {
+            let edge_cost = match get_note_value(provider, &processed.canonical_neighbor) {
                 Some(value) => get_edge_cost(edge.link_type.as_str(), value, store.config()),
                 None => get_link_type_cost(edge.link_type.as_str(), store.config()),
             };
             let new_cost = accumulated_cost + edge_cost;
 
-            let should_visit = if let Some(&existing_cost) = best_costs.get(&canonical_neighbor) {
-                new_cost.value() < existing_cost.value() - 0.0001
-            } else {
-                true
-            };
+            let should_visit =
+                if let Some(&existing_cost) = best_costs.get(&processed.canonical_neighbor) {
+                    new_cost.value() < existing_cost.value() - 0.0001
+                } else {
+                    true
+                };
 
             if should_visit {
-                if !visited.contains(&canonical_neighbor) {
-                    visited.insert(canonical_neighbor.clone());
+                if !visited.contains(&processed.canonical_neighbor) {
+                    visited.insert(processed.canonical_neighbor.clone());
                 }
 
-                best_costs.insert(canonical_neighbor.clone(), new_cost);
+                best_costs.insert(processed.canonical_neighbor.clone(), new_cost);
                 let canonical_edge = Edge {
-                    from: canonical_from,
-                    to: canonical_to,
+                    from: processed.canonical_from,
+                    to: processed.canonical_to,
                     link_type: edge.link_type.clone(),
                     source: edge.source,
                 };
                 predecessors.insert(
-                    canonical_neighbor.clone(),
+                    processed.canonical_neighbor.clone(),
                     (current_id.clone(), canonical_edge),
                 );
 
                 heap.push(Reverse(HeapEntry {
-                    node_id: canonical_neighbor,
+                    node_id: processed.canonical_neighbor,
                     accumulated_cost: new_cost,
                 }));
             }
@@ -391,430 +427,4 @@ pub fn bfs_find_path(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lib::index::IndexBuilder;
-    use crate::lib::store::Store;
-    use tempfile::tempdir;
-
-    /// Test that bfs_find_path works with ignore_value=true (unweighted)
-    #[test]
-    fn test_bfs_find_path_unweighted() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        from_note.frontmatter.value = Some(100);
-        store.save_note(&mut from_note).unwrap();
-
-        let mut mid_note = store
-            .create_note("Mid Note", None, &["mid".to_string()], None)
-            .unwrap();
-        mid_note.frontmatter.value = Some(50);
-        store.save_note(&mut mid_note).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        to_note.frontmatter.value = Some(0);
-        store.save_note(&mut to_note).unwrap();
-
-        // Create links: from -> mid -> to
-        from_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: mid_note.id().to_string(),
-            });
-        store.save_note(&mut from_note).unwrap();
-
-        mid_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: to_note.id().to_string(),
-            });
-        store.save_note(&mut mid_note).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            max_hops: HopCost::from(5),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(result.found);
-        assert_eq!(result.path_length, 2);
-        assert_eq!(result.notes.len(), 3);
-    }
-
-    /// Test that bfs_find_path works with ignore_value=false (weighted)
-    #[test]
-    fn test_bfs_find_path_weighted() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        from_note.frontmatter.value = Some(100);
-        store.save_note(&mut from_note).unwrap();
-
-        let mut mid_note = store
-            .create_note("Mid Note", None, &["mid".to_string()], None)
-            .unwrap();
-        mid_note.frontmatter.value = Some(50);
-        store.save_note(&mut mid_note).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        to_note.frontmatter.value = Some(0);
-        store.save_note(&mut to_note).unwrap();
-
-        // Create links: from -> mid -> to
-        from_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: mid_note.id().to_string(),
-            });
-        store.save_note(&mut from_note).unwrap();
-
-        mid_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: to_note.id().to_string(),
-            });
-        store.save_note(&mut mid_note).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: false,
-            max_hops: HopCost::from(10),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(result.found);
-        assert_eq!(result.path_length, 2);
-        assert_eq!(result.notes.len(), 3);
-    }
-
-    /// Test that bfs_find_path respects min_value filter
-    #[test]
-    fn test_bfs_find_path_min_value_filter() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        from_note.frontmatter.value = Some(100);
-        store.save_note(&mut from_note).unwrap();
-
-        let mut low_mid = store
-            .create_note("Low Mid Note", None, &["lowmid".to_string()], None)
-            .unwrap();
-        low_mid.frontmatter.value = Some(30);
-        store.save_note(&mut low_mid).unwrap();
-
-        let mut high_mid = store
-            .create_note("High Mid Note", None, &["highmid".to_string()], None)
-            .unwrap();
-        high_mid.frontmatter.value = Some(80);
-        store.save_note(&mut high_mid).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        to_note.frontmatter.value = Some(100);
-        store.save_note(&mut to_note).unwrap();
-
-        // Create links: from -> low_mid -> to and from -> high_mid -> to
-        from_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: low_mid.id().to_string(),
-            });
-        store.save_note(&mut from_note).unwrap();
-
-        low_mid.frontmatter.links.push(crate::lib::note::TypedLink {
-            link_type: crate::lib::note::LinkType::from("supports"),
-            id: to_note.id().to_string(),
-        });
-        store.save_note(&mut low_mid).unwrap();
-
-        from_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: high_mid.id().to_string(),
-            });
-        store.save_note(&mut from_note).unwrap();
-
-        high_mid
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: to_note.id().to_string(),
-            });
-        store.save_note(&mut high_mid).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            min_value: Some(50),
-            max_hops: HopCost::from(5),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        // Should find path through high_mid (passes filter), not low_mid (excluded)
-        assert!(result.found);
-        assert_eq!(result.path_length, 2);
-        assert_eq!(result.notes.len(), 3);
-    }
-
-    /// Test that bfs_find_path returns not found when target unreachable
-    #[test]
-    fn test_bfs_find_path_not_found() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        let to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-
-        // No links created - notes are disconnected
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            max_hops: HopCost::from(5),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(!result.found);
-        assert_eq!(result.path_length, 0);
-        assert_eq!(result.notes.len(), 0);
-    }
-
-    /// Test that bfs_find_path handles from/to notes that fail min_value filter
-    #[test]
-    fn test_bfs_find_path_from_fails_filter() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        from_note.frontmatter.value = Some(10);
-        store.save_note(&mut from_note).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        to_note.frontmatter.value = Some(90);
-        store.save_note(&mut to_note).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            min_value: Some(50),
-            max_hops: HopCost::from(5),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(!result.found); // From note fails filter
-    }
-
-    /// Test that bfs_find_path handles to notes that fail min_value filter
-    #[test]
-    fn test_bfs_find_path_to_fails_filter() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        from_note.frontmatter.value = Some(90);
-        store.save_note(&mut from_note).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        to_note.frontmatter.value = Some(10);
-        store.save_note(&mut to_note).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            min_value: Some(50),
-            max_hops: HopCost::from(5),
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(!result.found); // To note fails filter
-    }
-
-    /// Test that bfs_find_path respects max_hops limit
-    #[test]
-    fn test_bfs_find_path_max_hops() {
-        let dir = tempdir().unwrap();
-        let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
-
-        let mut from_note = store
-            .create_note("From Note", None, &["from".to_string()], None)
-            .unwrap();
-        store.save_note(&mut from_note).unwrap();
-
-        let mut mid1_note = store
-            .create_note("Mid1 Note", None, &["mid1".to_string()], None)
-            .unwrap();
-        store.save_note(&mut mid1_note).unwrap();
-
-        let mut mid2_note = store
-            .create_note("Mid2 Note", None, &["mid2".to_string()], None)
-            .unwrap();
-        store.save_note(&mut mid2_note).unwrap();
-
-        let mut to_note = store
-            .create_note("To Note", None, &["to".to_string()], None)
-            .unwrap();
-        store.save_note(&mut to_note).unwrap();
-
-        // Create links: from -> mid1 -> mid2 -> to (3 hops)
-        from_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: mid1_note.id().to_string(),
-            });
-        store.save_note(&mut from_note).unwrap();
-
-        mid1_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: mid2_note.id().to_string(),
-            });
-        store.save_note(&mut mid1_note).unwrap();
-
-        mid2_note
-            .frontmatter
-            .links
-            .push(crate::lib::note::TypedLink {
-                link_type: crate::lib::note::LinkType::from("supports"),
-                id: to_note.id().to_string(),
-            });
-        store.save_note(&mut mid2_note).unwrap();
-
-        let index = IndexBuilder::new(&store).build().unwrap();
-
-        let opts = TreeOptions {
-            ignore_value: true,
-            max_hops: HopCost::from(2), // Limit to 2 hops, path needs 3
-            ..Default::default()
-        };
-
-        let result = bfs_find_path(
-            &index,
-            &store,
-            from_note.id(),
-            to_note.id(),
-            &opts,
-            None,
-            None,
-        )
-        .unwrap();
-
-        assert!(!result.found); // Should not find path within max_hops limit
-    }
-}
+mod tests;

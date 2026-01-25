@@ -69,7 +69,7 @@ impl Store {
         let cache_dir = path.join(".cache");
         if cache_dir.exists() {
             tracing::info!("Migrating from JSON cache to SQLite...");
-            db.rebuild(path)?;
+            db.rebuild(path, None)?;
             std::fs::remove_dir_all(&cache_dir)?;
             tracing::info!("Migration complete, deleted .cache/");
         }
@@ -107,7 +107,7 @@ impl Store {
         let cache_dir = path.join(".cache");
         if cache_dir.exists() {
             tracing::info!("Migrating from JSON cache to SQLite...");
-            db.rebuild(path)?;
+            db.rebuild(path, None)?;
             std::fs::remove_dir_all(&cache_dir)?;
             tracing::info!("Migration complete, deleted .cache/");
         }

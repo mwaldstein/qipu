@@ -8,7 +8,15 @@ impl super::Database {
     /// Compares file modification time (mtime) with stored database mtime for each note.
     /// Only re-indexes notes where file mtime > database mtime, or new notes.
     /// Removes entries for deleted files.
-    pub fn incremental_repair(&self, store_root: &Path) -> Result<()> {
+    ///
+    /// Arguments:
+    /// - `store_root`: Path to store root
+    /// - `progress`: Optional callback for progress reporting (indexed, total, last_note_id)
+    pub fn incremental_repair(
+        &self,
+        store_root: &Path,
+        progress: Option<&dyn Fn(usize, usize, &str)>,
+    ) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
@@ -79,16 +87,25 @@ impl super::Database {
             all_ids.insert(note.id().to_string());
         }
 
+        let total_notes = changed_notes.len();
+
         let tx = self
             .conn
             .unchecked_transaction()
             .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
 
         if !changed_notes.is_empty() {
-            for note in &changed_notes {
+            for (i, note) in changed_notes.iter().enumerate() {
                 Self::insert_note_internal(&tx, note)?;
                 Self::insert_edges_internal(&tx, note, &all_ids)?;
                 tracing::debug!(id = %note.id(), "Updated note in database");
+
+                // Report progress every 100 notes and at the end
+                if (i + 1) % 100 == 0 || (i + 1) == total_notes {
+                    if let Some(cb) = progress {
+                        cb(i + 1, total_notes, note.id());
+                    }
+                }
             }
         }
 

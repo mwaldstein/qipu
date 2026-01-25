@@ -12,7 +12,7 @@ use crate::lib::index::links;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
 
-/// Execute the index command
+/// Execute index command
 pub fn execute(
     cli: &Cli,
     store: &Store,
@@ -46,12 +46,34 @@ pub fn execute(
 
     let notes_count = notes.len();
 
-    if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
-        selective_index(cli, store, quick, tag, note_type, recent, moc)?;
-    } else if rebuild {
-        store.db().rebuild(store.root())?;
+    if cli.verbose {
+        let progress = |indexed: usize, total: usize, last_id: &str| {
+            eprintln!(
+                "Indexing: {}/{} notes ({:.0}%) - Last: {}",
+                indexed,
+                total,
+                (indexed as f64 / total as f64) * 100.0,
+                last_id
+            );
+        };
+
+        if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
+            selective_index(cli, store, quick, tag, note_type, recent, moc)?;
+        } else if rebuild {
+            store.db().rebuild(store.root(), Some(&progress))?;
+        } else {
+            store
+                .db()
+                .incremental_repair(store.root(), Some(&progress))?;
+        }
     } else {
-        store.db().incremental_repair(store.root())?;
+        if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
+            selective_index(cli, store, quick, tag, note_type, recent, moc)?;
+        } else if rebuild {
+            store.db().rebuild(store.root(), None)?;
+        } else {
+            store.db().incremental_repair(store.root(), None)?;
+        }
     }
 
     match cli.format {

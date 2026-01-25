@@ -38,7 +38,7 @@ fn test_database_rebuild_populates_notes() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let note_count: i64 = db
         .conn
@@ -69,7 +69,7 @@ fn test_database_rebuild_cleans_old_data() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let initial_count: i64 = db
         .conn
@@ -82,7 +82,7 @@ fn test_database_rebuild_cleans_old_data() {
     note.frontmatter.tags = vec!["tag2".to_string()];
     store.save_note(&mut note).unwrap();
 
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let final_count: i64 = db
         .conn
@@ -115,7 +115,7 @@ fn test_insert_note_with_fts() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let fts_count: i64 = db
         .conn
@@ -143,7 +143,7 @@ fn test_empty_store_rebuild() {
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let note_count: i64 = db
         .conn
@@ -181,7 +181,7 @@ fn test_search_fts_basic() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db.search("test", None, None, None, None, 10).unwrap();
 
@@ -216,7 +216,7 @@ fn test_search_fts_tag_boost() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db.search("test", None, None, None, None, 10).unwrap();
 
@@ -238,7 +238,7 @@ fn test_search_with_type_filter() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db
         .search("test", Some(NoteType::Fleeting), None, None, None, 10)
@@ -274,7 +274,7 @@ fn test_search_with_tag_filter() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db
         .search("test", None, Some("test-tag"), None, None, 10)
@@ -294,7 +294,7 @@ fn test_search_empty_query() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db.search("", None, None, None, None, 10).unwrap();
 
@@ -313,7 +313,7 @@ fn test_search_limit() {
     }
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root()).unwrap();
+    db.rebuild(store.root(), None).unwrap();
 
     let results = db.search("test", None, None, None, None, 3).unwrap();
 
@@ -772,7 +772,7 @@ fn test_incremental_repair_updates_changed_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let count_before: i64 = db
         .conn
@@ -787,7 +787,7 @@ fn test_incremental_repair_updates_changed_notes() {
     let _before_sync = chrono::Utc::now().timestamp();
     std::thread::sleep(std::time::Duration::from_millis(10));
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let title: String = db
         .conn
@@ -824,7 +824,7 @@ fn test_incremental_repair_removes_deleted_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let count_before: i64 = db
         .conn
@@ -835,7 +835,7 @@ fn test_incremental_repair_removes_deleted_notes() {
     let note1_path = note1.path.as_ref().unwrap();
     std::fs::remove_file(note1_path).unwrap();
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let count_after: i64 = db
         .conn
@@ -861,7 +861,7 @@ fn test_incremental_repair_skips_unchanged_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let mtime_after_first: i64 = db
         .conn
@@ -874,7 +874,7 @@ fn test_incremental_repair_skips_unchanged_notes() {
 
     std::thread::sleep(std::time::Duration::from_millis(10));
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let mtime_after_second: i64 = db
         .conn
@@ -895,7 +895,7 @@ fn test_incremental_repair_handles_empty_database() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root()).unwrap();
+    db.incremental_repair(store.root(), None).unwrap();
 
     let count: i64 = db
         .conn

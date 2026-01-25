@@ -116,7 +116,7 @@ impl Database {
 
         if needs_rebuild == schema::SchemaCreateResult::NeedsRebuild {
             tracing::info!("Rebuilding database after schema update...");
-            db.rebuild(store_root)?;
+            db.rebuild(store_root, None)?;
         }
 
         let note_count: i64 = db
@@ -131,7 +131,7 @@ impl Database {
                     "Database is empty but {} note(s) found on filesystem, rebuilding...",
                     fs_count
                 );
-                db.rebuild(store_root)?;
+                db.rebuild(store_root, None)?;
             }
         } else {
             // Checkpoint WAL to ensure we see all committed changes from other processes
@@ -142,7 +142,7 @@ impl Database {
             // Validate consistency and trigger incremental repair if needed (unless disabled)
             if auto_repair && !db.validate_consistency(store_root)? {
                 tracing::info!("Database inconsistent, triggering incremental repair");
-                db.incremental_repair(store_root)?;
+                db.incremental_repair(store_root, None)?;
             }
         }
 
@@ -164,8 +164,12 @@ impl Database {
     }
 
     /// Rebuild the database from scratch by scanning all notes
-    #[tracing::instrument(skip(self, store_root), fields(store_root = %store_root.display()))]
-    pub fn rebuild(&self, store_root: &Path) -> Result<()> {
+    #[tracing::instrument(skip(self, store_root, progress), fields(store_root = %store_root.display()))]
+    pub fn rebuild(
+        &self,
+        store_root: &Path,
+        progress: Option<&dyn Fn(usize, usize, &str)>,
+    ) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
@@ -212,10 +216,43 @@ impl Database {
         tx.execute("DELETE FROM notes", [])
             .map_err(|e| QipuError::Other(format!("failed to clear notes: {}", e)))?;
 
-        for note in notes {
-            Self::insert_note_internal(&tx, &note)?;
-            Self::insert_edges_internal(&tx, &note, &ids)?;
+        let total_notes = notes.len();
+        let batch_size = 1000;
+
+        let mut current_tx = Some(tx);
+
+        for (i, note) in notes.iter().enumerate() {
+            let tx_ref = current_tx
+                .as_ref()
+                .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
+
+            Self::insert_note_internal(tx_ref, &note)?;
+            Self::insert_edges_internal(tx_ref, &note, &ids)?;
+
+            // Report progress every 100 notes and at the end
+            if (i + 1) % 100 == 0 || (i + 1) == total_notes {
+                if let Some(cb) = progress {
+                    cb(i + 1, total_notes, note.id());
+                }
+            }
+
+            // Batch checkpoint: commit every N notes
+            if (i + 1) % batch_size == 0 && (i + 1) < total_notes {
+                let tx = current_tx
+                    .take()
+                    .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
+
+                tx.commit()
+                    .map_err(|e| QipuError::Other(format!("failed to commit checkpoint: {}", e)))?;
+                tracing::info!(indexed = i + 1, total = total_notes, "Checkpoint committed");
+
+                current_tx = Some(self.conn.unchecked_transaction().map_err(|e| {
+                    QipuError::Other(format!("failed to start transaction: {}", e))
+                })?);
+            }
         }
+
+        let tx = current_tx.ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
 
         tx.commit()
             .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;

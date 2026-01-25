@@ -417,7 +417,7 @@ impl super::Database {
         match strategy {
             Some(IndexingStrategy::Full) => {
                 tracing::info!("Auto-indexing with FULL strategy: {} notes", note_count);
-                self.rebuild(store_root)?;
+                self.rebuild(store_root, None)?;
                 Ok(IndexingResult {
                     notes_indexed: note_count,
                     strategy: IndexingStrategy::Full,

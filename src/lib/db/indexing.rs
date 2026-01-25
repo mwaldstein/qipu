@@ -2,6 +2,25 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 use rusqlite::{params, Connection};
 
+/// Indexing strategy for auto-indexing
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndexingStrategy {
+    /// Full index (basic + full-text for all notes)
+    Full,
+    /// Quick index (basic only for MOCs + N recent notes)
+    Quick,
+}
+
+impl IndexingStrategy {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "full" => Some(IndexingStrategy::Full),
+            "quick" => Some(IndexingStrategy::Quick),
+            _ => None,
+        }
+    }
+}
+
 /// Index level for tracking which parts of a note are indexed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndexLevel {
@@ -352,4 +371,176 @@ impl super::Database {
 
         Ok(upgraded)
     }
+
+    /// Perform adaptive indexing based on note count and strategy
+    pub fn adaptive_index(
+        &self,
+        store_root: &std::path::Path,
+        config: &crate::lib::config::AutoIndexConfig,
+        force_strategy: Option<IndexingStrategy>,
+    ) -> Result<IndexingResult> {
+        let note_count = Self::count_note_files(store_root)?;
+
+        if note_count == 0 {
+            tracing::info!("No notes to index");
+            return Ok(IndexingResult {
+                notes_indexed: 0,
+                strategy: IndexingStrategy::Full,
+            });
+        }
+
+        let db_count = self.get_note_count().unwrap_or(0);
+
+        if db_count > 0 {
+            tracing::info!(
+                "Database already has {} notes, skipping auto-index",
+                db_count
+            );
+            return Ok(IndexingResult {
+                notes_indexed: db_count as usize,
+                strategy: IndexingStrategy::Full,
+            });
+        }
+
+        let strategy = force_strategy.or_else(|| {
+            if config.strategy == "adaptive" {
+                if note_count < config.adaptive_threshold {
+                    Some(IndexingStrategy::Full)
+                } else {
+                    Some(IndexingStrategy::Quick)
+                }
+            } else {
+                IndexingStrategy::from_str(&config.strategy)
+            }
+        });
+
+        match strategy {
+            Some(IndexingStrategy::Full) => {
+                tracing::info!("Auto-indexing with FULL strategy: {} notes", note_count);
+                self.rebuild(store_root)?;
+                Ok(IndexingResult {
+                    notes_indexed: note_count,
+                    strategy: IndexingStrategy::Full,
+                })
+            }
+            Some(IndexingStrategy::Quick) => {
+                tracing::info!(
+                    "Auto-indexing with QUICK strategy: MOCs + {} recent notes from {} total",
+                    config.quick_notes,
+                    note_count
+                );
+                self.quick_index(store_root, config.quick_notes)?;
+                Ok(IndexingResult {
+                    notes_indexed: 0,
+                    strategy: IndexingStrategy::Quick,
+                })
+            }
+            None => {
+                tracing::warn!(
+                    "Unknown indexing strategy: '{}', skipping auto-index",
+                    config.strategy
+                );
+                Ok(IndexingResult {
+                    notes_indexed: 0,
+                    strategy: IndexingStrategy::Quick,
+                })
+            }
+        }
+    }
+
+    /// Quick index: MOCs + N recent notes
+    fn quick_index(&self, store_root: &std::path::Path, recent_count: usize) -> Result<()> {
+        use crate::lib::note::NoteType;
+        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use walkdir::WalkDir;
+
+        let mut notes = Vec::new();
+        let mut moc_notes: Vec<(std::time::SystemTime, Note)> = Vec::new();
+        let mut regular_notes: Vec<(std::time::SystemTime, Note)> = Vec::new();
+
+        for dir in [store_root.join(MOCS_DIR), store_root.join(NOTES_DIR)] {
+            if !dir.exists() {
+                continue;
+            }
+
+            for entry in WalkDir::new(&dir)
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "md") {
+                    match Note::parse(&std::fs::read_to_string(path)?, Some(path.to_path_buf())) {
+                        Ok(note) => {
+                            let mtime = std::fs::metadata(path)
+                                .and_then(|m| m.modified())
+                                .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH);
+
+                            if note.note_type() == NoteType::Moc {
+                                moc_notes.push((mtime, note));
+                            } else {
+                                regular_notes.push((mtime, note));
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add all MOCs
+        for (_, note) in moc_notes {
+            notes.push(note);
+        }
+
+        // Sort regular notes by mtime (most recent first) and take top N
+        regular_notes.sort_by(|a, b| b.0.cmp(&a.0));
+        for (_, note) in regular_notes.into_iter().take(recent_count) {
+            notes.push(note);
+        }
+
+        let ids: std::collections::HashSet<String> =
+            notes.iter().map(|n| n.id().to_string()).collect();
+
+        let tx = self
+            .conn
+            .unchecked_transaction()
+            .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
+
+        tx.execute("DELETE FROM tags", [])
+            .map_err(|e| QipuError::Other(format!("failed to clear tags: {}", e)))?;
+
+        tx.execute("DELETE FROM edges", [])
+            .map_err(|e| QipuError::Other(format!("failed to clear edges: {}", e)))?;
+
+        tx.execute("DELETE FROM notes", [])
+            .map_err(|e| QipuError::Other(format!("failed to clear notes: {}", e)))?;
+
+        for note in &notes {
+            Self::insert_note_basic(&tx, note)?;
+            Self::insert_edges_internal(&tx, note, &ids)?;
+        }
+
+        tx.commit()
+            .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;
+
+        tracing::info!(
+            "Quick-indexed {} notes (MOCs + {} recent)",
+            notes.len(),
+            recent_count
+        );
+
+        Ok(())
+    }
+}
+
+/// Result of adaptive indexing operation
+#[derive(Debug)]
+pub struct IndexingResult {
+    /// Number of notes indexed
+    pub notes_indexed: usize,
+    /// Strategy used
+    pub strategy: IndexingStrategy,
 }

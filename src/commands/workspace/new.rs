@@ -49,6 +49,8 @@ pub fn execute(
         visible: false,
         stealth: false,
         branch: None,
+        no_index: true,
+        index_strategy: None,
     };
     let ws_store = Store::init_at(&workspace_path, options, None)?;
 

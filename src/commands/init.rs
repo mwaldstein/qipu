@@ -18,11 +18,15 @@ pub fn execute(
     stealth: bool,
     visible: bool,
     branch: Option<String>,
+    no_index: bool,
+    index_strategy: Option<String>,
 ) -> Result<()> {
     let options = InitOptions {
         visible,
         stealth,
         branch,
+        no_index,
+        index_strategy,
     };
 
     let store = if let Some(path) = cli.store.as_ref() {

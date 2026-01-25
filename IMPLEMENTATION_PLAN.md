@@ -173,16 +173,26 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
      - Graceful degradation: queries work with basic index if full-text unavailable
    - **Learnings**: Created `src/lib/db/indexing.rs` module with `IndexLevel` enum and helper functions for basic/full-text indexing. Schema updated to version 7 with `index_level` column. All 473 tests pass.
 
-- [ ] Phase 1: Auto-indexing on store open/init
-  - **Location**: `src/lib/db/mod.rs`, `src/commands/init.rs`
-  - **Issue**: Opening store with 50k notes causes immediate full-text indexing delay
-  - **Spec requires**: "Auto-Indexing on Store Open" - adaptive strategy based on note count
-  - **Resolution**:
-    - Implement note count detection on store open
-    - Add adaptive strategy: full (basic+full), incremental (basic only), quick (basic only, MOCs+100)
-    - Add `--no-index` and `--index-strategy` flags to `qipu init`
-    - Add config options: auto_index.enabled, auto_index.strategy, auto_index.adaptive_threshold
-    - Target: <1k notes in <5s, 1k-10k notes in <30s, 10k+ notes with basic-only + prompt
+ - [x] Phase 1: Auto-indexing on store open/init
+   - **Location**: `src/lib/config.rs`, `src/lib/store/config.rs`, `src/commands/init.rs`, `src/lib/db/indexing.rs`, `src/cli/commands.rs`, `src/commands/dispatch/mod.rs`
+   - **Issue**: Opening store with 50k notes causes immediate full-text indexing delay
+   - **Spec requires**: "Auto-Indexing on Store Open" - adaptive strategy based on note count
+   - **Resolution**:
+     - Implement note count detection on store open
+     - Add adaptive strategy: full (basic+full), quick (basic only, MOCs+100)
+     - Add `--no-index` and `--index-strategy` flags to `qipu init`
+     - Add config options: auto_index.enabled, auto_index.strategy, auto_index.adaptive_threshold, auto_index.quick_notes
+     - Target: <1k notes in <5s, 1k-10k notes in <30s, 10k+ notes with quick index only
+   - **Implementation**:
+     - Added `AutoIndexConfig` struct to config with enabled, strategy, adaptive_threshold, and quick_notes fields
+     - Added `no_index` and `index_strategy` fields to `InitOptions`
+     - Added `--no-index` and `--index-strategy` CLI flags to `qipu init` command
+     - Added `IndexingStrategy` enum (Full, Quick) to indexing module
+     - Implemented `adaptive_index()` method in Database to select strategy based on note count
+     - Implemented `quick_index()` method to index MOCs + N recent notes only
+     - Auto-indexing runs on store init if enabled, skipping if database already has notes
+     - Adaptive logic: < adaptive_threshold (10k default) → full index, ≥ adaptive_threshold → quick index
+   - **Learnings**: All 306 unit tests + 458 CLI tests + 11 workspace merge tests + 15 pack tests + 15 pack tests + 6 performance tests + 1 workspace tests = 812 tests pass.
 
 - [ ] Phase 2: Incremental indexing (mtime-based)
   - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`

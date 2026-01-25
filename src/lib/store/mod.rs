@@ -221,7 +221,19 @@ impl Store {
             git::checkout_branch(repo_root, &orig_branch)?;
         }
 
+        // Open database without auto-indexing to check config
         let db = Database::open(store_root, true)?;
+
+        // Perform adaptive indexing if enabled
+        if !options.no_index && config.auto_index.enabled {
+            use crate::lib::db::indexing::IndexingStrategy;
+
+            let force_strategy = options
+                .index_strategy
+                .as_ref()
+                .and_then(|s| IndexingStrategy::from_str(s));
+            let _ = db.adaptive_index(store_root, &config.auto_index, force_strategy);
+        }
 
         Ok(Store {
             root: store_root.to_path_buf(),

@@ -1,13 +1,13 @@
 //! SQLite database module for qipu
 
 mod edges;
+pub mod indexing;
 mod notes;
 mod repair;
 mod schema;
 mod search;
 mod traverse;
 mod validate;
-mod indexing;
 
 use crate::lib::error::{QipuError, Result};
 use rusqlite::Connection;

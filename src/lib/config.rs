@@ -56,6 +56,10 @@ pub struct StoreConfig {
     /// Graph configuration
     #[serde(default)]
     pub graph: GraphConfig,
+
+    /// Auto-indexing configuration
+    #[serde(default)]
+    pub auto_index: AutoIndexConfig,
 }
 
 /// Configuration for graph traversal and link types
@@ -64,6 +68,26 @@ pub struct GraphConfig {
     /// Custom link type definitions
     #[serde(default)]
     pub types: std::collections::HashMap<String, LinkTypeConfig>,
+}
+
+/// Configuration for auto-indexing behavior
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoIndexConfig {
+    /// Enable/disable auto-indexing
+    #[serde(default = "default_auto_index_enabled")]
+    pub enabled: bool,
+
+    /// Indexing strategy: "adaptive", "full", "incremental", "quick"
+    #[serde(default = "default_auto_index_strategy")]
+    pub strategy: String,
+
+    /// Note count threshold for adaptive strategy
+    #[serde(default = "default_adaptive_threshold")]
+    pub adaptive_threshold: usize,
+
+    /// Notes to include in quick mode
+    #[serde(default = "default_quick_notes")]
+    pub quick_notes: usize,
 }
 
 /// Configuration for a single link type
@@ -195,6 +219,33 @@ fn default_link_cost() -> f32 {
     1.0
 }
 
+fn default_auto_index_enabled() -> bool {
+    true
+}
+
+fn default_auto_index_strategy() -> String {
+    "adaptive".to_string()
+}
+
+fn default_adaptive_threshold() -> usize {
+    10000
+}
+
+fn default_quick_notes() -> usize {
+    100
+}
+
+impl Default for AutoIndexConfig {
+    fn default() -> Self {
+        AutoIndexConfig {
+            enabled: default_auto_index_enabled(),
+            strategy: default_auto_index_strategy(),
+            adaptive_threshold: default_adaptive_threshold(),
+            quick_notes: default_quick_notes(),
+        }
+    }
+}
+
 /// Get the standard cost for a known link type
 /// Returns None for unknown/custom types (use default 1.0)
 fn get_standard_link_cost(link_type: &str) -> Option<f32> {
@@ -227,6 +278,7 @@ impl Default for StoreConfig {
             stemming: default_stemming(),
             tag_aliases: std::collections::HashMap::new(),
             graph: GraphConfig::default(),
+            auto_index: AutoIndexConfig::default(),
         }
     }
 }

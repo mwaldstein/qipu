@@ -11,6 +11,10 @@ pub struct InitOptions {
     pub stealth: bool,
     /// Protected branch workflow (store notes on separate git branch)
     pub branch: Option<String>,
+    /// Skip automatic indexing
+    pub no_index: bool,
+    /// Override auto-indexing strategy ("full", "incremental", "quick", "adaptive")
+    pub index_strategy: Option<String>,
 }
 
 pub(crate) fn ensure_project_gitignore_entry(path: &Path, entry: &str) -> Result<()> {

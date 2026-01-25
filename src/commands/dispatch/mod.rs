@@ -33,7 +33,17 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             visible,
             stealth,
             branch,
-        }) => handle_init(cli, &root, *stealth, *visible, branch.clone()),
+            no_index,
+            index_strategy,
+        }) => handle_init(
+            cli,
+            &root,
+            *stealth,
+            *visible,
+            branch.clone(),
+            *no_index,
+            index_strategy.clone(),
+        ),
 
         Some(Commands::Create(args)) | Some(Commands::New(args)) => {
             notes::handle_create(cli, &root, args, start)
@@ -355,8 +365,18 @@ fn handle_init(
     stealth: bool,
     visible: bool,
     branch: Option<String>,
+    no_index: bool,
+    index_strategy: Option<String>,
 ) -> Result<()> {
-    crate::commands::init::execute(cli, root, stealth, visible, branch)
+    crate::commands::init::execute(
+        cli,
+        root,
+        stealth,
+        visible,
+        branch,
+        no_index,
+        index_strategy,
+    )
 }
 
 fn handle_setup(

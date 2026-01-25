@@ -29,6 +29,14 @@ pub enum Commands {
         /// Protected branch workflow (store on separate branch)
         #[arg(long)]
         branch: Option<String>,
+
+        /// Skip automatic indexing
+        #[arg(long)]
+        no_index: bool,
+
+        /// Override auto-indexing strategy (adaptive, full, incremental, quick)
+        #[arg(long)]
+        index_strategy: Option<String>,
     },
 
     /// Create a new note

@@ -4,7 +4,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
 
-- **Test baseline**: 791 tests pass
+ - **Test baseline**: 809 tests pass
  - **Schema version**: 7 (index_level column for two-level indexing)
 - **Last audited**: 2026-01-24
 - **Last CI check added**: function complexity (>100 lines)

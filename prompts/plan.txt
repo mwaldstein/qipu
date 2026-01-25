@@ -1,12 +1,11 @@
-Create/update implementation plan.
+Create/update implementation plan using beads.
 
 Source: `src/*`
 Specs: `specs/*.md`
 Goals: `README.md` (scope and non-goals)
 Guidance: `docs/*` (non-spec examples)
 Shared lib: `src/lib/*`
-Plan: `IMPLEMENTATION_PLAN.md`
-Future: `FUTURE_WORK.md`
+Issues: Use `bd` commands to manage tasks
 
 ## TRUST HIERARCHY
 
@@ -50,47 +49,46 @@ Use subagents in parallel - one per spec. Each must:
 
 Every spec item must be in exactly one place:
 1. **Code** - Implemented and tested
-2. **IMPLEMENTATION_PLAN.md** - Ready to implement (P1-P3)
-3. **FUTURE_WORK.md** - Not implementation-ready
+2. **Beads (P1-P2)** - Ready to implement (use `bd create`)
+3. **Beads (P3 with blocked/design labels)** - Not implementation-ready
 
-Items go to FUTURE_WORK.md when:
+Items get P3 priority when:
 - Spec marks as optional/future/v2
-- Spec is ambiguous and needs clarification
-- Depends on unimplemented infrastructure
-- Requires design decisions not yet made
-- Open questions in spec not resolved
+- Spec is ambiguous and needs clarification (label: design)
+- Depends on unimplemented infrastructure (label: blocked)
+- Requires design decisions not yet made (label: design)
+- Open questions in spec not resolved (label: design)
 
 ## OUTPUT
 
-Update @IMPLEMENTATION_PLAN.md:
-- P1-P3 sections with items grouped by spec
-- Each item: checkbox, description, file:line refs
-- Completed section: verified working with file refs
-- Add audit date to status header
-
-Update @FUTURE_WORK.md:
-- Group by spec file
-- Each item: description, reason not ready, spec:line ref
-- Include open questions from specs
-- Mark items that need design work vs clarification
+Create beads issues using `bd create`:
+- Use `--priority 1` for P1 correctness bugs
+- Use `--priority 2` for P2 test coverage gaps
+- Use `--priority 3` for P3 future/design work
+- Use `--label blocked` for items with dependencies
+- Use `--label design` for items needing design work
+- Include file:line refs in issue body
+- Use `bd dep add <issue-id> --blocks <blocked-issue-id>` for dependencies
 
 Update @specs/README.md status table:
 - Spec/Impl/Tests columns with ✅/⚠️/❌
 - Notes column for key gaps
 - Update "Last audited" date
 
+Run `bd sync` to save changes to git.
+
 ## RULES
 
 - Plan only. No code changes.
 - Never trust docs. Always verify in code.
 - Never assume missing; confirm with code search first.
-- Include file:line refs for all claims.
-- Preserve completed items unless proven incorrect.
-- Remove items from gaps when fixed (don't duplicate).
-- Keep items in priority order within sections.
+- Include file:line refs in issue bodies.
+- Use `bd create` to track all gaps found during audit.
+- Check existing issues with `bd list` before creating duplicates.
 - If a needed feature has no spec, create specs/FILENAME.md first.
 - Prefer shared utilities in `src/lib/` over ad-hoc implementations.
-- Every spec requirement must be tracked: code, plan, or future work.
-- Move items between plan/future as readiness changes.
+- Every spec requirement must be tracked: code or beads issue.
+- Update issue priority/labels with `bd update` as readiness changes.
+- Run `bd sync` after creating issues.
 
 If no changes required: COMPLETE

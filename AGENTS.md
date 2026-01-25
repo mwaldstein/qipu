@@ -130,11 +130,11 @@ Notes use ULID-based IDs prefixed with `qp-`: `qp-01HYX3...`
 
 ## Implementation Workflow
 
-1. Check `IMPLEMENTATION_PLAN.md` for current tasks (P1 bugs, P2 tech debt)
+1. Use `bd ready` to find unblocked work (P1 bugs, P2 tech debt)
 2. Read relevant spec in `specs/*.md` before implementing
 3. Search codebase before assuming something is unimplemented
 4. Run `cargo test` after changes - all 812 tests must pass
-5. Update `IMPLEMENTATION_PLAN.md` when completing tasks
+5. Use `bd close <id>` when completing tasks, then `bd sync`
 
 ## Commit Style
 
@@ -148,8 +148,7 @@ Types: `fix`, `feat`, `test`, `docs`, `refactor`
 
 | File | Purpose |
 |------|---------|
-| `IMPLEMENTATION_PLAN.md` | Active tasks, bugs, test coverage gaps |
-| `FUTURE_WORK.md` | Deferred work, design decisions |
+| `.beads/issues.jsonl` | Active tasks, bugs, test coverage gaps |
 | `specs/README.md` | Spec index with implementation status |
 | `src/lib/error.rs` | Error types and exit codes |
 | `tests/cli/support.rs` | Test helper functions |

@@ -1,15 +1,15 @@
 # Build Task
 
-Execute exactly ONE atomic change from IMPLEMENTATION_PLAN.md.
+Execute exactly ONE atomic change from beads.
 
 ## Phase 1: Select ONE Task
 
-Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
-1. **P1** correctness issues (first unfinished sub-item)
+Run `bd ready` to find unblocked work and choose the **first applicable** item:
+1. **P1** correctness issues (first unfinished)
 2. **P2** test coverage gaps (first untested area)
 3. **P3** spec-implementation gaps (first unimplemented item)
 
-**Declare your selection**: State the exact task before proceeding (e.g., "TASK: Add capture command tests").
+**Declare your selection**: State the exact task before proceeding (e.g., "TASK: qipu-abc - Add capture command tests").
 
 ## Phase 2: Implement
 1. Search codebase first—don't assume unimplemented
@@ -19,20 +19,22 @@ Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
 
 If `cargo test` reports any failures:
 - If failures are caused by your change: fix them immediately before doing anything else.
-- If failures appear unrelated: add (or update) a task at the very top of `IMPLEMENTATION_PLAN.md` capturing the failures so they are tracked.
+- If failures appear unrelated: use `bd create` to create a P1 task capturing the failures so they are tracked.
   - Include: failing test names/count, suspected cause if known, and a short plan to resolve.
 
 ## Phase 3: Finalize
-1. Update `IMPLEMENTATION_PLAN.md`:
-   - Mark task complete, or note blockers only if fix attempts failed
-   - Add learnings if any
+1. Close completed task:
+   ```bash
+   bd close <issue-id>
+   ```
 2. If all tests pass:
    ```bash
    git add -A && git commit -m "<type>: <description>"
+   bd sync
    git push
    ```
    Commit types: `fix`, `feat`, `test`, `docs`, `refactor`
-3. If `cargo test` shows zero failures AND no P1 items remain:
+3. If `cargo test` shows zero failures AND no P1 items remain (`bd list --priority 1`):
    - Get last tag: `git describe --tags --abbrev=0 2>/dev/null || echo "none"`
    - Create next tag: increment patch (or start at `v0.0.1`)
 
@@ -42,7 +44,7 @@ If `cargo test` reports any failures:
 - **One task per run**: Complete one item fully before stopping
 - **No stubs**: Every implementation must be functional
 - **Fix what you break**: If your change causes test failures, fix them
-- **IMPLEMENTATION_PLAN.md**: Status, progress, blockers, learnings (clean completed items periodically)
+- **Use bd**: `bd ready` to find work, `bd close` when done, `bd sync` before push
 - **AGENTS.md**: Commands only; timeless operational facts
 - **Specs wrong?**: Update `specs/*.md` directly
 - **If no changes required:** COMPLETE

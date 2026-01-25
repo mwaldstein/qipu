@@ -377,8 +377,13 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 
 ### storage-format.md
 
-- [ ] Missing security test for discovery boundary with parent store
-- [x] Missing security test for malicious attachment paths in `qipu load`
+ - [x] Missing security test for discovery boundary with parent store
+   - **Implementation**: Added two security tests in `tests/cli/misc.rs` to verify discovery stops at project boundaries:
+     - `test_discovery_stops_at_project_boundary_with_parent_store` - Tests that discovery stops at `.git/` boundary
+     - `test_discovery_stops_at_cargo_toml_boundary` - Tests that discovery stops at `Cargo.toml` boundary
+   - Both tests create a parent store, then verify it's NOT found from a child directory with a project marker
+   - **Learnings**: All 816 tests pass (306 unit + 464 CLI + 18 pack + 11 workspace + 1 performance = 816 total)
+ - [x] Missing security test for malicious attachment paths in `qipu load`
   - **Resolution**: Added comprehensive security tests in `tests/pack/security.rs` to verify path traversal protection
   - **Implementation**: Three tests verify malicious attachment paths are sanitized:
     1. `test_malicious_attachment_path_traversal`: Tests `../../../malicious.txt` is safely written as `malicious.txt` in attachments dir

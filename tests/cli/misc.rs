@@ -341,6 +341,75 @@ fn test_root_flag_affects_discovery_start_dir() {
 }
 
 #[test]
+fn test_discovery_stops_at_project_boundary_with_parent_store() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/project");
+    let project_subdir = project_dir.join("subdir");
+    std::fs::create_dir_all(&project_subdir).unwrap();
+
+    // Create parent store
+    let parent_store = parent_dir.join(".qipu");
+    std::fs::create_dir_all(&parent_store).unwrap();
+    std::fs::create_dir_all(parent_store.join("notes")).unwrap();
+    std::fs::create_dir_all(parent_store.join("mocs")).unwrap();
+    std::fs::create_dir_all(parent_store.join("attachments")).unwrap();
+    std::fs::create_dir_all(parent_store.join("templates")).unwrap();
+    std::fs::write(parent_store.join("config.toml"), "# Parent store config\n").unwrap();
+
+    // Create project marker (.git) in project directory
+    std::fs::create_dir_all(project_dir.join(".git")).unwrap();
+
+    // From project_subdir, should NOT discover parent store
+    // Discovery should stop at .git boundary
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
+    qipu()
+        .current_dir(&project_subdir)
+        .env("QIPU_STORE", &nonexistent_store)
+        .arg("list")
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("store not found"));
+}
+
+#[test]
+fn test_discovery_stops_at_cargo_toml_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/rust_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    // Create parent store
+    let parent_store = parent_dir.join(".qipu");
+    std::fs::create_dir_all(&parent_store).unwrap();
+    std::fs::create_dir_all(parent_store.join("notes")).unwrap();
+    std::fs::create_dir_all(parent_store.join("mocs")).unwrap();
+    std::fs::create_dir_all(parent_store.join("attachments")).unwrap();
+    std::fs::create_dir_all(parent_store.join("templates")).unwrap();
+    std::fs::write(parent_store.join("config.toml"), "# Parent store config\n").unwrap();
+
+    // Create Cargo.toml as project marker
+    std::fs::write(
+        project_dir.join("Cargo.toml"),
+        "[package]\nname = \"test\"\n",
+    )
+    .unwrap();
+
+    // From project directory, should NOT discover parent store
+    // Discovery should stop at Cargo.toml boundary
+    // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests
+    let nonexistent_store = dir.path().join("nonexistent-store");
+    qipu()
+        .current_dir(&project_dir)
+        .env("QIPU_STORE", &nonexistent_store)
+        .arg("list")
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("store not found"));
+}
+
+#[test]
 fn test_relative_store_resolved_against_root() {
     let dir = tempdir().unwrap();
     let root = dir.path().join("root");

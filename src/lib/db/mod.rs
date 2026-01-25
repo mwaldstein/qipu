@@ -7,6 +7,7 @@ mod schema;
 mod search;
 mod traverse;
 mod validate;
+mod indexing;
 
 use crate::lib::error::{QipuError, Result};
 use rusqlite::Connection;

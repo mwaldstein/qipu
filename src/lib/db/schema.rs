@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 6;
+pub const CURRENT_SCHEMA_VERSION: i32 = 7;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS notes (
     sources TEXT DEFAULT '[]',
     generated_by TEXT,
     prompt_hash TEXT,
-    custom_json TEXT DEFAULT '{}'
+    custom_json TEXT DEFAULT '{}',
+    index_level INTEGER DEFAULT 2
 );
 CREATE INDEX IF NOT EXISTS idx_notes_value ON notes(value);
 
@@ -131,6 +132,21 @@ pub fn create_schema(conn: &Connection) -> Result<SchemaCreateResult> {
                     "UPDATE index_meta SET value = ?1 WHERE key = 'schema_version'",
                     [&target_version.to_string()],
                 )?;
+                SchemaCreateResult::Ok
+            } else if v == 6 && target_version == 7 {
+                conn.execute(
+                    "ALTER TABLE notes ADD COLUMN index_level INTEGER DEFAULT 2",
+                    [],
+                )?;
+                conn.execute(
+                    "UPDATE index_meta SET value = ?1 WHERE key = 'schema_version'",
+                    [&target_version.to_string()],
+                )?;
+                tracing::info!(
+                    "Database schema updated from version {} to {}",
+                    v,
+                    target_version
+                );
                 SchemaCreateResult::Ok
             } else {
                 drop_all_tables(conn)?;

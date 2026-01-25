@@ -70,7 +70,7 @@ fn test_store_stats_with_notes() {
         .stdout(predicate::str::contains("Tags: 2"))
         .stdout(predicate::str::contains("Links: 1"))
         .stdout(predicate::str::contains("Unresolved links: 0"))
-        .stdout(predicate::str::contains("Schema version: 6"));
+        .stdout(predicate::str::contains("Schema version: 7"));
 }
 
 #[test]

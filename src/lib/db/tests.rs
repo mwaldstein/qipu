@@ -910,7 +910,7 @@ fn test_schema_version_set_on_fresh_install() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "6");
+    assert_eq!(version, "7");
 }
 
 #[test]

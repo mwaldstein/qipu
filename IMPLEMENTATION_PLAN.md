@@ -5,7 +5,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 ## Status
 
 - **Test baseline**: 791 tests pass
-- **Schema version**: 6 (custom metadata column)
+ - **Schema version**: 7 (index_level column for two-level indexing)
 - **Last audited**: 2026-01-24
 - **Last CI check added**: function complexity (>100 lines)
 
@@ -160,17 +160,18 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ### progressive-indexing.md
 
-- [ ] Phase 0: Two-level indexing approach (basic + full-text)
-  - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`
-  - **Issue**: Single-level indexing - all or nothing. Large repos cause long delays.
-  - **Spec requires**: "Basic Indexing" (metadata-only for all notes) + "Full-Text Indexing" (conditional/slow)
-  - **Resolution**: Implement two-level indexing - always index metadata fast; conditionally index body content
-  - **Implementation**:
-    - Basic index: title, type, tags, links, sources, timestamps (~100-200 notes/sec)
-    - Full-text index: body + summary (~50-100 notes/sec)
-    - Add `index_level` column to track basic vs full-text per note
-    - Auto-indexing: basic always, full-text based on note count thresholds
-    - Graceful degradation: queries work with basic index if full-text unavailable
+ - [x] Phase 0: Two-level indexing approach (basic + full-text)
+   - **Location**: `src/lib/db/mod.rs`, `src/commands/index.rs`, `src/lib/db/indexing.rs`
+   - **Issue**: Single-level indexing - all or nothing. Large repos cause long delays.
+   - **Spec requires**: "Basic Indexing" (metadata-only for all notes) + "Full-Text Indexing" (conditional/slow)
+   - **Resolution**: Implement two-level indexing - always index metadata fast; conditionally index body content
+   - **Implementation**:
+     - Basic index: title, type, tags, links, sources, timestamps (~100-200 notes/sec)
+     - Full-text index: body + summary (~50-100 notes/sec)
+     - Add `index_level` column to track basic vs full-text per note
+     - Auto-indexing: basic always, full-text based on note count thresholds
+     - Graceful degradation: queries work with basic index if full-text unavailable
+   - **Learnings**: Created `src/lib/db/indexing.rs` module with `IndexLevel` enum and helper functions for basic/full-text indexing. Schema updated to version 7 with `index_level` column. All 473 tests pass.
 
 - [ ] Phase 1: Auto-indexing on store open/init
   - **Location**: `src/lib/db/mod.rs`, `src/commands/init.rs`

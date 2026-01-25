@@ -274,7 +274,19 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 The following 13 files are grandfathered in the CI file size check (>500 lines limit). Each needs to be refactored and removed from the allowed list:
 
 **High priority (>700 lines):**
-- [ ] `src/lib/db/tests.rs` (975 lines) - split into test modules
+- [x] `src/lib/db/tests.rs` (975 lines) - split into test modules
+  - **Implementation**: Split 975-line test file into 8 focused modules under `src/lib/db/tests/`:
+    - `open.rs` (22 lines) - Database opening/creation tests
+    - `rebuild.rs` (133 lines) - Rebuild tests
+    - `search.rs` (169 lines) - Search tests
+    - `backlinks.rs` (56 lines) - Backlinks tests
+    - `traversal.rs` (194 lines) - Traversal tests
+    - `consistency.rs` (193 lines) - Consistency and validation tests
+    - `repair.rs` (147 lines) - Incremental repair tests
+    - `schema.rs` (82 lines) - Schema tests
+  - All modules now under 200 lines, making them much more maintainable
+  - All 812 tests pass
+  - **Learnings**: Organized tests by functionality area (open, rebuild, search, etc.) which makes navigation and maintenance easier. Each module focuses on a specific aspect of database behavior.
 - [ ] `src/lib/graph/bfs.rs` (820 lines) - extract helper functions
 - [ ] `src/commands/doctor/content.rs` (723 lines) - extract helper functions
 - [ ] `src/commands/setup.rs` (710 lines) - extract helper functions

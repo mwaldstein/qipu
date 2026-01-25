@@ -216,9 +216,8 @@ mod tests {
 
     #[test]
     fn test_execute_with_check_flag() {
-        let cli = create_cli(OutputFormat::Human);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
         let result = execute(&cli, false, Some("agents-md"), false, true, false);
         assert!(result.is_ok());
@@ -226,9 +225,8 @@ mod tests {
 
     #[test]
     fn test_execute_with_remove_flag() {
-        let cli = create_cli(OutputFormat::Human);
         let temp_dir = TempDir::new().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
         let path = setup_agents_md(&temp_dir.path().to_path_buf());
 
         let result = execute(&cli, false, Some("agents-md"), false, false, true);

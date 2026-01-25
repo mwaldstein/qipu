@@ -20,7 +20,6 @@ pub enum NoteType {
 
 impl NoteType {
     /// All valid note types
-    #[allow(dead_code)]
     pub const VALID_TYPES: &'static [&'static str] =
         &["fleeting", "literature", "permanent", "moc"];
 }
@@ -120,21 +119,6 @@ impl LinkType {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-
-    /// All valid link types (stored on disk by default)
-    #[allow(dead_code)]
-    pub const VALID_TYPES: &'static [&'static str] = &[
-        Self::RELATED,
-        Self::DERIVED_FROM,
-        Self::SUPPORTS,
-        Self::CONTRADICTS,
-        Self::PART_OF,
-        Self::ANSWERS,
-        Self::REFINES,
-        Self::SAME_AS,
-        Self::ALIAS_OF,
-        Self::FOLLOWS,
-    ];
 
     /// Returns the inverse of a link type using standard ontology
     pub fn inverse(&self) -> Self {

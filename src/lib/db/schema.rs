@@ -7,11 +7,6 @@ pub const CURRENT_SCHEMA_VERSION: i32 = 7;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
-#[allow(dead_code)]
-pub fn set_schema_version(version: i32) {
-    GLOBAL_SCHEMA_VERSION.store(version, Ordering::SeqCst);
-}
-
 pub fn get_schema_version() -> i32 {
     GLOBAL_SCHEMA_VERSION.load(Ordering::SeqCst)
 }
@@ -183,7 +178,6 @@ pub fn create_schema(conn: &Connection) -> Result<SchemaCreateResult> {
     Ok(result)
 }
 
-#[allow(dead_code)]
 pub fn force_set_schema_version(conn: &Connection, version: i32) -> Result<()> {
     conn.execute(
         "INSERT OR REPLACE INTO index_meta (key, value) VALUES ('schema_version', ?1)",

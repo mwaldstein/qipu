@@ -258,7 +258,6 @@ impl Store {
     }
 
     /// Get the templates directory
-    #[allow(dead_code)]
     pub fn templates_dir(&self) -> PathBuf {
         self.root.join(TEMPLATES_DIR)
     }
@@ -269,7 +268,6 @@ impl Store {
     }
 
     /// Get the database
-    #[allow(dead_code)]
     pub fn db(&self) -> &Database {
         &self.db
     }

@@ -2,7 +2,6 @@ use crate::lib::error::{QipuError, Result};
 use rusqlite::{params, Connection};
 
 impl super::super::Database {
-    #[allow(dead_code)]
     pub fn delete_note(&self, note_id: &str) -> Result<()> {
         self.conn
             .execute(

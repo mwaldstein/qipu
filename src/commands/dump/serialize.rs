@@ -1,4 +1,4 @@
-use super::model::{PackAttachment, PackHeader, PackLink, PackNote, PackSource};
+use super::model::{PackAttachment, PackLink};
 use crate::lib::config::STORE_FORMAT_VERSION;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
@@ -40,82 +40,6 @@ fn serde_yaml_to_json(yaml: &serde_yaml::Value) -> serde_json::Value {
         }
         serde_yaml::Value::Tagged(tagged) => serde_yaml_to_json(&tagged.value),
     }
-}
-
-/// Serialize pack in readable format (for human/JSON output)
-#[allow(dead_code)]
-pub fn serialize_pack_readable(
-    notes: &[Note],
-    links: &[PackLink],
-    attachments: &[PackAttachment],
-    store: &Store,
-) -> Result<String> {
-    let header = PackHeader {
-        version: "1.0".to_string(),
-        store_version: STORE_FORMAT_VERSION,
-        created: chrono::Utc::now(),
-        store_path: store.root().display().to_string(),
-        notes_count: notes.len(),
-        attachments_count: attachments.len(),
-        links_count: links.len(),
-    };
-
-    let pack_notes: Vec<PackNote> = notes
-        .iter()
-        .map(|note| PackNote {
-            id: note.id().to_string(),
-            title: note.title().to_string(),
-            note_type: note.note_type().to_string(),
-            tags: note.frontmatter.tags.clone(),
-            created: note.frontmatter.created,
-            updated: note.frontmatter.updated,
-            path: note.path.as_ref().map(|p| p.display().to_string()),
-            content: note.body.clone(),
-            sources: note
-                .frontmatter
-                .sources
-                .iter()
-                .map(|s| PackSource {
-                    url: s.url.clone(),
-                    title: s.title.clone(),
-                    accessed: s.accessed.clone(),
-                })
-                .collect(),
-            summary: note.frontmatter.summary.clone(),
-            compacts: note.frontmatter.compacts.clone(),
-            source: note.frontmatter.source.clone(),
-            author: note.frontmatter.author.clone(),
-            generated_by: note.frontmatter.generated_by.clone(),
-            prompt_hash: note.frontmatter.prompt_hash.clone(),
-            verified: note.frontmatter.verified,
-            value: note.frontmatter.value,
-            custom: note
-                .frontmatter
-                .custom
-                .iter()
-                .map(|(k, v)| (k.clone(), serde_yaml_to_json(v)))
-                .collect(),
-        })
-        .collect();
-
-    let pack_data = serde_json::json!({
-        "header": header,
-        "notes": pack_notes,
-        "links": links,
-        "attachments": attachments.iter().map(|att| {
-            let mut obj = serde_json::json!({
-                "path": att.path,
-                "name": att.name,
-                "data": general_purpose::STANDARD.encode(&att.data),
-            });
-            if let Some(content_type) = &att.content_type {
-                obj["content_type"] = serde_json::json!(content_type);
-            }
-            obj
-        }).collect::<Vec<_>>(),
-    });
-
-    Ok(serde_json::to_string_pretty(&pack_data)?)
 }
 
 /// Serialize pack in records format (compact, line-oriented)

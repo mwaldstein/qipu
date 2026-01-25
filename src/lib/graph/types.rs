@@ -11,7 +11,6 @@ pub struct HopCost(f32);
 impl HopCost {
     pub const DEFAULT: HopCost = HopCost(1.0);
 
-    #[allow(dead_code)]
     pub fn new(cost: f32) -> Self {
         HopCost(cost)
     }

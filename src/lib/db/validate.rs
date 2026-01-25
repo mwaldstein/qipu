@@ -76,7 +76,6 @@ impl super::Database {
     }
 
     /// Find orphaned notes (notes with no incoming links)
-    #[allow(dead_code)]
     pub fn get_orphaned_notes(&self) -> Result<Vec<String>> {
         let mut stmt = self
             .conn

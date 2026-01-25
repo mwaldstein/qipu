@@ -299,7 +299,6 @@ fn dfs_cycle_detect(
     None
 }
 
-#[allow(dead_code)]
 pub fn check_orphaned_notes(store: &Store, result: &mut DoctorResult) {
     let db = store.db();
 

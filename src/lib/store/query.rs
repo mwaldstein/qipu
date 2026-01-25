@@ -30,12 +30,6 @@ impl Store {
         self.get_note_internal(id)
     }
 
-    /// Get a note by ID using an index for fast path lookup
-    #[allow(dead_code)]
-    pub fn get_note_with_index(&self, id: &str, _index: &crate::lib::index::Index) -> Result<Note> {
-        self.get_note_internal(id)
-    }
-
     /// Internal note lookup implementation
     pub(super) fn get_note_internal(&self, id: &str) -> Result<Note> {
         let db = self.db();

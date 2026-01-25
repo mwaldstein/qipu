@@ -14,10 +14,6 @@ pub struct CompactionContext {
 
     /// Map from digest ID to the set of notes it compacts
     pub compacted_by: HashMap<String, Vec<String>>,
-
-    /// Cached map from note ID to note reference (built on first use)
-    #[allow(dead_code)]
-    note_cache: HashMap<String, usize>,
 }
 
 impl CompactionContext {
@@ -54,7 +50,6 @@ impl CompactionContext {
         Ok(CompactionContext {
             compactors,
             compacted_by,
-            note_cache: HashMap::new(),
         })
     }
 

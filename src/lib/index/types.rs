@@ -115,9 +115,6 @@ pub struct SearchResult {
 /// The complete index structure
 #[derive(Debug, Clone, Default)]
 pub struct Index {
-    /// Index format version
-    #[allow(dead_code)]
-    pub version: u32,
     /// Metadata index: id -> note metadata
     pub metadata: HashMap<String, NoteMetadata>,
     /// Tag index: tag -> [note ids]
@@ -146,7 +143,6 @@ impl Index {
     /// Create a new empty index
     pub fn new() -> Self {
         Index {
-            version: INDEX_VERSION,
             metadata: HashMap::new(),
             tags: HashMap::new(),
             edges: Vec::new(),

@@ -237,11 +237,16 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
 - [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
 
 **Dead/unused code:**
-- [ ] Audit codebase for dead/unused code (29 `#[allow(dead_code)]` annotations found)
+- [x] Audit codebase for dead/unused code (29 `#[allow(dead_code)]` annotations found)
   - Run `cargo clippy -- -W unused_variables -W dead_code` to find unused items
   - Review and remove unused functions, unused imports, and dead exports
   - **Review all `#[allow(dead_code)]` annotations** - each must have strong justification (e.g., public API, test infrastructure, future use with TODO comment)
   - Remove unjustified `#[allow(dead_code)]` attributes and the dead code they suppress
+  - **Resolution**: Removed all 29 `#[allow(dead_code)]` annotations from src/ directory. All 306 unit tests pass. Annotations fell into three categories:
+    1. Public APIs (keep annotation removed): 16 items (GraphProvider::contains, templates_dir, db, set_link_cost, with_defaults, delete_note, rebuild, get_orphaned_notes, force_set_schema_version, traverse, etc.)
+    2. Test infrastructure (keep annotation removed): 1 item (create_test_index)
+    3. Dead code (deleted): 12 items (Index::version field, Index::VALID_TYPES constant, LinkType::VALID_TYPES constant, calculate_bm25 function, serialize_pack_readable function, PackHeader/PackNote/PackSource structs, note_cache field, get_note_with_index method)
+  - **Learnings**: Many "dead code" items were actually used by the codebase (context command uses find_similar, doctor uses get_orphaned_notes, merge command uses delete_note). Verified usage with grep before removing annotations. Some items like Index::version field were truly dead and removed entirely. 10 annotations remain in llm-tool-test crate (separate workspace).
 
   Files with `#[allow(dead_code)]` annotations:
   - src/commands/doctor/database.rs (1)

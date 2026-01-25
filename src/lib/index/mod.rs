@@ -14,7 +14,6 @@ pub use types::{Edge, Index, LinkSource, SearchResult};
 
 #[cfg(test)]
 mod tests {
-    use super::types::INDEX_VERSION;
     use super::*;
     use crate::lib::note::{Note, NoteFrontmatter};
 
@@ -114,7 +113,6 @@ mod tests {
     #[test]
     fn test_index_new() {
         let index = Index::new();
-        assert_eq!(index.version, INDEX_VERSION);
         assert!(index.metadata.is_empty());
         assert!(index.tags.is_empty());
         assert!(index.edges.is_empty());

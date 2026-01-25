@@ -171,7 +171,6 @@ pub fn filter_and_convert_inbound(
 }
 
 /// Get filtered neighbors for a node
-#[allow(dead_code)]
 pub fn get_filtered_neighbors<'a>(
     index: &'a Index,
     id: &str,
@@ -219,7 +218,6 @@ pub fn get_filtered_neighbors<'a>(
 }
 
 /// Check if an edge passes the filters
-#[allow(dead_code)]
 pub fn filter_edge(edge: &Edge, opts: &TreeOptions) -> bool {
     crate::lib::graph::types::filter_edge(edge, opts)
 }

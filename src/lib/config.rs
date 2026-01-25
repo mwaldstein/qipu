@@ -140,7 +140,6 @@ impl StoreConfig {
     }
 
     /// Set a custom cost for a link type
-    #[allow(dead_code)]
     pub fn set_link_cost(&mut self, link_type: &str, cost: f32) {
         self.graph
             .types
@@ -201,7 +200,6 @@ impl StoreConfig {
     }
 
     /// Create default configuration with sensible defaults
-    #[allow(dead_code)]
     pub fn with_defaults() -> Self {
         Self::default()
     }

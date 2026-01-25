@@ -16,7 +16,6 @@ use crate::lib::index::types::Index;
 
 /// Similarity score between two notes
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub struct SimilarityResult {
     /// Note ID
     pub id: String,
@@ -41,7 +40,6 @@ impl<'a> SimilarityEngine<'a> {
     }
 
     /// Get top N similar notes for a given note
-    #[allow(dead_code)]
     pub fn find_similar(
         &self,
         note_id: &str,
@@ -87,7 +85,6 @@ mod tests {
     use crate::lib::note::NoteType;
     use std::collections::HashMap;
 
-    #[allow(dead_code)]
     fn create_test_index() -> Index {
         let mut index = Index::new();
 

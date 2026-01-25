@@ -69,13 +69,30 @@ pub(super) fn handle_index(
     root: &PathBuf,
     rebuild: bool,
     rewrite_wiki_links: bool,
+    quick: bool,
+    tag: Option<String>,
+    note_type: Option<crate::lib::note::NoteType>,
+    recent: Option<usize>,
+    moc: Option<String>,
+    status: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::index::execute(cli, &store, rebuild, rewrite_wiki_links)?;
+    commands::index::execute(
+        cli,
+        &store,
+        rebuild,
+        rewrite_wiki_links,
+        quick,
+        tag.as_deref(),
+        note_type,
+        recent,
+        moc.as_deref(),
+        status,
+    )?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

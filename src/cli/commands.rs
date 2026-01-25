@@ -137,6 +137,30 @@ pub enum Commands {
         /// Rewrite wiki-links to markdown links (optional; opt-in)
         #[arg(long)]
         rewrite_wiki_links: bool,
+
+        /// Index only MOCs + recent 100 notes
+        #[arg(long)]
+        quick: bool,
+
+        /// Index only notes with specified tag
+        #[arg(long, short = 't')]
+        tag: Option<String>,
+
+        /// Index only notes of specified type
+        #[arg(long, short = 'T', value_parser = parse_note_type)]
+        r#type: Option<NoteType>,
+
+        /// Index N most recently updated notes
+        #[arg(long)]
+        recent: Option<usize>,
+
+        /// Index MOC and its linked notes
+        #[arg(long)]
+        moc: Option<String>,
+
+        /// Show index status only (don't index)
+        #[arg(long)]
+        status: bool,
     },
 
     /// Search notes by title and body

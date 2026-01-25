@@ -104,7 +104,25 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         Some(Commands::Index {
             rebuild,
             rewrite_wiki_links,
-        }) => maintenance::handle_index(cli, &root, *rebuild, *rewrite_wiki_links, start),
+            quick,
+            tag,
+            r#type,
+            recent,
+            moc,
+            status,
+        }) => maintenance::handle_index(
+            cli,
+            &root,
+            *rebuild,
+            *rewrite_wiki_links,
+            quick.clone(),
+            tag.clone(),
+            *r#type,
+            *recent,
+            moc.clone(),
+            *status,
+            start,
+        ),
 
         Some(Commands::Search {
             query,

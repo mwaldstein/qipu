@@ -259,6 +259,56 @@ impl Database {
             )
             .map_err(|e| QipuError::Other(format!("failed to get schema version: {}", e)))
     }
+
+    pub fn reindex_single_note(
+        &self,
+        store_root: &Path,
+        note: &crate::lib::note::Note,
+    ) -> Result<()> {
+        use crate::lib::note::Note;
+        use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use walkdir::WalkDir;
+
+        let mut all_notes = Vec::new();
+
+        for dir in [store_root.join(NOTES_DIR), store_root.join(MOCS_DIR)] {
+            if !dir.exists() {
+                continue;
+            }
+
+            for entry in WalkDir::new(&dir)
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "md") {
+                    match Note::parse(&std::fs::read_to_string(path)?, Some(path.to_path_buf())) {
+                        Ok(n) => all_notes.push(n),
+                        Err(e) => {
+                            tracing::warn!(path = %path.display(), error = %e, "Failed to parse note");
+                        }
+                    }
+                }
+            }
+        }
+
+        let ids: std::collections::HashSet<String> =
+            all_notes.iter().map(|n| n.id().to_string()).collect();
+
+        let tx = self
+            .conn
+            .unchecked_transaction()
+            .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
+
+        Self::insert_note_internal(&tx, note)?;
+        Self::insert_edges_internal(&tx, note, &ids)?;
+
+        tx.commit()
+            .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;
+
+        Ok(())
+    }
 }
 
 impl Drop for Database {

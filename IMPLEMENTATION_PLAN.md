@@ -202,11 +202,20 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
    - **Implementation**: Modified `incremental_repair()` to compare file mtime with stored database mtime for each note; removed global `last_sync` timestamp; updated test to verify unchanged notes are skipped
    - **Learnings**: mtime column already existed in schema; needed to implement per-note comparison instead of global timestamp comparison; test updated from checking `last_sync` to verifying unchanged notes are skipped
 
-- [ ] Phase 3: Selective indexing options
-  - **Location**: `src/cli/commands.rs`, `src/commands/index.rs`
-  - **Issue**: No way to index subset of knowledge base; always indexes all notes
-  - **Spec requires**: `--tag`, `--type`, `--quick`, `--recent` flags for selective indexing
-  - **Resolution**: Add filter flags to index command; implement quick mode (MOCs + 100 recent); add status command
+ - [x] Phase 3: Selective indexing options
+   - **Location**: `src/cli/commands.rs`, `src/commands/index.rs`, `src/lib/db/mod.rs`
+   - **Issue**: No way to index subset of knowledge base; always indexes all notes
+   - **Spec requires**: `--tag`, `--type`, `--quick`, `--recent` flags for selective indexing
+   - **Resolution**: Added filter flags to index command; implemented quick mode (MOCs + 100 recent); added status command
+   - **Implementation**:
+     - Added CLI flags: `--quick`, `--tag`, `--type`, `--recent`, `--moc`, `--status`
+     - Added `selective_index()` function to filter notes before indexing
+     - Added `show_index_status()` to display indexing statistics
+     - Added `filter_quick_index()` for MOCs + 100 recent notes
+     - Added `filter_by_moc()` to index MOC and its linked notes
+     - Added `filter_by_recent()` to index N most recently updated notes
+     - Added `reindex_single_note()` method to Database for single note re-indexing
+   - **Learnings**: Used `get_outbound_edges()` instead of `get_outbound_links()` (which doesn't exist) for MOC filtering. Existing index tests all pass.
 
 - [ ] Phase 4: Progress reporting for large indexes
   - **Location**: `src/commands/index.rs`

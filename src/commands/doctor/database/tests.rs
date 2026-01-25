@@ -242,13 +242,10 @@ fn test_doctor_semantic_link_follows_cycle() {
     check_semantic_link_types(&store, &mut result);
 
     assert!(result.warning_count >= 1);
-    assert!(
-        result
-            .issues
-            .iter()
-            .any(|i| i.category == "semantic-link-misuse"
-                && i.message.contains("'follows' cycle"))
-    );
+    assert!(result
+        .issues
+        .iter()
+        .any(|i| i.category == "semantic-link-misuse" && i.message.contains("'follows' cycle")));
 }
 
 #[test]
@@ -281,8 +278,9 @@ fn test_doctor_semantic_link_follows_no_cycle() {
         result
             .issues
             .iter()
-            .filter(|i| i.category == "semantic-link-misuse"
-                && i.message.contains("'follows' cycle"))
+            .filter(
+                |i| i.category == "semantic-link-misuse" && i.message.contains("'follows' cycle")
+            )
             .count(),
         0
     );

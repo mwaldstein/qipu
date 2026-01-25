@@ -193,9 +193,7 @@ mod tests {
 
     fn assert_matrix_contains(matrix: &[ToolModelConfig], tool: &str, model: &str) {
         assert!(
-            matrix
-                .iter()
-                .any(|c| c.tool == tool && c.model == model),
+            matrix.iter().any(|c| c.tool == tool && c.model == model),
             "Matrix should contain ({}, {}), got: {:?}",
             tool,
             model,
@@ -313,7 +311,13 @@ mod tests {
 
     #[test]
     fn test_build_tool_matrix_cli_tools_only() {
-        let result = build_tool_matrix(&Some("opencode,amp".to_string()), &None, "opencode", &None, &None);
+        let result = build_tool_matrix(
+            &Some("opencode,amp".to_string()),
+            &None,
+            "opencode",
+            &None,
+            &None,
+        );
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].tool, "opencode");
@@ -322,7 +326,13 @@ mod tests {
 
     #[test]
     fn test_build_tool_matrix_cli_models_only() {
-        let result = build_tool_matrix(&None, &Some("gpt-4o,claude-sonnet".to_string()), "opencode", &None, &None);
+        let result = build_tool_matrix(
+            &None,
+            &Some("gpt-4o,claude-sonnet".to_string()),
+            "opencode",
+            &None,
+            &None,
+        );
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].tool, "opencode");

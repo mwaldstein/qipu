@@ -339,10 +339,13 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
 
 **Medium priority (600-700 lines):**
 - [x] `src/commands/context/mod.rs` (667 lines) - split modules or extract helpers
-  - **Implementation**: Extracted `parse_custom_filter_expression` function and `ComparisonOp` enum to new `filter.rs` module. The function returns `Arc<dyn Fn(...)>` with owned strings (`key.to_string()`, `value.to_string()`) to ensure proper lifetime management.
-  - **Results**: Main file reduced from 660 to 536 lines (124 line reduction). Filter module is 133 lines. All 812 tests pass.
-  - **Learnings**: Used `Arc` instead of `Box` for closure sharing. Key insight: must clone strings to make them owned before moving into closures to avoid lifetime issues.
-- [ ] `src/lib/similarity/mod.rs` (635 lines) - split modules or extract helpers
+   - **Implementation**: Extracted `parse_custom_filter_expression` function and `ComparisonOp` enum to new `filter.rs` module. The function returns `Arc<dyn Fn(...)>` with owned strings (`key.to_string()`, `value.to_string()`) to ensure proper lifetime management.
+   - **Results**: Main file reduced from 660 to 536 lines (124 line reduction). Filter module is 133 lines. All 812 tests pass.
+   - **Learnings**: Used `Arc` instead of `Box` for closure sharing. Key insight: must clone strings to make them owned before moving into closures to avoid lifetime issues.
+- [x] `src/lib/similarity/mod.rs` (635 lines) - split modules or extract helpers
+   - **Implementation**: Moved 553-line test module to `similarity/tests.rs` following same pattern as `context.rs` and `bfs.rs` modules. Tests now in separate directory with same module name.
+   - **Results**: Main file reduced from 633 to 82 lines (551 line reduction). Tests file is 553 lines. All 812 tests pass.
+   - **Learnings**: Used pattern from `src/lib/graph/bfs.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Fixed import issue by explicitly importing `SimilarityEngine` instead of using `use super::*` in separate test file.
 - [ ] `src/lib/db/notes/read.rs` (609 lines) - extract helper functions
 - [ ] `src/commands/dispatch/mod.rs` (592 lines) - extract helper functions
 - [ ] `src/commands/show.rs` (570 lines) - extract helper functions

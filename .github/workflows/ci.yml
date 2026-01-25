@@ -70,7 +70,6 @@ jobs:
           "src/commands/context/mod.rs"
           "src/commands/setup.rs"
           "src/commands/show.rs"
-          "src/commands/doctor/content.rs"
           "src/commands/doctor/database.rs"
           "src/commands/dispatch/mod.rs"
           "src/lib/db/notes/read.rs"

@@ -1,39 +1,96 @@
 # Qipu
 
-Qipu is a local-first CLI for capturing and navigating research/knowledge so it stays available to humans and LLM coding agents.
+**Local-first knowledge graph CLI for humans and AI agents.**
+
+<!-- Badges (uncomment when available)
+[![License](https://img.shields.io/github/license/USER/qipu)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/USER/qipu/ci.yml)](https://github.com/USER/qipu/actions)
+[![Crates.io](https://img.shields.io/crates/v/qipu)](https://crates.io/crates/qipu)
+-->
+
+> *Sometimes it's ok to give your LLM a graph knowledgebase, as a treat.*
+
+Qipu is a local-first CLI for building a **persistent knowledge graph** that both you and your AI coding agents can query. Think Zettelkasten meets `man pages` meets "please stop re-researching this every session."
+
+**The problem**: Your LLM agent is brilliant at searching the current codebase but has the long-term memory of a goldfish. Every session, it rediscovers the same APIs, re-reads the same docs, and forgets that clever pattern you found last week.
+
+**The fix**: A git-backed knowledge store where research actually accumulates. Typed notes, semantic links, value scoring—all queryable by humans and agents alike.
 
 ## Quick Start
 
 ```bash
-# Install (from source)
+# Install
 cargo install --path .
 
-# Create a store in the current directory
+# Initialize a store
 qipu init
 
-# Capture a quick note
+# Tell your agent
+echo "Use 'qipu' for knowledge management. Run 'qipu prime' at session start." >> AGENTS.md
+
+# Capture knowledge
 echo "TIL: Rust's ? operator works with Option too" | qipu capture --title "Rust question mark"
 
-# Create a note interactively
-qipu create --type permanent --tag rust
+# Link notes to build the graph
+qipu link add <new-id> <existing-id> --type derived-from
 
-# Search your notes
+# Search and prime your agent
 qipu search "rust error handling"
-
-# Get context for an LLM session
 qipu prime
 ```
 
-## Why Qipu?
+**Example: Building connections**
 
-LLM coding agents are great at searching the current codebase, but often struggle to:
+```bash
+# Capture two related notes
+echo "anyhow provides context chains for errors" | qipu capture --title "anyhow basics"
+# Created note qp-01J5A...
 
-- Preserve external research (docs, blog posts, papers, issue threads)
-- Keep intermediate insights discoverable across sessions
-- Avoid repeating the same research on future work
-- Distinguish "useful knowledge" from specs and tickets
+echo "thiserror is better for library error types" | qipu capture --title "thiserror vs anyhow"
+# Created note qp-01J5B...
 
-Qipu provides a git-backed, local-first knowledge store optimized for both humans and agents.
+# Link them with semantic relationship
+qipu link add qp-01J5B qp-01J5A --type refines
+
+# See the graph
+qipu link tree qp-01J5A
+```
+
+<!-- Installation options (uncomment when available)
+## Installation
+
+```bash
+# Cargo (crates.io)
+cargo install qipu
+
+# Homebrew
+brew install qipu
+
+# From source
+cargo install --path .
+```
+-->
+
+## Essential Commands
+
+| Command | Action |
+| --- | --- |
+| `qipu capture` | Quick capture from stdin or args |
+| `qipu link add <from> <to>` | Create typed link between notes |
+| `qipu link tree <id>` | Visualize note's connections |
+| `qipu search <query>` | Full-text search with ranking |
+| `qipu prime` | Generate context primer for agent sessions |
+
+Run `qipu help` or `qipu <command> --help` for full usage details.
+
+## Features
+
+- **Git-Backed Storage:** Notes stored as files in `.qipu/`. Version, branch, merge with your code.
+- **Agent-Optimized Output:** `--format json/records` designed for LLM context injection.
+- **Typed Knowledge:** Fleeting notes evolve to permanent; explicit link semantics (`derived-from`, `supports`, `contradicts`).
+- **Value Scoring:** Surface high-quality notes, deprecate stale ones. Filter by `--min-value`.
+- **Cross-Session Memory:** Research accumulates instead of being rediscovered every session.
+- **Health Checks:** `qipu doctor` catches broken links, orphan notes, duplicates.
 
 ## CLI Reference
 
@@ -82,15 +139,6 @@ qipu context --tag <t>     # Context bundle by tag
 
 Note: `context` command supports `--min-value` to filter by note quality.
 
-### Workspaces
-
-```bash
-qipu workspace new <name>      # Create workspace for agent task
-qipu workspace list            # List workspaces
-qipu workspace merge <name>    # Merge changes back to primary
-qipu workspace delete <name>   # Delete workspace
-```
-
 ### Maintenance
 
 ```bash
@@ -100,24 +148,22 @@ qipu doctor                # Check store health (--fix, --duplicates)
 qipu verify <id>           # Mark note as human-verified
 ```
 
-### Output Formats
+## Why Not Just Markdown Files?
 
-All commands support `--format`:
-- `human` - Human-readable (default)
-- `json` - Structured JSON for programmatic use
-- `records` - Line-oriented format for LLM context injection
+You could dump everything in `docs/` and `grep` your way through. We've tried it. Here's what breaks:
 
-## Store Structure
+| Markdown folder | Qipu |
+|-----------------|------|
+| Flat or ad-hoc hierarchy | Typed notes (fleeting → permanent) with explicit link semantics |
+| Search = `grep` or filename guessing | Full-text search with ranking, value scoring, tag filters |
+| "Which doc is current?" | Value scores surface high-quality notes, deprecate stale ones |
+| No structure for agents to parse | `--format json/records` designed for LLM context injection |
+| Links rot silently | `qipu doctor` catches broken links, orphan notes |
+| Everything or nothing | `qipu prime` / `qipu context` give agents *relevant* context, not a haystack |
 
-```
-.qipu/
-├── notes/          # Regular notes (fleeting, literature, permanent)
-├── mocs/           # Maps of content
-├── attachments/    # Referenced files
-├── templates/      # Note templates
-├── config.toml     # Store configuration
-└── qipu.db         # SQLite index (gitignored, rebuildable)
-```
+The graph structure isn't academic—it's how you answer "what do I know about X?" without reading everything.
+
+Qipu is also inspired by [beads](https://github.com/steveyegge/beads)—a similar project focused on moving tasks out of `progress.md` files and enabling context sharing between multiple LLMs.
 
 ## Development
 
@@ -128,4 +174,6 @@ cargo test                  # Run all tests
 cargo clippy                # Lint
 ```
 
-See `specs/` for detailed specifications and `AGENTS.md` for agent-specific guidance.
+## Documentation
+
+[Specs](specs/README.md) | [Agent Guide](AGENTS.md) | [Usage Patterns](docs/usage-patterns.md) | [Building on Qipu](docs/building-on-qipu.md)

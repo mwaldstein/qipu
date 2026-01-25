@@ -1,0 +1,270 @@
+//! Local command handlers (not moved to other submodules)
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::Instant;
+
+use crate::cli::{Cli, CustomCommands, OutputFormat, StoreCommands, TagsCommands, ValueCommands};
+use crate::lib::error::{QipuError, Result};
+use tracing::debug;
+
+use super::discover_or_open_store;
+
+pub(super) fn handle_no_command() -> Result<()> {
+    println!("qipu {}", env!("CARGO_PKG_VERSION"));
+    println!();
+    println!("A Zettelkasten-inspired knowledge management CLI.");
+    println!();
+    println!("Run `qipu --help` for usage information.");
+    Ok(())
+}
+
+pub(super) fn handle_init(
+    cli: &Cli,
+    root: &PathBuf,
+    stealth: bool,
+    visible: bool,
+    branch: Option<String>,
+    no_index: bool,
+    index_strategy: Option<String>,
+) -> Result<()> {
+    crate::commands::init::execute(
+        cli,
+        root,
+        stealth,
+        visible,
+        branch,
+        no_index,
+        index_strategy,
+    )
+}
+
+pub(super) fn handle_setup(
+    cli: &Cli,
+    list: bool,
+    tool: Option<&str>,
+    print: bool,
+    check: bool,
+    remove: bool,
+) -> Result<()> {
+    crate::commands::setup::execute(cli, list, tool, print, check, remove)
+}
+
+pub(super) fn handle_onboard(cli: &Cli) -> Result<()> {
+    crate::commands::setup::execute_onboard(cli)
+}
+
+pub(super) fn handle_compact(cli: &Cli, command: &crate::cli::CompactCommands) -> Result<()> {
+    crate::commands::compact::execute(cli, command)
+}
+
+pub(super) fn handle_workspace(cli: &Cli, command: &crate::cli::WorkspaceCommands) -> Result<()> {
+    crate::commands::workspace::execute(cli, command)
+}
+
+pub(super) fn handle_value(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &ValueCommands,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        ValueCommands::Set { id_or_path, score } => {
+            if *score > 100 {
+                return Err(QipuError::UsageError(
+                    "Value score must be between 0 and 100".to_string(),
+                ));
+            }
+
+            let mut note = if Path::new(id_or_path).exists() {
+                let content = fs::read_to_string(id_or_path)?;
+                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+            } else {
+                store.get_note(id_or_path)?
+            };
+
+            let note_id = note.id().to_string();
+
+            note.frontmatter.value = Some(*score);
+
+            store.save_note(&mut note)?;
+
+            match cli.format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "value": score
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    println!("{}: {}", note_id, score);
+                }
+                OutputFormat::Records => {
+                    println!("T id=\"{}\" value={}", note_id, score);
+                }
+            }
+
+            debug!(elapsed = ?start.elapsed(), "value_set");
+            Ok(())
+        }
+
+        ValueCommands::Show { id_or_path } => {
+            let note = if Path::new(id_or_path).exists() {
+                let content = fs::read_to_string(id_or_path)?;
+                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+            } else {
+                store.get_note(id_or_path)?
+            };
+
+            let note_id = note.id().to_string();
+            let value = note.frontmatter.value.unwrap_or(50);
+            let is_default = note.frontmatter.value.is_none();
+
+            match cli.format {
+                OutputFormat::Json => {
+                    let output = serde_json::json!({
+                        "id": note_id,
+                        "value": value,
+                        "default": is_default
+                    });
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    if is_default {
+                        println!("{}: {} (default)", note_id, value);
+                    } else {
+                        println!("{}: {}", note_id, value);
+                    }
+                }
+                OutputFormat::Records => {
+                    println!(
+                        "T id=\"{}\" value={} default={}",
+                        note_id, value, is_default
+                    );
+                }
+            }
+
+            debug!(elapsed = ?start.elapsed(), "value_show");
+            Ok(())
+        }
+    }
+}
+
+pub(super) fn handle_tags(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &TagsCommands,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        TagsCommands::List {} => {
+            let frequencies = store.get_tag_frequencies()?;
+
+            match cli.format {
+                OutputFormat::Json => {
+                    let output: Vec<_> = frequencies
+                        .iter()
+                        .map(|(tag, count)| {
+                            serde_json::json!({
+                                "tag": tag,
+                                "count": count
+                            })
+                        })
+                        .collect();
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                }
+                OutputFormat::Human => {
+                    if frequencies.is_empty() {
+                        if !cli.quiet {
+                            println!("No tags found");
+                        }
+                    } else {
+                        for (tag, count) in &frequencies {
+                            println!("{}: {}", tag, count);
+                        }
+                    }
+                }
+                OutputFormat::Records => {
+                    if frequencies.is_empty() {
+                        if !cli.quiet {
+                            println!("No tags found");
+                        }
+                    } else {
+                        for (tag, count) in &frequencies {
+                            println!("T tag=\"{}\" count={}", tag, count);
+                        }
+                    }
+                }
+            }
+
+            debug!(elapsed = ?start.elapsed(), "tags_list");
+            Ok(())
+        }
+    }
+}
+
+pub(super) fn handle_custom(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &CustomCommands,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+    let format = cli.format;
+
+    match command {
+        CustomCommands::Set {
+            id_or_path,
+            key,
+            value,
+        } => {
+            crate::commands::custom::set_custom_field(
+                &store, id_or_path, key, value, format, cli.quiet,
+            )?;
+            debug!(elapsed = ?start.elapsed(), "custom_set");
+            Ok(())
+        }
+
+        CustomCommands::Get { id_or_path, key } => {
+            crate::commands::custom::get_custom_field(&store, id_or_path, key, format)?;
+            debug!(elapsed = ?start.elapsed(), "custom_get");
+            Ok(())
+        }
+
+        CustomCommands::Show { id_or_path } => {
+            crate::commands::custom::show_custom_fields(&store, id_or_path, format)?;
+            debug!(elapsed = ?start.elapsed(), "custom_show");
+            Ok(())
+        }
+
+        CustomCommands::Unset { id_or_path, key } => {
+            crate::commands::custom::unset_custom_field(
+                &store, id_or_path, key, format, cli.quiet,
+            )?;
+            debug!(elapsed = ?start.elapsed(), "custom_unset");
+            Ok(())
+        }
+    }
+}
+
+pub(super) fn handle_store(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &StoreCommands,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        StoreCommands::Stats {} => {
+            crate::commands::store::execute_stats(cli, &store)?;
+            debug!(elapsed = ?start.elapsed(), "store_stats");
+            Ok(())
+        }
+    }
+}

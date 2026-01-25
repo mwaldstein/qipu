@@ -114,6 +114,44 @@ fn test_duplicate_format_json_usage_error() {
 }
 
 #[test]
+fn test_duplicate_format_equals_syntax() {
+    qipu()
+        .args(["--format=json", "--format=human", "list"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"duplicate_format\""));
+}
+
+#[test]
+fn test_duplicate_format_mixed_syntax() {
+    qipu()
+        .args(["--format", "json", "--format=human", "list"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"duplicate_format\""));
+}
+
+#[test]
+fn test_duplicate_format_human_output() {
+    qipu()
+        .args(["--format", "json", "--format", "human", "list"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "--format may only be specified once",
+        ));
+}
+
+#[test]
+fn test_duplicate_format_after_command() {
+    qipu()
+        .args(["list", "--format", "json", "--format", "human"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("\"type\":\"duplicate_format\""));
+}
+
+#[test]
 fn test_unknown_command_exit_code_2() {
     qipu().arg("nonexistent").assert().code(2);
 }

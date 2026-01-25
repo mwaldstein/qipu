@@ -359,7 +359,15 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 
 ### cli-tool.md
 
-- [ ] Missing tests for duplicate `--format` detection
+ - [x] Missing tests for duplicate `--format` detection
+   - **Implementation**: Added 4 comprehensive tests covering various duplicate format scenarios
+   - **Tests**:
+     - `test_duplicate_format_equals_syntax` - Tests `--format=json --format=human`
+     - `test_duplicate_format_mixed_syntax` - Tests `--format json --format=human`
+     - `test_duplicate_format_human_output` - Tests human output message without JSON
+     - `test_duplicate_format_after_command` - Tests duplicate format after command position
+   - **Location**: `tests/cli/misc.rs:108-137`
+   - **Learnings**: All 816 tests pass (306 unit + 460 CLI + 15 pack + 18 workspace merge + 5 misc + 1 performance + 11 workspace = 816 total)
 - [ ] Missing performance tests for `--help`/`--version` (<100ms), `list` (~1k notes <200ms)
 - [ ] Find viable strategy for 10k note search performance test (current test ignored - indexing 10k notes takes minutes)
   - Note: New spec `progressive-indexing.md` defines strategies for large knowledge bases

@@ -6,8 +6,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 ## Planning Documents
 
-- **[`../IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md)** - Concrete implementation tasks, bugs, and missing test coverage that need to be addressed
-- **[`../FUTURE_WORK.md`](../FUTURE_WORK.md)** - Future work, exploratory features, and open questions from specs not yet in the implementation plan
+- Planning is tracked in beads. Use `bd list`, `bd ready`, and `bd search`.
 
 ## Spec Index
 

@@ -356,4 +356,4 @@ timeout 300 cargo run -p llm-tool-test -- run --scenario ...
 - No multi-turn interaction support (single prompt only)
 - Cost tracking not implemented
 - No parallel scenario execution
-- Limited gate types (see IMPLEMENTATION_PLAN.md for planned additions)
+- Limited gate types (tracked in beads; use `bd search "gate types"`)

@@ -77,5 +77,5 @@ if __name__ == '__main__':
         print()
         print("Functions exceeding 100 lines trigger CI failure. Options:")
         print("  - Refactor to reduce complexity")
-        print("  - Request exception in IMPLEMENTATION_PLAN.md")
+        print("  - Request exception in beads")
         sys.exit(1)

@@ -22,6 +22,10 @@ For each spec:
 4. Compare actual behavior vs spec claims
 5. Note gaps with file:line references
 
+Before creating new issues, review deferred beads for readiness:
+- Run `bd list --status deferred --limit 0` and decide if any should move to open (or stay deferred)
+- If moving to open, update labels/priority so it shows up in `bd ready`
+
 Use subagents in parallel - one per spec. Each must:
 - Read the spec file
 - Search src/ for implementation
@@ -50,7 +54,7 @@ Use subagents in parallel - one per spec. Each must:
 Every spec item must be in exactly one place:
 1. **Code** - Implemented and tested
 2. **Beads (P1-P2)** - Ready to implement (use `bd create`)
-3. **Beads (P3 with blocked/design labels)** - Not implementation-ready
+3. **Beads (P3, usually deferred, with blocked/design/draft/etc labels)** - Not implementation-ready
 
 Items get P3 priority when:
 - Spec marks as optional/future/v2
@@ -58,6 +62,11 @@ Items get P3 priority when:
 - Depends on unimplemented infrastructure (label: blocked)
 - Requires design decisions not yet made (label: design)
 - Open questions in spec not resolved (label: design)
+
+Default handling for P3/non-ready items:
+- Create/keep them as beads but set status `deferred` (so they don't appear in `bd ready`)
+- Use labels like `design`, `clarify`, `draft`, `blocked`, `future`, `distribution`, `infra`
+- When they become actionable, `bd undefer <id>` (or reopen) and adjust priority/labels
 
 ## OUTPUT
 
@@ -69,6 +78,8 @@ Create beads issues using `bd create`:
 - Use `--label design` for items needing design work
 - Include file:line refs in issue body
 - Use `bd dep add <issue-id> --blocks <blocked-issue-id>` for dependencies
+
+Use `bd defer <id>` (or `bd create --defer ...`) for P3 items that should not be worked now.
 
 Update @specs/README.md status table:
 - Spec/Impl/Tests columns with ✅/⚠️/❌

@@ -87,7 +87,7 @@ jobs:
           echo ""
           echo "Files exceeding 500 lines trigger CI failure. Options:"
           echo "  - Refactor to reduce size"
-          echo "  - Request exception in IMPLEMENTATION_PLAN.md"
+          echo "  - Request exception in beads"
           exit 1
         fi
       shell: bash

@@ -53,8 +53,14 @@ fn test_compaction_annotations() {
     }
 
     // Reindex to update database with the manually edited content
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
-        .args(["--store", store_path.to_str().unwrap(), "index"])
+        .args([
+            "--store",
+            store_path.to_str().unwrap(),
+            "index",
+            "--rebuild",
+        ])
         .assert()
         .success();
 

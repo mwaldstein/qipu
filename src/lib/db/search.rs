@@ -86,10 +86,8 @@ impl super::Database {
         }
 
         if let Some(min_val) = min_value {
-            where_clause.push_str(&format!(
-                " AND (n.value >= {} OR n.value IS NULL) ",
-                min_val
-            ));
+            // Use COALESCE to treat NULL values as 50 (the default value)
+            where_clause.push_str(&format!(" AND COALESCE(n.value, 50) >= {} ", min_val));
         }
 
         // Recency boost: decay factor for age in days

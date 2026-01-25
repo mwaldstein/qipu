@@ -76,9 +76,10 @@ fn test_context_expand_compaction_human_format() {
     }
 
     // Rebuild index to pick up compaction
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -167,9 +168,10 @@ fn test_context_expand_compaction_json_format() {
     }
 
     // Rebuild index to pick up compaction
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -282,9 +284,10 @@ fn test_context_expand_compaction_records_format() {
     }
 
     // Rebuild index to pick up compaction
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -407,9 +410,10 @@ fn test_context_expand_compaction_with_depth() {
     }
 
     // Rebuild index
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 

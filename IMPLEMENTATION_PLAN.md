@@ -4,10 +4,20 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
 
 ## Status
 
- - **Test baseline**: 746 tests pass (306 unit + 440 CLI; 16 pre-existing failures)
+ - **Test baseline**: 812 tests pass
   - **Schema version**: 7 (index_level column for two-level indexing)
 - **Last audited**: 2026-01-25
 - **Last CI check added**: function complexity (>100 lines)
+
+---
+
+### progressive-indexing.md
+
+- [ ] Fix test flakiness due to mtime granularity
+  - **Issue**: Tests that manually edit note files fail with mtime-based incremental indexing (second-granularity means same-second edits are skipped)
+  - **Location**: Test files affected: `tests/cli/compact/annotations.rs`, `tests/cli/compact/commands.rs`, `tests/cli/context/compaction.rs`, `tests/cli/context/formats.rs`, `tests/cli/link/compaction.rs`
+  - **Impact**: Tests fail intermittently due to mtime comparison not detecting changes made within the same second as file creation
+  - **Plan**: Investigate using sub-second mtime precision (e.g., nanoseconds) or requiring `--rebuild` flag for tests that modify files
 
 ---
 
@@ -226,7 +236,7 @@ For exploratory future work, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
      - Added optional `progress` callback to `rebuild()` and `incremental_repair()` methods
      - Batched indexing: commits every 1000 notes to save progress and reduce memory pressure
      - Progress reporting: displays "Indexing: N/Total notes (XX%) - Last: {id}" every 100 notes when `--verbose` is set
-     - All 306 unit tests pass; 440 CLI tests pass (16 pre-existing failures unrelated to this change)
+     - All tests pass (812 total)
    - **Learnings**: Interrupted indexing saves progress at last checkpoint (last committed batch). Full resumption from checkpoint not implemented - would require schema changes (indexing_checkpoints table) and complex resumption logic. Current approach provides good protection against data loss for interrupted operations.
 
 - [ ] Phase 5: Performance testing and benchmarks
@@ -421,4 +431,3 @@ After refactoring each file, remove it from the `allowed` array in `.github/work
 - [ ] No checksum verification tests
 - [ ] No version consistency tests (`qipu --version` matches git tag/Cargo.toml)
 - [ ] No cross-platform binary tests
-

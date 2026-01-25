@@ -17,6 +17,11 @@ Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
 3. Implement completely—no stubs or placeholders
 4. Run `cargo test` to verify—all tests must pass before proceeding
 
+If `cargo test` reports any failures:
+- If failures are caused by your change: fix them immediately before doing anything else.
+- If failures appear unrelated: add (or update) a task at the very top of `IMPLEMENTATION_PLAN.md` capturing the failures so they are tracked.
+  - Include: failing test names/count, suspected cause if known, and a short plan to resolve.
+
 ## Phase 3: Finalize
 1. Update `IMPLEMENTATION_PLAN.md`:
    - Mark task complete, or note blockers only if fix attempts failed
@@ -36,7 +41,7 @@ Read `IMPLEMENTATION_PLAN.md` and choose the **first applicable** item:
 ## Rules
 - **One task per run**: Complete one item fully before stopping
 - **No stubs**: Every implementation must be functional
-- **Fix what you break**: If your change causes unrelated test failures, fix them
+- **Fix what you break**: If your change causes test failures, fix them
 - **IMPLEMENTATION_PLAN.md**: Status, progress, blockers, learnings (clean completed items periodically)
 - **AGENTS.md**: Commands only; timeless operational facts
 - **Specs wrong?**: Update `specs/*.md` directly

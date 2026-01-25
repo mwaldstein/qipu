@@ -59,9 +59,10 @@ fn test_link_list_with_compaction() {
     }
 
     // Rebuild index to pick up compaction
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -159,9 +160,10 @@ fn test_link_tree_with_compaction() {
     }
 
     // Rebuild index
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -264,9 +266,10 @@ fn test_link_path_with_compaction() {
     }
 
     // Rebuild index
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -343,9 +346,10 @@ fn test_link_no_resolve_compaction_flag() {
     }
 
     // Rebuild index
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -445,9 +449,10 @@ fn test_link_list_json_includes_compaction_annotations() {
     }
 
     // Rebuild index
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -521,9 +526,10 @@ fn test_link_tree_json_includes_compaction_annotations() {
         }
     }
 
+    // Use --rebuild to force re-indexing since file modification may be within same second as creation
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -592,7 +598,8 @@ fn test_link_path_json_includes_compaction_annotations() {
 
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        // Use --rebuild to force re-indexing since file modification may be within same second.
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 
@@ -674,7 +681,8 @@ fn test_link_json_compaction_truncation_flag() {
 
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        // Use --rebuild to force re-indexing since file modification may be within same second.
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 

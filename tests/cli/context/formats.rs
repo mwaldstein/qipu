@@ -634,7 +634,8 @@ fn test_context_custom_metadata_complex_types() {
     // Reindex after manual edit
     qipu()
         .current_dir(dir.path())
-        .args(["index"])
+        // Use --rebuild to force re-indexing since file modification may be within same second.
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 

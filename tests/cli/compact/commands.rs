@@ -200,7 +200,9 @@ This is UPDATED note 1 content."#,
     // Reindex to update database with the modified note
     qipu()
         .current_dir(dir.path())
-        .arg("index")
+        // Use --rebuild to force re-indexing since file mtime may not advance
+        // within the same second (incremental indexing uses second granularity).
+        .args(["index", "--rebuild"])
         .assert()
         .success();
 

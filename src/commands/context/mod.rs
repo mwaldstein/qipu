@@ -8,6 +8,7 @@
 //! - Safety: notes are untrusted inputs, optional safety banner
 
 pub mod budget;
+pub mod filter;
 pub mod human;
 pub mod json;
 pub mod output;
@@ -29,6 +30,8 @@ use crate::lib::store::Store;
 pub use types::ContextOptions;
 use types::{RecordsOutputConfig, SelectedNote};
 
+use filter::parse_custom_filter_expression;
+
 /// Convert an absolute path to a path relative to the current working directory
 pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
     if let Ok(cwd) = std::env::current_dir() {
@@ -39,131 +42,6 @@ pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
     } else {
         path.display().to_string()
     }
-}
-
-/// Comparison operators for custom filter expressions
-#[derive(Debug)]
-enum ComparisonOp {
-    GreaterEqual,
-    Greater,
-    LessEqual,
-    Less,
-}
-
-/// Parse a custom filter expression and return a predicate function
-///
-/// Supported formats:
-/// - Equality: `key=value`
-/// - Existence: `key` (present), `!key` (absent)
-/// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
-#[allow(clippy::type_complexity)]
-fn parse_custom_filter_expression(
-    expr: &str,
-) -> Result<Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool + '_>> {
-    let expr = expr.trim();
-
-    // Check for absence (!key)
-    if let Some(key) = expr.strip_prefix('!') {
-        let key = key.trim();
-        if key.is_empty() {
-            return Err(QipuError::Other(
-                "custom filter expression '!key' is missing key".to_string(),
-            ));
-        }
-        return Ok(Box::new(
-            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
-                !custom.contains_key(key)
-            },
-        ));
-    }
-
-    // Check for numeric comparisons (key>n, key>=n, key<n, key<=n) - must be checked before equality!
-    let (_op_str, op, key, value) = if let Some((k, v)) = expr.split_once(">=") {
-        (">=", ComparisonOp::GreaterEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once(">") {
-        (">", ComparisonOp::Greater, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once("<=") {
-        ("<=", ComparisonOp::LessEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once("<") {
-        ("<", ComparisonOp::Less, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once('=') {
-        // Equality check (key=value)
-        let key = k.trim();
-        let value = v.trim();
-        if key.is_empty() {
-            return Err(QipuError::Other(
-                "custom filter expression 'key=value' is missing key".to_string(),
-            ));
-        }
-        return Ok(Box::new(
-            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
-                custom
-                    .get(key)
-                    .map(|v| match v {
-                        serde_yaml::Value::String(s) => s == value,
-                        serde_yaml::Value::Number(num) => num.to_string() == value,
-                        serde_yaml::Value::Bool(b) => b.to_string() == value,
-                        _ => false,
-                    })
-                    .unwrap_or(false)
-            },
-        ));
-    } else {
-        // No comparison operator found, check for existence
-        let key = expr.trim();
-        if key.is_empty() {
-            return Err(QipuError::Other(
-                "custom filter expression is empty".to_string(),
-            ));
-        }
-        return Ok(Box::new(
-            move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
-                custom.contains_key(key)
-            },
-        ));
-    };
-
-    if key.is_empty() {
-        return Err(QipuError::Other(format!(
-            "custom filter expression '{}' is missing key",
-            expr
-        )));
-    }
-    if value.is_empty() {
-        return Err(QipuError::Other(format!(
-            "custom filter expression '{}' is missing value",
-            expr
-        )));
-    }
-
-    let target_value: f64 = value.parse().map_err(|_| {
-        QipuError::Other(format!(
-            "custom filter expression '{}' has invalid numeric value '{}'",
-            expr, value
-        ))
-    })?;
-
-    let compare_fn = match op {
-        ComparisonOp::GreaterEqual => |a: f64, b: f64| a >= b,
-        ComparisonOp::Greater => |a: f64, b: f64| a > b,
-        ComparisonOp::LessEqual => |a: f64, b: f64| a <= b,
-        ComparisonOp::Less => |a: f64, b: f64| a < b,
-    };
-
-    Ok(Box::new(
-        move |custom: &std::collections::HashMap<String, serde_yaml::Value>| {
-            custom
-                .get(key)
-                .and_then(|v| match v {
-                    serde_yaml::Value::Number(num) => num.as_f64(),
-                    serde_yaml::Value::String(s) => s.parse::<f64>().ok(),
-                    serde_yaml::Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-                    _ => None,
-                })
-                .map(|actual_value| compare_fn(actual_value, target_value))
-                .unwrap_or(false)
-        },
-    ))
 }
 
 /// Execute the context command
@@ -528,9 +406,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         let before_count = selected_notes.len();
 
         // Parse filter expressions
-        #[allow(clippy::type_complexity)]
         let filters: Vec<
-            Box<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool>,
+            std::sync::Arc<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool>,
         > = options
             .custom_filter
             .iter()

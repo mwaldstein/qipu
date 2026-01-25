@@ -338,7 +338,10 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
   - src/lib/compaction/context.rs (1)
 
 **Medium priority (600-700 lines):**
-- [ ] `src/commands/context/mod.rs` (667 lines) - split modules or extract helpers
+- [x] `src/commands/context/mod.rs` (667 lines) - split modules or extract helpers
+  - **Implementation**: Extracted `parse_custom_filter_expression` function and `ComparisonOp` enum to new `filter.rs` module. The function returns `Arc<dyn Fn(...)>` with owned strings (`key.to_string()`, `value.to_string()`) to ensure proper lifetime management.
+  - **Results**: Main file reduced from 660 to 536 lines (124 line reduction). Filter module is 133 lines. All 812 tests pass.
+  - **Learnings**: Used `Arc` instead of `Box` for closure sharing. Key insight: must clone strings to make them owned before moving into closures to avoid lifetime issues.
 - [ ] `src/lib/similarity/mod.rs` (635 lines) - split modules or extract helpers
 - [ ] `src/lib/db/notes/read.rs` (609 lines) - extract helper functions
 - [ ] `src/commands/dispatch/mod.rs` (592 lines) - extract helper functions

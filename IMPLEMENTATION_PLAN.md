@@ -291,12 +291,15 @@ The following 13 files are grandfathered in the CI file size check (>500 lines l
    - **Implementation**: Extracted duplicate code from bfs_search and dijkstra_search into helper functions: ProcessedEdge struct, canonicalize_edge(), check_can_visit(), check_dijkstra_can_visit(). Moved 426-line test module to tests.rs.
    - **Results**: Main file reduced from 821 to 430 lines. Tests file is 426 lines. All 812 tests pass.
    - **Learnings**: Main complexity was in neighbor processing loop duplicated between BFS and Dijkstra. Extracting to common ProcessedEdge struct and helper functions reduced duplication while maintaining clarity.
- - [x] `src/commands/doctor/content.rs` (723 lines) - extract helper functions
-   - **Implementation**: Moved 259-line test module to `content/tests.rs` following same pattern as `bfs.rs` module. Tests now in separate directory with same module name.
-   - **Results**: Main file reduced from 724 to 464 lines. Tests file is 259 lines. All 812 tests pass.
-   - **Learnings**: Used pattern from `src/lib/graph/bfs.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. This keeps main code clean while maintaining test proximity.
-- [ ] `src/commands/setup.rs` (710 lines) - extract helper functions
-- [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
+  - [x] `src/commands/doctor/content.rs` (723 lines) - extract helper functions
+    - **Implementation**: Moved 259-line test module to `content/tests.rs` following same pattern as `bfs.rs` module. Tests now in separate directory with same module name.
+    - **Results**: Main file reduced from 724 to 464 lines. Tests file is 259 lines. All 812 tests pass.
+    - **Learnings**: Used pattern from `src/lib/graph/bfs.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. This keeps main code clean while maintaining test proximity.
+  - [x] `src/commands/setup.rs` (710 lines) - extract helper functions
+    - **Implementation**: Moved 288-line test module to `setup/tests.rs` following same pattern as `content.rs` module. Tests now in separate directory with same module name.
+    - **Results**: Main file reduced from 711 to 423 lines. Tests file is 288 lines. All 764 tests pass (306 unit + 458 CLI).
+    - **Learnings**: Used pattern from `src/commands/doctor/content.rs`: tests module in separate directory with `#[cfg(test)] mod tests;` at end of main file. Test helpers (create_cli, etc.) kept in tests.rs for test-only use.
+ - [ ] `src/commands/doctor/database.rs` (684 lines) - extract helper functions
 
 **Dead/unused code:**
 - [x] Audit codebase for dead/unused code (29 `#[allow(dead_code)]` annotations found)

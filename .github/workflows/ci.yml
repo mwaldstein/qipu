@@ -68,7 +68,6 @@ jobs:
           "src/cli/commands.rs"
           "src/commands/list/mod.rs"
           "src/commands/context/mod.rs"
-          "src/commands/setup.rs"
           "src/commands/show.rs"
           "src/commands/doctor/database.rs"
           "src/commands/dispatch/mod.rs"

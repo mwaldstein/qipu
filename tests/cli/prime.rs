@@ -485,3 +485,112 @@ fn test_prime_missing_store() {
         .code(3)
         .stderr(predicate::str::contains("store not found"));
 }
+
+#[test]
+fn test_prime_invalid_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Invalid format should fail with exit code 2 (clap error)
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "invalid", "prime"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("invalid value"));
+}
+
+#[test]
+fn test_prime_success_exit_code_empty_store() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Prime with empty store should succeed with exit code 0
+    qipu().current_dir(dir.path()).arg("prime").assert().code(0);
+}
+
+#[test]
+fn test_prime_success_exit_code_with_mocs() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test MOC", "--type", "moc"])
+        .assert()
+        .success();
+
+    // Prime with MOCs should succeed with exit code 0
+    qipu().current_dir(dir.path()).arg("prime").assert().code(0);
+}
+
+#[test]
+fn test_prime_success_exit_code_with_notes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    // Prime with notes should succeed with exit code 0
+    qipu().current_dir(dir.path()).arg("prime").assert().code(0);
+}
+
+#[test]
+fn test_prime_success_exit_code_json_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Prime with JSON format should succeed with exit code 0
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "prime"])
+        .assert()
+        .code(0);
+}
+
+#[test]
+fn test_prime_success_exit_code_records_format() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Prime with records format should succeed with exit code 0
+    qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "prime"])
+        .assert()
+        .code(0);
+}

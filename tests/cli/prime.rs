@@ -165,6 +165,36 @@ fn test_prime_records_format() {
 }
 
 #[test]
+fn test_prime_records_truncated_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "prime"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("truncated=false"),
+        "prime records output should contain truncated=false in header"
+    );
+}
+
+#[test]
 fn test_prime_missing_store() {
     let dir = tempdir().unwrap();
     // Use QIPU_STORE to prevent discovery of /tmp/.qipu from other tests

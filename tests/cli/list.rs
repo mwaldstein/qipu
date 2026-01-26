@@ -801,3 +801,37 @@ fn test_list_filter_by_custom_with_tag() {
         .stdout(predicate::str::contains("Work Note with Custom"))
         .stdout(predicate::str::contains("Personal Note with Custom").not());
 }
+
+#[test]
+fn test_list_records_format_truncated_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "list"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("H qipu=1 records=1"),
+        "list records output should have valid header"
+    );
+    assert!(
+        stdout.contains("mode=list"),
+        "list records output should contain mode=list"
+    );
+}

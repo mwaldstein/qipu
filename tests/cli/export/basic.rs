@@ -4,6 +4,32 @@ use std::fs;
 use tempfile::tempdir;
 
 #[test]
+fn test_export_records_truncated_field() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
+    fs::write(&note_path, "---\nid: qp-1111\ntitle: Test Note\n---\nBody").unwrap();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "export", "--note", "qp-1111"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("truncated=false"),
+        "export records output should contain truncated=false in header"
+    );
+}
+
+#[test]
 fn test_export_basic() {
     let dir = tempdir().unwrap();
     qipu()

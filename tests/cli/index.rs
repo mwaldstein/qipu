@@ -281,3 +281,87 @@ fn test_index_stemming_enabled_by_default() {
         .success()
         .stdout(predicate::str::contains("Indexed 1 notes"));
 }
+
+#[test]
+fn test_index_incremental_repair_only_updates_changed_notes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create two notes (they are automatically indexed)
+    let result1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 1"])
+        .assert()
+        .success();
+    let output1 = String::from_utf8_lossy(&result1.get_output().stdout);
+    let note1_id = output1
+        .lines()
+        .find(|line| line.contains("qp-"))
+        .and_then(|line| line.split_whitespace().find(|word| word.starts_with("qp-")))
+        .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 2"])
+        .assert()
+        .success();
+
+    // First index - no notes should be updated (already indexed)
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+
+    // Modify Note 1 directly on disk
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note1_file = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .find(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with(&format!("{}-", note1_id))
+        })
+        .map(|e| e.path())
+        .unwrap();
+
+    let mut content = fs::read_to_string(&note1_file).unwrap();
+    content.push_str("\n\nUpdated content");
+    fs::write(&note1_file, content).unwrap();
+
+    // Ensure mtime advances
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    // Second index without --rebuild - should pick up the modified note
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+
+    // Verify database contains updated content
+    let show_output = qipu()
+        .current_dir(dir.path())
+        .args(["show", note1_id])
+        .assert()
+        .success();
+    let show_text = String::from_utf8_lossy(&show_output.get_output().stdout);
+    assert!(show_text.contains("Updated content"));
+
+    // Third index - no notes should be updated (mtime matches again)
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+}

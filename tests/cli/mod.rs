@@ -17,6 +17,7 @@ mod merge;
 mod misc;
 mod prime;
 mod provenance;
+mod records_edge_cases;
 mod rewrite_links;
 mod search;
 mod setup;

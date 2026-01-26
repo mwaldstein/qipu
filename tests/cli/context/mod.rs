@@ -4,4 +4,5 @@ mod basic;
 mod budget;
 mod compaction;
 mod formats;
+mod two_hop;
 mod walk;

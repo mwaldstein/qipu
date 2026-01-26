@@ -444,3 +444,267 @@ fn test_golden_error_missing_store() {
     let golden_path = Path::new("tests/golden/error_missing_store.txt");
     assert_golden_output(&output, golden_path).unwrap();
 }
+
+// ============================================================================
+// Create Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_create_note() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("create")
+            .arg("New Note")
+            .arg("--id")
+            .arg("qp-new123")
+            .arg("--type")
+            .arg("permanent")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/create_note.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Verify Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_verify_note() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("verify")
+            .arg("qp-a1b2c3")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/verify_note.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Value Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_value_show() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("value")
+            .arg("show")
+            .arg("qp-a1b2c3")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/value_show.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Tags Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_tags_list() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("tags")
+            .arg("list")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/tags_list.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Dump Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_dump() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("dump")
+            .arg(store_dir.path().join("test.pack"))
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/dump.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Export Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_export_outline() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("export")
+            .arg("--mode")
+            .arg("outline")
+            .arg("--note")
+            .arg("qp-a1b2c3")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/export_outline.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Merge Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_merge_dry_run() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("merge")
+            .arg("qp-d4e5f6")
+            .arg("qp-a1b2c3")
+            .arg("--dry-run")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/merge_dry_run.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Doctor Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_doctor() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("doctor")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/doctor.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Sync Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_sync() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("sync")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let golden_path = Path::new("tests/golden/sync.txt");
+    assert_golden_output(&output, golden_path).unwrap();
+}
+
+// ============================================================================
+// Store Command Golden Tests
+// ============================================================================
+
+#[test]
+fn test_golden_store_stats() {
+    let store_dir = tempdir().unwrap();
+    create_golden_test_store(store_dir.path()).unwrap();
+
+    let output = String::from_utf8(
+        qipu()
+            .arg("--store")
+            .arg(store_dir.path())
+            .arg("store")
+            .arg("stats")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+
+    let store_placeholder = "<STORE_PATH>";
+    let normalized_output = output.replace(
+        &format!("Store: {}", store_dir.path().display()),
+        &format!("Store: {}", store_placeholder),
+    );
+
+    let golden_path = Path::new("tests/golden/store_stats.txt");
+    assert_golden_output(&normalized_output, golden_path).unwrap();
+}

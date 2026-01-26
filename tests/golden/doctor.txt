@@ -1,0 +1,5 @@
+Found 1 issue(s) in 138 notes:
+
+  ERROR [broken-link] Note 'qp-12cf' has link to non-existent note 'quality is the hard part' [fixable]
+
+Summary: 1 error(s), 0 warning(s)

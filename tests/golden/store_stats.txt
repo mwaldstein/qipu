@@ -1,0 +1,11 @@
+Store: <STORE_PATH>
+
+Database:
+  Size: 86016 bytes
+  Schema version: 7
+
+Contents:
+  Notes: 4
+  Tags: 0
+  Links: 3
+  Unresolved links: 0

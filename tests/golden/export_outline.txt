@@ -1,0 +1,13 @@
+# Exported Notes
+
+## Note: Research Note (qp-a1b2c3)
+
+**Type:** permanent
+
+**Created:** 2026-01-12T13:00:00+00:00
+
+This is a permanent research note about algorithms.
+
+## Summary
+
+Important findings about algorithmic complexity.

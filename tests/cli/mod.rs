@@ -9,6 +9,7 @@ mod export;
 mod inbox;
 mod index;
 mod init;
+mod json_schema;
 mod link;
 mod list;
 mod logging;

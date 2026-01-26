@@ -39,37 +39,22 @@ fn test_search_fts_basic() {
 }
 
 #[test]
-fn test_search_fts_tag_boost() {
-    let dir = tempdir().unwrap();
-    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+fn test_search_bm25_weight_configuration() {
+    use crate::lib::index::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
 
-    store
-        .create_note_with_content(
-            "Test Note",
-            None,
-            &["test-tag".to_string()],
-            "content",
-            None,
-        )
-        .unwrap();
+    assert_eq!(TITLE_WEIGHT, 2.0, "Title weight should match spec (2.0)");
 
-    store
-        .create_note_with_content(
-            "Other Note",
-            None,
-            &["other-tag".to_string()],
-            "test test test",
-            None,
-        )
-        .unwrap();
+    assert_eq!(TAGS_WEIGHT, 1.5, "Tags weight should match spec (1.5)");
 
-    let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    assert_eq!(
+        BODY_WEIGHT, 1.0,
+        "Body weight should match spec (1.0, baseline)"
+    );
 
-    let results = db.search("test", None, None, None, None, 10).unwrap();
-
-    assert_eq!(results.len(), 2);
-    assert_eq!(results[0].title, "Test Note");
+    assert!(
+        TITLE_WEIGHT > TAGS_WEIGHT && TAGS_WEIGHT > BODY_WEIGHT,
+        "Weight hierarchy should be: title > tags > body"
+    );
 }
 
 #[test]

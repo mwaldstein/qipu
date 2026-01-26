@@ -16,6 +16,7 @@ mod logging;
 mod merge;
 mod misc;
 mod prime;
+mod progressive_disclosure;
 mod provenance;
 mod records_edge_cases;
 mod rewrite_links;

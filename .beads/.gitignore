@@ -13,6 +13,8 @@ bd.sock
 sync-state.json
 last-touched
 
+./export-state/
+
 # Local version tracking (prevents upgrade notification spam after git ops)
 .local_version
 

@@ -571,7 +571,6 @@ fn test_index_with_verbose_progress() {
 
     create_test_store_with_notes(store_dir.path(), note_count).unwrap();
 
-    // Run index with verbose mode
     qipu()
         .arg("--store")
         .arg(store_dir.path())
@@ -579,5 +578,5 @@ fn test_index_with_verbose_progress() {
         .arg("index")
         .assert()
         .success()
-        .stderr(predicates::str::contains("Indexed"));
+        .stdout(predicates::str::contains("Indexed"));
 }

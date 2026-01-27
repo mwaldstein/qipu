@@ -673,6 +673,7 @@ fn test_link_list_via_compacted() {
             "in",
             "--format",
             "json",
+            "--no-semantic-inversion",
         ])
         .output()
         .unwrap();

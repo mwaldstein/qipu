@@ -41,7 +41,7 @@ pub fn export_outline(
     let (body_map, anchor_map) = build_link_maps(notes);
 
     // Export notes in MOC link order
-    let ordered_ids = extract_moc_ordered_ids(&moc.body, resolve_compaction, compaction_ctx);
+    let ordered_ids = extract_moc_ordered_ids(&moc, resolve_compaction, compaction_ctx);
 
     // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
     let compaction_note_map = CompactionContext::build_note_map(all_notes);
@@ -90,18 +90,33 @@ pub fn export_outline(
 }
 
 fn extract_moc_ordered_ids(
-    body: &str,
+    moc: &Note,
     resolve_compaction: bool,
     compaction_ctx: &CompactionContext,
 ) -> Vec<String> {
     let mut ordered_ids = Vec::new();
     let mut seen_ids = HashSet::new();
+
+    // 1. Extract typed links from frontmatter first (preserves order)
+    for typed_link in &moc.frontmatter.links {
+        let mut target_id = typed_link.id.clone();
+        if resolve_compaction {
+            if let Ok(canon) = compaction_ctx.canon(&target_id) {
+                target_id = canon;
+            }
+        }
+        if seen_ids.insert(target_id.clone()) {
+            ordered_ids.push(target_id);
+        }
+    }
+
+    // 2. Extract wiki links from body
     let wiki_link_re = match regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]") {
         Ok(re) => re,
         Err(_) => return ordered_ids,
     };
 
-    for cap in wiki_link_re.captures_iter(body) {
+    for cap in wiki_link_re.captures_iter(&moc.body) {
         let target = cap.get(1).map(|m| m.as_str().trim()).unwrap_or("");
         if target.is_empty() {
             continue;
@@ -119,7 +134,6 @@ fn extract_moc_ordered_ids(
 
     ordered_ids
 }
-
 fn add_compaction_metadata(
     output: &mut String,
     note: &Note,

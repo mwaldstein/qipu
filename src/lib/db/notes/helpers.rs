@@ -59,7 +59,9 @@ pub fn load_tags(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<Strin
 
 pub fn load_links(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<TypedLink>> {
     let mut stmt = conn
-        .prepare("SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1")
+        .prepare(
+            "SELECT target_id, link_type, inline FROM edges WHERE source_id = ?1 ORDER BY position",
+        )
         .map_err(|e| QipuError::Other(format!("failed to prepare edge query: {}", e)))?;
 
     let mut links = Vec::new();

@@ -288,3 +288,44 @@ fn test_export_outline_fallback_to_bundle_without_moc() {
         .stdout(predicate::str::contains("Body A"))
         .stdout(predicate::str::contains("Body B"));
 }
+
+#[test]
+fn test_export_outline_with_typed_frontmatter_links() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(&note_b_path, "---\nid: qp-bbbb\ntitle: Note B\n---\nBody B").unwrap();
+
+    let note_c_path = dir.path().join(".qipu/notes/qp-cccc-note-c.md");
+    fs::write(&note_c_path, "---\nid: qp-cccc\ntitle: Note C\n---\nBody C").unwrap();
+
+    let moc_path = dir.path().join(".qipu/mocs/qp-moc1-outline.md");
+    fs::write(
+        &moc_path,
+        "---\nid: qp-moc1\ntitle: Outline\ntype: moc\nlinks:\n  - type: derived-from\n    id: qp-bbbb\n  - type: supports\n    id: qp-aaaa\n  - type: part-of\n    id: qp-cccc\n---\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["export", "--moc", "qp-moc1", "--mode", "outline"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("## Note B (qp-bbbb)"))
+        .stdout(predicate::str::contains("## Note A (qp-aaaa)"))
+        .stdout(predicate::str::contains("## Note C (qp-cccc)"))
+        .stdout(predicate::str::contains(
+            "## Note B (qp-bbbb)\n\nBody B\n\n---\n\n## Note A (qp-aaaa)",
+        ))
+        .stdout(predicate::str::contains(
+            "## Note A (qp-aaaa)\n\nBody A\n\n---\n\n## Note C (qp-cccc)",
+        ));
+}

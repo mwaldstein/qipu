@@ -144,7 +144,7 @@ pub(crate) fn extract_links(
     // Deduplicate edges by (to, link_type) only, keeping the first occurrence
     // This ensures typed links from frontmatter take precedence over inline links
     // when both exist to the same target with the same type
-    edges.sort_by(|a, b| a.to.cmp(&b.to).then_with(|| a.link_type.cmp(&b.link_type)));
+    // NOTE: We do NOT sort here to preserve order from frontmatter
     edges.dedup_by(|a, b| a.to == b.to && a.link_type == b.link_type);
 
     edges

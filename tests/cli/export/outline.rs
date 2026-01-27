@@ -329,3 +329,63 @@ fn test_export_outline_with_typed_frontmatter_links() {
             "## Note A (qp-aaaa)\n\nBody A\n\n---\n\n## Note C (qp-cccc)",
         ));
 }
+
+#[test]
+fn test_export_outline_preserves_markdown_links() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(
+        &note_a_path,
+        "---\nid: qp-aaaa\ntitle: Note A\n---\nSee [custom link](.qipu/notes/qp-bbbb-note-b.md) and [[qp-cccc]]",
+    )
+    .unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(&note_b_path, "---\nid: qp-bbbb\ntitle: Note B\n---\nBody B").unwrap();
+
+    let note_c_path = dir.path().join(".qipu/notes/qp-cccc-note-c.md");
+    fs::write(
+        &note_c_path,
+        "---\nid: qp-cccc\ntitle: Note C\n---\nBody C with [external](https://example.com)",
+    )
+    .unwrap();
+
+    let moc_path = dir.path().join(".qipu/mocs/qp-moc1-outline.md");
+    fs::write(
+        &moc_path,
+        "---\nid: qp-moc1\ntitle: Outline\ntype: moc\n---\n[[qp-aaaa]]\n[[qp-bbbb]]\n[[qp-cccc]]\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let result = qipu()
+        .current_dir(dir.path())
+        .args([
+            "export",
+            "--moc",
+            "qp-moc1",
+            "--mode",
+            "outline",
+            "--link-mode",
+            "markdown",
+        ])
+        .assert()
+        .success();
+
+    let output = String::from_utf8_lossy(&result.get_output().stdout);
+    assert!(output.contains("See [custom link](.qipu/notes/qp-bbbb-note-b.md)"));
+    assert!(output.contains("and [qp-cccc]("));
+    assert!(output.contains(".qipu/notes/qp-cccc-note-c.md)"));
+    assert!(output.contains("Body C with [external](https://example.com)"));
+}

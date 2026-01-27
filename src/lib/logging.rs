@@ -36,7 +36,11 @@ fn init_with_level(level: &str, log_json: bool) -> Result<(), Box<dyn std::error
                 fmt::layer()
                     .json()
                     .with_writer(std::io::stderr)
-                    .with_ansi(false),
+                    .with_ansi(false)
+                    .with_span_events(
+                        tracing_subscriber::fmt::format::FmtSpan::NEW
+                            | tracing_subscriber::fmt::format::FmtSpan::CLOSE,
+                    ),
             )
             .try_init()?;
     } else {

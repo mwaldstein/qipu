@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use serde_json::Value;
 use tempfile::tempdir;
@@ -472,4 +472,370 @@ fn test_json_log_level_values_are_valid() {
             }
         }
     }
+}
+
+#[test]
+fn test_json_log_contains_span_name() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let _note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "debug", "list"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_span_name = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            json.get("span")
+                .and_then(|s| s.as_object())
+                .map(|span_obj| span_obj.contains_key("name"))
+                .unwrap_or(false)
+        } else {
+            false
+        }
+    });
+
+    assert!(found_span_name, "Should find log with span name field");
+}
+
+#[test]
+fn test_json_log_span_name_is_string() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let _note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "debug", "list"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(span) = json.get("span").and_then(|s| s.as_object()) {
+                if let Some(name) = span.get("name").and_then(|n| n.as_str()) {
+                    return !name.is_empty();
+                }
+            }
+        }
+        false
+    });
+
+    assert!(found, "Should find log with non-empty span name string");
+}
+
+#[test]
+fn test_json_log_has_spans_array() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "link",
+            "tree",
+            &note_id,
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_spans_array = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            json.get("spans").is_some()
+        } else {
+            false
+        }
+    });
+
+    assert!(found_spans_array, "Should find log with spans array field");
+}
+
+#[test]
+fn test_json_log_span_has_name() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "link",
+            "tree",
+            &note_id,
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(span) = json.get("span").and_then(|s| s.as_object()) {
+                if let Some(name) = span.get("name").and_then(|n| n.as_str()) {
+                    return !name.is_empty();
+                }
+            }
+        }
+        false
+    });
+
+    assert!(found, "Should find log with span name field");
+}
+
+#[test]
+fn test_json_log_bfs_traverse_has_custom_fields() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "link",
+            "tree",
+            &note_id,
+            "--ignore-value",
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_bfs_traverse = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(span) = json.get("span").and_then(|s| s.as_object()) {
+                if let Some(name) = span.get("name").and_then(|n| n.as_str()) {
+                    if name == "bfs_traverse" {
+                        return span.contains_key("root")
+                            && span.contains_key("direction")
+                            && span.contains_key("max_hops");
+                    }
+                }
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_bfs_traverse,
+        "Should find bfs_traverse span with custom fields (root, direction, max_hops)"
+    );
+}
+
+#[test]
+fn test_json_log_dijkstra_traverse_has_custom_fields() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "link",
+            "tree",
+            &note_id,
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_dijkstra_traverse = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(span) = json.get("span").and_then(|s| s.as_object()) {
+                if let Some(name) = span.get("name").and_then(|n| n.as_str()) {
+                    if name == "dijkstra_traverse" {
+                        return span.contains_key("root")
+                            && span.contains_key("direction")
+                            && span.contains_key("max_hops")
+                            && span.contains_key("ignore_value");
+                    }
+                }
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_dijkstra_traverse,
+        "Should find dijkstra_traverse span with custom fields (root, direction, max_hops, ignore_value)"
+    );
+}
+
+#[test]
+fn test_json_log_bfs_path_has_custom_fields() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--title")
+        .arg("Test")
+        .assert()
+        .success();
+
+    let note_id = extract_id_from_bytes(&output.get_output().stdout);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "link",
+            "path",
+            &note_id,
+            &note_id,
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_bfs_path = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(span) = json.get("span").and_then(|s| s.as_object()) {
+                if let Some(name) = span.get("name").and_then(|n| n.as_str()) {
+                    if name == "bfs_find_path" {
+                        return span.contains_key("from")
+                            && span.contains_key("to")
+                            && span.contains_key("direction")
+                            && span.contains_key("max_hops")
+                            && span.contains_key("ignore_value");
+                    }
+                }
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_bfs_path,
+        "Should find bfs_find_path span with custom fields (from, to, direction, max_hops, ignore_value)"
+    );
 }

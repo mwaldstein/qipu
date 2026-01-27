@@ -197,3 +197,21 @@ fn test_default_log_policy_is_warn() {
     // Verify warn-level messages would be shown by creating a condition that triggers a warning
     // Note: In normal operation, list doesn't produce warnings, so we just verify debug is off
 }
+
+#[test]
+fn test_log_level_trace_shows_debug_messages() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--log-level", "trace", "list"])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("parse_args"));
+}

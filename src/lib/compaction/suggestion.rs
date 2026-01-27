@@ -157,11 +157,39 @@ impl CompactionContext {
 
         // Estimate total size
         let mut estimated_size = 0;
+        let mut total_value = 0u32;
+        let mut value_count = 0usize;
+
         for node_id in cluster {
             if let Ok(note) = store.get_note(node_id) {
                 estimated_size += estimate_note_size(&note);
+                if let Some(v) = note.frontmatter.value {
+                    total_value += v as u32;
+                    value_count += 1;
+                }
             }
         }
+
+        // Calculate average value (default to 50 if no values set)
+        let avg_value = if value_count > 0 {
+            total_value as f64 / value_count as f64
+        } else {
+            50.0
+        };
+
+        // Value boost: low-value notes are better compaction candidates
+        // Per spec: "Notes with `value < 20` are strong candidates for compaction"
+        let value_boost = if avg_value < 20.0 {
+            15.0
+        } else if avg_value < 40.0 {
+            7.5
+        } else if avg_value < 60.0 {
+            0.0
+        } else if avg_value < 80.0 {
+            -5.0
+        } else {
+            -10.0
+        };
 
         // Calculate score
         let node_count = cluster.len();
@@ -170,7 +198,7 @@ impl CompactionContext {
         let boundary_penalty = boundary_ratio * -5.0;
         let node_score = (node_count as f64).sqrt();
 
-        let score = size_score + cohesion_score + boundary_penalty + node_score;
+        let score = size_score + cohesion_score + boundary_penalty + node_score + value_boost;
 
         Ok(CompactionCandidate {
             ids: cluster.to_vec(),

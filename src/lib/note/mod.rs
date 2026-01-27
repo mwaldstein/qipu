@@ -59,6 +59,7 @@ impl Note {
     }
 
     /// Parse a note from markdown content
+    #[tracing::instrument(skip(content), fields(path = ?path))]
     pub fn parse(content: &str, path: Option<PathBuf>) -> Result<Self> {
         let (frontmatter, body) = parse::parse_frontmatter(content, path.as_ref())?;
         Ok(Note {

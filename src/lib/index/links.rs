@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use tracing::warn;
 
 /// Extract all links from a note
+#[tracing::instrument(skip(note, valid_ids, unresolved, source_path, path_to_id), fields(note_id = %note.id(), source_path = ?source_path))]
 pub(crate) fn extract_links(
     note: &Note,
     valid_ids: &HashSet<String>,

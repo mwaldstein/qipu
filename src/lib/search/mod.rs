@@ -7,6 +7,7 @@ use crate::lib::store::Store;
 use std::collections::HashMap;
 
 /// Process search results with compaction resolution, filtering, and sorting
+#[tracing::instrument(skip(results, store, compaction_ctx, _compaction_note_map, cli), fields(results_count = results.len(), exclude_mocs, sort = ?sort))]
 pub fn process_search_results(
     results: Vec<SearchResult>,
     cli: &crate::cli::Cli,

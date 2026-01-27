@@ -5,6 +5,7 @@ use crate::lib::store::Store;
 use std::fs;
 
 /// Attempt to fix issues that are marked as fixable
+#[tracing::instrument(skip(store, result), fields(store_root = %store.root().display()))]
 pub fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> {
     let mut fixed = 0;
 

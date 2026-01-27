@@ -26,6 +26,7 @@ impl Store {
     }
 
     /// Get a note by ID
+    #[tracing::instrument(skip(self), fields(note_id = %id))]
     pub fn get_note(&self, id: &str) -> Result<Note> {
         self.get_note_internal(id)
     }

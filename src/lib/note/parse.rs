@@ -3,6 +3,7 @@ use crate::lib::error::{QipuError, Result};
 use std::path::PathBuf;
 
 /// Parse YAML frontmatter from markdown content
+#[tracing::instrument(skip(content), fields(path = ?path))]
 pub(crate) fn parse_frontmatter(
     content: &str,
     path: Option<&PathBuf>,

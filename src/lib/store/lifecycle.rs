@@ -14,6 +14,7 @@ use super::Store;
 
 impl Store {
     /// Create a new note
+    #[tracing::instrument(skip(self, tags), fields(title, note_type = ?note_type, id))]
     pub fn create_note(
         &self,
         title: &str,
@@ -68,6 +69,7 @@ impl Store {
     }
 
     /// Create a new note with specific content (used by capture command)
+    #[tracing::instrument(skip(self, tags, content), fields(title, note_type = ?note_type, id))]
     pub fn create_note_with_content(
         &self,
         title: &str,
@@ -144,6 +146,7 @@ impl Store {
     }
 
     /// Save an existing note back to disk
+    #[tracing::instrument(skip(self, note), fields(note_id = %note.id()))]
     pub fn save_note(&self, note: &mut Note) -> Result<()> {
         let path = note
             .path

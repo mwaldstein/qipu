@@ -20,6 +20,7 @@ use crate::lib::store::Store;
 pub use types::{DoctorResult, Issue, Severity};
 
 /// Execute the doctor command and return the result
+#[tracing::instrument(skip(cli, store), fields(store_root = %store.root().display(), fix, duplicates, threshold))]
 pub fn execute(
     cli: &Cli,
     store: &Store,

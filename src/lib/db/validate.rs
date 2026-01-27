@@ -99,6 +99,7 @@ impl super::Database {
     /// Quick consistency check between database and filesystem
     ///
     /// Returns true if database is consistent with filesystem, false otherwise
+    #[tracing::instrument(skip(self, store_root), fields(store_root = %store_root.display()))]
     pub fn validate_consistency(&self, store_root: &Path) -> Result<bool> {
         let db_count: i64 = self
             .conn

@@ -23,6 +23,7 @@ impl<'a> IndexBuilder<'a> {
     }
 
     /// Build the index
+    #[tracing::instrument(skip(self), fields(store_root = %self.store.root().display()))]
     pub fn build(mut self) -> Result<Index> {
         let notes = self.store.list_notes()?;
         let all_ids: HashSet<_> = notes.iter().map(|n| n.id().to_string()).collect();

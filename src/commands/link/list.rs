@@ -92,9 +92,6 @@ pub fn execute(
                     if let Some(ref ctx) = compaction_ctx {
                         let original_id = entry.id.clone();
                         entry.id = ctx.canon(&entry.id)?;
-                        if entry.id == canonical_id {
-                            continue;
-                        }
                         // Set via annotation if ID changed due to canonicalization
                         if entry.id != original_id {
                             entry.via = Some(original_id);
@@ -102,6 +99,10 @@ pub fn execute(
                         // Update title if it changed due to canonicalization
                         if let Some(meta) = index.get_metadata(&entry.id) {
                             entry.title = Some(meta.title.clone());
+                        }
+                        // Skip self-loops: canonical ID of target equals canonical ID of source
+                        if entry.id == canonical_id {
+                            continue;
                         }
                     }
                     entries.push(entry);
@@ -146,14 +147,17 @@ pub fn execute(
     }
 
     // Remove duplicates that may have been created by canonicalization
+    // Only dedup if via fields are also the same (preserves links from different compacted sources)
     entries.sort_by(|a, b| {
         a.direction
             .cmp(&b.direction)
             .then_with(|| a.link_type.cmp(&b.link_type))
             .then_with(|| a.id.cmp(&b.id))
+            .then_with(|| a.via.cmp(&b.via))
     });
-    entries
-        .dedup_by(|a, b| a.direction == b.direction && a.link_type == b.link_type && a.id == b.id);
+    entries.dedup_by(|a, b| {
+        a.direction == b.direction && a.link_type == b.link_type && a.id == b.id && a.via == b.via
+    });
 
     // Build note map for compaction percentage calculation
     // Per spec (specs/compaction.md lines 104-109)

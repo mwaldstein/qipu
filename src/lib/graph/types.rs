@@ -316,6 +316,8 @@ pub struct TreeNote {
     pub note_type: NoteType,
     pub tags: Vec<String>,
     pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 /// Link in the traversal output

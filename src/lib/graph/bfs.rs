@@ -11,6 +11,12 @@ use crate::lib::store::Store;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
+struct PredecessorInfo {
+    canonical_pred: String,
+    original_id: Option<String>,
+    edge: Edge,
+}
+
 fn check_min_value_filter(
     provider: &dyn GraphProvider,
     note_id: &str,
@@ -130,9 +136,9 @@ fn bfs_search(
     opts: &TreeOptions,
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
-) -> (bool, HashMap<String, (String, Edge)>) {
+) -> (bool, HashMap<String, PredecessorInfo>) {
     let mut visited: HashSet<String> = HashSet::new();
-    let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
+    let mut predecessors: HashMap<String, PredecessorInfo> = HashMap::new();
     let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
 
     queue.push_back((from.to_string(), HopCost::from(0)));
@@ -170,9 +176,18 @@ fn bfs_search(
                 link_type: edge.link_type.clone(),
                 source: edge.source,
             };
+            let original_id = if neighbor_id != processed.canonical_neighbor {
+                Some(neighbor_id.clone())
+            } else {
+                None
+            };
             predecessors.insert(
                 processed.canonical_neighbor.clone(),
-                (current_id.clone(), canonical_edge),
+                PredecessorInfo {
+                    canonical_pred: current_id.clone(),
+                    original_id,
+                    edge: canonical_edge,
+                },
             );
 
             let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
@@ -209,10 +224,10 @@ fn dijkstra_search(
     opts: &TreeOptions,
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
-) -> (bool, HashMap<String, (String, Edge)>) {
+) -> (bool, HashMap<String, PredecessorInfo>) {
     let mut visited: HashSet<String> = HashSet::new();
     let mut best_costs: HashMap<String, HopCost> = HashMap::new();
-    let mut predecessors: HashMap<String, (String, Edge)> = HashMap::new();
+    let mut predecessors: HashMap<String, PredecessorInfo> = HashMap::new();
     let mut heap: BinaryHeap<Reverse<HeapEntry>> = BinaryHeap::new();
 
     heap.push(Reverse(HeapEntry {
@@ -276,9 +291,18 @@ fn dijkstra_search(
                     link_type: edge.link_type.clone(),
                     source: edge.source,
                 };
+                let original_id = if neighbor_id != processed.canonical_neighbor {
+                    Some(neighbor_id.clone())
+                } else {
+                    None
+                };
                 predecessors.insert(
                     processed.canonical_neighbor.clone(),
-                    (current_id.clone(), canonical_edge),
+                    PredecessorInfo {
+                        canonical_pred: current_id.clone(),
+                        original_id,
+                        edge: canonical_edge,
+                    },
                 );
 
                 heap.push(Reverse(HeapEntry {
@@ -311,25 +335,27 @@ fn create_empty_path_result(from: &str, to: &str, direction: Direction) -> PathR
 fn reconstruct_path(
     from: &str,
     to: &str,
-    predecessors: &HashMap<String, (String, Edge)>,
+    predecessors: &HashMap<String, PredecessorInfo>,
     provider: &dyn GraphProvider,
 ) -> (Vec<TreeNote>, Vec<TreeLink>) {
-    let mut path_nodes: Vec<String> = Vec::new();
+    let mut path_nodes: Vec<(String, Option<String>)> = Vec::new();
     let mut path_links: Vec<TreeLink> = Vec::new();
 
     let mut current = to.to_string();
-    path_nodes.push(current.clone());
+    let mut via: Option<String> = None;
+    path_nodes.push((current.clone(), via.clone()));
 
     while current != from {
-        if let Some((pred, edge)) = predecessors.get(&current) {
+        if let Some(pred_info) = predecessors.get(&current) {
             path_links.push(TreeLink {
-                from: edge.from.clone(),
-                to: edge.to.clone(),
-                link_type: edge.link_type.to_string(),
-                source: edge.source.to_string(),
+                from: pred_info.edge.from.clone(),
+                to: pred_info.edge.to.clone(),
+                link_type: pred_info.edge.link_type.to_string(),
+                source: pred_info.edge.source.to_string(),
             });
-            current = pred.clone();
-            path_nodes.push(current.clone());
+            current = pred_info.canonical_pred.clone();
+            via = pred_info.original_id.clone();
+            path_nodes.push((current.clone(), via.clone()));
         } else {
             break;
         }
@@ -340,13 +366,14 @@ fn reconstruct_path(
 
     let tree_notes: Vec<TreeNote> = path_nodes
         .iter()
-        .filter_map(|id| {
+        .filter_map(|(id, via)| {
             provider.get_metadata(id).map(|meta| TreeNote {
                 id: meta.id.clone(),
                 title: meta.title.clone(),
                 note_type: meta.note_type,
                 tags: meta.tags.clone(),
                 path: meta.path.clone(),
+                via: via.clone(),
             })
         })
         .collect();

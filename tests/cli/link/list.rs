@@ -551,3 +551,58 @@ fn test_link_list_semantic_inversion_type_filter_original() {
         .stdout(predicate::str::contains("\"direction\": \"in\""))
         .stdout(predicate::str::contains("\"type\": \"supports\""));
 }
+
+#[test]
+fn test_link_list_via_basic() {
+    let dir = tempdir().unwrap();
+    qipu().current_dir(dir.path()).arg("init").assert().success();
+    
+    let note1 = qipu().current_dir(dir.path()).args(["create", "Source"]).output().unwrap();
+    let note1_id = extract_id(&note1);
+    let note2 = qipu().current_dir(dir.path()).args(["create", "Target"]).output().unwrap();
+    let note2_id = extract_id(&note2);
+    
+    qipu().current_dir(dir.path()).args(["link", "add", &note1_id, &note2_id, "--type", "related"]).assert().success();
+    qipu().current_dir(dir.path()).arg("index").assert().success();
+    
+    let output = qipu().current_dir(dir.path()).args(["link", "list", &note1_id, "--format", "json"]).output().unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let links = json.as_array().unwrap();
+    
+    assert!(links.iter().all(|l| l.get("via").is_none()), "Should not have via without compaction");
+}
+
+#[test]
+fn test_link_list_via_compacted() {
+    let dir = tempdir().unwrap();
+    qipu().current_dir(dir.path()).arg("init").assert().success();
+    
+    let note1 = qipu().current_dir(dir.path()).args(["create", "Compacted Source 1"]).output().unwrap();
+    let note1_id = extract_id(&note1);
+    let note2 = qipu().current_dir(dir.path()).args(["create", "Compacted Source 2"]).output().unwrap();
+    let note2_id = extract_id(&note2);
+    let note3 = qipu().current_dir(dir.path()).args(["create", "Target"]).output().unwrap();
+    let note3_id = extract_id(&note3);
+    
+    qipu().current_dir(dir.path()).args(["link", "add", &note1_id, &note3_id, "--type", "related"]).assert().success();
+    qipu().current_dir(dir.path()).args(["link", "add", &note2_id, &note3_id, "--type", "related"]).assert().success();
+    qipu().current_dir(dir.path()).arg("index").assert().success();
+    
+    let digest = qipu().current_dir(dir.path()).args(["create", "Digest"]).output().unwrap();
+    let digest_id = extract_id(&digest);
+    
+    qipu().current_dir(dir.path()).args(["compact", "apply", &digest_id, "--note", &note1_id, "--note", &note2_id]).assert().success();
+    qipu().current_dir(dir.path()).arg("index").assert().success();
+    
+    let output = qipu().current_dir(dir.path()).args(["link", "list", &note3_id, "--direction", "in", "--format", "json"]).output().unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let links = json.as_array().unwrap();
+    
+    let has_via = links.iter().any(|l| {
+        l.get("via").is_some() &&
+        l["id"].as_str() == Some(&digest_id) &&
+        l["direction"].as_str() == Some("in")
+    });
+    
+    assert!(has_via, "Should show digest with via when source notes are compacted");
+}

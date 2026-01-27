@@ -64,6 +64,7 @@ pub fn bfs_traverse(
             note_type: meta.note_type,
             tags: meta.tags.clone(),
             path: meta.path.clone(),
+            via: None,
         });
     }
 
@@ -265,7 +266,12 @@ pub fn bfs_traverse(
                     link_type: edge.link_type.to_string(),
                 });
 
-                // Add note metadata (use canonical ID)
+                // Add note metadata (use canonical ID, track via if canonicalized)
+                let via = if neighbor_id != canonical_neighbor {
+                    Some(neighbor_id.clone())
+                } else {
+                    None
+                };
                 if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
                     notes.push(TreeNote {
                         id: meta.id.clone(),
@@ -273,6 +279,7 @@ pub fn bfs_traverse(
                         note_type: meta.note_type,
                         tags: meta.tags.clone(),
                         path: meta.path.clone(),
+                        via,
                     });
                 }
 

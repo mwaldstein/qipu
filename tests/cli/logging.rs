@@ -839,3 +839,144 @@ fn test_json_log_bfs_path_has_custom_fields() {
         "Should find bfs_find_path span with custom fields (from, to, direction, max_hops, ignore_value)"
     );
 }
+
+#[test]
+fn test_error_field_present_in_json_logs() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_path = dir.path().join(".qipu/notes/qp-test123-invalid.md");
+    std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
+
+    std::fs::write(&note_path, "---\nid: [invalid yaml\ntitle: Test\n---\n").unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "warn", "index"])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("\"fields\""))
+        .stderr(predicate::str::contains("\"error\""));
+}
+
+#[test]
+fn test_error_json_log_contains_error_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_path = dir.path().join(".qipu/notes/qp-test456-invalid.md");
+    std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
+
+    std::fs::write(&note_path, "---\nid: [invalid yaml\ntitle: Test\n---\n").unwrap();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "warn", "index"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_error_field = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                return fields.contains_key("error") && fields.contains_key("path");
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_error_field,
+        "Should find log with error and path fields"
+    );
+}
+
+#[test]
+fn test_error_log_level_is_warn() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_path = dir.path().join(".qipu/notes/qp-test789-invalid.md");
+    std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
+
+    std::fs::write(&note_path, "---\nid: [invalid yaml\ntitle: Test\n---\n").unwrap();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "warn", "index"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_warn_level = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                if fields.get("message").and_then(|m| m.as_str()) == Some("Failed to parse note") {
+                    return json.get("level").and_then(|l| l.as_str()) == Some("WARN");
+                }
+            }
+        }
+        false
+    });
+
+    assert!(found_warn_level, "Error log should have WARN level");
+}
+
+#[test]
+fn test_error_log_contains_message_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note_path = dir.path().join(".qipu/notes/qp-test000-invalid.md");
+    std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
+
+    std::fs::write(&note_path, "---\nid: [invalid yaml\ntitle: Test\n---\n").unwrap();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "warn", "index"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_message = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                return fields.get("message").and_then(|m| m.as_str())
+                    == Some("Failed to parse note");
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_message,
+        "Should find log with 'Failed to parse note' message"
+    );
+}

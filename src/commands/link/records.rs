@@ -165,9 +165,14 @@ fn append_edge_lines(lines: &mut Vec<String>, entries: &[LinkEntry], display_id:
             "in" => (entry.id.clone(), display_id.to_string()),
             _ => (display_id.to_string(), entry.id.clone()),
         };
+        let via_annotation = if let Some(ref via) = entry.via {
+            format!(" via={}", via)
+        } else {
+            String::new()
+        };
         lines.push(format!(
-            "E {} {} {} {}",
-            from, entry.link_type, to, entry.source
+            "E {} {} {} {}{}",
+            from, entry.link_type, to, entry.source, via_annotation
         ));
     }
 }

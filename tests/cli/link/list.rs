@@ -691,3 +691,90 @@ fn test_link_list_via_compacted() {
         "Should show digest with via when source notes are compacted"
     );
 }
+
+#[test]
+fn test_link_list_via_records_format() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Records Source 1"])
+        .output()
+        .unwrap();
+    let note1_id = extract_id(&note1);
+    let note2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Records Source 2"])
+        .output()
+        .unwrap();
+    let note2_id = extract_id(&note2);
+    let note3 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Records Target"])
+        .output()
+        .unwrap();
+    let note3_id = extract_id(&note3);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &note1_id, &note3_id, "--type", "related"])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &note2_id, &note3_id, "--type", "related"])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let digest = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Records Digest"])
+        .output()
+        .unwrap();
+    let digest_id = extract_id(&digest);
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "compact", "apply", &digest_id, "--note", &note1_id, "--note", &note2_id,
+        ])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "link",
+            "list",
+            &note3_id,
+            "--direction",
+            "in",
+            "--format",
+            "records",
+            "--no-semantic-inversion",
+        ])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains(&format!("via={}", note1_id))
+            || stdout.contains(&format!("via={}", note2_id)),
+        "Records output should contain via annotation for compacted notes"
+    );
+}

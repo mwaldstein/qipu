@@ -1,4 +1,5 @@
 use crate::lib::error::{QipuError, Result};
+use crate::lib::note::Note;
 use rusqlite::params;
 use std::path::Path;
 
@@ -11,11 +12,11 @@ impl super::Database {
     ///
     /// Arguments:
     /// - `store_root`: Path to store root
-    /// - `progress`: Optional callback for progress reporting (indexed, total, last_note_id)
+    /// - `progress`: Optional callback for progress reporting (indexed, total, last_note)
     pub fn incremental_repair(
         &self,
         store_root: &Path,
-        progress: Option<&dyn Fn(usize, usize, &str)>,
+        mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
     ) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
@@ -102,8 +103,8 @@ impl super::Database {
 
                 // Report progress every 100 notes and at the end
                 if (i + 1) % 100 == 0 || (i + 1) == total_notes {
-                    if let Some(cb) = progress {
-                        cb(i + 1, total_notes, note.id());
+                    if let Some(cb) = progress.as_mut() {
+                        cb(i + 1, total_notes, note);
                     }
                 }
             }

@@ -10,6 +10,7 @@ mod traverse;
 mod validate;
 
 use crate::lib::error::{QipuError, Result};
+use crate::lib::note::Note;
 use rusqlite::Connection;
 use std::path::Path;
 
@@ -168,7 +169,7 @@ impl Database {
     pub fn rebuild(
         &self,
         store_root: &Path,
-        progress: Option<&dyn Fn(usize, usize, &str)>,
+        mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
     ) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
@@ -231,8 +232,8 @@ impl Database {
 
             // Report progress every 100 notes and at the end
             if (i + 1) % 100 == 0 || (i + 1) == total_notes {
-                if let Some(cb) = progress {
-                    cb(i + 1, total_notes, note.id());
+                if let Some(cb) = progress.as_mut() {
+                    cb(i + 1, total_notes, note);
                 }
             }
 

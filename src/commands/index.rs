@@ -9,8 +9,80 @@
 use crate::cli::{Cli, OutputFormat};
 use crate::lib::error::Result;
 use crate::lib::index::links;
-use crate::lib::note::NoteType;
+use crate::lib::note::{Note, NoteType};
 use crate::lib::store::Store;
+use std::time::Instant;
+
+/// Progress tracker for indexing operations
+struct ProgressTracker {
+    first_update_time: Option<Instant>,
+    last_update_time: Option<Instant>,
+    last_indexed: usize,
+    notes_per_sec: f64,
+}
+
+impl ProgressTracker {
+    fn new() -> Self {
+        Self {
+            first_update_time: None,
+            last_update_time: None,
+            last_indexed: 0,
+            notes_per_sec: 0.0,
+        }
+    }
+
+    fn update(&mut self, indexed: usize, total: usize, note: &Note) {
+        let now = Instant::now();
+
+        if self.first_update_time.is_none() {
+            self.first_update_time = Some(now);
+        }
+
+        if let Some(last_time) = self.last_update_time {
+            let elapsed = now.duration_since(last_time).as_secs_f64();
+            let indexed_delta = indexed - self.last_indexed;
+
+            if elapsed > 0.0 && indexed_delta > 0 {
+                self.notes_per_sec = indexed_delta as f64 / elapsed;
+            }
+        }
+
+        self.last_update_time = Some(now);
+        self.last_indexed = indexed;
+
+        let percent = (indexed as f64 / total as f64) * 100.0;
+        let remaining = total - indexed;
+
+        let eta_str = if self.notes_per_sec > 0.0 {
+            let eta_secs = remaining as f64 / self.notes_per_sec;
+            if eta_secs < 1.0 {
+                "1s".to_string()
+            } else if eta_secs < 60.0 {
+                format!("{:.0}s", eta_secs.ceil())
+            } else {
+                format!("{:.0}m {:.0}s", (eta_secs / 60.0).floor(), eta_secs % 60.0)
+            }
+        } else {
+            "---".to_string()
+        };
+
+        let bar_width = 30;
+        let filled = (bar_width as f64 * percent / 100.0) as usize;
+        let filled = filled.min(bar_width);
+        let bar = "█".repeat(filled) + &"░".repeat(bar_width - filled);
+
+        eprintln!(
+            "  [{}] {:.0}% ({} / {}) {:.0} notes/sec",
+            bar, percent, indexed, total, self.notes_per_sec
+        );
+        eprintln!(
+            "  ETA: {}  Last: {} \"{}\"",
+            eta_str,
+            note.id(),
+            note.title()
+        );
+    }
+}
 
 /// Execute index command
 pub fn execute(
@@ -47,24 +119,20 @@ pub fn execute(
     let notes_count = notes.len();
 
     if cli.verbose {
-        let progress = |indexed: usize, total: usize, last_id: &str| {
-            eprintln!(
-                "Indexing: {}/{} notes ({:.0}%) - Last: {}",
-                indexed,
-                total,
-                (indexed as f64 / total as f64) * 100.0,
-                last_id
-            );
+        eprintln!("Indexing notes from .qipu/notes/...");
+        let mut tracker = ProgressTracker::new();
+        let mut progress = |indexed: usize, total: usize, note: &Note| {
+            tracker.update(indexed, total, note);
         };
 
         if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
             selective_index(cli, store, quick, tag, note_type, recent, moc)?;
         } else if rebuild {
-            store.db().rebuild(store.root(), Some(&progress))?;
+            store.db().rebuild(store.root(), Some(&mut progress))?;
         } else {
             store
                 .db()
-                .incremental_repair(store.root(), Some(&progress))?;
+                .incremental_repair(store.root(), Some(&mut progress))?;
         }
     } else {
         if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {

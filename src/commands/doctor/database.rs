@@ -1,4 +1,4 @@
-use super::types::{CheckContext, DoctorCheck, DoctorResult, Issue, Severity};
+use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::store::Store;
 use std::collections::{HashMap, HashSet};
 
@@ -299,95 +299,5 @@ fn dfs_cycle_detect(
     None
 }
 
-pub fn check_orphaned_notes(store: &Store, result: &mut DoctorResult) {
-    let db = store.db();
-
-    match db.get_orphaned_notes() {
-        Ok(orphaned) => {
-            for note_id in orphaned {
-                result.add_issue(Issue {
-                    severity: Severity::Warning,
-                    category: "orphaned-note".to_string(),
-                    message: format!("Note '{}' has no incoming links", note_id),
-                    note_id: Some(note_id.clone()),
-                    path: get_note_path(db, &note_id),
-                    fixable: false,
-                });
-            }
-        }
-        Err(e) => {
-            tracing::error!("Failed to check for orphaned notes: {}", e);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests;
-
-pub struct CheckDuplicateIds;
-
-impl DoctorCheck for CheckDuplicateIds {
-    fn name(&self) -> &str {
-        "duplicate-id"
-    }
-
-    fn description(&self) -> &str {
-        "Checks for duplicate note IDs in the store"
-    }
-
-    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-        let Some(store) = ctx.store else { return };
-        check_duplicate_ids(store, result);
-    }
-}
-
-pub struct CheckMissingFiles;
-
-impl DoctorCheck for CheckMissingFiles {
-    fn name(&self) -> &str {
-        "missing-file"
-    }
-
-    fn description(&self) -> &str {
-        "Checks for notes in database that are missing from the filesystem"
-    }
-
-    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-        let Some(store) = ctx.store else { return };
-        check_missing_files(store, result);
-    }
-}
-
-pub struct CheckBrokenLinks;
-
-impl DoctorCheck for CheckBrokenLinks {
-    fn name(&self) -> &str {
-        "broken-link"
-    }
-
-    fn description(&self) -> &str {
-        "Checks for links that reference non-existent notes"
-    }
-
-    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-        let Some(store) = ctx.store else { return };
-        check_broken_links(store, result);
-    }
-}
-
-pub struct CheckSemanticLinkTypes;
-
-impl DoctorCheck for CheckSemanticLinkTypes {
-    fn name(&self) -> &str {
-        "semantic-link-misuse"
-    }
-
-    fn description(&self) -> &str {
-        "Checks for semantic link type misuse (self-references, conflicts, cycles)"
-    }
-
-    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-        let Some(store) = ctx.store else { return };
-        check_semantic_link_types(store, result);
-    }
-}

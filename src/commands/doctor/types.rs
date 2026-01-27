@@ -90,6 +90,7 @@ impl Default for DoctorResult {
 ///
 /// Provides all possible inputs that checks might need.
 /// Each check implementation extracts what it requires.
+#[allow(dead_code)]
 pub struct CheckContext<'a> {
     /// Store reference (for database operations)
     pub store: Option<&'a Store>,

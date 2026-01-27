@@ -6,7 +6,6 @@ pub trait GraphProvider {
     fn get_outbound_edges(&self, id: &str) -> Vec<Edge>;
     fn get_inbound_edges(&self, id: &str) -> Vec<Edge>;
     fn get_metadata(&self, id: &str) -> Option<NoteMetadata>;
-    fn contains(&self, id: &str) -> bool;
 }
 
 impl GraphProvider for Index {
@@ -20,9 +19,5 @@ impl GraphProvider for Index {
 
     fn get_metadata(&self, id: &str) -> Option<NoteMetadata> {
         self.get_metadata(id).cloned()
-    }
-
-    fn contains(&self, id: &str) -> bool {
-        self.contains(id)
     }
 }

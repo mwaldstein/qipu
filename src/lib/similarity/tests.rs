@@ -8,68 +8,6 @@ mod tests {
     use crate::lib::text::tokenize_with_stemming;
     use std::collections::{HashMap, HashSet};
 
-    fn create_test_index() -> Index {
-        let mut index = Index::new();
-
-        // Note 1: Apple Banana Cherry (each term appears once with weight 1.0)
-        let id1 = "qp-1".to_string();
-        let mut term_freqs1 = HashMap::new();
-        term_freqs1.insert("apple".to_string(), 1.0);
-        term_freqs1.insert("banana".to_string(), 1.0);
-        term_freqs1.insert("cherry".to_string(), 1.0);
-        index.note_terms.insert(id1.clone(), term_freqs1);
-        index.doc_lengths.insert(id1.clone(), 3);
-        index.metadata.insert(
-            id1.clone(),
-            NoteMetadata {
-                id: id1.clone(),
-                title: "Note 1".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec![],
-                path: "1.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Note 2: Apple Banana Date (each term appears once with weight 1.0)
-        let id2 = "qp-2".to_string();
-        let mut term_freqs2 = HashMap::new();
-        term_freqs2.insert("apple".to_string(), 1.0);
-        term_freqs2.insert("banana".to_string(), 1.0);
-        term_freqs2.insert("date".to_string(), 1.0);
-        index.note_terms.insert(id2.clone(), term_freqs2);
-        index.doc_lengths.insert(id2.clone(), 3);
-        index.metadata.insert(
-            id2.clone(),
-            NoteMetadata {
-                id: id2.clone(),
-                title: "Note 2".to_string(),
-                note_type: NoteType::Permanent,
-                tags: vec![],
-                path: "2.md".to_string(),
-                created: None,
-                updated: None,
-                value: None,
-            },
-        );
-
-        // Stats
-        index.total_docs = 2;
-        index.total_len = 6;
-        for term in ["apple", "banana", "cherry", "date"] {
-            let df = if term == "apple" || term == "banana" {
-                2
-            } else {
-                1
-            };
-            index.term_df.insert(term.to_string(), df);
-        }
-
-        index
-    }
-
     #[test]
     fn test_similarity_with_stemming() {
         let mut index = Index::new();

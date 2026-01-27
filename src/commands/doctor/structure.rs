@@ -1,4 +1,4 @@
-use super::types::{CheckContext, DoctorCheck, DoctorResult, Issue, Severity};
+use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::store::paths::ATTACHMENTS_DIR;
 use crate::lib::store::Store;
 
@@ -47,22 +47,5 @@ pub fn check_store_structure(store: &Store, result: &mut DoctorResult) {
             path: Some(config_path.display().to_string()),
             fixable: true,
         });
-    }
-}
-
-pub struct CheckStoreStructure;
-
-impl DoctorCheck for CheckStoreStructure {
-    fn name(&self) -> &str {
-        "store-structure"
-    }
-
-    fn description(&self) -> &str {
-        "Validates that required directories and files exist"
-    }
-
-    fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-        let Some(store) = ctx.store else { return };
-        check_store_structure(store, result);
     }
 }

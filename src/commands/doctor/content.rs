@@ -1,4 +1,4 @@
-use super::types::{CheckContext, DoctorCheck, DoctorResult, Issue, Severity};
+use super::types::{DoctorResult, Issue, Severity};
 use crate::lib::compaction::CompactionContext;
 use crate::lib::index::Index;
 use crate::lib::note::Note;
@@ -361,104 +361,6 @@ pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
         }
     }
 }
-
-macro_rules! impl_doctor_check {
-    ($struct_name:ident, $name:expr, $description:expr, $check_fn:ident, notes) => {
-        pub struct $struct_name;
-
-        impl DoctorCheck for $struct_name {
-            fn name(&self) -> &str {
-                $name
-            }
-
-            fn description(&self) -> &str {
-                $description
-            }
-
-            fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-                let Some(notes) = ctx.notes else { return };
-                $check_fn(notes, result);
-            }
-        }
-    };
-    ($struct_name:ident, $name:expr, $description:expr, $check_fn:ident, index_threshold) => {
-        pub struct $struct_name;
-
-        impl DoctorCheck for $struct_name {
-            fn name(&self) -> &str {
-                $name
-            }
-
-            fn description(&self) -> &str {
-                $description
-            }
-
-            fn run(&self, ctx: &CheckContext<'_>, result: &mut DoctorResult) {
-                let Some(index) = ctx.index else { return };
-                let Some(threshold) = ctx.threshold else {
-                    return;
-                };
-                $check_fn(index, threshold, result);
-            }
-        }
-    };
-}
-
-impl_doctor_check!(
-    CheckRequiredFields,
-    "required-fields",
-    "Validates that all notes have required frontmatter fields (id, title)",
-    check_required_fields,
-    notes
-);
-
-impl_doctor_check!(
-    CheckValueRange,
-    "value-range",
-    "Validates that note values are within the valid range (0-100)",
-    check_value_range,
-    notes
-);
-
-impl_doctor_check!(
-    CheckCustomMetadata,
-    "custom-metadata",
-    "Validates custom metadata size and structure",
-    check_custom_metadata,
-    notes
-);
-
-impl_doctor_check!(
-    CheckCompactionInvariants,
-    "compaction-invariants",
-    "Validates compaction graph invariants (no cycles, no self-compaction, no multiple compactors)",
-    check_compaction_invariants,
-    notes
-);
-
-impl_doctor_check!(
-    CheckBareLinkLists,
-    "bare-link-lists",
-    "Warns about bare link lists without descriptive context",
-    check_bare_link_lists,
-    notes
-);
-
-impl_doctor_check!(
-    CheckNoteComplexity,
-    "note-complexity",
-    "Warns about overly complex or long notes",
-    check_note_complexity,
-    notes
-);
-
-impl_doctor_check!(
-    CheckNearDuplicates,
-    "near-duplicates",
-    "Finds near-duplicate notes based on content similarity",
-    check_near_duplicates,
-    index_threshold
-);
 
 #[cfg(test)]
 mod tests;

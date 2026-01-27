@@ -136,9 +136,6 @@ pub struct Index {
     pub(crate) note_terms: HashMap<String, HashMap<String, f64>>,
 }
 
-/// Current index format version
-pub const INDEX_VERSION: u32 = 2;
-
 impl Index {
     /// Create a new empty index
     pub fn new() -> Self {

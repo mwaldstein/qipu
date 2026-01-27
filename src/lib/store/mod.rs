@@ -257,11 +257,6 @@ impl Store {
         self.root.join(MOCS_DIR)
     }
 
-    /// Get the templates directory
-    pub fn templates_dir(&self) -> PathBuf {
-        self.root.join(TEMPLATES_DIR)
-    }
-
     /// Get the config
     pub fn config(&self) -> &StoreConfig {
         &self.config
@@ -289,7 +284,6 @@ mod tests {
         assert!(store.root().exists());
         assert!(store.notes_dir().exists());
         assert!(store.mocs_dir().exists());
-        assert!(store.templates_dir().exists());
         assert!(store.root().join(CONFIG_FILE).exists());
     }
 
@@ -356,8 +350,9 @@ mod tests {
         let note = store.create_note("Test Note", None, &[], None).unwrap();
         assert!(note.id().starts_with("qp-"));
 
-        assert!(store.templates_dir().join("fleeting.md").exists());
-        assert!(store.templates_dir().join("permanent.md").exists());
+        let templates_dir = store.root().join(TEMPLATES_DIR);
+        assert!(templates_dir.join("fleeting.md").exists());
+        assert!(templates_dir.join("permanent.md").exists());
     }
 
     #[test]

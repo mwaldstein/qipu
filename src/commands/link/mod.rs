@@ -170,58 +170,6 @@ pub fn filter_and_convert_inbound(
     })
 }
 
-/// Get filtered neighbors for a node
-pub fn get_filtered_neighbors<'a>(
-    index: &'a Index,
-    id: &str,
-    opts: &TreeOptions,
-    equivalence_map: Option<&HashMap<String, Vec<String>>>,
-) -> Vec<(String, &'a Edge)> {
-    let mut neighbors: Vec<(String, &Edge)> = Vec::new();
-
-    // Collect all source IDs that map to this ID (for gathering edges)
-    // This includes the ID itself plus any notes compacted by this ID
-    let source_ids = equivalence_map
-        .and_then(|map| map.get(id).cloned())
-        .unwrap_or_else(|| vec![id.to_string()]);
-
-    // Get outbound edges from ALL source IDs
-    if opts.direction == Direction::Out || opts.direction == Direction::Both {
-        for source_id in &source_ids {
-            for edge in index.get_outbound_edges(source_id) {
-                if filter_edge(edge, opts) {
-                    neighbors.push((edge.to.clone(), edge));
-                }
-            }
-        }
-    }
-
-    // Get inbound edges to ALL source IDs (backlinks)
-    if opts.direction == Direction::In || opts.direction == Direction::Both {
-        for source_id in &source_ids {
-            for edge in index.get_inbound_edges(source_id) {
-                if filter_edge(edge, opts) {
-                    neighbors.push((edge.from.clone(), edge));
-                }
-            }
-        }
-    }
-
-    // Sort for determinism: edge type, then target id
-    neighbors.sort_by(|a, b| {
-        a.1.link_type
-            .cmp(&b.1.link_type)
-            .then_with(|| a.0.cmp(&b.0))
-    });
-
-    neighbors
-}
-
-/// Check if an edge passes the filters
-pub fn filter_edge(edge: &Edge, opts: &TreeOptions) -> bool {
-    crate::lib::graph::types::filter_edge(edge, opts)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

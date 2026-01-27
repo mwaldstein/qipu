@@ -87,7 +87,6 @@ struct ProcessedEdge {
     canonical_from: String,
     canonical_to: String,
     canonical_neighbor: String,
-    original_edge: Edge,
 }
 
 fn canonicalize_edge(
@@ -108,7 +107,6 @@ fn canonicalize_edge(
         canonical_from,
         canonical_to,
         canonical_neighbor,
-        original_edge: edge.clone(),
     })
 }
 

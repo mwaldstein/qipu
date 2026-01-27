@@ -6,42 +6,6 @@ use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 use base64::{engine::general_purpose, Engine as _};
 
-/// Convert serde_yaml::Value to serde_json::Value
-fn serde_yaml_to_json(yaml: &serde_yaml::Value) -> serde_json::Value {
-    match yaml {
-        serde_yaml::Value::Null => serde_json::Value::Null,
-        serde_yaml::Value::Bool(b) => serde_json::Value::Bool(*b),
-        serde_yaml::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                serde_json::Value::Number(i.into())
-            } else if let Some(u) = n.as_u64() {
-                serde_json::Value::Number(u.into())
-            } else if let Some(f) = n.as_f64() {
-                serde_json::Number::from_f64(f)
-                    .map(serde_json::Value::Number)
-                    .unwrap_or(serde_json::Value::Null)
-            } else {
-                serde_json::Value::Null
-            }
-        }
-        serde_yaml::Value::String(s) => serde_json::Value::String(s.clone()),
-        serde_yaml::Value::Sequence(seq) => {
-            serde_json::Value::Array(seq.iter().map(serde_yaml_to_json).collect())
-        }
-        serde_yaml::Value::Mapping(map) => {
-            let obj: serde_json::Map<String, serde_json::Value> = map
-                .iter()
-                .filter_map(|(k, v)| {
-                    k.as_str()
-                        .map(|key| (key.to_string(), serde_yaml_to_json(v)))
-                })
-                .collect();
-            serde_json::Value::Object(obj)
-        }
-        serde_yaml::Value::Tagged(tagged) => serde_yaml_to_json(&tagged.value),
-    }
-}
-
 /// Serialize pack in records format (compact, line-oriented)
 pub fn serialize_pack_records(
     notes: &[Note],

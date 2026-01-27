@@ -75,27 +75,6 @@ impl super::Database {
         Ok(missing)
     }
 
-    /// Find orphaned notes (notes with no incoming links)
-    pub fn get_orphaned_notes(&self) -> Result<Vec<String>> {
-        let mut stmt = self
-            .conn
-            .prepare(
-                "SELECT id FROM notes
-                 WHERE id NOT IN (SELECT DISTINCT target_id FROM edges)",
-            )
-            .map_err(|e| {
-                QipuError::Other(format!("failed to prepare orphaned notes query: {}", e))
-            })?;
-
-        let orphaned = stmt
-            .query_map([], |row| row.get::<_, String>(0))
-            .map_err(|e| QipuError::Other(format!("failed to query orphaned notes: {}", e)))?
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|e| QipuError::Other(format!("failed to read orphaned note rows: {}", e)))?;
-
-        Ok(orphaned)
-    }
-
     /// Get all typed edges (non-inline links) for semantic validation
     pub fn get_all_typed_edges(&self) -> Result<Vec<(String, String, String)>> {
         let mut stmt = self

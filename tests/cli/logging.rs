@@ -1,5 +1,6 @@
 use crate::cli::support::qipu;
 use predicates::prelude::*;
+use serde_json::Value;
 use tempfile::tempdir;
 
 // ============================================================================
@@ -214,4 +215,261 @@ fn test_log_level_trace_shows_debug_messages() {
         .assert()
         .success()
         .stderr(predicate::str::contains("parse_args"));
+}
+
+#[test]
+fn test_json_log_contains_elapsed_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "debug", "list"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_parse_args = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                return fields.get("message").and_then(|m| m.as_str()) == Some("parse_args")
+                    && fields.contains_key("elapsed");
+            }
+        }
+        false
+    });
+
+    assert!(
+        found_parse_args,
+        "Should find parse_args log with elapsed field"
+    );
+}
+
+#[test]
+fn test_json_log_elapsed_field_is_numeric_string() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "debug", "list"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                if fields.get("message").and_then(|m| m.as_str()) == Some("parse_args") {
+                    if let Some(elapsed) = fields.get("elapsed").and_then(|e| e.as_str()) {
+                        return elapsed.ends_with("ms")
+                            || elapsed.ends_with("s")
+                            || elapsed.ends_with("ns");
+                    }
+                }
+            }
+        }
+        false
+    });
+
+    assert!(
+        found,
+        "Should find parse_args log with numeric elapsed string"
+    );
+}
+
+#[test]
+fn test_json_log_contains_context_params_fields() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--tag")
+        .arg("test")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "--verbose",
+            "context",
+            "--tag",
+            "test",
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found_context_params = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            let fields = json.get("fields").and_then(|f| f.as_object());
+            if let Some(fields_obj) = fields {
+                fields_obj.get("message").and_then(|m| m.as_str()) == Some("context_params")
+                    && fields_obj.contains_key("tag")
+                    && fields_obj.contains_key("note_ids_count")
+                    && fields_obj.contains_key("with_body")
+                    && fields_obj.contains_key("transitive")
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    });
+
+    assert!(
+        found_context_params,
+        "Should find context_params log with structured fields"
+    );
+}
+
+#[test]
+fn test_json_log_context_params_field_types() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .write_stdin("Test note")
+        .arg("--tag")
+        .arg("test")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--log-json",
+            "--log-level",
+            "debug",
+            "--verbose",
+            "context",
+            "--tag",
+            "test",
+        ])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if let Some(fields) = json.get("fields").and_then(|f| f.as_object()) {
+                if fields.get("message").and_then(|m| m.as_str()) == Some("context_params") {
+                    let note_ids_count = fields.get("note_ids_count").and_then(|v| v.as_u64());
+                    let with_body = fields.get("with_body").and_then(|v| v.as_bool());
+                    let transitive = fields.get("transitive").and_then(|v| v.as_bool());
+                    return note_ids_count.is_some() && with_body.is_some() && transitive.is_some();
+                }
+            }
+        }
+        false
+    });
+
+    assert!(
+        found,
+        "Should find context_params log with correctly typed fields"
+    );
+}
+
+#[test]
+fn test_json_log_contains_level_field() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--log-json", "--log-level", "debug", "list"])
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+    let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+    let found = json_lines.iter().any(|line| {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            json["level"].is_string() && json["level"].as_str() == Some("DEBUG")
+        } else {
+            false
+        }
+    });
+
+    assert!(found, "Should find log with DEBUG level field");
+}
+
+#[test]
+fn test_json_log_level_values_are_valid() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let valid_levels = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+
+    for level in valid_levels {
+        let level_lower = level.to_lowercase();
+        let output = qipu()
+            .current_dir(dir.path())
+            .args(["--log-json", "--log-level", &level_lower, "list"])
+            .assert()
+            .success();
+
+        let stderr = String::from_utf8_lossy(&output.get_output().stderr);
+        let json_lines: Vec<&str> = stderr.lines().filter(|l| !l.is_empty()).collect();
+
+        for line in json_lines {
+            if let Ok(json) = serde_json::from_str::<Value>(line) {
+                if let Some(log_level) = json["level"].as_str() {
+                    assert!(
+                        valid_levels.contains(&log_level),
+                        "Invalid log level: {}",
+                        log_level
+                    );
+                }
+            }
+        }
+    }
 }

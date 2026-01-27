@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 7;
+pub const CURRENT_SCHEMA_VERSION: i32 = 8;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS notes (
     index_level INTEGER DEFAULT 2
 );
 CREATE INDEX IF NOT EXISTS idx_notes_value ON notes(value);
+CREATE INDEX IF NOT EXISTS idx_notes_custom ON notes(json_extract(custom_json, '$'));
 
  -- Full-text search index with FTS5
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
@@ -131,6 +132,21 @@ pub fn create_schema(conn: &Connection) -> Result<SchemaCreateResult> {
             } else if v == 6 && target_version == 7 {
                 conn.execute(
                     "ALTER TABLE notes ADD COLUMN index_level INTEGER DEFAULT 2",
+                    [],
+                )?;
+                conn.execute(
+                    "UPDATE index_meta SET value = ?1 WHERE key = 'schema_version'",
+                    [&target_version.to_string()],
+                )?;
+                tracing::info!(
+                    "Database schema updated from version {} to {}",
+                    v,
+                    target_version
+                );
+                SchemaCreateResult::Ok
+            } else if v == 7 && target_version == 8 {
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_notes_custom ON notes(json_extract(custom_json, '$'))",
                     [],
                 )?;
                 conn.execute(

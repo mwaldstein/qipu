@@ -233,12 +233,20 @@ pub fn bfs_traverse(
                 }
             }
 
-            // Add edge with canonical IDs
+            // Track via if neighbor was canonicalized
+            let via = if neighbor_id != canonical_neighbor {
+                Some(neighbor_id.clone())
+            } else {
+                None
+            };
+
+            // Add edge with canonical IDs and via annotation
             links.push(TreeLink {
                 from: canonical_from,
                 to: canonical_to,
                 link_type: edge.link_type.to_string(),
                 source: edge.source.to_string(),
+                via: via.clone(),
             });
 
             // Process neighbor if not visited (use canonical ID)
@@ -267,11 +275,6 @@ pub fn bfs_traverse(
                 });
 
                 // Add note metadata (use canonical ID, track via if canonicalized)
-                let via = if neighbor_id != canonical_neighbor {
-                    Some(neighbor_id.clone())
-                } else {
-                    None
-                };
                 if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
                     notes.push(TreeNote {
                         id: meta.id.clone(),

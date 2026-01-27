@@ -328,6 +328,8 @@ pub struct TreeLink {
     #[serde(rename = "type")]
     pub link_type: String,
     pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 /// Spanning tree entry

@@ -352,6 +352,7 @@ fn reconstruct_path(
                 to: pred_info.edge.to.clone(),
                 link_type: pred_info.edge.link_type.to_string(),
                 source: pred_info.edge.source.to_string(),
+                via: pred_info.original_id.clone(),
             });
             current = pred_info.canonical_pred.clone();
             via = pred_info.original_id.clone();

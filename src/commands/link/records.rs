@@ -327,9 +327,14 @@ pub fn output_path_records(
         }
 
         for link in &result.links {
+            let via_annotation = if let Some(ref via) = link.via {
+                format!(" via={}", via)
+            } else {
+                String::new()
+            };
             lines.push(format!(
-                "E {} {} {} {}",
-                link.from, link.link_type, link.to, link.source
+                "E {} {} {} {}{}",
+                link.from, link.link_type, link.to, link.source, via_annotation
             ));
         }
     }

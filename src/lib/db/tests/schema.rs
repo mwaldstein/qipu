@@ -1,4 +1,3 @@
-use crate::lib::db::*;
 use crate::lib::store::Store;
 use tempfile::tempdir;
 

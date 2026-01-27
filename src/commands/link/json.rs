@@ -37,7 +37,7 @@ pub fn output_json(
                     if let Some(obj_mut) = json.as_object_mut() {
                         obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                        if let Some(ref map) = note_map {
+                        if let Some(map) = note_map {
                             if let Some(note) = map.get(entry.id.as_str()) {
                                 if let Some(pct) = ctx.get_compaction_pct(note, map) {
                                     obj_mut.insert(
@@ -97,7 +97,7 @@ pub fn output_path_json(
                     if let Some(obj_mut) = note.as_object_mut() {
                         obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
 
-                        if let Some(ref map) = note_map {
+                        if let Some(map) = note_map {
                             if let Some(note_ref) = map.get(id.as_str()) {
                                 if let Some(pct) = ctx.get_compaction_pct(note_ref, map) {
                                     obj_mut.insert(

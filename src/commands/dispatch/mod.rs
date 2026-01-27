@@ -116,7 +116,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             &root,
             *rebuild,
             *rewrite_wiki_links,
-            quick.clone(),
+            *quick,
             tag.clone(),
             *r#type,
             *recent,

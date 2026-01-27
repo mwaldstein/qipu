@@ -155,7 +155,7 @@ fn select_notes_within_budget<'a>(
     let mut current_count = 0;
 
     for moc in mocs {
-        let moc_chars = estimate_single_note_char_count(*moc, format, true);
+        let moc_chars = estimate_single_note_char_count(moc, format, true);
         if current_count + moc_chars <= remaining {
             selected.push(*moc);
             current_count += moc_chars;
@@ -182,7 +182,7 @@ fn select_recent_within_budget<'a>(
     let mut current_count = 0;
 
     for note in recent_notes {
-        let note_chars = estimate_single_note_char_count(*note, format, false);
+        let note_chars = estimate_single_note_char_count(note, format, false);
         if current_count + note_chars <= remaining {
             selected.push(*note);
             current_count += note_chars;

@@ -95,20 +95,14 @@ fn canonicalize_edge(
     neighbor_id: &str,
     compaction_ctx: Option<&CompactionContext>,
 ) -> Option<ProcessedEdge> {
-    let Some(canonical_from) = canonicalize_with_context(compaction_ctx, &edge.from) else {
-        return None;
-    };
-    let Some(canonical_to) = canonicalize_with_context(compaction_ctx, &edge.to) else {
-        return None;
-    };
+    let canonical_from = canonicalize_with_context(compaction_ctx, &edge.from)?;
+    let canonical_to = canonicalize_with_context(compaction_ctx, &edge.to)?;
 
     if canonical_from == canonical_to {
         return None;
     }
 
-    let Some(canonical_neighbor) = canonicalize_with_context(compaction_ctx, neighbor_id) else {
-        return None;
-    };
+    let canonical_neighbor = canonicalize_with_context(compaction_ctx, neighbor_id)?;
 
     Some(ProcessedEdge {
         canonical_from,

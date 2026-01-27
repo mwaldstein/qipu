@@ -61,7 +61,7 @@ impl super::Database {
         }
 
         // Handle tag filtering with equivalent tags for alias resolution
-        if let Some(ref equiv_tags) = equivalent_tags {
+        if let Some(equiv_tags) = equivalent_tags {
             // If multiple equivalent tags exist (alias resolution), use IN clause
             if equiv_tags.len() > 1 {
                 let tags_list: Vec<String> =

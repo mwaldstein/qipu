@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::lib::index::types::Index;
     use crate::lib::index::types::NoteMetadata;

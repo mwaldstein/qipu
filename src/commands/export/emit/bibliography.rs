@@ -45,7 +45,7 @@ pub fn export_bibliography(notes: &[Note], format: BibFormat) -> Result<String> 
 
     // Now add references to all sources (temp_sources + sources arrays)
     for note in notes {
-        let temp_start = temp_sources.len();
+        let _temp_start = temp_sources.len();
         // Count how many temp sources belong to this note
         for _ in &note.frontmatter.sources {
             // temp_sources is complete now, we can safely reference

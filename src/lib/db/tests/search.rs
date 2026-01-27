@@ -51,10 +51,9 @@ fn test_search_bm25_weight_configuration() {
         "Body weight should match spec (1.0, baseline)"
     );
 
-    assert!(
-        TITLE_WEIGHT > TAGS_WEIGHT && TAGS_WEIGHT > BODY_WEIGHT,
-        "Weight hierarchy should be: title > tags > body"
-    );
+    const {
+        assert!(TITLE_WEIGHT > TAGS_WEIGHT && TAGS_WEIGHT > BODY_WEIGHT);
+    }
 }
 
 #[test]

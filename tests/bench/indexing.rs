@@ -12,8 +12,6 @@
 //! Debug builds are significantly slower than release builds and will fail benchmarks.
 //!
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
-use predicates::prelude::*;
-use std::fs;
 use std::path::Path;
 use std::time::Instant;
 use tempfile::tempdir;
@@ -102,7 +100,6 @@ fn run_index_benchmark(store_dir: &Path, force: bool) -> BenchmarkResult {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Run with: cargo test bench_basic_indexing_1k_notes --release -- --ignored
 fn bench_basic_indexing_1k_notes() {
     let store_dir = tempdir().unwrap();
@@ -139,7 +136,6 @@ fn bench_basic_indexing_1k_notes() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Run with: cargo test bench_basic_indexing_2k_notes --release -- --ignored
 fn bench_basic_indexing_2k_notes() {
     let store_dir = tempdir().unwrap();
@@ -175,7 +171,6 @@ fn bench_basic_indexing_2k_notes() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Longer test, run with: cargo test bench_basic_indexing_5k_notes -- --ignored
 fn bench_basic_indexing_5k_notes() {
     let store_dir = tempdir().unwrap();
@@ -215,7 +210,6 @@ fn bench_basic_indexing_5k_notes() {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Long-running test, run with: cargo test bench_full_text_indexing_10k_notes -- --ignored
 fn bench_full_text_indexing_10k_notes() {
     let store_dir = tempdir().unwrap();
@@ -256,7 +250,6 @@ fn bench_full_text_indexing_10k_notes() {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Very long-running test, run with: cargo test bench_basic_indexing_50k_notes -- --ignored
 fn bench_basic_indexing_50k_notes() {
     let store_dir = tempdir().unwrap();
@@ -296,7 +289,7 @@ fn bench_basic_indexing_50k_notes() {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
+#[ignore] // Run with: cargo test bench_incremental_indexing_10_changed_1k_notes --release -- --ignored
 fn bench_incremental_indexing_10_changed_1k_notes() {
     let store_dir = tempdir().unwrap();
     let note_count = 1000;
@@ -348,7 +341,7 @@ fn bench_incremental_indexing_10_changed_1k_notes() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
+#[ignore] // Run with: cargo test bench_incremental_indexing_100_changed_1k_notes --release -- --ignored
 fn bench_incremental_indexing_100_changed_1k_notes() {
     let store_dir = tempdir().unwrap();
     let note_count = 1000;
@@ -399,7 +392,6 @@ fn bench_incremental_indexing_100_changed_1k_notes() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Longer test, run with: cargo test bench_incremental_indexing_100_changed_10k_notes -- --ignored
 fn bench_incremental_indexing_100_changed_10k_notes() {
     let store_dir = tempdir().unwrap();
@@ -455,7 +447,7 @@ fn bench_incremental_indexing_100_changed_10k_notes() {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
+#[ignore] // Run with: cargo test bench_quick_index_5k_notes --release -- --ignored
 fn bench_quick_index_5k_notes() {
     let store_dir = tempdir().unwrap();
     let note_count = 5000;
@@ -491,7 +483,6 @@ fn bench_quick_index_5k_notes() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
 #[ignore] // Longer test, run with: cargo test bench_quick_index_10k_notes -- --ignored
 fn bench_quick_index_10k_notes() {
     let store_dir = tempdir().unwrap();
@@ -536,7 +527,7 @@ fn bench_quick_index_10k_notes() {
 // ============================================================================
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
+#[ignore] // Run with: cargo test test_index_status_command --release -- --ignored
 fn test_index_status_command() {
     let store_dir = tempdir().unwrap();
     let note_count = 100;
@@ -564,7 +555,7 @@ fn test_index_status_command() {
 }
 
 #[test]
-#[ignore] // Run with: cargo test $(basename {} --release -- --ignored\nfn
+#[ignore] // Run with: cargo test test_index_with_verbose_progress --release -- --ignored
 fn test_index_with_verbose_progress() {
     let store_dir = tempdir().unwrap();
     let note_count = 500;

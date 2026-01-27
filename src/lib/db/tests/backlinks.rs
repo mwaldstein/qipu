@@ -1,4 +1,3 @@
-use crate::lib::db::*;
 use crate::lib::index::types::LinkSource;
 use crate::lib::note::TypedLink;
 use crate::lib::store::Store;

@@ -35,7 +35,7 @@ fn assert_unknown_tool_error(result: Result<(), QipuError>) {
     }
 }
 
-fn setup_agents_md(temp_dir: &PathBuf) -> PathBuf {
+fn setup_agents_md(temp_dir: &std::path::Path) -> PathBuf {
     let path = temp_dir.join("AGENTS.md");
     fs::write(&path, "Some content").unwrap();
     path
@@ -70,6 +70,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use super::*;
 
@@ -108,7 +109,7 @@ mod tests {
     fn test_execute_install_already_exists() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
-        let path = setup_agents_md(&temp_dir.path().to_path_buf());
+        let path = setup_agents_md(temp_dir.path());
 
         let result = execute_install(&cli, "agents-md");
         assert!(result.is_ok());
@@ -122,7 +123,7 @@ mod tests {
     fn test_execute_check_installed() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
-        setup_agents_md(&temp_dir.path().to_path_buf());
+        setup_agents_md(temp_dir.path());
 
         let result = execute_check(&cli, "agents-md");
         assert!(result.is_ok());
@@ -156,7 +157,7 @@ mod tests {
     fn test_execute_remove_success() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
-        let path = setup_agents_md(&temp_dir.path().to_path_buf());
+        let path = setup_agents_md(temp_dir.path());
 
         let result = execute_remove(&cli, "agents-md");
         assert!(result.is_ok());
@@ -167,7 +168,7 @@ mod tests {
     fn test_execute_remove_json() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
-        let path = setup_agents_md(&temp_dir.path().to_path_buf());
+        let path = setup_agents_md(temp_dir.path());
 
         let result = execute_remove(&cli, "agents-md");
         assert!(result.is_ok());
@@ -187,7 +188,7 @@ mod tests {
     fn test_execute_remove_records() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
-        let path = setup_agents_md(&temp_dir.path().to_path_buf());
+        let path = setup_agents_md(temp_dir.path());
 
         let result = execute_remove(&cli, "agents-md");
         assert!(result.is_ok());
@@ -227,7 +228,7 @@ mod tests {
     fn test_execute_with_remove_flag() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
-        let path = setup_agents_md(&temp_dir.path().to_path_buf());
+        let path = setup_agents_md(temp_dir.path());
 
         let result = execute(&cli, false, Some("agents-md"), false, false, true);
         assert!(result.is_ok());
@@ -252,7 +253,7 @@ mod tests {
     fn test_execute_json_output_all_branches() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
-        setup_agents_md(&temp_dir.path().to_path_buf());
+        setup_agents_md(temp_dir.path());
 
         let result = execute(&cli, true, None, false, false, false);
         assert!(result.is_ok());
@@ -271,7 +272,7 @@ mod tests {
     fn test_execute_records_output_all_branches() {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
-        setup_agents_md(&temp_dir.path().to_path_buf());
+        setup_agents_md(temp_dir.path());
 
         let result = execute(&cli, true, None, false, false, false);
         assert!(result.is_ok());

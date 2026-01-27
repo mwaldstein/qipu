@@ -173,6 +173,40 @@ fn test_schema_version_outdated_rebuilds() {
 }
 
 #[test]
+fn test_schema_version_rollback_rebuilds() {
+    let dir = tempdir().unwrap();
+    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+    store
+        .create_note("Test Note", None, &["tag".to_string()], None)
+        .unwrap();
+
+    let db = store.db();
+
+    crate::lib::db::schema::force_set_schema_version(&db.conn, 999).unwrap();
+
+    let result = Database::open(store.root(), true);
+    assert!(
+        result.is_ok(),
+        "Database should auto-rebuild on schema version mismatch (rollback)"
+    );
+
+    let db = result.unwrap();
+    let version: String = db
+        .conn
+        .query_row(
+            "SELECT value FROM index_meta WHERE key = 'schema_version'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        version.parse::<i32>().unwrap(),
+        crate::lib::db::schema::get_schema_version()
+    );
+}
+
+#[test]
 fn test_validate_consistency_samples_multiple_notes() {
     let dir = tempdir().unwrap();
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();

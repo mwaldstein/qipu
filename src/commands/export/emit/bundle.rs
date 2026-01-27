@@ -105,8 +105,13 @@ fn add_compaction_metadata(
 }
 
 fn add_sources(output: &mut String, note: &Note) {
-    if !note.frontmatter.sources.is_empty() {
+    if note.frontmatter.source.is_some() || !note.frontmatter.sources.is_empty() {
         output.push_str("**Sources:**\n\n");
+
+        if let Some(source_url) = &note.frontmatter.source {
+            output.push_str(&format!("- {}\n", source_url));
+        }
+
         for source in &note.frontmatter.sources {
             if let Some(title) = &source.title {
                 output.push_str(&format!("- [{}]({})", title, source.url));

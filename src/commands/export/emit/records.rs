@@ -3,7 +3,7 @@ use crate::cli::Cli;
 use crate::commands::export::ExportOptions;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
-use crate::lib::note::Note;
+use crate::lib::note::{Note, Source};
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
@@ -47,12 +47,24 @@ pub fn export_records(
 }
 
 fn export_bibliography_records(output: &mut String, notes: &[Note]) {
-    let mut all_sources = Vec::new();
+    let mut all_sources: Vec<(&Note, Source)> = Vec::new();
+
     for note in notes {
+        if let Some(source_url) = &note.frontmatter.source {
+            all_sources.push((
+                note,
+                Source {
+                    url: source_url.clone(),
+                    title: None,
+                    accessed: None,
+                },
+            ));
+        }
         for source in &note.frontmatter.sources {
-            all_sources.push((note, source));
+            all_sources.push((note, source.clone()));
         }
     }
+
     all_sources.sort_by(|a, b| a.1.url.cmp(&b.1.url));
 
     for (note, source) in all_sources {

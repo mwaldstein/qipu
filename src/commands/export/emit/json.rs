@@ -57,6 +57,16 @@ fn export_bibliography_json(notes: &[Note], store: &Store, mode_str: &str) -> se
         })
         .collect();
 
+    for note in notes {
+        if let Some(source_url) = &note.frontmatter.source {
+            all_sources.push(serde_json::json!({
+                "url": source_url,
+                "from_note_id": note.id(),
+                "from_note_title": note.title(),
+            }));
+        }
+    }
+
     all_sources.sort_by(|a, b| {
         let url_a = a["url"].as_str().unwrap_or("");
         let url_b = b["url"].as_str().unwrap_or("");
@@ -96,6 +106,7 @@ fn export_notes_json(
                     "created": note.frontmatter.created,
                     "updated": note.frontmatter.updated,
                     "content": note.body,
+                    "source": note.frontmatter.source,
                     "sources": note.frontmatter.sources.iter().map(|s| {
                         let mut obj = serde_json::json!({
                             "url": s.url,

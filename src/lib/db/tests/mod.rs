@@ -1,4 +1,5 @@
 pub mod backlinks;
+pub mod benchmarks;
 pub mod consistency;
 pub mod open;
 pub mod rebuild;

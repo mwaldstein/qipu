@@ -18,7 +18,12 @@ pub struct NoteFilter<'a> {
     pub since: Option<DateTime<Utc>>,
     /// Filter by minimum value (0-100, notes with value >= min_value)
     pub min_value: Option<u8>,
-    /// Filter by custom metadata (format: "key=value")
+    /// Filter by custom metadata
+    ///
+    /// Supported formats:
+    /// - Equality: `key=value`
+    /// - Existence: `key` (present), `!key` (absent)
+    /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
     pub custom: Option<&'a str>,
     /// Whether to hide compacted notes
     pub hide_compacted: bool,
@@ -176,16 +181,61 @@ impl<'a> NoteFilter<'a> {
     }
 
     /// Check custom metadata filter
+    ///
+    /// Supports:
+    /// - Equality: `key=value`
+    /// - Existence: `key` (present), `!key` (absent)
+    /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
     fn matches_custom(&self, note: &crate::lib::note::Note) -> bool {
         if let Some(custom_filter) = self.custom {
-            if let Some((key, value)) = custom_filter.split_once('=') {
-                note.frontmatter
-                    .custom
-                    .get(key)
-                    .map(|v| self.match_custom_value(v, value))
-                    .unwrap_or(false)
+            let expr = custom_filter.trim();
+
+            // Check for absence (!key)
+            if let Some(key) = expr.strip_prefix('!') {
+                let key = key.trim();
+                return !key.is_empty() && !note.frontmatter.custom.contains_key(key);
+            }
+
+            // Check for numeric comparisons (key>n, key>=n, key<n, key<=n) - must be checked before equality!
+            if let Some((k, v)) = expr.split_once(">=") {
+                let key = k.trim();
+                let value = v.trim();
+                return !key.is_empty()
+                    && !value.is_empty()
+                    && self.match_numeric_comparison(note, key, value, |a, b| a >= b);
+            } else if let Some((k, v)) = expr.split_once('>') {
+                let key = k.trim();
+                let value = v.trim();
+                return !key.is_empty()
+                    && !value.is_empty()
+                    && self.match_numeric_comparison(note, key, value, |a, b| a > b);
+            } else if let Some((k, v)) = expr.split_once("<=") {
+                let key = k.trim();
+                let value = v.trim();
+                return !key.is_empty()
+                    && !value.is_empty()
+                    && self.match_numeric_comparison(note, key, value, |a, b| a <= b);
+            } else if let Some((k, v)) = expr.split_once('<') {
+                let key = k.trim();
+                let value = v.trim();
+                return !key.is_empty()
+                    && !value.is_empty()
+                    && self.match_numeric_comparison(note, key, value, |a, b| a < b);
+            } else if let Some((key, value)) = expr.split_once('=') {
+                // Equality check (key=value)
+                let key = key.trim();
+                let value = value.trim();
+                return !key.is_empty()
+                    && note
+                        .frontmatter
+                        .custom
+                        .get(key)
+                        .map(|v| self.match_custom_value(v, value))
+                        .unwrap_or(false);
             } else {
-                true
+                // No comparison operator found, check for existence
+                let key = expr.trim();
+                return !key.is_empty() && note.frontmatter.custom.contains_key(key);
             }
         } else {
             true
@@ -200,6 +250,35 @@ impl<'a> NoteFilter<'a> {
             Value::Bool(b) => b.to_string() == filter_value,
             _ => false,
         }
+    }
+
+    /// Match a numeric comparison against a custom field
+    fn match_numeric_comparison<F>(
+        &self,
+        note: &crate::lib::note::Note,
+        key: &str,
+        value: &str,
+        compare_fn: F,
+    ) -> bool
+    where
+        F: Fn(f64, f64) -> bool,
+    {
+        let target_value: f64 = match value.parse() {
+            Ok(v) => v,
+            Err(_) => return false,
+        };
+
+        note.frontmatter
+            .custom
+            .get(key)
+            .and_then(|v| match v {
+                Value::Number(num) => num.as_f64(),
+                Value::String(s) => s.parse::<f64>().ok(),
+                Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
+                _ => None,
+            })
+            .map(|actual_value| compare_fn(actual_value, target_value))
+            .unwrap_or(false)
     }
 }
 
@@ -452,5 +531,152 @@ mod tests {
         let compaction_ctx = CompactionContext::build(&[]).unwrap();
 
         assert!(!filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_exists() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("key".to_string(), Value::String("value".to_string()));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("key"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_not_exists() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("key".to_string(), Value::String("value".to_string()));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("!other"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_absent() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("key".to_string(), Value::String("value".to_string()));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("!key"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(!filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_greater_than() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert(
+            "priority".to_string(),
+            Value::Number(serde_yaml::Number::from(10)),
+        );
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority>5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_less_than() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert(
+            "priority".to_string(),
+            Value::Number(serde_yaml::Number::from(3)),
+        );
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority<5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_greater_equal() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert(
+            "priority".to_string(),
+            Value::Number(serde_yaml::Number::from(5)),
+        );
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority>=5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_less_equal() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert(
+            "priority".to_string(),
+            Value::Number(serde_yaml::Number::from(5)),
+        );
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority<=5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_fails() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert(
+            "priority".to_string(),
+            Value::Number(serde_yaml::Number::from(3)),
+        );
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority>5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(!filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_string_value() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("priority".to_string(), Value::String("10".to_string()));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("priority>5"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_bool_true() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("active".to_string(), Value::Bool(true));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("active>0"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
+    }
+
+    #[test]
+    fn test_filter_with_custom_numeric_bool_false() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("active".to_string(), Value::Bool(false));
+        let note = create_note_with_custom(custom);
+
+        let filter = NoteFilter::new().with_custom(Some("active<1"));
+        let compaction_ctx = CompactionContext::build(&[]).unwrap();
+
+        assert!(filter.matches(&note, &compaction_ctx));
     }
 }

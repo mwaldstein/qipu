@@ -84,51 +84,69 @@ pub fn execute(
     }
 
     // Second pass: process notes
-    for note in &source_notes {
-        let id: String = note.id().to_string();
-        if target_notes_ids.contains(&id) {
-            let action = match strategy {
-                "overwrite" => "overwrite",
-                "merge-links" => "merge-links",
-                "skip" => "skip",
-                "rename" => "rename",
-                _ => unreachable!(),
-            };
-            if strategy != "rename" {
-                conflicts.push((id.clone(), action));
+    // For rename strategy, process conflicts first to ensure renamed IDs exist
+    // before other notes reference them
+    if strategy == "rename" && !dry_run {
+        // Process renamed notes (conflicts) first
+        for note in &source_notes {
+            let id: String = note.id().to_string();
+            if target_notes_ids.contains(&id) {
+                let new_id = id_mappings.get(&id).unwrap();
+                additions.push(new_id.clone());
+                copy_note_with_rename(note, &target_store, new_id, &id_mappings)?;
             }
-            if !dry_run {
-                match strategy {
-                    "overwrite" => {
-                        let target_note = target_store.get_note(&id)?;
-                        if let Some(path) = target_note.path {
-                            let _ = std::fs::remove_file(path);
-                        }
-                        copy_note(note, &target_store, &id_mappings)?;
-                    }
-                    "merge-links" => {
-                        let mut target_note = target_store.get_note(&id)?;
-                        for link in &note.frontmatter.links {
-                            if !target_note.frontmatter.links.contains(link) {
-                                target_note.frontmatter.links.push(link.clone());
-                            }
-                        }
-                        target_store.save_note(&mut target_note)?;
-                    }
-                    "skip" => {}
-                    "rename" => {
-                        // Note with renamed ID will be handled below
-                        let new_id = id_mappings.get(&id).unwrap();
-                        additions.push(new_id.clone());
-                        copy_note_with_rename(note, &target_store, new_id, &id_mappings)?;
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        } else {
-            additions.push(id.clone());
-            if !dry_run {
+        }
+        // Process non-conflicting notes second
+        for note in &source_notes {
+            let id: String = note.id().to_string();
+            if !target_notes_ids.contains(&id) {
+                additions.push(id.clone());
                 copy_note(note, &target_store, &id_mappings)?;
+            }
+        }
+    } else {
+        // Non-rename strategies or dry-run: process in original order
+        for note in &source_notes {
+            let id: String = note.id().to_string();
+            if target_notes_ids.contains(&id) {
+                let action = match strategy {
+                    "overwrite" => "overwrite",
+                    "merge-links" => "merge-links",
+                    "skip" => "skip",
+                    "rename" => "rename",
+                    _ => unreachable!(),
+                };
+                if strategy != "rename" {
+                    conflicts.push((id.clone(), action));
+                }
+                if !dry_run {
+                    match strategy {
+                        "overwrite" => {
+                            let target_note = target_store.get_note(&id)?;
+                            if let Some(path) = target_note.path {
+                                let _ = std::fs::remove_file(path);
+                            }
+                            copy_note(note, &target_store, &id_mappings)?;
+                        }
+                        "merge-links" => {
+                            let mut target_note = target_store.get_note(&id)?;
+                            for link in &note.frontmatter.links {
+                                if !target_note.frontmatter.links.contains(link) {
+                                    target_note.frontmatter.links.push(link.clone());
+                                }
+                            }
+                            target_store.save_note(&mut target_note)?;
+                        }
+                        "skip" => {}
+                        "rename" => unreachable!(),
+                        _ => unreachable!(),
+                    }
+                }
+            } else {
+                additions.push(id.clone());
+                if !dry_run {
+                    copy_note(note, &target_store, &id_mappings)?;
+                }
             }
         }
     }

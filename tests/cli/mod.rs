@@ -27,4 +27,5 @@ mod store;
 pub mod support;
 mod sync;
 mod value;
+mod wal;
 mod workspace;

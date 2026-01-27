@@ -1553,3 +1553,35 @@ fn test_search_sort_by_value_with_min_max_and_defaults() {
         "Min Value Note"
     );
 }
+
+#[test]
+fn test_search_records_format_s_prefix() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test note with content"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "search", "content"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Note: search currently does not output S prefix (match_context is always None)
+    // This test documents the current behavior and can be updated if match_context is implemented
+    assert!(
+        !stdout.contains("S "),
+        "search records output currently does not contain S prefix"
+    );
+}

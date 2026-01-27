@@ -1422,3 +1422,53 @@ fn test_link_path_records_max_chars_header_only() {
     // Verify total length is within budget
     assert!(stdout.len() <= 140);
 }
+
+#[test]
+fn test_link_path_records_format_s_prefix() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Path Start"])
+        .output()
+        .unwrap();
+    let id1 = extract_id(&output1);
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Path End"])
+        .output()
+        .unwrap();
+    let id2 = extract_id(&output2);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id2, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "link", "path", &id1, &id2])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("S "),
+        "link path records output should contain S prefix for summary"
+    );
+}

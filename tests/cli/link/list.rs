@@ -778,3 +778,53 @@ fn test_link_list_via_records_format() {
         "Records output should contain via annotation for compacted notes"
     );
 }
+
+#[test]
+fn test_link_list_records_format_s_prefix() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Source note"])
+        .output()
+        .unwrap();
+    let id1 = extract_id(&output1);
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Target note"])
+        .output()
+        .unwrap();
+    let id2 = extract_id(&output2);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id1, &id2, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "link", "list", &id1])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("S "),
+        "link list records output should contain S prefix for summary"
+    );
+}

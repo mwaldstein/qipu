@@ -666,3 +666,34 @@ fn test_context_custom_metadata_complex_types() {
     );
     assert_eq!(note["custom"]["nested"]["key"], "value");
 }
+
+#[test]
+fn test_context_records_format_s_prefix() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Summary test note"])
+        .output()
+        .unwrap();
+    let id = extract_id(&output);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "records", "context", "--note", &id])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("S "),
+        "context records output should contain S prefix for summary"
+    );
+}

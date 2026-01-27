@@ -2,6 +2,8 @@ use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 use rusqlite::params;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 impl super::Database {
     /// Incremental repair: update only notes with file mtime newer than database mtime
@@ -21,6 +23,13 @@ impl super::Database {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
+
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let interrupted_clone = Arc::clone(&interrupted);
+
+        let _ = ctrlc::set_handler(move || {
+            interrupted_clone.store(true, Ordering::SeqCst);
+        });
 
         let mut changed_notes = Vec::new();
         let mut existing_paths = std::collections::HashSet::new();
@@ -106,6 +115,20 @@ impl super::Database {
                     if let Some(cb) = progress.as_mut() {
                         cb(i + 1, total_notes, note);
                     }
+                }
+
+                // Check for interruption after each note
+                if interrupted.load(Ordering::SeqCst) {
+                    tx.commit().map_err(|e| {
+                        QipuError::Other(format!("failed to commit transaction: {}", e))
+                    })?;
+
+                    tracing::info!(
+                        indexed = i + 1,
+                        total = total_notes,
+                        "Index interrupted, partial save complete"
+                    );
+                    return Err(QipuError::Interrupted);
                 }
             }
         }

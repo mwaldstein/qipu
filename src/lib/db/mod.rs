@@ -173,6 +173,8 @@ impl Database {
     ) -> Result<()> {
         use crate::lib::note::Note;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
         use walkdir::WalkDir;
 
         let mut notes = Vec::new();
@@ -202,6 +204,13 @@ impl Database {
         // Collect all IDs from the notes we're about to insert
         let ids: std::collections::HashSet<String> =
             notes.iter().map(|n| n.id().to_string()).collect();
+
+        let interrupted = Arc::new(AtomicBool::new(false));
+        let interrupted_clone = Arc::clone(&interrupted);
+
+        let _ = ctrlc::set_handler(move || {
+            interrupted_clone.store(true, Ordering::SeqCst);
+        });
 
         let tx = self
             .conn
@@ -235,6 +244,24 @@ impl Database {
                 if let Some(cb) = progress.as_mut() {
                     cb(i + 1, total_notes, note);
                 }
+            }
+
+            // Check for interruption after each note
+            if interrupted.load(Ordering::SeqCst) {
+                let tx = current_tx
+                    .take()
+                    .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
+
+                tx.commit().map_err(|e| {
+                    QipuError::Other(format!("failed to commit transaction: {}", e))
+                })?;
+
+                tracing::info!(
+                    indexed = i + 1,
+                    total = total_notes,
+                    "Index interrupted, partial save complete"
+                );
+                return Err(QipuError::Interrupted);
             }
 
             // Batch checkpoint: commit every N notes

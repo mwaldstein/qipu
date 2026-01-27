@@ -7,7 +7,7 @@
 #![allow(clippy::if_same_then_else)]
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
+use crate::lib::error::{QipuError, Result};
 use crate::lib::index::links;
 use crate::lib::note::{Note, NoteType};
 use crate::lib::store::Store;
@@ -125,22 +125,42 @@ pub fn execute(
             tracker.update(indexed, total, note);
         };
 
-        if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
-            selective_index(cli, store, quick, tag, note_type, recent, moc)?;
-        } else if rebuild {
-            store.db().rebuild(store.root(), Some(&mut progress))?;
-        } else {
-            store
-                .db()
-                .incremental_repair(store.root(), Some(&mut progress))?;
+        let result =
+            if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
+                selective_index(cli, store, quick, tag, note_type, recent, moc)
+            } else if rebuild {
+                store.db().rebuild(store.root(), Some(&mut progress))
+            } else {
+                store
+                    .db()
+                    .incremental_repair(store.root(), Some(&mut progress))
+            };
+
+        match result {
+            Ok(_) => {}
+            Err(QipuError::Interrupted) => {
+                eprintln!("Index interrupted. Run `qipu index` to resume.");
+                return Err(QipuError::Interrupted);
+            }
+            Err(e) => return Err(e),
         }
     } else {
-        if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
-            selective_index(cli, store, quick, tag, note_type, recent, moc)?;
-        } else if rebuild {
-            store.db().rebuild(store.root(), None)?;
-        } else {
-            store.db().incremental_repair(store.root(), None)?;
+        let result =
+            if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
+                selective_index(cli, store, quick, tag, note_type, recent, moc)
+            } else if rebuild {
+                store.db().rebuild(store.root(), None)
+            } else {
+                store.db().incremental_repair(store.root(), None)
+            };
+
+        match result {
+            Ok(_) => {}
+            Err(QipuError::Interrupted) => {
+                eprintln!("Index interrupted. Run `qipu index` to resume.");
+                return Err(QipuError::Interrupted);
+            }
+            Err(e) => return Err(e),
         }
     }
 

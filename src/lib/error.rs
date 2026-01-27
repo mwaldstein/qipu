@@ -75,6 +75,9 @@ pub enum QipuError {
 
     #[error("{0}")]
     Other(String),
+
+    #[error("Index interrupted. Run `qipu index` to resume.")]
+    Interrupted,
 }
 
 impl QipuError {
@@ -97,7 +100,8 @@ impl QipuError {
             | QipuError::Yaml(_)
             | QipuError::Json(_)
             | QipuError::Toml(_)
-            | QipuError::Other(_) => ExitCode::Failure,
+            | QipuError::Other(_)
+            | QipuError::Interrupted => ExitCode::Failure,
         }
     }
 
@@ -127,6 +131,7 @@ impl QipuError {
             QipuError::Json(_) => "json_error",
             QipuError::Toml(_) => "toml_error",
             QipuError::Other(_) => "other",
+            QipuError::Interrupted => "interrupted",
         }
     }
 }

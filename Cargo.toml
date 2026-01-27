@@ -57,6 +57,9 @@ tracing-attributes = "0.1"
 # Text stemming
 rust-stemmers = "1.2"
 
+# Signal handling
+ctrlc = "3.4"
+
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"

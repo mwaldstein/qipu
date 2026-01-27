@@ -66,6 +66,10 @@ pub enum Commands {
         /// Filter by custom metadata (format: key=value)
         #[arg(long)]
         custom: Option<String>,
+
+        /// Include custom metadata in output (opt-in)
+        #[arg(long)]
+        show_custom: bool,
     },
 
     /// Show a note

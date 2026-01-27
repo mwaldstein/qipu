@@ -14,6 +14,7 @@ pub fn output_json(
     notes: &[crate::lib::note::Note],
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &crate::lib::note::Note>,
+    show_custom: bool,
 ) -> Result<()> {
     let output: Vec<_> = notes
         .iter()
@@ -30,6 +31,16 @@ pub fn output_json(
             });
 
             add_compaction_to_json(cli, n.id(), &mut json, compaction_ctx, note_map);
+
+            if show_custom && !n.frontmatter.custom.is_empty() {
+                if let Some(obj) = json.as_object_mut() {
+                    obj.insert(
+                        "custom".to_string(),
+                        serde_json::to_value(&n.frontmatter.custom)
+                            .unwrap_or(serde_json::json!({})),
+                    );
+                }
+            }
 
             json
         })
@@ -54,7 +65,7 @@ mod tests {
         let compaction_ctx = CompactionContext::build(&all_notes).unwrap();
         let note_map = CompactionContext::build_note_map(&all_notes);
 
-        let result = output_json(&cli, &store, &[], &compaction_ctx, &note_map);
+        let result = output_json(&cli, &store, &[], &compaction_ctx, &note_map, false);
         assert!(result.is_ok());
     }
 
@@ -73,7 +84,7 @@ mod tests {
         let compaction_ctx = CompactionContext::build(&all_notes).unwrap();
         let note_map = CompactionContext::build_note_map(&all_notes);
 
-        let result = output_json(&cli, &store, &[note], &compaction_ctx, &note_map);
+        let result = output_json(&cli, &store, &[note], &compaction_ctx, &note_map, false);
         assert!(result.is_ok());
     }
 

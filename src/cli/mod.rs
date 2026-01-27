@@ -180,6 +180,7 @@ mod tests {
             since,
             min_value,
             custom,
+            show_custom,
         }) = cli.command
         {
             assert_eq!(tag, Some("test".to_string()));
@@ -187,6 +188,7 @@ mod tests {
             assert_eq!(since, None);
             assert_eq!(custom, None);
             assert_eq!(min_value, None);
+            assert_eq!(show_custom, false);
         } else {
             panic!("Expected List command");
         }

@@ -53,6 +53,7 @@ pub(super) fn handle_list(
     since: Option<&str>,
     min_value: Option<u8>,
     custom: Option<&str>,
+    show_custom: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -68,7 +69,16 @@ pub(super) fn handle_list(
         })
         .transpose()?;
 
-    commands::list::execute(cli, &store, tag, note_type, since_dt, min_value, custom)?;
+    commands::list::execute(
+        cli,
+        &store,
+        tag,
+        note_type,
+        since_dt,
+        min_value,
+        custom,
+        show_custom,
+    )?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

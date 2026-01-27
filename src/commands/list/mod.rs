@@ -29,6 +29,7 @@ pub fn execute(
     since: Option<DateTime<Utc>>,
     min_value: Option<u8>,
     custom: Option<&str>,
+    show_custom: bool,
 ) -> Result<()> {
     let all_notes = store.list_notes()?;
 
@@ -54,9 +55,15 @@ pub fn execute(
         .collect();
 
     match cli.format {
-        OutputFormat::Json => output_json(cli, store, &notes, &compaction_ctx, &note_map)?,
-        OutputFormat::Human => output_human(cli, store, &notes, &compaction_ctx, &note_map),
-        OutputFormat::Records => output_records(cli, store, &notes, &compaction_ctx, &note_map),
+        OutputFormat::Json => {
+            output_json(cli, store, &notes, &compaction_ctx, &note_map, show_custom)?
+        }
+        OutputFormat::Human => {
+            output_human(cli, store, &notes, &compaction_ctx, &note_map, show_custom)
+        }
+        OutputFormat::Records => {
+            output_records(cli, store, &notes, &compaction_ctx, &note_map, show_custom)
+        }
     }
 
     Ok(())

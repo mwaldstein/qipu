@@ -1,6 +1,7 @@
 //! Human-readable output formatting for list command
 
 use crate::cli::Cli;
+use crate::commands::format::status::format_custom_value;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::format::build_compaction_annotations;
 use crate::lib::format::output_compaction_ids;
@@ -15,6 +16,7 @@ pub fn output_human(
     notes: &[crate::lib::note::Note],
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &crate::lib::note::Note>,
+    show_custom: bool,
 ) {
     if notes.is_empty() {
         if !cli.quiet {
@@ -40,6 +42,12 @@ pub fn output_human(
             note.title(),
             annotations
         );
+
+        if show_custom && !note.frontmatter.custom.is_empty() {
+            for (key, value) in &note.frontmatter.custom {
+                println!("  {}={}", key, format_custom_value(value));
+            }
+        }
 
         output_compaction_ids(cli, note.id(), compaction_ctx);
     }

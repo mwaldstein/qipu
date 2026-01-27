@@ -1,6 +1,7 @@
 //! Records output formatting for list command
 
 use crate::cli::Cli;
+use crate::commands::format::status::format_custom_value;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::format::build_compaction_annotations;
 use crate::lib::records::escape_quotes;
@@ -14,6 +15,7 @@ pub fn output_records(
     notes: &[crate::lib::note::Note],
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &crate::lib::note::Note>,
+    show_custom: bool,
 ) {
     println!(
         "H qipu=1 records=1 store={} mode=list notes={}",
@@ -22,7 +24,7 @@ pub fn output_records(
     );
 
     for note in notes {
-        output_note_record(cli, note, compaction_ctx, note_map);
+        output_note_record(cli, note, compaction_ctx, note_map, show_custom);
     }
 }
 
@@ -32,6 +34,7 @@ fn output_note_record(
     note: &crate::lib::note::Note,
     compaction_ctx: &CompactionContext,
     note_map: &HashMap<&str, &crate::lib::note::Note>,
+    show_custom: bool,
 ) {
     let tags_csv = if note.frontmatter.tags.is_empty() {
         "-".to_string()
@@ -49,6 +52,12 @@ fn output_note_record(
         tags_csv,
         annotations
     );
+
+    if show_custom && !note.frontmatter.custom.is_empty() {
+        for (key, value) in &note.frontmatter.custom {
+            println!("C {} {}={}", note.id(), key, format_custom_value(value));
+        }
+    }
 
     let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
     if cli.with_compaction_ids && compacts_count > 0 {
@@ -86,7 +95,7 @@ mod tests {
         let compaction_ctx = CompactionContext::build(&all_notes).unwrap();
         let note_map = CompactionContext::build_note_map(&all_notes);
 
-        output_records(&cli, &store, &[], &compaction_ctx, &note_map);
+        output_records(&cli, &store, &[], &compaction_ctx, &note_map, false);
     }
 
     #[test]
@@ -104,7 +113,7 @@ mod tests {
         let compaction_ctx = CompactionContext::build(&all_notes).unwrap();
         let note_map = CompactionContext::build_note_map(&all_notes);
 
-        output_records(&cli, &store, &[note], &compaction_ctx, &note_map);
+        output_records(&cli, &store, &[note], &compaction_ctx, &note_map, false);
     }
 
     fn create_test_cli() -> Cli {

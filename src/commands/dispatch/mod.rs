@@ -56,6 +56,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             since,
             min_value,
             custom,
+            show_custom,
         }) => notes::handle_list(
             cli,
             &root,
@@ -64,6 +65,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             since.as_deref(),
             *min_value,
             custom.as_deref(),
+            *show_custom,
             start,
         ),
 

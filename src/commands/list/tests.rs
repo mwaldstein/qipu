@@ -38,7 +38,7 @@ fn test_list_empty_store_human() {
     let (_temp_dir, store) = create_test_store();
     let cli = create_cli(OutputFormat::Human, false);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -47,7 +47,7 @@ fn test_list_empty_store_quiet() {
     let (_temp_dir, store) = create_test_store();
     let cli = create_cli(OutputFormat::Human, true);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -56,7 +56,7 @@ fn test_list_empty_store_json() {
     let (_temp_dir, store) = create_test_store();
     let cli = create_cli(OutputFormat::Json, false);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -65,7 +65,7 @@ fn test_list_empty_store_records() {
     let (_temp_dir, store) = create_test_store();
     let cli = create_cli(OutputFormat::Records, false);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -77,7 +77,7 @@ fn test_list_single_note_human() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -89,7 +89,7 @@ fn test_list_single_note_json() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Json, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -101,7 +101,7 @@ fn test_list_single_note_records() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Records, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -119,7 +119,7 @@ fn test_list_multiple_notes() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -137,7 +137,16 @@ fn test_list_filter_by_tag() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, Some("matching"), None, None, None, None);
+    let result = list::execute(
+        &cli,
+        &store,
+        Some("matching"),
+        None,
+        None,
+        None,
+        None,
+        false,
+    );
     assert!(result.is_ok());
 }
 
@@ -149,7 +158,16 @@ fn test_list_filter_by_tag_none_matching() {
         .unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, Some("nonexistent"), None, None, None, None);
+    let result = list::execute(
+        &cli,
+        &store,
+        Some("nonexistent"),
+        None,
+        None,
+        None,
+        None,
+        false,
+    );
     assert!(result.is_ok());
 }
 
@@ -175,6 +193,7 @@ fn test_list_filter_by_type() {
         None,
         None,
         None,
+        false,
     );
     assert!(result.is_ok());
 }
@@ -193,7 +212,7 @@ fn test_list_filter_by_since() {
 
     let cli = create_cli(OutputFormat::Human, false);
     let since = Utc::now() - Duration::days(5);
-    let result = list::execute(&cli, &store, None, None, Some(since), None, None);
+    let result = list::execute(&cli, &store, None, None, Some(since), None, None, false);
     assert!(result.is_ok());
 }
 
@@ -212,7 +231,7 @@ fn test_list_with_compaction_resolved() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -233,7 +252,7 @@ fn test_list_with_compaction_disabled() {
     let mut cli = create_cli(OutputFormat::Human, false);
     cli.no_resolve_compaction = true;
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -258,7 +277,7 @@ fn test_list_with_compaction_ids() {
     let mut cli = create_cli(OutputFormat::Human, false);
     cli.with_compaction_ids = true;
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -279,7 +298,7 @@ fn test_list_with_compaction_ids_depth() {
     cli.with_compaction_ids = true;
     cli.compaction_depth = Some(2);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -314,7 +333,7 @@ fn test_list_compaction_annotations_human() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -338,7 +357,7 @@ fn test_list_compaction_annotations_json() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Json, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -362,7 +381,7 @@ fn test_list_compaction_annotations_records() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Records, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -386,7 +405,7 @@ fn test_list_all_formats_compaction_with_ids() {
     ] {
         let mut cli = create_cli(format, false);
         cli.with_compaction_ids = true;
-        let result = list::execute(&cli, &store, None, None, None, None, None);
+        let result = list::execute(&cli, &store, None, None, None, None, None, false);
         assert!(result.is_ok());
     }
 }
@@ -408,7 +427,7 @@ fn test_list_filter_by_min_value_all_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
     assert!(result.is_ok());
 }
 
@@ -429,7 +448,7 @@ fn test_list_filter_by_min_value_some_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
     assert!(result.is_ok());
 }
 
@@ -450,7 +469,7 @@ fn test_list_filter_by_min_value_none_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
     assert!(result.is_ok());
 }
 
@@ -469,7 +488,7 @@ fn test_list_filter_by_min_value_with_defaults() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(40), None);
+    let result = list::execute(&cli, &store, None, None, None, Some(40), None, false);
     assert!(result.is_ok());
 }
 
@@ -490,6 +509,6 @@ fn test_list_filter_by_min_value_exact() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
     assert!(result.is_ok());
 }

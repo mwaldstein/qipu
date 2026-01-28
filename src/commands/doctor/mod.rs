@@ -9,6 +9,7 @@ pub mod checks;
 pub mod content;
 pub mod database;
 pub mod fix;
+pub mod ontology;
 pub mod report;
 pub mod structure;
 pub mod types;
@@ -20,13 +21,14 @@ use crate::lib::store::Store;
 pub use types::{DoctorResult, Issue, Severity};
 
 /// Execute the doctor command and return the result
-#[tracing::instrument(skip(cli, store), fields(store_root = %store.root().display(), fix, duplicates, threshold))]
+#[tracing::instrument(skip(cli, store), fields(store_root = %store.root().display(), fix, duplicates, threshold, check_ontology))]
 pub fn execute(
     cli: &Cli,
     store: &Store,
     fix: bool,
     duplicates: bool,
     threshold: f64,
+    check_ontology: bool,
 ) -> Result<DoctorResult> {
     let mut result = DoctorResult::new();
 
@@ -93,7 +95,12 @@ pub fn execute(
         checks::check_near_duplicates(&index, threshold, &mut result);
     }
 
-    // 12. If fix requested, attempt repairs
+    // 14. Check ontology if requested
+    if check_ontology {
+        checks::check_ontology(store, &notes, &mut result);
+    }
+
+    // 15. If fix requested, attempt repairs
     if fix {
         result.fixed_count = fix::attempt_fixes(store, &mut result)?;
     }

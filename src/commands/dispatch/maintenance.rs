@@ -18,6 +18,7 @@ pub(super) fn handle_doctor(
     fix: bool,
     duplicates: bool,
     threshold: f64,
+    check: Option<&[String]>,
     start: Instant,
 ) -> Result<()> {
     // For doctor, always use unchecked open to avoid auto-repair
@@ -37,7 +38,8 @@ pub(super) fn handle_doctor(
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::doctor::execute(cli, &store, fix, duplicates, threshold)?;
+    let check_ontology = check.is_some_and(|checks| checks.contains(&"ontology".to_string()));
+    commands::doctor::execute(cli, &store, fix, duplicates, threshold, check_ontology)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

@@ -4,7 +4,9 @@
 //! - `structure::` - store directory structure checks
 //! - `database::` - database consistency checks
 //! - `content::` - note content validation checks
+//! - `ontology::` - ontology validation checks
 
 pub use crate::commands::doctor::content::*;
 pub use crate::commands::doctor::database::*;
+pub use crate::commands::doctor::ontology::*;
 pub use crate::commands::doctor::structure::*;

@@ -188,7 +188,7 @@ pub fn execute(
     }
 
     let validation_result =
-        crate::commands::doctor::execute(cli, &target_store, false, false, 0.8)?;
+        crate::commands::doctor::execute(cli, &target_store, false, false, 0.8, false)?;
 
     if cli.verbose {
         debug!(

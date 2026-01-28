@@ -176,7 +176,16 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             fix,
             duplicates,
             threshold,
-        }) => maintenance::handle_doctor(cli, &root, *fix, *duplicates, *threshold, start),
+            check,
+        }) => maintenance::handle_doctor(
+            cli,
+            &root,
+            *fix,
+            *duplicates,
+            *threshold,
+            check.as_deref(),
+            start,
+        ),
 
         Some(Commands::Sync {
             validate,

@@ -260,6 +260,16 @@ impl StoreConfig {
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)?;
         let config: StoreConfig = toml::from_str(&content)?;
+
+        if !config.graph.types.is_empty() {
+            for name in config.graph.types.keys() {
+                eprintln!(
+                    "Warning: Deprecated configuration [graph.types.{}] - use [ontology.link_types.{}] instead",
+                    name, name
+                );
+            }
+        }
+
         Ok(config)
     }
 

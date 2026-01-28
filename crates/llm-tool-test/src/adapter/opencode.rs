@@ -1,9 +1,45 @@
 use super::ToolAdapter;
 use crate::scenario::Scenario;
 use crate::session::SessionRunner;
+use serde_json::Value;
 use std::path::Path;
 
 pub struct OpenCodeAdapter;
+
+fn parse_token_usage_from_json(output: &str) -> Option<super::TokenUsage> {
+    let lines: Vec<&str> = output
+        .lines()
+        .filter(|line| line.starts_with('{'))
+        .collect();
+    let mut total_input = 0;
+    let mut total_output = 0;
+
+    for line in lines {
+        if let Ok(json) = serde_json::from_str::<Value>(line) {
+            if json.get("type") == Some(&Value::String("step_finish".to_string())) {
+                if let Some(tokens) = json.get("part").and_then(|p| p.get("tokens")) {
+                    let input = tokens.get("input").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let output = tokens.get("output").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let reasoning = tokens
+                        .get("reasoning")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    total_input += input + reasoning;
+                    total_output += output;
+                }
+            }
+        }
+    }
+
+    if total_input > 0 || total_output > 0 {
+        Some(super::TokenUsage {
+            input: total_input as usize,
+            output: total_output as usize,
+        })
+    } else {
+        None
+    }
+}
 
 impl ToolAdapter for OpenCodeAdapter {
     fn name(&self) -> &str {
@@ -44,7 +80,7 @@ impl ToolAdapter for OpenCodeAdapter {
         // Combine system and task prompts
         let full_prompt = format!("{}\n\n{}", context.system_prompt, context.task_prompt);
 
-        let args = vec!["run", &full_prompt];
+        let args = vec!["run", "--format", "json", &full_prompt];
         let timeout_secs = context.timeout.as_secs();
 
         let (output, exit_code) = runner
@@ -52,6 +88,9 @@ impl ToolAdapter for OpenCodeAdapter {
             .map_err(|e| {
                 super::AdapterError::ExecutionFailed(format!("opencode execution failed: {}", e))
             })?;
+
+        // Parse token usage from JSON output
+        let token_usage = parse_token_usage_from_json(&output);
 
         // Write transcript
         let transcript_path = transcript_dir.join("transcript.raw.txt");
@@ -64,7 +103,7 @@ impl ToolAdapter for OpenCodeAdapter {
         Ok(super::ExecutionResult {
             exit_code,
             duration,
-            token_usage: None,
+            token_usage,
             cost_estimate: None,
         })
     }
@@ -92,11 +131,11 @@ impl ToolAdapter for OpenCodeAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, Option<f64>)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>, Option<super::TokenUsage>)> {
         let runner = SessionRunner::new();
 
-        // Use 'opencode run' for non-interactive execution if possible.
-        let mut args = vec!["run"];
+        // Use 'opencode run' with JSON format for token extraction
+        let mut args = vec!["run", "--format", "json"];
         if let Some(model) = model {
             args.push("--model");
             args.push(model);
@@ -104,7 +143,8 @@ impl ToolAdapter for OpenCodeAdapter {
         args.push(&scenario.task.prompt);
 
         let (output, exit_code) = runner.run_command("opencode", &args, cwd, timeout_secs)?;
+        let token_usage = parse_token_usage_from_json(&output);
 
-        Ok((output, exit_code, None))
+        Ok((output, exit_code, None, token_usage))
     }
 }

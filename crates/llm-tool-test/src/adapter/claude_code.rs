@@ -96,7 +96,7 @@ impl ToolAdapter for ClaudeCodeAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, Option<f64>)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>, Option<super::TokenUsage>)> {
         let runner = SessionRunner::new();
 
         let mut args = vec!["run"];
@@ -110,6 +110,6 @@ impl ToolAdapter for ClaudeCodeAdapter {
 
         let (output, exit_code) = runner.run_command("claude", &args, cwd, timeout_secs)?;
 
-        Ok((output, exit_code, None))
+        Ok((output, exit_code, None, None))
     }
 }

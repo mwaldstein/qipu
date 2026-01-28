@@ -1,5 +1,5 @@
 use super::ToolAdapter;
-use crate::results::estimate_cost;
+use crate::results::estimate_cost_from_tokens;
 use crate::scenario::{Gate, Scenario};
 use crate::session::SessionRunner;
 use std::path::Path;
@@ -71,9 +71,15 @@ impl MockAdapter {
         let input_chars = scenario.task.prompt.len();
         let output_chars = full_output.len();
         let model_name = model.unwrap_or("mock");
-        let cost = estimate_cost(model_name, input_chars, output_chars);
+        let input_tokens = Self::estimate_tokens_from_chars(input_chars);
+        let output_tokens = Self::estimate_tokens_from_chars(output_chars);
+        let cost = estimate_cost_from_tokens(model_name, input_tokens, output_tokens);
 
         Ok((full_output, exit_code, cost))
+    }
+
+    fn estimate_tokens_from_chars(chars: usize) -> usize {
+        chars / 4
     }
 
     fn generate_transcript(&self, scenario: &Scenario) -> String {
@@ -208,7 +214,7 @@ impl ToolAdapter for MockAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, Option<f64>)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>, Option<super::TokenUsage>)> {
         let runner = SessionRunner::new();
 
         let transcript = self.generate_transcript(scenario);
@@ -252,7 +258,7 @@ impl ToolAdapter for MockAdapter {
             }
         }
 
-        Ok((full_output, exit_code, None))
+        Ok((full_output, exit_code, None, None))
     }
 }
 
@@ -463,7 +469,7 @@ evaluation:
         let result = adapter.run(&scenario, temp_dir.path(), Some("mock"), 30);
 
         match result {
-            Ok((output, exit_code, _cost)) => {
+            Ok((output, exit_code, _cost, _token_usage)) => {
                 assert_eq!(exit_code, 0, "Exit code should be 0");
                 assert!(output.contains("qipu init"), "Should initialize qipu store");
                 assert!(output.contains("qipu create"), "Should create notes");
@@ -518,7 +524,7 @@ evaluation:
         let result = adapter.run(&scenario, temp_dir.path(), Some("mock"), 30);
 
         match result {
-            Ok((output, exit_code, _cost)) => {
+            Ok((output, exit_code, _cost, _token_usage)) => {
                 assert_eq!(exit_code, 0);
                 assert!(
                     output.contains("important keyword"),
@@ -576,7 +582,7 @@ evaluation:
         let result = adapter.run(&scenario, temp_dir.path(), Some("mock"), 30);
 
         match result {
-            Ok((output, exit_code, _cost)) => {
+            Ok((output, exit_code, _cost, _token_usage)) => {
                 assert_eq!(exit_code, 0);
                 assert!(output.contains("qipu list"), "Should execute list command");
                 assert!(output.contains("qipu create"), "Should create a note");
@@ -618,10 +624,14 @@ evaluation:
         let result = adapter.run(&scenario, temp_dir.path(), Some("mock"), 30);
 
         match result {
-            Ok((_output, _exit_code, cost_opt)) => {
+            Ok((_output, _exit_code, cost_opt, token_usage_opt)) => {
                 assert!(
                     cost_opt.is_none(),
                     "Cost should be None when not reported by tool"
+                );
+                assert!(
+                    token_usage_opt.is_none(),
+                    "Token usage should be None when not reported by tool"
                 );
             }
             Err(e) => {

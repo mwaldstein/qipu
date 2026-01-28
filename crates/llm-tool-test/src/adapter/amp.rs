@@ -107,7 +107,7 @@ impl ToolAdapter for AmpAdapter {
         cwd: &Path,
         model: Option<&str>,
         timeout_secs: u64,
-    ) -> anyhow::Result<(String, i32, Option<f64>)> {
+    ) -> anyhow::Result<(String, i32, Option<f64>, Option<super::TokenUsage>)> {
         let runner = SessionRunner::new();
 
         let prompt_path = cwd.join("prompt.txt");
@@ -136,6 +136,6 @@ impl ToolAdapter for AmpAdapter {
 
         let (output, exit_code) = runner.run_command("amp", &args, cwd, timeout_secs)?;
 
-        Ok((output, exit_code, None))
+        Ok((output, exit_code, None, None))
     }
 }

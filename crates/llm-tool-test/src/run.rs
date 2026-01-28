@@ -409,7 +409,7 @@ pub fn run_single_scenario(
 
         let start_time = Instant::now();
         println!("Running tool '{}' with model '{}'...", tool, model);
-        let (output, exit_code, cost_opt) =
+        let (output, exit_code, cost_opt, token_usage) =
             adapter.run(s, &env.root, Some(model), effective_timeout)?;
         let duration = start_time.elapsed();
 
@@ -462,7 +462,10 @@ pub fn run_single_scenario(
             timestamp: chrono::Utc::now().to_rfc3339(),
             duration_secs: duration.as_secs_f64(),
             cost_estimate_usd: cost,
-            token_usage: None, // TODO: Extract from adapter if available
+            token_usage: token_usage.clone().map(|t| crate::transcript::TokenUsage {
+                input: t.input,
+                output: t.output,
+            }),
         };
         writer.write_run_metadata(&run_metadata)?;
 
@@ -477,7 +480,10 @@ pub fn run_single_scenario(
             timestamp: chrono::Utc::now().to_rfc3339(),
             duration_secs: duration.as_secs_f64(),
             cost_usd: cost,
-            token_usage: None, // TODO: Extract from adapter if available
+            token_usage: token_usage.map(|t| crate::transcript::TokenUsage {
+                input: t.input,
+                output: t.output,
+            }),
             outcome: outcome.clone(),
             gates_passed: metrics.gates_passed,
             gates_total: metrics.gates_total,

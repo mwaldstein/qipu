@@ -63,31 +63,20 @@ jobs:
     
     - name: Check file size limits
       run: |
-        # Files grandfathered in (already >500 lines when check was added)
-        allowed=(
-          "src/cli/commands.rs"
-          "src/commands/context/mod.rs"
-          "src/lib/graph/algos/dijkstra.rs"
-        )
-        
         # Check for violations
         violation_found=false
         while IFS= read -r -d '' file; do
-          rel_path=${file#./}
-          if [[ ! " ${allowed[@]} " =~ " ${rel_path} " ]]; then
-            lines=$(wc -l < "$file")
-            if [ "$lines" -gt 500 ]; then
-              echo "ERROR: $rel_path has $lines lines (>500)"
-              violation_found=true
-            fi
+          lines=$(wc -l < "$file")
+          if [ "$lines" -gt 500 ]; then
+            echo "ERROR: $file has $lines lines (>500)"
+            violation_found=true
           fi
         done < <(find src -name "*.rs" -print0)
-        
+
         if [ "$violation_found" = true ]; then
           echo ""
-          echo "Files exceeding 500 lines trigger CI failure. Options:"
-          echo "  - Refactor to reduce size"
-          echo "  - Request exception in beads"
+          echo "Files exceeding 500 lines trigger CI failure."
+          echo "All files must be refactored to under 500 lines."
           exit 1
         fi
       shell: bash

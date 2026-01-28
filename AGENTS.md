@@ -78,7 +78,7 @@ specs/              # Implementable specifications
 
 ## CI Enforcement
 
-- **File Size Limit**: 500 lines max per file. Exceptions in `.github/workflows/ci.yml:67-78`.
+- **File Size Limit**: 500 lines max per file. No exceptions.
 - **Function Complexity**: 100 lines max per function. Checked by `scripts/check_function_complexity.py`.
 - **All Warnings as Errors**: `cargo clippy -- -D warnings` is enforced.
 

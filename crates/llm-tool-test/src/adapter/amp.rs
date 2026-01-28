@@ -4,6 +4,8 @@ use crate::session::SessionRunner;
 use std::fs;
 use std::path::Path;
 
+// NOTE: Integration with 'amp' is currently de-prioritized as we don't have a subscription to test it with.
+// This adapter is kept for reference but may not be fully functional or tested.
 pub struct AmpAdapter;
 
 impl ToolAdapter for AmpAdapter {

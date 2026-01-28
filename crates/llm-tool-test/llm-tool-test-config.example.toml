@@ -47,15 +47,15 @@ output_cost_per_1k_tokens = 1.5
 input_cost_per_1k_tokens = 0.5
 output_cost_per_1k_tokens = 1.5
 
-# Amp Models
-[models.smart]
-input_cost_per_1k_tokens = 3.0
-output_cost_per_1k_tokens = 15.0
-
-[models.rush]
-input_cost_per_1k_tokens = 0.8
-output_cost_per_1k_tokens = 4.0
-
-[models.free]
-input_cost_per_1k_tokens = 0.0
-output_cost_per_1k_tokens = 0.0
+# Amp Models (De-prioritized)
+# [models.smart]
+# input_cost_per_1k_tokens = 3.0
+# output_cost_per_1k_tokens = 15.0
+# 
+# [models.rush]
+# input_cost_per_1k_tokens = 0.8
+# output_cost_per_1k_tokens = 4.0
+# 
+# [models.free]
+# input_cost_per_1k_tokens = 0.0
+# output_cost_per_1k_tokens = 0.0

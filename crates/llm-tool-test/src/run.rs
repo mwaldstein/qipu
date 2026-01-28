@@ -194,6 +194,13 @@ pub fn run_single_scenario(
             anyhow::bail!("Tool unavailable: {}", e);
         }
 
+        let transcript_dir = env.root.join("artifacts");
+        std::fs::create_dir_all(&transcript_dir)?;
+        let writer = crate::transcript::TranscriptWriter::new(transcript_dir.clone())?;
+
+        let mut setup_success = true;
+        let mut setup_commands: Vec<(String, bool, String)> = Vec::new();
+
         if let Some(setup) = &s.setup {
             println!("Running {} setup command(s)...", setup.commands.len());
             let runner = crate::session::SessionRunner::new();
@@ -201,15 +208,22 @@ pub fn run_single_scenario(
                 println!("  Command {}/{}: {}", i + 1, setup.commands.len(), cmd);
                 let (output, exit_code) =
                     runner.run_command("sh", &["-c", cmd], &env.root, effective_timeout)?;
-                if exit_code != 0 {
-                    anyhow::bail!(
-                        "Setup command {}/{} failed: {} exited with code {}. Output: {}",
-                        i + 1,
-                        setup.commands.len(),
-                        cmd,
-                        exit_code,
-                        output
-                    );
+
+                let success = exit_code == 0;
+                setup_commands.push((cmd.clone(), success, output.clone()));
+
+                writer.append_event(&serde_json::json!({
+                    "type": "setup_command",
+                    "index": i,
+                    "command": cmd,
+                    "exit_code": exit_code,
+                    "output": output,
+                    "success": success,
+                }))?;
+
+                if !success {
+                    setup_success = false;
+                    println!("  Command failed with exit code {}", exit_code);
                 }
             }
             println!("Setup complete.");
@@ -223,9 +237,6 @@ pub fn run_single_scenario(
 
         let cost = cost_opt.unwrap_or(0.0);
 
-        let transcript_dir = env.root.join("artifacts");
-        std::fs::create_dir_all(&transcript_dir)?;
-        let writer = crate::transcript::TranscriptWriter::new(transcript_dir.clone())?;
         writer.write_raw(&output)?;
         writer.append_event(&serde_json::json!({
             "type": "execution",
@@ -310,6 +321,17 @@ pub fn run_single_scenario(
                 links_per_note: metrics.quality.links_per_note,
                 orphan_notes: metrics.quality.orphan_notes,
             },
+            setup_success,
+            setup_commands: setup_commands
+                .into_iter()
+                .map(
+                    |(cmd, success, output)| crate::transcript::SetupCommandResult {
+                        command: cmd,
+                        success,
+                        output,
+                    },
+                )
+                .collect(),
         };
         writer.write_report(&report)?;
 
@@ -380,6 +402,11 @@ pub fn run_single_scenario(
 
         println!("\nRun completed: {}", record.id);
         println!("Transcript written to: {}", transcript_path);
+
+        if !setup_success {
+            println!("\nWarning: Setup commands failed. Results may be invalid.");
+        }
+
         output::print_result_summary(&record);
 
         Ok(record)

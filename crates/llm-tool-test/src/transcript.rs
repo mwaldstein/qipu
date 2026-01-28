@@ -192,6 +192,23 @@ impl TranscriptWriter {
         content.push_str(&format!("## Execution\n\n"));
         content.push_str(&format!("- **Duration**: {:.2}s\n", report.duration_secs));
         content.push_str(&format!("- **Cost**: ${:.4}\n", report.cost_usd));
+
+        if !report.setup_commands.is_empty() {
+            content.push_str(&format!(
+                "- **Setup**: {}\n",
+                if report.setup_success {
+                    "Success"
+                } else {
+                    "Failed"
+                }
+            ));
+            content.push_str("\n### Setup Commands\n\n");
+            for cmd_result in &report.setup_commands {
+                let status = if cmd_result.success { "✓" } else { "✗" };
+                content.push_str(&format!("- {} `{}`\n", status, cmd_result.command));
+            }
+            content.push_str("\n");
+        }
         if let Some(ref usage) = report.token_usage {
             content.push_str(&format!(
                 "- **Token Usage**: {} input, {} output\n",
@@ -311,6 +328,8 @@ pub struct RunReport {
     pub gate_details: Vec<GateDetail>,
     pub efficiency: EfficiencyReport,
     pub quality: QualityReport,
+    pub setup_success: bool,
+    pub setup_commands: Vec<SetupCommandResult>,
 }
 
 #[derive(Debug)]
@@ -318,6 +337,13 @@ pub struct GateDetail {
     pub gate_type: String,
     pub passed: bool,
     pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetupCommandResult {
+    pub command: String,
+    pub success: bool,
+    pub output: String,
 }
 
 #[derive(Debug)]
@@ -752,6 +778,8 @@ mod tests {
                 links_per_note: 0.6,
                 orphan_notes: 1,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();
@@ -806,6 +834,8 @@ mod tests {
                 links_per_note: 0.67,
                 orphan_notes: 0,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();
@@ -860,6 +890,8 @@ mod tests {
                 links_per_note: 0.0,
                 orphan_notes: 1,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();
@@ -905,6 +937,8 @@ mod tests {
                 links_per_note: 0.5,
                 orphan_notes: 2,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();
@@ -949,6 +983,8 @@ mod tests {
                 links_per_note: 0.5,
                 orphan_notes: 3,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();
@@ -1004,6 +1040,8 @@ mod tests {
                 links_per_note: 0.0,
                 orphan_notes: 1,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report1).unwrap();
@@ -1037,6 +1075,8 @@ mod tests {
                 links_per_note: 0.5,
                 orphan_notes: 0,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report2).unwrap();
@@ -1083,6 +1123,8 @@ mod tests {
                 links_per_note: 0.0,
                 orphan_notes: 0,
             },
+            setup_success: true,
+            setup_commands: vec![],
         };
 
         writer.write_report(&report).unwrap();

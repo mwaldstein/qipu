@@ -3,10 +3,10 @@
   "scenario_hash": "192205a42d8a09d4e78d685bce16b5b68cb757fc8c05cf7eea7300f136ffe61d",
   "tool": "mock",
   "model": "mock",
-  "qipu_version": "9fc50170",
-  "qipu_commit": "9fc50170",
-  "timestamp": "2026-01-28T08:54:05.576541842+00:00",
-  "duration_secs": 0.174713715,
+  "qipu_version": "17ebeba6",
+  "qipu_commit": "17ebeba6",
+  "timestamp": "2026-01-28T09:31:03.805891674+00:00",
+  "duration_secs": 0.22401911,
   "cost_estimate_usd": 0.0,
   "token_usage": null
 }

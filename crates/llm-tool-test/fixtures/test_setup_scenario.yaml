@@ -1,0 +1,15 @@
+name: test_setup_commands
+description: "Test setup command execution and recording"
+tier: 0
+template_folder: qipu
+task:
+  prompt: "Test"
+evaluation:
+  gates:
+    - type: min_notes
+      count: 1
+setup:
+  commands:
+    - "echo 'Setting up test environment'"
+    - "pwd"
+    - "ls -la"

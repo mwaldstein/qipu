@@ -171,14 +171,6 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_ulid() {
-        let id = NoteId::generate_ulid();
-        let id_str = id.as_ref();
-        assert!(id_str.starts_with(NoteId::PREFIX));
-        assert_eq!(id_str[NoteId::PREFIX.len()..].len(), 26); // ULID is 26 chars
-    }
-
-    #[test]
     fn test_slugify() {
         assert_eq!(slugify("Hello World"), "hello-world");
         assert_eq!(

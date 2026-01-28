@@ -19,6 +19,8 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
                         }
                     }
                 }
+            } else if path.is_dir() {
+                find_scenarios(&path, scenarios);
             }
         }
     }
@@ -167,12 +169,18 @@ pub fn handle_list_command(
                             }
                         }
                     }
+                } else if path.is_dir() {
+                    find_scenarios(&path, scenarios);
                 }
             }
         }
     }
 
-    let fixtures_dir = std::path::PathBuf::from("crates/llm-tool-test/fixtures");
+    let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
+        PathBuf::from("crates/llm-tool-test/fixtures")
+    } else {
+        PathBuf::from("fixtures")
+    };
     if fixtures_dir.exists() {
         find_scenarios(&fixtures_dir, &mut scenarios);
     }
@@ -603,8 +611,9 @@ evaluation:
         let mut scenarios = Vec::new();
         find_scenarios(&temp_dir, &mut scenarios);
 
-        assert_eq!(scenarios.len(), 1);
+        assert_eq!(scenarios.len(), 2);
         assert!(scenarios.iter().any(|(name, _)| name == "test1"));
+        assert!(scenarios.iter().any(|(name, _)| name == "test2"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

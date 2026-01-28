@@ -1,6 +1,9 @@
-$(cat << 'ENDTESTS')
+use crate::cli::support::{extract_id, qipu};
+use predicates::prelude::*;
+use tempfile::tempdir;
+
 // KNOWN LIMITATION:
-// Via annotations in link path don't appear when start node is compacted.
+// Via annotations in link path don'"'"'"'"'"'"'"'"t appear when start node is compacted.
 // This is a bug in path finding implementation.
 // Via annotations DO work correctly for intermediate nodes that are compacted.
 // See test_link_path_via_multi_hop for a working example.
@@ -52,6 +55,78 @@ fn test_link_path_via_basic() {
             .iter()
             .all(|n| n.get("via").is_none()),
         "Should not have via without compaction"
+    );
+}
+
+#[test]
+fn test_link_path_via_compacted_json() {
+    let dir = tempdir().unwrap();
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let note1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Compacted Source"])
+        .output()
+        .unwrap();
+    let note1_id = extract_id(&note1);
+    let note2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Target"])
+        .output()
+        .unwrap();
+    let note2_id = extract_id(&note2);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &note1_id, &note2_id, "--type", "related"])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let digest = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Digest"])
+        .output()
+        .unwrap();
+    let digest_id = extract_id(&digest);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["compact", "apply", &digest_id, "--note", &note1_id])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &note1_id, &note2_id, "--format", "json"])
+        .output()
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    assert!(json["found"].as_bool().unwrap());
+
+    let links = json["links"].as_array().unwrap();
+
+    let has_via = links
+        .iter()
+        .any(|l| l.get("via").is_some() && l["via"].as_str() == Some(&note1_id));
+
+    assert!(
+        has_via,
+        "Should show via annotation on link when source is compacted"
     );
 }
 

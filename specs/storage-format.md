@@ -114,9 +114,14 @@ Canonicalization:
 - Tools should be able to resolve wiki-links without rewriting.
 
 ## Attachments
-- Stored under `.qipu/attachments/`.
-- Prefer referencing by relative markdown links.
+- Stored under `.qipu/attachments/<note-id>/` (per-note folders).
+- Prefer referencing by relative markdown links (e.g., `../attachments/qp-a1b2/image.png`).
 - Avoid embedding huge binaries by default; provide guidance.
+
+Per-note folder structure provides:
+- No name collisions between attachments from different notes
+- Clear ownership (easy to clean up when deleting a note)
+- Atomic note structure aligns with Zettelkasten principles
 
 ## Derived files / caches
 - `.qipu/qipu.db` accelerates search/backlinks/graph queries.
@@ -189,6 +194,3 @@ The search checks the current directory for a store first, then checks for proje
 ```
 
 Running `qipu list` from `src/` will find `myapp/.qipu/` and stop. It will not traverse above `.git/` to find `/home/user/.qipu/`.
-
-## Open questions
-- Should attachments be per-note folders (`attachments/<id>/...`)?

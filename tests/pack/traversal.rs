@@ -55,7 +55,7 @@ fn test_dump_selector_tag_with_traversal() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -256,7 +256,7 @@ fn test_dump_selector_moc_with_traversal() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -267,7 +267,7 @@ fn test_dump_selector_moc_with_traversal() {
         .arg("note-b")
         .arg("note-c")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -376,7 +376,7 @@ fn test_dump_selector_query_with_traversal() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -387,7 +387,7 @@ fn test_dump_selector_query_with_traversal() {
         .arg("note-b")
         .arg("note-c")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();

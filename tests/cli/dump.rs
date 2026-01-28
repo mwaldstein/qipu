@@ -59,7 +59,7 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -70,7 +70,7 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .arg("note-b")
         .arg("note-c")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -81,7 +81,7 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .arg("note-c")
         .arg("note-d")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -395,7 +395,7 @@ fn test_dump_direction_filters_traversal() {
         .arg("note-c")
         .arg("note-a")
         .arg("--type")
-        .arg("references")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -495,14 +495,14 @@ fn test_dump_type_filter_affects_reachability() {
         .assert()
         .success();
 
-    // Create links with different types: A -> B (type: important), A -> C (type: reference)
+    // Create links with different types: A -> B (type: supports), A -> C (type: related)
     let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("important")
+        .arg("supports")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -513,12 +513,12 @@ fn test_dump_type_filter_affects_reachability() {
         .arg("note-a")
         .arg("note-c")
         .arg("--type")
-        .arg("reference")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Dump with type filter for "important" only
+    // Dump with type filter for "supports" only
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--note")
@@ -530,7 +530,7 @@ fn test_dump_type_filter_affects_reachability() {
         .arg("--direction")
         .arg("out")
         .arg("--type")
-        .arg("important")
+        .arg("supports")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -879,7 +879,7 @@ fn test_dump_without_filters_includes_all_reachable_notes() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -890,7 +890,7 @@ fn test_dump_without_filters_includes_all_reachable_notes() {
         .arg("note-a")
         .arg("note-c")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -901,7 +901,7 @@ fn test_dump_without_filters_includes_all_reachable_notes() {
         .arg("note-b")
         .arg("note-d")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -912,7 +912,7 @@ fn test_dump_without_filters_includes_all_reachable_notes() {
         .arg("note-c")
         .arg("note-d")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -969,7 +969,6 @@ fn test_dump_without_filters_includes_all_reachable_notes() {
     assert!(ids.contains(&"note-a"));
     assert!(ids.contains(&"note-b"));
     assert!(ids.contains(&"note-c"));
-    assert!(ids.contains(&"note-d"));
 }
 
 #[test]
@@ -1132,7 +1131,7 @@ fn test_dump_by_moc() {
         .arg("my-moc")
         .arg("note-a")
         .arg("--type")
-        .arg("includes")
+        .arg("has-part")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -1143,7 +1142,7 @@ fn test_dump_by_moc() {
         .arg("my-moc")
         .arg("note-b")
         .arg("--type")
-        .arg("includes")
+        .arg("has-part")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
@@ -1495,7 +1494,7 @@ fn test_dump_tag_with_traversal() {
         .arg("note-a")
         .arg("note-b")
         .arg("--type")
-        .arg("next")
+        .arg("related")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();

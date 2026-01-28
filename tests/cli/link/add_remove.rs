@@ -786,35 +786,11 @@ fn test_unknown_type_fallback_inversion() {
         .unwrap();
     let id2 = extract_id(&output2);
 
-    // Add unknown type link (not in standard ontology or config)
+    // Unknown type link should be rejected (not in standard ontology or config)
     qipu()
         .current_dir(dir.path())
         .args(["link", "add", &id1, &id2, "--type", "custom-unknown"])
         .assert()
-        .success();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    // Verify forward link shows custom-unknown
-    qipu()
-        .current_dir(dir.path())
-        .args(["link", "list", &id1])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(&id2))
-        .stdout(predicate::str::contains("custom-unknown"));
-
-    // Verify inverse link shows fallback pattern: inverse-custom-unknown
-    qipu()
-        .current_dir(dir.path())
-        .args(["link", "list", &id2])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(&id1))
-        .stdout(predicate::str::contains("inverse-custom-unknown"))
-        .stdout(predicate::str::contains("(virtual)"));
+        .failure()
+        .stderr(predicate::str::contains("Invalid link type"));
 }

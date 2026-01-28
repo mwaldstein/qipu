@@ -57,7 +57,7 @@ fn test_store_stats_with_notes() {
     // Add a link between notes
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", "--type", "reference", &id1, &id2])
+        .args(["link", "add", "--type", "related", &id1, &id2])
         .assert()
         .success();
 

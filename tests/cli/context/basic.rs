@@ -258,25 +258,25 @@ fn test_context_transitive_moc_traversal() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &moc_a_id, &moc_b_id, "--type", "child"])
+        .args(["link", "add", &moc_a_id, &moc_b_id, "--type", "has-part"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &moc_a_id, &note1_id, "--type", "includes"])
+        .args(["link", "add", &moc_a_id, &note1_id, "--type", "has-part"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &moc_b_id, &note2_id, "--type", "includes"])
+        .args(["link", "add", &moc_b_id, &note2_id, "--type", "has-part"])
         .assert()
         .success();
 
     qipu()
         .current_dir(dir.path())
-        .args(["link", "add", &moc_b_id, &note3_id, "--type", "includes"])
+        .args(["link", "add", &moc_b_id, &note3_id, "--type", "has-part"])
         .assert()
         .success();
 

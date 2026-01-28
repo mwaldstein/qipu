@@ -185,6 +185,12 @@ impl StoreConfig {
         ontology.validate_note_type(note_type)
     }
 
+    /// Validate a link type using the configured ontology
+    pub fn validate_link_type(&self, link_type: &str) -> Result<()> {
+        let ontology = Ontology::from_config_with_graph(&self.ontology, &self.graph);
+        ontology.validate_link_type(link_type)
+    }
+
     /// Get the hop cost for a link type
     /// Returns user-defined cost, or standard type cost, or default (1.0)
     pub fn get_link_cost(&self, link_type: &str) -> f32 {

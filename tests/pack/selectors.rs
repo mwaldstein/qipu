@@ -165,7 +165,7 @@ fn test_dump_selector_moc_roundtrip() {
         .arg("my-moc")
         .arg("note-a")
         .arg("--type")
-        .arg("includes")
+        .arg("has-part")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();
@@ -176,7 +176,7 @@ fn test_dump_selector_moc_roundtrip() {
         .arg("my-moc")
         .arg("note-b")
         .arg("--type")
-        .arg("includes")
+        .arg("has-part")
         .env("QIPU_STORE", store1_path)
         .assert()
         .success();

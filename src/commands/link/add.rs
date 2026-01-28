@@ -16,6 +16,9 @@ pub fn execute(
     to_id: &str,
     link_type: LinkType,
 ) -> Result<()> {
+    // Validate link type against active ontology
+    store.config().validate_link_type(link_type.as_str())?;
+
     // Resolve note IDs
     let from_resolved = resolve_note_id(store, from_id)?;
     let to_resolved = resolve_note_id(store, to_id)?;

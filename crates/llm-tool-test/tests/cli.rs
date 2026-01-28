@@ -80,8 +80,7 @@ fn test_scenarios_command_with_fixtures() {
     let dir = tempdir().unwrap();
 
     let fixtures_dir = dir.path().join("fixtures");
-    let qipu_dir = fixtures_dir.join("qipu");
-    fs::create_dir_all(&qipu_dir).unwrap();
+    fs::create_dir_all(&fixtures_dir).unwrap();
 
     let scenario_content = r#"
 name: test_scenario
@@ -97,7 +96,7 @@ evaluation:
     - type: min_notes
       count: 1
 "#;
-    fs::write(qipu_dir.join("test_scenario.yaml"), scenario_content).unwrap();
+    fs::write(fixtures_dir.join("test_scenario.yaml"), scenario_content).unwrap();
 
     llm_tool_test()
         .current_dir(dir.path())
@@ -114,8 +113,7 @@ fn test_scenarios_command_with_tags_filter() {
     let dir = tempdir().unwrap();
 
     let fixtures_dir = dir.path().join("fixtures");
-    let qipu_dir = fixtures_dir.join("qipu");
-    fs::create_dir_all(&qipu_dir).unwrap();
+    fs::create_dir_all(&fixtures_dir).unwrap();
 
     let scenario1_content = r#"
 name: scenario1
@@ -146,8 +144,8 @@ evaluation:
       count: 1
 "#;
 
-    fs::write(qipu_dir.join("scenario1.yaml"), scenario1_content).unwrap();
-    fs::write(qipu_dir.join("scenario2.yaml"), scenario2_content).unwrap();
+    fs::write(fixtures_dir.join("scenario1.yaml"), scenario1_content).unwrap();
+    fs::write(fixtures_dir.join("scenario2.yaml"), scenario2_content).unwrap();
 
     llm_tool_test()
         .current_dir(dir.path())

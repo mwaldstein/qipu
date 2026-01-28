@@ -19,7 +19,7 @@ impl TestEnv {
     }
 
     pub fn setup_fixture(&self, fixture_name: &str) -> anyhow::Result<()> {
-        let fixture_src = Path::new("crates/llm-tool-test/fixtures").join(fixture_name);
+        let fixture_src = Path::new("fixtures/templates").join(fixture_name);
         if !fixture_src.exists() {
             anyhow::bail!("Fixture not found: {:?}", fixture_src);
         }

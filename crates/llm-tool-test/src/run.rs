@@ -38,10 +38,13 @@ run:
         let results_db = ResultsDB::new(&base_dir);
         let cache = Cache::new(&base_dir);
 
-        let fixture_dir = PathBuf::from("fixtures/qipu");
-        std::fs::create_dir_all(&fixture_dir).unwrap();
-        let fixture_file = fixture_dir.join("timeout_test_override.yaml");
+        let fixtures_dir = PathBuf::from("fixtures");
+        std::fs::create_dir_all(&fixtures_dir).unwrap();
+        let fixture_file = fixtures_dir.join("timeout_test_override.yaml");
         std::fs::write(&fixture_file, scenario_yaml).unwrap();
+
+        let template_dir = PathBuf::from("fixtures/templates/qipu");
+        std::fs::create_dir_all(&template_dir).unwrap();
 
         let cli_timeout = 300;
         let result = run_single_scenario(
@@ -57,8 +60,13 @@ run:
         );
 
         let _ = std::fs::remove_file(&fixture_file);
+        let _ = std::fs::remove_dir_all(&template_dir);
 
-        assert!(result.is_ok(), "Should succeed with mock adapter");
+        assert!(
+            result.is_ok(),
+            "Should succeed with mock adapter: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -81,10 +89,13 @@ evaluation:
         let results_db = ResultsDB::new(&base_dir);
         let cache = Cache::new(&base_dir);
 
-        let fixture_dir = PathBuf::from("fixtures/qipu");
-        std::fs::create_dir_all(&fixture_dir).unwrap();
-        let fixture_file = fixture_dir.join("timeout_test_cli.yaml");
+        let fixtures_dir = PathBuf::from("fixtures");
+        std::fs::create_dir_all(&fixtures_dir).unwrap();
+        let fixture_file = fixtures_dir.join("timeout_test_cli.yaml");
         std::fs::write(&fixture_file, scenario_yaml).unwrap();
+
+        let template_dir = PathBuf::from("fixtures/templates/qipu");
+        std::fs::create_dir_all(&template_dir).unwrap();
 
         let cli_timeout = 60;
         let result = run_single_scenario(
@@ -100,8 +111,13 @@ evaluation:
         );
 
         let _ = std::fs::remove_file(&fixture_file);
+        let _ = std::fs::remove_dir_all(&template_dir);
 
-        assert!(result.is_ok(), "Should succeed with mock adapter");
+        assert!(
+            result.is_ok(),
+            "Should succeed with mock adapter: {:?}",
+            result
+        );
     }
 }
 
@@ -116,7 +132,7 @@ pub fn run_single_scenario(
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<ResultRecord> {
-    let scenario_path = format!("fixtures/{}/{}.yaml", s.template_folder, s.name);
+    let scenario_path = format!("fixtures/{}.yaml", s.name);
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
     let qipu_version = crate::results::get_qipu_version()?;

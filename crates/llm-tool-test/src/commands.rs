@@ -19,8 +19,6 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
                         }
                     }
                 }
-            } else if path.is_dir() {
-                find_scenarios(&path, scenarios);
             }
         }
     }
@@ -165,8 +163,6 @@ pub fn handle_list_command(
                             }
                         }
                     }
-                } else if path.is_dir() {
-                    find_scenarios(&path, scenarios);
                 }
             }
         }
@@ -561,7 +557,6 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    #[test]
     fn test_find_scenarios() {
         let temp_dir = std::path::PathBuf::from("/tmp/test_scenarios_find");
         let _ = std::fs::remove_dir_all(&temp_dir);
@@ -604,9 +599,8 @@ evaluation:
         let mut scenarios = Vec::new();
         find_scenarios(&temp_dir, &mut scenarios);
 
-        assert_eq!(scenarios.len(), 2);
+        assert_eq!(scenarios.len(), 1);
         assert!(scenarios.iter().any(|(name, _)| name == "test1"));
-        assert!(scenarios.iter().any(|(name, _)| name == "test2"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

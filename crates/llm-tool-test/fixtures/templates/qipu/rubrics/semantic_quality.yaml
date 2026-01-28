@@ -1,0 +1,21 @@
+criteria:
+  - id: relevance
+    weight: 0.35
+    description: "Notes directly address the task prompt and contain relevant information"
+
+  - id: coherence
+    weight: 0.35
+    description: "Notes are logically connected, with consistent terminology and clear relationships"
+
+  - id: granularity
+    weight: 0.30
+    description: "Notes are appropriately scoped and sized, neither too broad nor too fragmented"
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights

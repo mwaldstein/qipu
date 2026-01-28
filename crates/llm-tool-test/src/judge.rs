@@ -162,6 +162,7 @@ Provide JSON only, no additional text."#,
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wiremock::{matchers, Mock, MockServer, ResponseTemplate};
 
     #[test]
     fn test_build_judge_prompt() {
@@ -236,4 +237,277 @@ output:
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("must sum to 1.0"));
     }
+
+    #[tokio::test]
+    async fn test_run_judge_missing_api_key() {
+        let rubric = Rubric {
+            criteria: vec![Criterion {
+                id: "test".to_string(),
+                weight: 1.0,
+                description: "Test".to_string(),
+            }],
+            output: OutputFormat {
+                format: "json".to_string(),
+                require_fields: vec![],
+            },
+        };
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("LLM_TOOL_TEST_API_KEY");
+
+        let result = run_judge("gpt-4o-mini", "transcript", "{}", "task", &rubric).await;
+
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("environment variable must be set"));
+    }
+
+    #[tokio::test]
+    async fn test_run_judge_success() {
+        let mock_server = MockServer::start().await;
+        let api_url = mock_server.uri();
+
+        let rubric = Rubric {
+            criteria: vec![Criterion {
+                id: "test_criterion".to_string(),
+                weight: 1.0,
+                description: "Test criterion".to_string(),
+            }],
+            output: OutputFormat {
+                format: "json".to_string(),
+                require_fields: vec![],
+            },
+        };
+
+        let mock_response = serde_json::json!({
+            "choices": [{
+                "message": {
+                    "content": r#"{
+                        "scores": {"test_criterion": 0.85},
+                        "weighted_score": 0.85,
+                        "confidence": 0.9,
+                        "issues": [],
+                        "highlights": ["Good execution"]
+                    }"#
+                }
+            }]
+        });
+
+        Mock::given(matchers::method("POST"))
+            .and(matchers::path("/v1/chat/completions"))
+            .and(matchers::header("authorization", "Bearer test-key"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&mock_response))
+            .mount(&mock_server)
+            .await;
+
+        let result = run_judge_with_client(
+            "gpt-4o-mini",
+            "transcript summary",
+            r#"{"notes": []}"#,
+            "task description",
+            &rubric,
+            &api_url,
+            "test-key",
+        )
+        .await;
+
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response.scores.get("test_criterion"), Some(&0.85));
+        assert_eq!(response.weighted_score, 0.85);
+        assert_eq!(response.confidence, 0.9);
+    }
+
+    #[tokio::test]
+    async fn test_run_judge_api_error() {
+        let mock_server = MockServer::start().await;
+        let api_url = mock_server.uri();
+
+        let rubric = Rubric {
+            criteria: vec![Criterion {
+                id: "test".to_string(),
+                weight: 1.0,
+                description: "Test".to_string(),
+            }],
+            output: OutputFormat {
+                format: "json".to_string(),
+                require_fields: vec![],
+            },
+        };
+
+        Mock::given(matchers::method("POST"))
+            .and(matchers::path("/v1/chat/completions"))
+            .respond_with(ResponseTemplate::new(429).set_body_json(serde_json::json!({
+                "error": {"message": "Rate limit exceeded"}
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let result = run_judge_with_client(
+            "gpt-4o-mini",
+            "transcript",
+            "{}",
+            "task",
+            &rubric,
+            &api_url,
+            "test-key",
+        )
+        .await;
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("OpenAI API request failed"));
+        assert!(err_msg.contains("429"));
+    }
+
+    #[tokio::test]
+    async fn test_run_judge_invalid_response_format() {
+        let mock_server = MockServer::start().await;
+        let api_url = mock_server.uri();
+
+        let rubric = Rubric {
+            criteria: vec![Criterion {
+                id: "test".to_string(),
+                weight: 1.0,
+                description: "Test".to_string(),
+            }],
+            output: OutputFormat {
+                format: "json".to_string(),
+                require_fields: vec![],
+            },
+        };
+
+        Mock::given(matchers::method("POST"))
+            .and(matchers::path("/v1/chat/completions"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "choices": [{"message": {"content": "not valid json"}}]
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let result = run_judge_with_client(
+            "gpt-4o-mini",
+            "transcript",
+            "{}",
+            "task",
+            &rubric,
+            &api_url,
+            "test-key",
+        )
+        .await;
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Failed to parse judge response JSON"));
+    }
+
+    #[tokio::test]
+    async fn test_run_judge_missing_content_field() {
+        let mock_server = MockServer::start().await;
+        let api_url = mock_server.uri();
+
+        let rubric = Rubric {
+            criteria: vec![Criterion {
+                id: "test".to_string(),
+                weight: 1.0,
+                description: "Test".to_string(),
+            }],
+            output: OutputFormat {
+                format: "json".to_string(),
+                require_fields: vec![],
+            },
+        };
+
+        Mock::given(matchers::method("POST"))
+            .and(matchers::path("/v1/chat/completions"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "choices": [{"message": {}}]
+                })),
+            )
+            .mount(&mock_server)
+            .await;
+
+        let result = run_judge_with_client(
+            "gpt-4o-mini",
+            "transcript",
+            "{}",
+            "task",
+            &rubric,
+            &api_url,
+            "test-key",
+        )
+        .await;
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Invalid OpenAI API response format"));
+    }
+}
+
+async fn run_judge_with_client(
+    model: &str,
+    transcript_summary: &str,
+    store_export: &str,
+    task_description: &str,
+    rubric: &Rubric,
+    api_base: &str,
+    api_key: &str,
+) -> Result<JudgeResponse> {
+    use reqwest::Client;
+
+    let client = Client::new();
+    let prompt = build_judge_prompt(transcript_summary, store_export, task_description, rubric);
+
+    let request_body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are an expert evaluator. Analyze the provided transcript and store state against the given rubric. Return your evaluation as JSON only."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "response_format": { "type": "json_object" },
+        "temperature": 0.3,
+        "max_tokens": 2000,
+    });
+
+    let response = client
+        .post(&format!("{}/v1/chat/completions", api_base))
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&request_body)
+        .send()
+        .await
+        .context("Failed to call OpenAI API")?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        anyhow::bail!("OpenAI API request failed: {} - {}", status, error_text);
+    }
+
+    let response_json: serde_json::Value = response
+        .json()
+        .await
+        .context("Failed to parse OpenAI API response")?;
+
+    let content = response_json
+        .get("choices")
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|c| c.get("message"))
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_str())
+        .context("Invalid OpenAI API response format")?;
+
+    let judge_response: JudgeResponse = serde_json::from_str(content)
+        .with_context(|| format!("Failed to parse judge response JSON: {}", content))?;
+
+    Ok(judge_response)
 }

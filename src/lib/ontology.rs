@@ -5,7 +5,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::lib::config::{OntologyConfig, OntologyMode};
+use crate::lib::config::{GraphConfig, OntologyConfig, OntologyMode};
 use crate::lib::note::LinkType;
 
 /// Standard note types (built-in)
@@ -56,6 +56,25 @@ impl Ontology {
             OntologyMode::Extended => Self::extended_ontology(config),
             OntologyMode::Replacement => Self::replacement_ontology(config),
         }
+    }
+
+    /// Create an ontology from both ontology config and graph config
+    /// Merges custom link types from both sources (graph.types for backward compatibility)
+    pub fn from_config_with_graph(
+        ontology_config: &OntologyConfig,
+        graph_config: &GraphConfig,
+    ) -> Self {
+        let mut ontology = Self::from_config(ontology_config);
+
+        // Merge link types from graph.types for backward compatibility
+        for (name, type_config) in &graph_config.types {
+            ontology.link_types.insert(name.clone());
+            if let Some(ref inverse) = type_config.inverse {
+                ontology.inverses.insert(name.clone(), inverse.clone());
+            }
+        }
+
+        ontology
     }
 
     /// Default ontology: standard types only
@@ -169,6 +188,17 @@ impl Ontology {
         let mut types: Vec<String> = self.link_types.iter().cloned().collect();
         types.sort();
         types
+    }
+
+    /// Validate a link type
+    pub fn validate_link_type(&self, link_type: &str) -> Result<(), crate::lib::error::QipuError> {
+        if !self.is_valid_link_type(link_type) {
+            return Err(crate::lib::error::QipuError::UsageError(format!(
+                "Invalid link type: '{}'",
+                link_type
+            )));
+        }
+        Ok(())
     }
 }
 

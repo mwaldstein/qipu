@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::lib::error::{QipuError, Result};
 use crate::lib::id::IdScheme;
 use crate::lib::note::NoteType;
+use crate::lib::ontology::Ontology;
 
 /// Current store format version
 pub const STORE_FORMAT_VERSION: u32 = 1;
@@ -172,19 +173,10 @@ pub struct OntologyConfig {
 }
 
 impl StoreConfig {
-    /// Get the inverse of a link type, falling back to standard ontology or default pattern
+    /// Get the inverse of a link type using the configured ontology
     pub fn get_inverse(&self, link_type: &str) -> String {
-        // 1. Check user-defined inverses
-        if let Some(type_config) = self.graph.types.get(link_type) {
-            if let Some(ref inv) = type_config.inverse {
-                return inv.clone();
-            }
-        }
-
-        // 2. Check standard ontology
-        crate::lib::note::LinkType::new(link_type)
-            .inverse()
-            .to_string()
+        let ontology = Ontology::from_config_with_graph(&self.ontology, &self.graph);
+        ontology.get_inverse(link_type)
     }
 
     /// Get the hop cost for a link type

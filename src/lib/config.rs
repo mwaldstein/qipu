@@ -64,6 +64,10 @@ pub struct StoreConfig {
     /// Search ranking configuration
     #[serde(default)]
     pub search: SearchConfig,
+
+    /// Custom ontology configuration
+    #[serde(default)]
+    pub ontology: OntologyConfig,
 }
 
 /// Configuration for graph traversal and link types
@@ -106,6 +110,18 @@ pub struct SearchConfig {
     pub recency_decay_days: f64,
 }
 
+/// Configuration for a single note type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NoteTypeConfig {
+    /// Human-readable description
+    #[serde(default)]
+    pub description: Option<String>,
+
+    /// Usage guidance for LLMs
+    #[serde(default)]
+    pub usage: Option<String>,
+}
+
 /// Configuration for a single link type
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LinkTypeConfig {
@@ -120,6 +136,22 @@ pub struct LinkTypeConfig {
     /// Hop cost for traversing this link type (default 1.0)
     #[serde(default = "default_link_cost")]
     pub cost: f32,
+
+    /// Usage guidance for LLMs
+    #[serde(default)]
+    pub usage: Option<String>,
+}
+
+/// Custom ontology configuration
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OntologyConfig {
+    /// Custom note type definitions
+    #[serde(default)]
+    pub note_types: std::collections::HashMap<String, NoteTypeConfig>,
+
+    /// Custom link type definitions
+    #[serde(default)]
+    pub link_types: std::collections::HashMap<String, LinkTypeConfig>,
 }
 
 impl StoreConfig {
@@ -315,6 +347,7 @@ impl Default for StoreConfig {
             graph: GraphConfig::default(),
             auto_index: AutoIndexConfig::default(),
             search: SearchConfig::default(),
+            ontology: OntologyConfig::default(),
         }
     }
 }

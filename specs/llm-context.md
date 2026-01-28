@@ -136,4 +136,4 @@ Like beads' `bd setup`, qipu should provide `qipu setup` to install instructions
 - tool-specific rules/hooks where applicable
 
 ## Open questions
-- Should `context` support "include backlinks" as additional material?
+- ~~Should `context` support "include backlinks" as additional material?~~ Resolved: Yes, via `--backlinks` flag (not included by default to keep context focused)

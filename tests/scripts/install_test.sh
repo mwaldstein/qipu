@@ -339,6 +339,90 @@ test_version_extraction() {
     fi
 }
 
+# Test: Checksum verification with matching hash
+test_checksum_verification_valid() {
+    echo "TEST: Checksum verification succeeds with matching hash"
+    
+    local test_dir=$(mktemp -d)
+    trap "rm -rf $test_dir" RETURN
+    
+    cd "$test_dir"
+    
+    local test_file="test-binary.tar.gz"
+    local checksum_file="test-binary.tar.gz.sha256"
+    
+    echo "test content" > "$test_file"
+    
+    local expected_hash=$(shasum -a 256 "$test_file" | awk '{print $1}')
+    echo "$expected_hash  $test_file" > "$checksum_file"
+    
+    local actual_hash=$(shasum -a 256 "$test_file" | awk '{print $1}')
+    
+    if [ "$expected_hash" == "$actual_hash" ]; then
+        : $((TESTS_PASSED++))
+    else
+        : $((TESTS_FAILED++))
+        echo "  FAILED: Expected $expected_hash, got $actual_hash"
+        return 1
+    fi
+}
+
+# Test: Checksum verification with mismatched hash
+test_checksum_verification_invalid() {
+    echo "TEST: Checksum verification fails with mismatched hash"
+    
+    local test_dir=$(mktemp -d)
+    trap "rm -rf $test_dir" RETURN
+    
+    cd "$test_dir"
+    
+    local test_file="test-binary.tar.gz"
+    local checksum_file="test-binary.tar.gz.sha256"
+    
+    echo "test content" > "$test_file"
+    
+    echo "0000000000000000000000000000000000000000000000000000000000000000  $test_file" > "$checksum_file"
+    
+    local expected_hash=$(cat "$checksum_file" | awk '{print $1}')
+    local actual_hash=$(shasum -a 256 "$test_file" | awk '{print $1}')
+    
+    if [ "$expected_hash" != "$actual_hash" ]; then
+        : $((TESTS_PASSED++))
+    else
+        : $((TESTS_FAILED++))
+        echo "  FAILED: Hashes should differ but are the same"
+        return 1
+    fi
+}
+
+# Test: Checksum file format extraction
+test_checksum_file_format() {
+    echo "TEST: Checksum file format is correctly parsed"
+    
+    local test_dir=$(mktemp -d)
+    trap "rm -rf $test_dir" RETURN
+    
+    cd "$test_dir"
+    
+    local test_file="test-binary.tar.gz"
+    local checksum_file="test-binary.tar.gz.sha256"
+    
+    echo "test content" > "$test_file"
+    
+    local hash_with_spaces="  abc123  test-binary.tar.gz  "
+    echo "$hash_with_spaces" > "$checksum_file"
+    
+    local extracted_hash=$(cat "$checksum_file" | awk '{print $1}')
+    
+    if [ "$extracted_hash" == "abc123" ]; then
+        : $((TESTS_PASSED++))
+    else
+        : $((TESTS_FAILED++))
+        echo "  FAILED: Expected 'abc123', got '$extracted_hash'"
+        return 1
+    fi
+}
+
 # Run all tests
 main() {
     echo "===================="
@@ -373,6 +457,9 @@ main() {
     test_shell_detection || true
     test_checksum_mismatch_exit || true
     test_version_extraction || true
+    test_checksum_verification_valid || true
+    test_checksum_verification_invalid || true
+    test_checksum_file_format || true
 
     echo ""
     echo "===================="

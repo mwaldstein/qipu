@@ -7,6 +7,14 @@ Store: <STORE_PATH>
 Qipu is a Zettelkasten-inspired knowledge management system for capturing
 research notes and navigating knowledge via links, tags, and Maps of Content.
 
+## Getting Started
+
+Your knowledge store is empty. Start by capturing your first insights:
+
+  qipu capture --title "..."     Quick capture from stdin
+  qipu create <title>             Create a new note
+  qipu create <title> --type moc   Create a Map of Content
+
 ## Ontology
 
 Mode: default

@@ -10,35 +10,19 @@ use crate::commands::format::{
 use crate::lib::error::QipuError;
 use std::path::PathBuf;
 
-const ONBOARD_SNIPPET: &str = r#"# Qipu Knowledge Management
+const ONBOARD_SNIPPET: &str = r#"## Qipu Knowledge
 
 This project uses **qipu** for knowledge management.
-
-## Quick Start
-
-Add this minimal snippet to AGENTS.md (or create it):
-
----
-
-Run `qipu prime` for workflow context and session-start primer.
+Run `qipu prime` for workflow context.
 
 **Quick reference:**
-- `qipu prime` - Get store overview and session-start primer
-- `qipu create <title>` - Create a new note
-- `qipu capture` - Capture note from stdin
-- `qipu list` - List notes
-- `qipu search <query>` - Search notes
-- `qipu context` - Build context bundle for LLM
-- `qipu link tree <id>` - Show note neighborhood
+- `qipu prime` - Get store overview
+- `qipu create` - Create note
+- `qipu capture` - Quick capture
+- `qipu search` - Search notes
+- `qipu context` - Build LLM context
 
-**Important:** Always use the CLI—never directly read `.qipu/notes/` files. The CLI provides consistent formatting, budget control, and preserves graph context.
-
----
-
-**Why minimal?**
-- `qipu prime` provides dynamic, always-current workflow details
-- AGENTS.md stays lean and saves tokens
-- Run `qipu --help` for complete command reference
+For full workflow: `qipu prime`
 "#;
 
 fn get_agents_md_path(cli: &Cli) -> PathBuf {

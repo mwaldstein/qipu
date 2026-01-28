@@ -641,3 +641,57 @@ fn test_capture_json_with_provenance() {
     assert!(output_str.contains("\"prompt_hash\": \"abc123\""));
     assert!(output_str.contains("\"verified\": true"));
 }
+
+#[test]
+fn test_capture_invalid_type() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Capture with invalid note type should fail
+    qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--type", "invalid-type"])
+        .write_stdin("Test content")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Invalid note type: 'invalid-type'",
+        ))
+        .stderr(predicate::str::contains("Valid types:"));
+}
+
+#[test]
+fn test_capture_with_custom_ontology() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Replace config with custom ontology
+    let config_path = dir.path().join(".qipu/config.toml");
+    let config_content = r#"
+[ontology]
+mode = "extended"
+
+[ontology.note_types.my-custom-type]
+description = "A custom note type"
+"#;
+    fs::write(&config_path, config_content).unwrap();
+
+    // Capture with custom note type should succeed
+    qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--type", "my-custom-type"])
+        .write_stdin("Test content with custom type")
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("qp-"));
+}

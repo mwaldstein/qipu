@@ -200,6 +200,18 @@ impl Ontology {
         }
         Ok(())
     }
+
+    /// Validate a note type
+    pub fn validate_note_type(&self, note_type: &str) -> Result<(), crate::lib::error::QipuError> {
+        if !self.is_valid_note_type(note_type) {
+            let valid_types = self.note_types().join(", ");
+            return Err(crate::lib::error::QipuError::UsageError(format!(
+                "Invalid note type: '{}'. Valid types: {}",
+                note_type, valid_types
+            )));
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

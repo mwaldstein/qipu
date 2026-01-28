@@ -40,6 +40,11 @@ pub fn execute(
         debug!(title, ?note_type, tags_count = tags.len(), "create_params");
     }
 
+    // Validate note type against active ontology
+    if let Some(ref nt) = note_type {
+        store.config().validate_note_type(nt.as_str())?;
+    }
+
     let mut note = store.create_note(title, note_type, tags, id.as_deref())?;
 
     if cli.verbose {

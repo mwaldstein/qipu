@@ -62,6 +62,11 @@ pub fn execute(
     // Default type is fleeting for captures (per spec open question)
     let note_type = note_type.or(Some(NoteType::from(NoteType::FLEETING)));
 
+    // Validate note type against active ontology
+    if let Some(ref nt) = note_type {
+        store.config().validate_note_type(nt.as_str())?;
+    }
+
     // Create note with the captured content
     let mut note = store.create_note_with_content(&title, note_type, tags, content, id)?;
 

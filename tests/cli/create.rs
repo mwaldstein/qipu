@@ -264,3 +264,25 @@ fn test_create_with_open_flag() {
         .count();
     assert_eq!(entries, 1, "Exactly one note should be created");
 }
+
+#[test]
+fn test_create_invalid_type() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Create with invalid note type should fail
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "invalid-type", "Test Note"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Invalid note type: 'invalid-type'",
+        ))
+        .stderr(predicate::str::contains("Valid types:"));
+}

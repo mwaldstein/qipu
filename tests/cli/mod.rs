@@ -16,6 +16,7 @@ mod load;
 mod logging;
 mod merge;
 mod misc;
+mod ontology;
 mod prime;
 mod progressive_disclosure;
 mod provenance;

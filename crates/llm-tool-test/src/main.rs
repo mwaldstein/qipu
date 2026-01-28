@@ -118,6 +118,7 @@ fn main() -> anyhow::Result<()> {
             dry_run,
             no_cache,
             judge_model,
+            no_judge,
             timeout_secs,
         } => {
             if let Some(ref path) = scenario {
@@ -136,6 +137,7 @@ fn main() -> anyhow::Result<()> {
                     *no_cache,
                     *timeout_secs,
                     judge_model,
+                    *no_judge,
                     &base_dir,
                     &results_db,
                     &cache,
@@ -154,6 +156,7 @@ fn main() -> anyhow::Result<()> {
                     *no_cache,
                     *timeout_secs,
                     judge_model,
+                    *no_judge,
                     &base_dir,
                     &results_db,
                     &cache,

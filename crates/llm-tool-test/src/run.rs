@@ -56,6 +56,7 @@ run:
             false,
             true,
             cli_timeout,
+            false,
             &base_dir,
             &results_db,
             &cache,
@@ -107,6 +108,7 @@ evaluation:
             false,
             true,
             cli_timeout,
+            false,
             &base_dir,
             &results_db,
             &cache,
@@ -154,6 +156,7 @@ pub fn run_single_scenario(
     dry_run: bool,
     no_cache: bool,
     timeout_secs: u64,
+    no_judge: bool,
     _base_dir: &std::path::Path,
     results_db: &ResultsDB,
     cache: &Cache,
@@ -271,8 +274,11 @@ pub fn run_single_scenario(
             "cost_usd": cost
         }))?;
 
+        // Create store snapshot before evaluation (judge needs it)
+        writer.create_store_snapshot(&env.root)?;
+
         println!("Running evaluation...");
-        let metrics = crate::evaluation::evaluate(s, &env.root)?;
+        let metrics = crate::evaluation::evaluate(s, &env.root, no_judge)?;
         println!("Evaluation metrics: {:?}", metrics);
 
         let outcome = if metrics.gates_passed < metrics.gates_total {
@@ -301,9 +307,6 @@ pub fn run_single_scenario(
             }),
         };
         writer.write_run_metadata(&run_metadata)?;
-
-        // Create store snapshot
-        writer.create_store_snapshot(&env.root)?;
 
         // Write report.md
         let report = crate::transcript::RunReport {

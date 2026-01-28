@@ -1,4 +1,4 @@
-use crate::judge::{load_rubric, run_judge, JudgeResponse};
+use crate::judge::{load_rubric, JudgeResponse};
 use crate::scenario::{Gate, Scenario};
 use crate::store_analysis::{QualityMetrics, StoreAnalyzer};
 use crate::transcript::EfficiencyMetrics;
@@ -243,7 +243,7 @@ pub struct GateResult {
     pub message: String,
 }
 
-pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetrics> {
+pub fn evaluate(scenario: &Scenario, env_root: &Path, no_judge: bool) -> Result<EvaluationMetrics> {
     println!("Evaluating results for scenario: {}", scenario.name);
 
     let mut details = Vec::new();
@@ -265,30 +265,56 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     let mut judge_response = None;
 
     if let Some(judge_config) = &scenario.evaluation.judge {
-        if judge_config.enabled {
+        if judge_config.enabled && !no_judge {
             println!("Running LLM-as-judge evaluation...");
-            let model =
-                std::env::var("LLM_TOOL_TEST_JUDGE").unwrap_or_else(|_| "gpt-4o-mini".to_string());
-
             let rubric_path = env_root.join(&judge_config.rubric);
-            let rubric = load_rubric(&rubric_path)
+            let _rubric = load_rubric(&rubric_path)
                 .with_context(|| format!("Failed to load rubric from {}", judge_config.rubric))?;
 
-            let transcript_summary = get_transcript_summary(env_root)?;
-            let store_export = get_store_export(env_root)?;
+            let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+            let store_path = env_root.join("artifacts/store_snapshot/export.json");
 
-            let runtime = tokio::runtime::Runtime::new()
-                .context("Failed to create tokio runtime for judge")?;
+            let runner = crate::session::SessionRunner::new();
+            let prompt = format!(
+                r#"Evaluate this LLM tool interaction.
 
-            let response = runtime
-                .block_on(run_judge(
-                    &model,
-                    &transcript_summary,
-                    &store_export,
-                    &scenario.task.prompt,
-                    &rubric,
-                ))
-                .context("LLM judge evaluation failed")?;
+Task: {}
+
+Files to review:
+- @{} - The interaction transcript
+- @{} - Store state after interaction
+
+Use the rubric at {} for evaluation.
+
+Return evaluation as JSON with this structure:
+{{
+  "scores": {{
+    "criterion_id": <score_0_to_1>,
+    ...
+  }},
+  "weighted_score": <weighted_average_0_to_1>,
+  "confidence": <confidence_0_to_1>,
+  "issues": ["issue1", "issue2", ...],
+  "highlights": ["good_practice1", "good_practice2", ...]
+}}
+
+Provide JSON only, no additional text."#,
+                scenario.task.prompt,
+                transcript_path.display(),
+                store_path.display(),
+                rubric_path.display()
+            );
+
+            let (output, exit_code) = runner
+                .run_command("opencode", &["run", &prompt], env_root, 300)
+                .context("Judge execution failed")?;
+
+            if exit_code != 0 {
+                anyhow::bail!("Judge exited with code {}: {}", exit_code, output);
+            }
+
+            let response: JudgeResponse = serde_json::from_str(&output)
+                .with_context(|| format!("Failed to parse judge response: {}", output))?;
 
             println!(
                 "Judge score: {:.2} (confidence: {:.2})",
@@ -356,6 +382,7 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path) -> Result<EvaluationMetric
     Ok(metrics)
 }
 
+#[allow(dead_code)]
 fn get_transcript_summary(env_root: &Path) -> Result<String> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
     match std::fs::read_to_string(&transcript_path) {
@@ -368,6 +395,7 @@ fn get_transcript_summary(env_root: &Path) -> Result<String> {
     }
 }
 
+#[allow(dead_code)]
 fn get_store_export(env_root: &Path) -> Result<String> {
     match run_qipu_json(&["export"], env_root) {
         Ok(json) => Ok(serde_json::to_string_pretty(&json).unwrap_or_else(|_| "{}".to_string())),
@@ -665,7 +693,7 @@ mod tests {
             run: None,
         };
 
-        let metrics = evaluate(&scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
         assert!(!metrics.details[0].passed);
 
@@ -673,7 +701,7 @@ mod tests {
         create_note_with_stdin(&env_root, "This is a test note #test");
 
         // 3. MinNotes 1 should pass
-        let metrics = evaluate(&scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
         assert!(metrics.details[0].passed);
 
@@ -695,7 +723,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
+        let metrics = evaluate(&scenario_fail_2, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 5. Search hit
@@ -718,7 +746,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_search, &env_root).unwrap();
+        let metrics = evaluate(&scenario_search, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         let scenario_search_fail = Scenario {
@@ -740,7 +768,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
+        let metrics = evaluate(&scenario_search_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 6. NoteExists - get the first note ID from list
@@ -771,7 +799,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_note_exists, &env_root).unwrap();
+        let metrics = evaluate(&scenario_note_exists, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         // 8. NoteExists should fail with non-existent ID
@@ -794,7 +822,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
+        let metrics = evaluate(&scenario_note_exists_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 9. LinkExists - should fail with non-existent link
@@ -819,7 +847,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&link_scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&link_scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 10. LinkExists should pass with existing link - first create second note
@@ -883,7 +911,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&link_scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         // 11. TagExists - should fail with non-existent tag
@@ -906,7 +934,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&tag_scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&tag_scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 12. TagExists should pass with existing tag - create a note with tag
@@ -942,7 +970,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&tag_scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         // 13. ContentContains - should pass with existing content
@@ -966,7 +994,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&content_scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&content_scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         // 14. ContentContains - should fail with non-existent substring
@@ -990,7 +1018,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&content_scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
 
         // 15. CommandSucceeds - should pass with successful command
@@ -1013,7 +1041,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&command_scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&command_scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
 
         // 16. CommandSucceeds - should fail with failing command
@@ -1036,7 +1064,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
+        let metrics = evaluate(&command_scenario_fail, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
     }
 
@@ -1244,7 +1272,7 @@ mod tests {
             tags: vec![],
             run: None,
         };
-        let metrics = evaluate(&scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
         assert!(metrics.details[0].passed);
 
@@ -1260,7 +1288,7 @@ mod tests {
         std::fs::remove_file(&note_path).expect("Failed to delete note file");
 
         // DoctorPasses gate should fail with broken store
-        let metrics = evaluate(&scenario_pass, &env_root).unwrap();
+        let metrics = evaluate(&scenario_pass, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
         assert!(!metrics.details[0].passed);
     }
@@ -1299,7 +1327,7 @@ mod tests {
             run: None,
         };
 
-        let metrics = evaluate(&scenario, &env_root).unwrap();
+        let metrics = evaluate(&scenario, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 1);
         assert!(metrics.details[0].passed);
 
@@ -1311,14 +1339,14 @@ mod tests {
         )
         .unwrap();
 
-        let metrics = evaluate(&scenario, &env_root).unwrap();
+        let metrics = evaluate(&scenario, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
         assert!(!metrics.details[0].passed);
 
         // Test with missing transcript
         std::fs::remove_file(artifacts_dir.join("transcript.raw.txt")).unwrap();
 
-        let metrics = evaluate(&scenario, &env_root).unwrap();
+        let metrics = evaluate(&scenario, &env_root, false).unwrap();
         assert_eq!(metrics.gates_passed, 0);
         assert!(!metrics.details[0].passed);
     }

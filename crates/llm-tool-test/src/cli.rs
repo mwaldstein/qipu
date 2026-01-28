@@ -55,6 +55,10 @@ pub enum Commands {
         #[arg(long)]
         judge_model: Option<String>,
 
+        /// Disable LLM-as-judge evaluation
+        #[arg(long)]
+        no_judge: bool,
+
         /// Maximum execution time in seconds per command
         #[arg(long, default_value = "300")]
         timeout_secs: u64,

@@ -221,6 +221,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             min_value,
             custom_filter,
             custom,
+            include_ontology,
         }) => {
             // Default to full body unless --summary-only is specified
             // --with-body is kept for backward compatibility but is now the default
@@ -253,6 +254,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
                 *min_value,
                 custom_filter,
                 *custom,
+                *include_ontology,
                 start,
             )
         }

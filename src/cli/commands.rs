@@ -414,6 +414,10 @@ pub enum Commands {
         /// Include custom metadata in output (opt-in)
         #[arg(long)]
         custom: bool,
+
+        /// Include domain guidance and type descriptions (ontology) in output
+        #[arg(long)]
+        include_ontology: bool,
     },
 
     /// Export notes to a single document

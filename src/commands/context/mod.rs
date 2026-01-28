@@ -483,6 +483,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         OutputFormat::Json => {
             output::output_json(
                 cli,
+                &store,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -493,11 +494,13 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 options.max_chars,
                 &excluded_notes,
                 options.include_custom,
+                options.include_ontology,
             )?;
         }
         OutputFormat::Human => {
             output::output_human(
                 cli,
+                &store,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -509,6 +512,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 options.max_chars,
                 &excluded_notes,
                 options.include_custom,
+                options.include_ontology,
             );
         }
         OutputFormat::Records => {
@@ -520,6 +524,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             };
             output::output_records(
                 cli,
+                &store,
                 &store_path,
                 &notes_to_output,
                 &config,
@@ -527,6 +532,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 &note_map,
                 &all_notes,
                 options.include_custom,
+                options.include_ontology,
             );
         }
     }

@@ -3,6 +3,8 @@ use crate::cli::Cli;
 use crate::commands::context::path_relative_to_cwd;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
+use crate::lib::ontology::Ontology;
+use crate::lib::store::Store;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::debug;
@@ -11,6 +13,7 @@ use tracing::debug;
 #[allow(clippy::too_many_arguments)]
 pub fn output_human(
     cli: &Cli,
+    store: &Store,
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
@@ -22,18 +25,26 @@ pub fn output_human(
     max_chars: Option<usize>,
     _excluded_notes: &[&SelectedNote],
     include_custom: bool,
+    include_ontology: bool,
 ) {
     let start = Instant::now();
 
     if cli.verbose {
         debug!(
             notes_count = notes.len(),
-            truncated, with_body, safety_banner, max_chars, include_custom, "output_human"
+            truncated,
+            with_body,
+            safety_banner,
+            max_chars,
+            include_custom,
+            include_ontology,
+            "output_human"
         );
     }
 
     let output = build_human_output(
         cli,
+        store,
         store_path,
         notes,
         truncated,
@@ -44,6 +55,7 @@ pub fn output_human(
         _all_notes,
         max_chars,
         include_custom,
+        include_ontology,
     );
 
     print!("{}", output);
@@ -56,6 +68,7 @@ pub fn output_human(
 #[allow(clippy::too_many_arguments)]
 fn build_human_output(
     cli: &Cli,
+    store: &Store,
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
@@ -66,12 +79,52 @@ fn build_human_output(
     _all_notes: &[Note],
     max_chars: Option<usize>,
     include_custom: bool,
+    include_ontology: bool,
 ) -> String {
     let mut output = String::new();
 
     output.push_str("# Qipu Context Bundle\n");
     output.push_str(&format!("Store: {}\n", store_path));
     let mut used_chars = output.len();
+
+    if include_ontology {
+        let config = store.config();
+        let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
+        output.push_str("\n## Ontology\n\n");
+        output.push_str(&format!("Mode: {}\n\n", format_mode(config.ontology.mode)));
+
+        let note_types = ontology.note_types();
+        let link_types = ontology.link_types();
+
+        output.push_str("### Note Types\n");
+        for nt in &note_types {
+            let type_config = config.ontology.note_types.get(nt);
+            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+                output.push_str(&format!("  {} - {}\n", nt, desc));
+            } else {
+                output.push_str(&format!("  {}\n", nt));
+            }
+            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+                output.push_str(&format!("    Usage: {}\n", usage));
+            }
+        }
+        output.push('\n');
+
+        output.push_str("### Link Types\n");
+        for lt in &link_types {
+            let inverse = ontology.get_inverse(lt);
+            let type_config = config.ontology.link_types.get(lt);
+            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+                output.push_str(&format!("  {} -> {} ({})\n", lt, inverse, desc));
+            } else {
+                output.push_str(&format!("  {} -> {}\n", lt, inverse));
+            }
+            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+                output.push_str(&format!("    Usage: {}\n", usage));
+            }
+        }
+        output.push('\n');
+    }
 
     if truncated {
         output.push('\n');
@@ -249,4 +302,12 @@ fn build_human_output(
     }
 
     output
+}
+
+fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+    match mode {
+        crate::lib::config::OntologyMode::Default => "default",
+        crate::lib::config::OntologyMode::Extended => "extended",
+        crate::lib::config::OntologyMode::Replacement => "replacement",
+    }
 }

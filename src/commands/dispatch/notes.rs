@@ -353,6 +353,7 @@ pub(super) fn handle_context(
     min_value: Option<u8>,
     custom_filter: &[String],
     include_custom: bool,
+    include_ontology: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -388,6 +389,7 @@ pub(super) fn handle_context(
             min_value,
             custom_filter,
             include_custom,
+            include_ontology,
         },
     )?;
     if cli.verbose {

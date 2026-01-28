@@ -3,6 +3,8 @@ use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
 use crate::lib::note::Note;
+use crate::lib::ontology::Ontology;
+use crate::lib::store::Store;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::debug;
@@ -11,6 +13,7 @@ use tracing::debug;
 #[allow(clippy::too_many_arguments)]
 pub fn output_json(
     cli: &Cli,
+    store: &Store,
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
@@ -21,18 +24,20 @@ pub fn output_json(
     max_chars: Option<usize>,
     _excluded_notes: &[&SelectedNote],
     include_custom: bool,
+    include_ontology: bool,
 ) -> Result<()> {
     let start = Instant::now();
 
     if cli.verbose {
         debug!(
             notes_count = notes.len(),
-            truncated, with_body, max_chars, include_custom, "output_json"
+            truncated, with_body, max_chars, include_custom, include_ontology, "output_json"
         );
     }
 
     let output = build_json_output(
         cli,
+        store,
         store_path,
         notes,
         truncated,
@@ -42,6 +47,7 @@ pub fn output_json(
         all_notes,
         max_chars,
         include_custom,
+        include_ontology,
     );
 
     println!("{}", serde_json::to_string_pretty(&output)?);
@@ -55,6 +61,7 @@ pub fn output_json(
 #[allow(clippy::too_many_arguments)]
 fn build_json_output(
     cli: &Cli,
+    store: &Store,
     store_path: &str,
     notes: &[&SelectedNote],
     truncated: bool,
@@ -64,6 +71,7 @@ fn build_json_output(
     all_notes: &[Note],
     max_chars: Option<usize>,
     include_custom: bool,
+    include_ontology: bool,
 ) -> serde_json::Value {
     let mut json_notes: Vec<serde_json::Value> = Vec::new();
     let mut actual_truncated = false;
@@ -105,7 +113,7 @@ fn build_json_output(
                 let (final_content, content_truncated) =
                     if content.len() > marker.len() + 10 && available_for_content > marker.len() {
                         let truncated_content_len =
-                            available_for_content.min(content.len() - marker_len);
+                            available_for_content.min(content.len() - marker.len());
                         (
                             format!("{} {}", &content[..truncated_content_len], marker),
                             true,
@@ -150,11 +158,66 @@ fn build_json_output(
         json_notes.push(note_json_obj);
     }
 
-    serde_json::json!({
+    let mut output = serde_json::json!({
         "store": store_path,
         "truncated": truncated || actual_truncated,
         "notes": json_notes,
-    })
+    });
+
+    if include_ontology {
+        let config = store.config();
+        let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
+
+        let note_types = ontology.note_types();
+        let link_types = ontology.link_types();
+
+        let note_type_objs: Vec<_> = note_types
+            .iter()
+            .map(|nt| {
+                let type_config = config.ontology.note_types.get(nt);
+                serde_json::json!({
+                    "name": nt,
+                    "description": type_config.and_then(|c| c.description.clone()),
+                    "usage": type_config.and_then(|c| c.usage.clone()),
+                })
+            })
+            .collect();
+
+        let link_type_objs: Vec<_> = link_types
+            .iter()
+            .map(|lt| {
+                let inverse = ontology.get_inverse(lt);
+                let type_config = config.ontology.link_types.get(lt);
+                serde_json::json!({
+                    "name": lt,
+                    "inverse": inverse,
+                    "description": type_config.and_then(|c| c.description.clone()),
+                    "usage": type_config.and_then(|c| c.usage.clone()),
+                })
+            })
+            .collect();
+
+        if let Some(obj) = output.as_object_mut() {
+            obj.insert(
+                "ontology".to_string(),
+                serde_json::json!({
+                    "mode": format_mode(config.ontology.mode),
+                    "note_types": note_type_objs,
+                    "link_types": link_type_objs,
+                }),
+            );
+        }
+    }
+
+    output
+}
+
+fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+    match mode {
+        crate::lib::config::OntologyMode::Default => "default",
+        crate::lib::config::OntologyMode::Extended => "extended",
+        crate::lib::config::OntologyMode::Replacement => "replacement",
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

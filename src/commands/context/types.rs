@@ -27,6 +27,7 @@ pub struct ContextOptions<'a> {
     pub min_value: Option<u8>,
     pub custom_filter: &'a [String],
     pub include_custom: bool,
+    pub include_ontology: bool,
 }
 
 pub struct SelectedNote<'a> {

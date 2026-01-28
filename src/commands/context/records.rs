@@ -3,7 +3,9 @@ use crate::cli::Cli;
 use crate::commands::context::path_relative_to_cwd;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::note::Note;
+use crate::lib::ontology::Ontology;
 use crate::lib::records::escape_quotes;
+use crate::lib::store::Store;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::debug;
@@ -12,6 +14,7 @@ use tracing::debug;
 #[allow(clippy::too_many_arguments)]
 pub fn output_records(
     cli: &Cli,
+    store: &Store,
     store_path: &str,
     notes: &[&SelectedNote],
     config: &RecordsOutputConfig,
@@ -19,6 +22,7 @@ pub fn output_records(
     note_map: &HashMap<&str, &Note>,
     all_notes: &[Note],
     include_custom: bool,
+    include_ontology: bool,
 ) {
     let start = Instant::now();
 
@@ -30,8 +34,53 @@ pub fn output_records(
             safety_banner = config.safety_banner,
             max_chars = config.max_chars,
             include_custom,
+            include_ontology,
             "output_records"
         );
+    }
+
+    let mut header_ontology_lines = Vec::new();
+    if include_ontology {
+        let config_store = store.config();
+        let ontology =
+            Ontology::from_config_with_graph(&config_store.ontology, &config_store.graph);
+        header_ontology_lines.push(format!(
+            "O mode={}",
+            format_mode(config_store.ontology.mode)
+        ));
+
+        let note_types = ontology.note_types();
+        let link_types = ontology.link_types();
+
+        for nt in &note_types {
+            let type_config = config_store.ontology.note_types.get(nt);
+            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+                header_ontology_lines
+                    .push(format!("T note_type=\"{}\" description=\"{}\"", nt, desc));
+            } else {
+                header_ontology_lines.push(format!("T note_type=\"{}\"", nt));
+            }
+            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+                header_ontology_lines.push(format!("U note_type=\"{}\" usage=\"{}\"", nt, usage));
+            }
+        }
+
+        for lt in &link_types {
+            let inverse = ontology.get_inverse(lt);
+            let type_config = config_store.ontology.link_types.get(lt);
+            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+                header_ontology_lines.push(format!(
+                    "L link_type=\"{}\" inverse=\"{}\" description=\"{}\"",
+                    lt, inverse, desc
+                ));
+            } else {
+                header_ontology_lines
+                    .push(format!("L link_type=\"{}\" inverse=\"{}\"", lt, inverse));
+            }
+            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+                header_ontology_lines.push(format!("U link_type=\"{}\" usage=\"{}\"", lt, usage));
+            }
+        }
     }
 
     let budget = config.max_chars;
@@ -241,6 +290,10 @@ pub fn output_records(
     let truncated_value = if truncated { "true" } else { "false" };
     println!("{}{}", header_base, truncated_value);
 
+    for line in &header_ontology_lines {
+        println!("{}", line);
+    }
+
     if let Some(line) = &safety_line {
         println!("{}", line);
     }
@@ -289,5 +342,13 @@ pub fn output_records(
 
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "output_records_complete");
+    }
+}
+
+fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+    match mode {
+        crate::lib::config::OntologyMode::Default => "default",
+        crate::lib::config::OntologyMode::Extended => "extended",
+        crate::lib::config::OntologyMode::Replacement => "replacement",
     }
 }

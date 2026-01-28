@@ -288,6 +288,65 @@ impl TranscriptWriter {
         fs::write(self.base_dir.join("report.md"), content)?;
         Ok(())
     }
+
+    /// Write evaluation.md with summary, judge score, metrics, and human review section
+    pub fn write_evaluation(&self, evaluation: &EvaluationReport) -> anyhow::Result<()> {
+        let mut content = String::new();
+
+        content.push_str("# Evaluation\n\n");
+
+        content.push_str("## Summary\n\n");
+        content.push_str(&format!("- **Scenario**: {}\n", evaluation.scenario_id));
+        content.push_str(&format!("- **Tool**: {}\n", evaluation.tool));
+        content.push_str(&format!("- **Model**: {}\n", evaluation.model));
+        content.push_str(&format!("- **Outcome**: {}\n\n", evaluation.outcome));
+
+        if let Some(judge_score) = evaluation.judge_score_1_to_5 {
+            content.push_str(&format!("## Judge Score\n\n"));
+            content.push_str(&format!("**{}** / 5\n\n", judge_score));
+        }
+
+        content.push_str("## Metrics\n\n");
+        content.push_str(&format!(
+            "- **Gates Passed**: {}/{}\n",
+            evaluation.gates_passed, evaluation.gates_total
+        ));
+        content.push_str(&format!("- **Notes Created**: {}\n", evaluation.note_count));
+        content.push_str(&format!("- **Links Created**: {}\n", evaluation.link_count));
+        content.push_str(&format!(
+            "- **Duration**: {:.2}s\n",
+            evaluation.duration_secs
+        ));
+        content.push_str(&format!("- **Cost**: ${:.4}\n", evaluation.cost_usd));
+        content.push_str(&format!(
+            "- **Composite Score**: {:.2}\n\n",
+            evaluation.composite_score
+        ));
+
+        if !evaluation.judge_feedback.is_empty() {
+            content.push_str("## Judge Feedback\n\n");
+            for feedback in &evaluation.judge_feedback {
+                content.push_str(&format!("{}\n", feedback));
+            }
+            content.push_str("\n");
+        }
+
+        content.push_str("## Human Review\n\n");
+        content.push_str(&format!("<!--\n"));
+        content.push_str(&format!("Human Score: __/5\n\n"));
+        content.push_str(&format!("Further Human Notes:\n"));
+        content.push_str(&format!("-->\n\n"));
+
+        content.push_str("## Links\n\n");
+        content.push_str(&format!("- [Transcript](transcript.raw.txt)\n"));
+        content.push_str(&format!("- [Metrics](metrics.json)\n"));
+        content.push_str(&format!("- [Events](events.jsonl)\n"));
+        content.push_str(&format!("- [Fixture](../fixture/)\n"));
+        content.push_str(&format!("- [Store Snapshot](store_snapshot/export.json)\n"));
+
+        fs::write(self.base_dir.join("evaluation.md"), content)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -362,6 +421,23 @@ pub struct QualityReport {
     pub avg_tags_per_note: f64,
     pub links_per_note: f64,
     pub orphan_notes: usize,
+}
+
+#[derive(Debug)]
+pub struct EvaluationReport {
+    pub scenario_id: String,
+    pub tool: String,
+    pub model: String,
+    pub outcome: String,
+    pub judge_score_1_to_5: Option<f64>,
+    pub gates_passed: usize,
+    pub gates_total: usize,
+    pub note_count: usize,
+    pub link_count: usize,
+    pub duration_secs: f64,
+    pub cost_usd: f64,
+    pub composite_score: f64,
+    pub judge_feedback: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1397,5 +1473,121 @@ mod tests {
         let ts1 = events[0]["ts"].as_f64().unwrap();
         let ts2 = events[1]["ts"].as_f64().unwrap();
         assert!(ts2 > ts1);
+    }
+
+    #[test]
+    fn test_write_evaluation_basic() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let evaluation = EvaluationReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "opencode".to_string(),
+            model: "gpt-4o".to_string(),
+            outcome: "Pass".to_string(),
+            judge_score_1_to_5: Some(4.0),
+            gates_passed: 2,
+            gates_total: 3,
+            note_count: 5,
+            link_count: 2,
+            duration_secs: 30.0,
+            cost_usd: 0.015,
+            composite_score: 0.82,
+            judge_feedback: vec![
+                "**Issues:**\nMinor formatting issue".to_string(),
+                "**Highlights:**\nGood structure".to_string(),
+                "**Criteria Scores:**\n- relevance: 0.85\n- clarity: 0.90".to_string(),
+            ],
+        };
+
+        writer.write_evaluation(&evaluation).unwrap();
+
+        let eval_path = dir.path().join("evaluation.md");
+        assert!(eval_path.exists());
+
+        let content = fs::read_to_string(&eval_path).unwrap();
+        assert!(content.contains("# Evaluation"));
+        assert!(content.contains("test_scenario"));
+        assert!(content.contains("opencode"));
+        assert!(content.contains("gpt-4o"));
+        assert!(content.contains("**4** / 5"));
+        assert!(content.contains("2/3"));
+        assert!(content.contains("**Notes Created**: 5"));
+        assert!(content.contains("**Links Created**: 2"));
+        assert!(content.contains("30.00s"));
+        assert!(content.contains("$0.0150"));
+        assert!(content.contains("0.82"));
+        assert!(content.contains("## Judge Feedback"));
+        assert!(content.contains("**Issues:**"));
+        assert!(content.contains("**Highlights:**"));
+        assert!(content.contains("**Criteria Scores:**"));
+        assert!(content.contains("## Human Review"));
+        assert!(content.contains("<!--"));
+        assert!(content.contains("Human Score: __/5"));
+        assert!(content.contains("Further Human Notes:"));
+        assert!(content.contains("-->"));
+        assert!(content.contains("## Links"));
+        assert!(content.contains("[Transcript](transcript.raw.txt)"));
+        assert!(content.contains("[Metrics](metrics.json)"));
+        assert!(content.contains("[Events](events.jsonl)"));
+        assert!(content.contains("[Fixture](../fixture/)"));
+        assert!(content.contains("[Store Snapshot](store_snapshot/export.json)"));
+    }
+
+    #[test]
+    fn test_write_evaluation_without_judge_score() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let evaluation = EvaluationReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            outcome: "Pass".to_string(),
+            judge_score_1_to_5: None,
+            gates_passed: 1,
+            gates_total: 2,
+            note_count: 3,
+            link_count: 1,
+            duration_secs: 20.0,
+            cost_usd: 0.01,
+            composite_score: 0.75,
+            judge_feedback: vec![],
+        };
+
+        writer.write_evaluation(&evaluation).unwrap();
+
+        let eval_path = dir.path().join("evaluation.md");
+        let content = fs::read_to_string(&eval_path).unwrap();
+        assert!(!content.contains("Judge Score"));
+        assert!(!content.contains("## Judge Feedback"));
+    }
+
+    #[test]
+    fn test_write_evaluation_fractional_judge_score() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let evaluation = EvaluationReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "opencode".to_string(),
+            model: "gpt-4o".to_string(),
+            outcome: "Pass".to_string(),
+            judge_score_1_to_5: Some(3.5),
+            gates_passed: 2,
+            gates_total: 2,
+            note_count: 4,
+            link_count: 2,
+            duration_secs: 25.0,
+            cost_usd: 0.012,
+            composite_score: 0.70,
+            judge_feedback: vec![],
+        };
+
+        writer.write_evaluation(&evaluation).unwrap();
+
+        let eval_path = dir.path().join("evaluation.md");
+        let content = fs::read_to_string(&eval_path).unwrap();
+        assert!(content.contains("**3.5** / 5"));
     }
 }

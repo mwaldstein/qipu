@@ -1,0 +1,37 @@
+{
+  "gates_passed": 1,
+  "gates_total": 1,
+  "note_count": 1,
+  "link_count": 0,
+  "details": [
+    {
+      "gate_type": "MinNotes",
+      "passed": true,
+      "message": "Expected >= 1, found 1"
+    }
+  ],
+  "judge_score": null,
+  "judge_response": null,
+  "efficiency": {
+    "total_commands": 3,
+    "unique_commands": 3,
+    "error_count": 0,
+    "retry_count": 0,
+    "help_invocations": 0,
+    "first_try_success_rate": 1.0,
+    "iteration_ratio": 1.0
+  },
+  "quality": {
+    "avg_title_length": 0.0,
+    "avg_body_length": 0.0,
+    "avg_tags_per_note": 0.0,
+    "notes_without_tags": 0,
+    "links_per_note": 0.0,
+    "orphan_notes": 0,
+    "link_type_diversity": 0,
+    "type_distribution": {},
+    "total_notes": 0,
+    "total_links": 0
+  },
+  "composite_score": 0.4
+}

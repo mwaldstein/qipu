@@ -8,7 +8,8 @@ use crate::results::{
     QualityMetricsRecord, ResultRecord, ResultsDB,
 };
 
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 #[cfg(test)]
@@ -120,6 +121,30 @@ evaluation:
             result
         );
     }
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) -> anyhow::Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn get_results_dir(tool: &str, model: &str, scenario_name: &str) -> PathBuf {
+    let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
+    let dir_name = format!("{}-{}-{}-{}", timestamp, tool, model, scenario_name);
+    PathBuf::from("llm-tool-test-results").join(dir_name)
 }
 
 pub fn run_single_scenario(
@@ -335,6 +360,10 @@ pub fn run_single_scenario(
         };
         writer.write_report(&report)?;
 
+        // Write metrics.json
+        let metrics_json = serde_json::to_string_pretty(&metrics)?;
+        fs::write(transcript_dir.join("metrics.json"), metrics_json)?;
+
         let transcript_path = transcript_dir.to_string_lossy().to_string();
 
         let record = ResultRecord {
@@ -394,6 +423,19 @@ pub fn run_single_scenario(
 
         results_db.append(&record)?;
         cache.put(&cache_key, &record)?;
+
+        // Create results directory and copy artifacts
+        let results_dir = get_results_dir(tool, model, &s.name);
+        fs::create_dir_all(&results_dir)?;
+
+        // Copy transcript artifacts
+        copy_dir_recursive(&transcript_dir, &results_dir)?;
+
+        // Copy fixture directory (including .qipu) as "fixture"
+        let fixture_dir = results_dir.join("fixture");
+        copy_dir_recursive(&env.root, &fixture_dir)?;
+
+        println!("\nArtifacts written to: {}", results_dir.display());
 
         if let Some(baseline) = results_db.load_baseline(&s.name, tool)? {
             let report = crate::results::compare_runs(&record, &baseline);

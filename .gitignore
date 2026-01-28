@@ -22,5 +22,8 @@ dist/
 # LLM validation transcripts (volatile test artifacts)
 tests/transcripts/
 
+# LLM tool test results
+llm-tool-test-results/
+
 
 .beads/export-state

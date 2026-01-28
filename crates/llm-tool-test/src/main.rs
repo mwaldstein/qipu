@@ -19,6 +19,26 @@ use cli::{BaselineAction, Cli, Commands};
 use results::{Cache, ResultsDB};
 use scenario::ToolConfig;
 use std::iter::Iterator;
+use std::path::{Path, PathBuf};
+
+fn resolve_scenario_path(path: &str) -> PathBuf {
+    let p = Path::new(path);
+    if p.is_absolute() || p.exists() {
+        p.to_path_buf()
+    } else {
+        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
+            PathBuf::from("crates/llm-tool-test/fixtures")
+        } else {
+            PathBuf::from("fixtures")
+        };
+        let fixture_path = fixtures_dir.join(path);
+        if fixture_path.exists() {
+            fixture_path
+        } else {
+            fixtures_dir.join(format!("{}.yaml", path))
+        }
+    }
+}
 
 pub fn build_tool_matrix(
     cli_tools: &Option<String>,
@@ -100,10 +120,11 @@ fn main() -> anyhow::Result<()> {
             judge_model,
             timeout_secs,
         } => {
-            if let Some(path) = scenario {
-                let _s = scenario::load(path)?;
+            if let Some(ref path) = scenario {
+                let resolved_path = resolve_scenario_path(path);
+                let _s = scenario::load(&resolved_path)?;
                 commands::handle_run_command(
-                    scenario,
+                    &scenario,
                     *all,
                     tags,
                     tier,

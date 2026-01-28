@@ -5,11 +5,11 @@
 - **ID**: timeout_test_override
 - **Tool**: mock
 - **Model**: mock
-- **Timestamp**: 2026-01-28T09:38:57.753345513+00:00
+- **Timestamp**: 2026-01-28T10:22:32.835178779+00:00
 
 ## Execution
 
-- **Duration**: 0.18s
+- **Duration**: 0.35s
 - **Cost**: $0.0000
 - **Outcome**: Pass
 

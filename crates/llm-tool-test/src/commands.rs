@@ -7,6 +7,25 @@ use chrono::{Duration, Utc};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+fn resolve_scenario_path(path: &str) -> PathBuf {
+    let p = Path::new(path);
+    if p.is_absolute() || p.exists() {
+        p.to_path_buf()
+    } else {
+        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
+            PathBuf::from("crates/llm-tool-test/fixtures")
+        } else {
+            PathBuf::from("fixtures")
+        };
+        let fixture_path = fixtures_dir.join(path);
+        if fixture_path.exists() {
+            fixture_path
+        } else {
+            fixtures_dir.join(format!("{}.yaml", path))
+        }
+    }
+}
+
 fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
@@ -82,8 +101,9 @@ pub fn handle_run_command(
         }
         filtered_scenarios
     } else if let Some(path) = scenario {
-        let s = load(path)?;
-        vec![(s.name.clone(), PathBuf::from(path))]
+        let resolved_path = resolve_scenario_path(path);
+        let s = load(&resolved_path)?;
+        vec![(s.name.clone(), resolved_path)]
     } else {
         println!("No scenario specified. Use --scenario <path> or --all");
         return Ok(());

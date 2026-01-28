@@ -1,6 +1,6 @@
 use super::model::{PackAttachment, PackLink};
 use crate::lib::config::STORE_FORMAT_VERSION;
-use crate::lib::error::Result;
+use crate::lib::error::{QipuError, Result};
 use crate::lib::note::Note;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
@@ -15,16 +15,34 @@ pub fn serialize_pack_records(
 ) -> Result<String> {
     let mut output = String::new();
 
+    // Read config.toml content
+    let config_path = store.root().join("config.toml");
+    let config_content = if config_path.exists() {
+        std::fs::read_to_string(&config_path)
+            .map_err(|e| QipuError::Other(format!("failed to read config.toml: {}", e)))?
+    } else {
+        String::new()
+    };
+    let has_config = !config_content.is_empty();
+
     // Header line
     output.push_str(&format!(
-        "H pack=1 version=1.0 store_version={} created={} store={} notes={} links={} attachments={}\n",
+        "H pack=1 version=1.0 store_version={} created={} store={} notes={} links={} attachments={} config={}\n",
         STORE_FORMAT_VERSION,
         chrono::Utc::now().to_rfc3339(),
         store.root().display(),
         notes.len(),
         links.len(),
-        attachments.len()
+        attachments.len(),
+        if has_config { 1 } else { 0 }
     ));
+
+    // Config section (if present)
+    if has_config {
+        let encoded = general_purpose::STANDARD.encode(config_content.as_bytes());
+        output.push_str(&format!("CFG {}\n", encoded));
+        output.push_str("CFG-END\n");
+    }
 
     // Notes section
     for note in notes {

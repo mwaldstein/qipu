@@ -58,6 +58,8 @@ pub fn execute(
         }
         OutputFormat::Human => {
             println!("Initialized qipu store at {}", store.root().display());
+            println!();
+            println!("Run `qipu prime` for workflow context.");
         }
     }
 

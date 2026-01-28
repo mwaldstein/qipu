@@ -717,4 +717,381 @@ mod tests {
         assert_eq!(commands[1].command, "list");
         assert_eq!(commands[2].command, "link");
     }
+
+    #[test]
+    fn test_write_report_basic() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 45.3,
+            cost_usd: 0.0234,
+            token_usage: None,
+            outcome: "Pass".to_string(),
+            gates_passed: 3,
+            gates_total: 3,
+            note_count: 5,
+            link_count: 3,
+            composite_score: Some(0.82),
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 10,
+                unique_commands: 5,
+                error_count: 0,
+                first_try_success_rate: 0.9,
+                iteration_ratio: 2.0,
+            },
+            quality: QualityReport {
+                avg_title_length: 15.0,
+                avg_body_length: 250.0,
+                avg_tags_per_note: 1.2,
+                links_per_note: 0.6,
+                orphan_notes: 1,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        assert!(report_path.exists());
+
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("# Test Run Report"));
+        assert!(content.contains("test_scenario"));
+        assert!(content.contains("amp"));
+        assert!(content.contains("claude-3-5-sonnet"));
+        assert!(content.contains("45.30s"));
+        assert!(content.contains("$0.0234"));
+        assert!(content.contains("Pass"));
+    }
+
+    #[test]
+    fn test_write_report_with_token_usage() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 30.0,
+            cost_usd: 0.0150,
+            token_usage: Some(TokenUsage {
+                input: 1500,
+                output: 800,
+            }),
+            outcome: "Pass".to_string(),
+            gates_passed: 2,
+            gates_total: 3,
+            note_count: 3,
+            link_count: 2,
+            composite_score: Some(0.75),
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 8,
+                unique_commands: 4,
+                error_count: 1,
+                first_try_success_rate: 0.875,
+                iteration_ratio: 2.0,
+            },
+            quality: QualityReport {
+                avg_title_length: 12.0,
+                avg_body_length: 200.0,
+                avg_tags_per_note: 1.0,
+                links_per_note: 0.67,
+                orphan_notes: 0,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("1500 input, 800 output"));
+    }
+
+    #[test]
+    fn test_write_report_with_gate_details() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 60.0,
+            cost_usd: 0.0300,
+            token_usage: None,
+            outcome: "Fail".to_string(),
+            gates_passed: 1,
+            gates_total: 3,
+            note_count: 1,
+            link_count: 0,
+            composite_score: None,
+            gate_details: vec![
+                GateDetail {
+                    gate_type: "min_notes".to_string(),
+                    passed: true,
+                    message: "Created 1 note (min 1)".to_string(),
+                },
+                GateDetail {
+                    gate_type: "min_links".to_string(),
+                    passed: false,
+                    message: "No links created (min 1)".to_string(),
+                },
+            ],
+            efficiency: EfficiencyReport {
+                total_commands: 5,
+                unique_commands: 3,
+                error_count: 2,
+                first_try_success_rate: 0.6,
+                iteration_ratio: 1.67,
+            },
+            quality: QualityReport {
+                avg_title_length: 10.0,
+                avg_body_length: 150.0,
+                avg_tags_per_note: 0.5,
+                links_per_note: 0.0,
+                orphan_notes: 1,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("### Gate Details"));
+        assert!(content.contains("✓ min_notes: Created 1 note (min 1)"));
+        assert!(content.contains("✗ min_links: No links created (min 1)"));
+    }
+
+    #[test]
+    fn test_write_report_without_composite_score() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 20.0,
+            cost_usd: 0.0100,
+            token_usage: None,
+            outcome: "ReviewRequired".to_string(),
+            gates_passed: 2,
+            gates_total: 3,
+            note_count: 4,
+            link_count: 2,
+            composite_score: None,
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 6,
+                unique_commands: 4,
+                error_count: 0,
+                first_try_success_rate: 1.0,
+                iteration_ratio: 1.5,
+            },
+            quality: QualityReport {
+                avg_title_length: 14.0,
+                avg_body_length: 180.0,
+                avg_tags_per_note: 1.5,
+                links_per_note: 0.5,
+                orphan_notes: 2,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("ReviewRequired"));
+        assert!(!content.contains("Composite Score"));
+    }
+
+    #[test]
+    fn test_write_report_all_metrics() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 40.0,
+            cost_usd: 0.0200,
+            token_usage: None,
+            outcome: "Pass".to_string(),
+            gates_passed: 3,
+            gates_total: 3,
+            note_count: 10,
+            link_count: 5,
+            composite_score: Some(0.85),
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 15,
+                unique_commands: 8,
+                error_count: 1,
+                first_try_success_rate: 0.933,
+                iteration_ratio: 1.875,
+            },
+            quality: QualityReport {
+                avg_title_length: 20.0,
+                avg_body_length: 300.0,
+                avg_tags_per_note: 2.5,
+                links_per_note: 0.5,
+                orphan_notes: 3,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("**Notes Created**: 10"));
+        assert!(content.contains("**Links Created**: 5"));
+        assert!(content.contains("0.85"));
+        assert!(content.contains("**Total Commands**: 15"));
+        assert!(content.contains("**Unique Commands**: 8"));
+        assert!(content.contains("**Error Count**: 1"));
+        assert!(content.contains("93.3%"));
+        assert!(content.contains("1.88"));
+        assert!(content.contains("**Average Title Length**: 20.0"));
+        assert!(content.contains("**Average Body Length**: 300.0"));
+        assert!(content.contains("**Average Tags per Note**: 2.50"));
+        assert!(content.contains("**Links per Note**: 0.50"));
+        assert!(content.contains("**Orphan Notes**: 3"));
+    }
+
+    #[test]
+    fn test_write_report_overwrites_existing() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report1 = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "amp".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:00:00Z".to_string(),
+            duration_secs: 10.0,
+            cost_usd: 0.0050,
+            token_usage: None,
+            outcome: "Pass".to_string(),
+            gates_passed: 1,
+            gates_total: 1,
+            note_count: 1,
+            link_count: 0,
+            composite_score: Some(1.0),
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 1,
+                unique_commands: 1,
+                error_count: 0,
+                first_try_success_rate: 1.0,
+                iteration_ratio: 1.0,
+            },
+            quality: QualityReport {
+                avg_title_length: 10.0,
+                avg_body_length: 100.0,
+                avg_tags_per_note: 1.0,
+                links_per_note: 0.0,
+                orphan_notes: 1,
+            },
+        };
+
+        writer.write_report(&report1).unwrap();
+
+        let report2 = RunReport {
+            scenario_id: "test_scenario".to_string(),
+            tool: "opencode".to_string(),
+            model: "claude-3-5-sonnet".to_string(),
+            timestamp: "2025-01-27T12:05:00Z".to_string(),
+            duration_secs: 15.0,
+            cost_usd: 0.0075,
+            token_usage: None,
+            outcome: "Pass".to_string(),
+            gates_passed: 2,
+            gates_total: 2,
+            note_count: 2,
+            link_count: 1,
+            composite_score: Some(0.9),
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 3,
+                unique_commands: 2,
+                error_count: 0,
+                first_try_success_rate: 1.0,
+                iteration_ratio: 1.5,
+            },
+            quality: QualityReport {
+                avg_title_length: 12.0,
+                avg_body_length: 150.0,
+                avg_tags_per_note: 1.5,
+                links_per_note: 0.5,
+                orphan_notes: 0,
+            },
+        };
+
+        writer.write_report(&report2).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("**Tool**: opencode"));
+        assert!(!content.contains("**Tool**: amp"));
+        assert!(content.contains("12:05:00"));
+        assert!(!content.contains("12:00:00"));
+    }
+
+    #[test]
+    fn test_write_report_minimal() {
+        let dir = tempfile::tempdir().unwrap();
+        let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+
+        let report = RunReport {
+            scenario_id: "minimal".to_string(),
+            tool: "mock".to_string(),
+            model: "test-model".to_string(),
+            timestamp: "2025-01-27T10:00:00Z".to_string(),
+            duration_secs: 5.0,
+            cost_usd: 0.0010,
+            token_usage: None,
+            outcome: "Pass".to_string(),
+            gates_passed: 0,
+            gates_total: 0,
+            note_count: 0,
+            link_count: 0,
+            composite_score: None,
+            gate_details: vec![],
+            efficiency: EfficiencyReport {
+                total_commands: 0,
+                unique_commands: 0,
+                error_count: 0,
+                first_try_success_rate: 0.0,
+                iteration_ratio: 0.0,
+            },
+            quality: QualityReport {
+                avg_title_length: 0.0,
+                avg_body_length: 0.0,
+                avg_tags_per_note: 0.0,
+                links_per_note: 0.0,
+                orphan_notes: 0,
+            },
+        };
+
+        writer.write_report(&report).unwrap();
+
+        let report_path = dir.path().join("report.md");
+        assert!(report_path.exists());
+        let content = fs::read_to_string(&report_path).unwrap();
+        assert!(content.contains("# Test Run Report"));
+        assert!(content.contains("minimal"));
+        assert!(content.contains("mock"));
+    }
 }

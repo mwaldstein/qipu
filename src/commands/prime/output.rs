@@ -1,0 +1,318 @@
+//! Output formatting for prime command
+
+use crate::lib::config::OntologyConfig;
+use crate::lib::note::NoteType;
+use crate::lib::ontology::Ontology;
+use crate::lib::records::escape_quotes;
+
+pub fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+    match mode {
+        crate::lib::config::OntologyMode::Default => "default",
+        crate::lib::config::OntologyMode::Extended => "extended",
+        crate::lib::config::OntologyMode::Replacement => "replacement",
+    }
+}
+
+pub fn output_json(
+    store_path: &str,
+    ontology: &Ontology,
+    config: &OntologyConfig,
+    selected_mocs: &[&crate::lib::note::Note],
+    selected_recent: &[&crate::lib::note::Note],
+    is_empty: bool,
+) -> Result<(), crate::lib::error::QipuError> {
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    let note_type_objs: Vec<_> = note_types
+        .iter()
+        .map(|nt| {
+            let type_config = config.note_types.get(nt);
+            serde_json::json!({
+                "name": nt,
+                "description": type_config.and_then(|c| c.description.clone()),
+                "usage": type_config.and_then(|c| c.usage.clone()),
+            })
+        })
+        .collect();
+
+    let link_type_objs: Vec<_> = link_types
+        .iter()
+        .map(|lt| {
+            let inverse = ontology.get_inverse(lt);
+            let type_config = config.link_types.get(lt);
+            serde_json::json!({
+                "name": lt,
+                "inverse": inverse,
+                "description": type_config.and_then(|c| c.description.clone()),
+                "usage": type_config.and_then(|c| c.usage.clone()),
+            })
+        })
+        .collect();
+
+    let primer_description = if is_empty {
+        "Welcome to qipu! Your knowledge store is empty. Start by capturing your first insights with `qipu capture` or `qipu create`. Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs)."
+    } else {
+        "Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs)."
+    };
+
+    let output = serde_json::json!({
+        "store": store_path,
+        "ontology": {
+            "mode": format_mode(config.mode),
+            "note_types": note_type_objs,
+            "link_types": link_type_objs,
+        },
+        "primer": {
+            "description": primer_description,
+            "commands": [
+                {"name": "qipu list", "description": "List notes"},
+                {"name": "qipu search <query>", "description": "Search notes by title and body"},
+                {"name": "qipu show <id>", "description": "Display a note"},
+                {"name": "qipu create <title>", "description": "Create a new note"},
+                {"name": "qipu capture", "description": "Create note from stdin"},
+                {"name": "qipu link tree <id>", "description": "Show traversal tree from a note"},
+                {"name": "qipu link path <from> <to>", "description": "Find path between notes"},
+                {"name": "qipu context", "description": "Build context bundle for LLM"},
+            ],
+            "session_protocol": {
+                "why": "Knowledge not committed is knowledge lost. The graph only grows if you save your work.",
+                "steps": [
+                    {"number": 1, "action": "Capture any new insights", "command": "qipu capture --title \"...\""},
+                    {"number": 2, "action": "Link new notes to existing knowledge", "command": "qipu link add <new> <existing> --type <type>"},
+                    {"number": 3, "action": "Commit changes", "command": "git add .qipu && git commit -m \"knowledge: ...\""}
+                ]
+            },
+        },
+        "mocs": selected_mocs.iter().map(|n: &&crate::lib::note::Note| {
+            serde_json::json!({
+                "id": n.id(),
+                "title": n.title(),
+                "tags": n.frontmatter.tags,
+
+            })
+        }).collect::<Vec<_>>(),
+        "recent_notes": selected_recent.iter().map(|n: &&crate::lib::note::Note| {
+            serde_json::json!({
+                "id": n.id(),
+                "title": n.title(),
+                "type": n.note_type().to_string(),
+                "tags": n.frontmatter.tags,
+            })
+        }).collect::<Vec<_>>(),
+    });
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}
+
+pub fn output_human(
+    store_path: &str,
+    ontology: &Ontology,
+    config: &OntologyConfig,
+    mocs: &[&crate::lib::note::Note],
+    recent_notes: &[&crate::lib::note::Note],
+    compact: bool,
+    is_empty: bool,
+) {
+    println!("# Qipu Knowledge Store Primer");
+    println!();
+    println!("Store: {}", store_path);
+    println!();
+    println!("## About Qipu");
+    println!();
+    println!("Qipu is a Zettelkasten-inspired knowledge management system for capturing");
+    println!("research notes and navigating knowledge via links, tags, and Maps of Content.");
+    println!();
+
+    if is_empty {
+        println!("## Getting Started");
+        println!();
+        println!("Your knowledge store is empty. Start by capturing your first insights:");
+        println!();
+        println!("  qipu capture --title \"...\"     Quick capture from stdin");
+        println!("  qipu create <title>             Create a new note");
+        println!("  qipu create <title> --type moc   Create a Map of Content");
+        println!();
+    }
+
+    println!("## Ontology");
+    println!();
+    println!("Mode: {}", format_mode(config.mode));
+    println!();
+
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    println!("### Note Types");
+    for nt in &note_types {
+        let type_config = config.note_types.get(nt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("  {} - {}", nt, desc);
+        } else {
+            println!("  {}", nt);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("    Usage: {}", usage);
+        }
+    }
+    println!();
+
+    println!("### Link Types");
+    for lt in &link_types {
+        let inverse = ontology.get_inverse(lt);
+        let type_config = config.link_types.get(lt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("  {} -> {} ({})", lt, inverse, desc);
+        } else {
+            println!("  {} -> {}", lt, inverse);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("    Usage: {}", usage);
+        }
+    }
+    println!();
+    println!("## Quick Reference");
+    println!();
+    println!("  qipu list              List notes");
+    println!("  qipu search <query>    Search notes by title and body");
+    println!("  qipu show <id>         Display a note");
+    println!("  qipu create <title>    Create a new note");
+    println!("  qipu capture           Create note from stdin");
+    println!("  qipu link tree <id>    Show traversal tree from a note");
+    println!("  qipu link path A B     Find path between notes");
+    println!("  qipu context           Build context bundle for LLM");
+    println!();
+
+    if !compact && !mocs.is_empty() {
+        println!("## Key Maps of Content");
+        println!();
+        for moc in mocs {
+            let tags = if moc.frontmatter.tags.is_empty() {
+                String::new()
+            } else {
+                format!(" [{}]", moc.frontmatter.tags.join(", "))
+            };
+            println!("  {} - {}{}", moc.id(), moc.title(), tags);
+        }
+        println!();
+    }
+
+    if !recent_notes.is_empty() {
+        println!("## Recently Updated Notes");
+        println!();
+        for note in recent_notes {
+            let type_char = match note.note_type().as_str() {
+                NoteType::FLEETING => 'F',
+                NoteType::LITERATURE => 'L',
+                NoteType::PERMANENT => 'P',
+                NoteType::MOC => 'M',
+                _ => 'F',
+            };
+            println!("  {} [{}] {}", note.id(), type_char, note.title());
+        }
+        println!();
+    }
+
+    println!("## Session Protocol");
+    println!();
+    println!("**Before ending session:**");
+    println!("1. Capture any new insights: `qipu capture --title \"...\"`");
+    println!(
+        "2. Link new notes to existing knowledge: `qipu link add <new> <existing> --type <type>`"
+    );
+    println!("3. Commit changes: `git add .qipu && git commit -m \"knowledge: ...\"`");
+    println!();
+    println!("**Why this matters:** Knowledge not committed is knowledge lost. The graph only grows if you save your work.");
+    println!();
+
+    println!("Use `qipu context --note <id>` to fetch full note content.");
+}
+
+pub fn output_records(
+    store_path: &str,
+    ontology: &Ontology,
+    config: &OntologyConfig,
+    mocs: &[&crate::lib::note::Note],
+    recent_notes: &[&crate::lib::note::Note],
+    is_empty: bool,
+) {
+    let mocs_count = mocs.len();
+    let notes_count = recent_notes.len();
+    let store_status = if is_empty { "empty" } else { "populated" };
+    println!(
+        "H qipu=1 records=1 store={} mode=prime mocs={} recent={} status={} truncated=false",
+        store_path, mocs_count, notes_count, store_status
+    );
+
+    println!("O mode={}", format_mode(config.mode));
+
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    for nt in &note_types {
+        let type_config = config.note_types.get(nt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("T note_type=\"{}\" description=\"{}\"", nt, desc);
+        } else {
+            println!("T note_type=\"{}\"", nt);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("U note_type=\"{}\" usage=\"{}\"", nt, usage);
+        }
+    }
+
+    for lt in &link_types {
+        let inverse = ontology.get_inverse(lt);
+        let type_config = config.link_types.get(lt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!(
+                "L link_type=\"{}\" inverse=\"{}\" description=\"{}\"",
+                lt, inverse, desc
+            );
+        } else {
+            println!("L link_type=\"{}\" inverse=\"{}\"", lt, inverse);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("U link_type=\"{}\" usage=\"{}\"", lt, usage);
+        }
+    }
+
+    println!("D Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.");
+
+    println!("C list \"List notes\"");
+    println!("C search \"Search notes by title and body\"");
+    println!("C show \"Display a note\"");
+    println!("C create \"Create a new note\"");
+    println!("C capture \"Create note from stdin\"");
+    println!("C link.tree \"Show traversal tree from a note\"");
+    println!("C link.path \"Find path between notes\"");
+    println!("C context \"Build context bundle for LLM\"");
+
+    println!("S 1 \"Capture any new insights\" \"qipu capture --title \\\"...\\\"\"");
+    println!("S 2 \"Link new notes to existing knowledge\" \"qipu link add <new> <existing> --type <type>\"");
+    println!("S 3 \"Commit changes\" \"git add .qipu && git commit -m \\\"knowledge: ...\\\"\"");
+    println!(
+        "W Knowledge not committed is knowledge lost. The graph only grows if you save your work."
+    );
+
+    for moc in mocs {
+        let tags_csv = moc.frontmatter.tags.join(",");
+        println!(
+            "M {} \"{}\" tags={}",
+            moc.id(),
+            moc.title(),
+            if tags_csv.is_empty() { "-" } else { &tags_csv }
+        );
+    }
+
+    for note in recent_notes {
+        let tags_csv = note.frontmatter.tags.join(",");
+        println!(
+            "N {} {} \"{}\" tags={}",
+            note.id(),
+            note.note_type(),
+            escape_quotes(note.title()),
+            if tags_csv.is_empty() { "-" } else { &tags_csv }
+        );
+    }
+}

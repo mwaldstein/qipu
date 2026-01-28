@@ -24,7 +24,12 @@ fn test_prime_empty_store() {
         .stdout(predicate::str::contains("Qipu Knowledge Store Primer"))
         .stdout(predicate::str::contains("About Qipu"))
         .stdout(predicate::str::contains("Quick Reference"))
-        .stdout(predicate::str::contains("qipu list"));
+        .stdout(predicate::str::contains("qipu list"))
+        .stdout(predicate::str::contains("Session Protocol"))
+        .stdout(predicate::str::contains("Before ending session:"))
+        .stdout(predicate::str::contains(
+            "Knowledge not committed is knowledge lost",
+        ));
 }
 
 #[test]
@@ -125,7 +130,8 @@ fn test_prime_json_format() {
         .stdout(predicate::str::contains("\"primer\""))
         .stdout(predicate::str::contains("\"mocs\""))
         .stdout(predicate::str::contains("\"recent_notes\""))
-        .stdout(predicate::str::contains("\"commands\""));
+        .stdout(predicate::str::contains("\"commands\""))
+        .stdout(predicate::str::contains("\"session_protocol\""));
 }
 
 #[test]
@@ -190,6 +196,35 @@ fn test_prime_json_comprehensive_structure() {
         json["primer"]["commands"].is_array(),
         "primer.commands should be an array"
     );
+    assert!(
+        json["primer"]["session_protocol"].is_object(),
+        "primer.session_protocol should be an object"
+    );
+
+    // Verify session_protocol structure
+    let session_protocol = &json["primer"]["session_protocol"];
+    assert!(
+        session_protocol["why"].is_string(),
+        "session_protocol.why should be a string"
+    );
+    assert!(
+        session_protocol["steps"].is_array(),
+        "session_protocol.steps should be an array"
+    );
+    assert_eq!(
+        session_protocol["steps"].as_array().unwrap().len(),
+        3,
+        "session_protocol.steps should have 3 steps"
+    );
+    let steps = session_protocol["steps"].as_array().unwrap();
+    for step in steps {
+        assert!(step["number"].is_u64(), "step.number should be a number");
+        assert!(step["action"].is_string(), "step.action should be a string");
+        assert!(
+            step["command"].is_string(),
+            "step.command should be a string"
+        );
+    }
 
     // Verify commands array has expected structure
     let commands = json["primer"]["commands"].as_array().unwrap();
@@ -266,6 +301,8 @@ fn test_prime_records_format() {
         .stdout(predicate::str::contains("truncated=false"))
         .stdout(predicate::str::contains("D Qipu is"))
         .stdout(predicate::str::contains("C list"))
+        .stdout(predicate::str::contains("S ")) // Session protocol record
+        .stdout(predicate::str::contains("W Knowledge not committed"))
         .stdout(predicate::str::contains("M ")) // MOC record
         .stdout(predicate::str::contains("N ")); // Note record
 }
@@ -354,6 +391,36 @@ fn test_prime_records_comprehensive_structure() {
     for c_line in &c_lines {
         assert!(c_line.contains(" "), "Command line should have space");
     }
+
+    // Verify session protocol lines (S)
+    let s_lines: Vec<&str> = lines
+        .iter()
+        .filter(|l| l.starts_with("S "))
+        .copied()
+        .collect();
+    assert_eq!(s_lines.len(), 3, "Should have 3 session protocol lines");
+    for s_line in &s_lines {
+        assert!(
+            s_line.contains(" "),
+            "Session protocol line should have space"
+        );
+        assert!(
+            s_line.contains("\""),
+            "Session protocol line should have quoted action and command"
+        );
+    }
+
+    // Verify why line (W)
+    let w_lines: Vec<&str> = lines
+        .iter()
+        .filter(|l| l.starts_with("W "))
+        .copied()
+        .collect();
+    assert_eq!(w_lines.len(), 1, "Should have 1 why line");
+    assert!(
+        w_lines[0].contains("Knowledge not committed"),
+        "Why line should contain explanation"
+    );
 
     // Verify MOC record (M)
     let m_lines: Vec<&str> = lines

@@ -88,6 +88,14 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
                         {"name": "qipu link path <from> <to>", "description": "Find path between notes"},
                         {"name": "qipu context", "description": "Build context bundle for LLM"},
                     ],
+                    "session_protocol": {
+                        "why": "Knowledge not committed is knowledge lost. The graph only grows if you save your work.",
+                        "steps": [
+                            {"number": 1, "action": "Capture any new insights", "command": "qipu capture --title \"...\""},
+                            {"number": 2, "action": "Link new notes to existing knowledge", "command": "qipu link add <new> <existing> --type <type>"},
+                            {"number": 3, "action": "Commit changes", "command": "git add .qipu && git commit -m \"knowledge: ...\""}
+                        ]
+                    },
                 },
                 "mocs": selected_mocs.iter().map(|n: &&crate::lib::note::Note| {
                     serde_json::json!({
@@ -211,16 +219,24 @@ fn estimate_base_char_count(store_path: &str, format: OutputFormat) -> usize {
                         {"name": "qipu link path <from> <to>", "description": "Find path between notes"},
                         {"name": "qipu context", "description": "Build context bundle for LLM"},
                     ],
+                    "session_protocol": {
+                        "why": "Knowledge not committed is knowledge lost. The graph only grows if you save your work.",
+                        "steps": [
+                            {"number": 1, "action": "Capture any new insights", "command": "qipu capture --title \"...\""},
+                            {"number": 2, "action": "Link new notes to existing knowledge", "command": "qipu link add <new> <existing> --type <type>"},
+                            {"number": 3, "action": "Commit changes", "command": "git add .qipu && git commit -m \"knowledge: ...\""}
+                        ]
+                    },
                 },
                 "mocs": [],
                 "recent_notes": [],
             }).to_string().len()
         }
         OutputFormat::Human => {
-            "# Qipu Knowledge Store Primer\n\nStore: \n\n## About Qipu\n\nQipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\n\nNote types: fleeting (quick capture), literature (from sources), permanent (distilled insights), moc (index/map notes).\n\n## Quick Reference\n\n  qipu list              List notes\n  qipu search <query>    Search notes by title and body\n  qipu show <id>         Display a note\n  qipu create <title>    Create a new note\n  qipu capture           Create note from stdin\n  qipu link tree <id>    Show traversal tree from a note\n  qipu link path A B     Find path between notes\n  qipu context           Build context bundle for LLM\n\n".len() + store_path.len()
+            "# Qipu Knowledge Store Primer\n\nStore: \n\n## About Qipu\n\nQipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\n\nNote types: fleeting (quick capture), literature (from sources), permanent (distilled insights), moc (index/map notes).\n\n## Quick Reference\n\n  qipu list              List notes\n  qipu search <query>    Search notes by title and body\n  qipu show <id>         Display a note\n  qipu create <title>    Create a new note\n  qipu capture           Create note from stdin\n  qipu link tree <id>    Show traversal tree from a note\n  qipu link path A B     Find path between notes\n  qipu context           Build context bundle for LLM\n\n## Session Protocol\n\n**Before ending session:**\n1. Capture any new insights: `qipu capture --title \"...\"`\n2. Link new notes to existing knowledge: `qipu link add <new> <existing> --type <type>`\n3. Commit changes: `git add .qipu && git commit -m \"knowledge: ...\"`\n\n**Why this matters:** Knowledge not committed is knowledge lost. The graph only grows if you save your work.\n\n".len() + store_path.len()
         }
         OutputFormat::Records => {
-            "H qipu=1 records=1 store= mode=prime mocs=0 recent=0 truncated=false\nD Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\nC list \"List notes\"\nC search \"Search notes by title and body\"\nC show \"Display a note\"\nC create \"Create a new note\"\nC capture \"Create note from stdin\"\nC link.tree \"Show traversal tree from a note\"\nC link.path \"Find path between notes\"\nC context \"Build context bundle for LLM\"\n".len() + store_path.len()
+            "H qipu=1 records=1 store= mode=prime mocs=0 recent=0 truncated=false\nD Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\nC list \"List notes\"\nC search \"Search notes by title and body\"\nC show \"Display a note\"\nC create \"Create a new note\"\nC capture \"Create note from stdin\"\nC link.tree \"Show traversal tree from a note\"\nC link.path \"Find path between notes\"\nC context \"Build context bundle for LLM\"\nS 1 \"Capture any new insights\" \"qipu capture --title \\\"...\\\"\"\nS 2 \"Link new notes to existing knowledge\" \"qipu link add <new> <existing> --type <type>\"\nS 3 \"Commit changes\" \"git add .qipu && git commit -m \\\"knowledge: ...\\\"\"\nW Knowledge not committed is knowledge lost. The graph only grows if you save your work.\n".len() + store_path.len()
         }
     }
 }
@@ -324,6 +340,18 @@ fn output_human_primer(
         println!();
     }
 
+    println!("## Session Protocol");
+    println!();
+    println!("**Before ending session:**");
+    println!("1. Capture any new insights: `qipu capture --title \"...\"`");
+    println!(
+        "2. Link new notes to existing knowledge: `qipu link add <new> <existing> --type <type>`"
+    );
+    println!("3. Commit changes: `git add .qipu && git commit -m \"knowledge: ...\"`");
+    println!();
+    println!("**Why this matters:** Knowledge not committed is knowledge lost. The graph only grows if you save your work.");
+    println!();
+
     println!("Use `qipu context --note <id>` to fetch full note content.");
 }
 
@@ -353,6 +381,14 @@ fn output_records_primer(
     println!("C link.tree \"Show traversal tree from a note\"");
     println!("C link.path \"Find path between notes\"");
     println!("C context \"Build context bundle for LLM\"");
+
+    // Session protocol records
+    println!("S 1 \"Capture any new insights\" \"qipu capture --title \\\"...\\\"\"");
+    println!("S 2 \"Link new notes to existing knowledge\" \"qipu link add <new> <existing> --type <type>\"");
+    println!("S 3 \"Commit changes\" \"git add .qipu && git commit -m \\\"knowledge: ...\\\"\"");
+    println!(
+        "W Knowledge not committed is knowledge lost. The graph only grows if you save your work."
+    );
 
     // MOC records
     for moc in mocs {

@@ -1,11 +1,28 @@
+//! CLI argument parsers for clap
+//!
+//! Per custom ontology spec (specs/custom-ontology.md), validation of note and link types
+//! is deferred to command execution where the active ontology is available. These parser
+//! functions accept any string value and rely on clap's value_parser interface.
+//!
+//! Error messages showing valid types from the active ontology are generated in commands
+//! when validation fails (e.g., capture/create/link commands).
+
 use crate::lib::note::{LinkType, NoteType};
 
 /// Parse note type from string
+///
+/// Validation is deferred to command execution where the active ontology is available.
+/// This function accepts any string value; invalid types will be caught by commands
+/// with error messages showing valid types from the active ontology.
 pub fn parse_note_type(s: &str) -> std::result::Result<NoteType, String> {
     s.parse::<NoteType>().map_err(|e| e.to_string())
 }
 
 /// Parse link type from string
+///
+/// Validation is deferred to command execution where the active ontology is available.
+/// This function accepts any string value; invalid types will be caught by commands
+/// with error messages showing valid types from the active ontology.
 pub fn parse_link_type(s: &str) -> std::result::Result<LinkType, String> {
     s.parse::<LinkType>().map_err(|e| e.to_string())
 }

@@ -26,11 +26,12 @@ pub fn output_human(
     }
 
     for note in notes {
-        let type_indicator = match note.note_type() {
-            NoteType::Fleeting => "F",
-            NoteType::Literature => "L",
-            NoteType::Permanent => "P",
-            NoteType::Moc => "M",
+        let type_indicator = match note.note_type().as_str() {
+            NoteType::FLEETING => "F",
+            NoteType::LITERATURE => "L",
+            NoteType::PERMANENT => "P",
+            NoteType::MOC => "M",
+            _ => "F",
         };
 
         let annotations = build_compaction_annotations(note.id(), compaction_ctx, note_map);

@@ -95,6 +95,6 @@ impl NoteFrontmatter {
 
     /// Get the note type, defaulting to Fleeting
     pub fn get_type(&self) -> NoteType {
-        self.note_type.unwrap_or_default()
+        self.note_type.clone().unwrap_or_default()
     }
 }

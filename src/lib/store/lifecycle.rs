@@ -35,20 +35,21 @@ impl Store {
             NoteId::generate(self.config.id_scheme, title, &existing_ids)
         };
 
-        let note_type = note_type.unwrap_or(self.config.default_note_type);
+        let note_type = note_type.unwrap_or(self.config.default_note_type.clone());
         let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())
-            .with_type(note_type)
+            .with_type(note_type.clone())
             .with_tags(tags.iter().cloned());
 
         // Try to load template
-        let body = self.load_template(note_type)?;
+        let body = self.load_template(note_type.clone())?;
 
         let note = Note::new(frontmatter, body);
 
         // Determine target directory
-        let target_dir = match note_type {
-            NoteType::Moc => self.root.join(MOCS_DIR),
-            _ => self.root.join(NOTES_DIR),
+        let target_dir = if note_type.is_moc() {
+            self.root.join(MOCS_DIR)
+        } else {
+            self.root.join(NOTES_DIR)
         };
 
         // Write note to disk
@@ -91,18 +92,19 @@ impl Store {
             NoteId::generate(self.config.id_scheme, title, &existing_ids)
         };
 
-        let note_type = note_type.unwrap_or(self.config.default_note_type);
+        let note_type = note_type.unwrap_or(self.config.default_note_type.clone());
         let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())
-            .with_type(note_type)
+            .with_type(note_type.clone())
             .with_tags(tags.iter().cloned());
 
         // Use provided content instead of template
         let note = Note::new(frontmatter, content.to_string());
 
         // Determine target directory
-        let target_dir = match note_type {
-            NoteType::Moc => self.root.join(MOCS_DIR),
-            _ => self.root.join(NOTES_DIR),
+        let target_dir = if note_type.is_moc() {
+            self.root.join(MOCS_DIR)
+        } else {
+            self.root.join(NOTES_DIR)
         };
 
         // Write note to disk

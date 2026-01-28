@@ -2,7 +2,7 @@
 
 use crate::lib::compaction::CompactionContext;
 use crate::lib::index::SearchResult;
-use crate::lib::note::NoteType;
+
 use crate::lib::store::Store;
 use std::collections::HashMap;
 
@@ -84,7 +84,7 @@ pub fn process_search_results(
     }
 
     if exclude_mocs {
-        results.retain(|r| r.note_type != NoteType::Moc);
+        results.retain(|r| !r.note_type.is_moc());
     }
 
     let mut notes_cache: HashMap<String, crate::lib::note::Note> = HashMap::new();

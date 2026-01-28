@@ -242,9 +242,10 @@ fn copy_note(
     }
 
     // Determine target directory
-    let target_dir = match new_note.note_type() {
-        crate::lib::note::NoteType::Moc => dst.mocs_dir(),
-        _ => dst.notes_dir(),
+    let target_dir = if new_note.note_type().is_moc() {
+        dst.mocs_dir()
+    } else {
+        dst.notes_dir()
     };
 
     // Determine file path
@@ -277,9 +278,10 @@ fn copy_note_with_rename(
     }
 
     // Determine target directory
-    let target_dir = match new_note.note_type() {
-        crate::lib::note::NoteType::Moc => dst.mocs_dir(),
-        _ => dst.notes_dir(),
+    let target_dir = if new_note.note_type().is_moc() {
+        dst.mocs_dir()
+    } else {
+        dst.notes_dir()
     };
 
     // Determine file path

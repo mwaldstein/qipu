@@ -53,7 +53,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Note 1".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -74,7 +74,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Note 2".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -131,7 +131,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-1".to_string(),
                 title: "Empty Note".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -146,7 +146,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-2".to_string(),
                 title: "Empty Note 2".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,

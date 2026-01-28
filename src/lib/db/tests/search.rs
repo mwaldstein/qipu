@@ -65,11 +65,23 @@ fn test_search_with_type_filter() {
     let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
 
     store
-        .create_note_with_content("Test Note", Some(NoteType::Fleeting), &[], "test", None)
+        .create_note_with_content(
+            "Test Note",
+            Some(NoteType::from(NoteType::FLEETING)),
+            &[],
+            "test",
+            None,
+        )
         .unwrap();
 
     store
-        .create_note_with_content("Test MOC", Some(NoteType::Moc), &[], "test", None)
+        .create_note_with_content(
+            "Test MOC",
+            Some(NoteType::from(NoteType::MOC)),
+            &[],
+            "test",
+            None,
+        )
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
@@ -78,7 +90,7 @@ fn test_search_with_type_filter() {
     let results = db
         .search(
             "test",
-            Some(NoteType::Fleeting),
+            Some(NoteType::from(NoteType::FLEETING)),
             None,
             None,
             None,

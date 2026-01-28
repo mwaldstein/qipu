@@ -28,7 +28,7 @@ pub(super) fn handle_create(
         cli,
         &store,
         &args.title,
-        args.r#type,
+        args.r#type.clone(),
         &args.tag,
         args.open,
         args.id.clone(),
@@ -132,8 +132,8 @@ pub(super) fn handle_inbox(
         .into_iter()
         .filter(|n| {
             matches!(
-                n.note_type(),
-                crate::lib::note::NoteType::Fleeting | crate::lib::note::NoteType::Literature
+                n.note_type().as_str(),
+                crate::lib::note::NoteType::FLEETING | crate::lib::note::NoteType::LITERATURE
             )
         })
         .collect();
@@ -147,7 +147,7 @@ pub(super) fn handle_inbox(
         let mut linked_from_mocs = std::collections::HashSet::new();
         for edge in &index.edges {
             if let Some(source_meta) = index.get_metadata(&edge.from) {
-                if source_meta.note_type == crate::lib::note::NoteType::Moc {
+                if source_meta.note_type.is_moc() {
                     linked_from_mocs.insert(edge.to.clone());
                 }
             }
@@ -202,9 +202,9 @@ fn output_inbox_notes(
                 }
             } else {
                 for note in inbox_notes {
-                    let type_indicator = match note.note_type() {
-                        crate::lib::note::NoteType::Fleeting => "F",
-                        crate::lib::note::NoteType::Literature => "L",
+                    let type_indicator = match note.note_type().as_str() {
+                        crate::lib::note::NoteType::FLEETING => "F",
+                        crate::lib::note::NoteType::LITERATURE => "L",
                         _ => "?",
                     };
                     println!("{} [{}] {}", note.id(), type_indicator, note.title());

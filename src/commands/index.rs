@@ -293,12 +293,11 @@ fn filter_quick_index(
     _store: &Store,
     notes: &[crate::lib::note::Note],
 ) -> Vec<crate::lib::note::Note> {
-    use crate::lib::note::NoteType;
     let mut mocs = Vec::new();
     let mut others: Vec<(std::time::SystemTime, crate::lib::note::Note)> = Vec::new();
 
     for note in notes {
-        if note.note_type() == NoteType::Moc {
+        if note.note_type().is_moc() {
             mocs.push(note.clone());
         } else if let Some(path) = &note.path {
             if let Ok(mtime) = std::fs::metadata(path).and_then(|m| m.modified()) {

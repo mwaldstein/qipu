@@ -258,7 +258,7 @@ fn load_notes(
         let frontmatter = NoteFrontmatter {
             id: pack_note.id.clone(),
             title: pack_note.title.clone(),
-            note_type: Some(note_type),
+            note_type: Some(note_type.clone()),
             tags: pack_note.tags.clone(),
             created: pack_note.created,
             updated: pack_note.updated,
@@ -297,9 +297,10 @@ fn load_notes(
         };
 
         // Determine target directory for fallback path generation
-        let target_dir = match note_type {
-            NoteType::Moc => store.mocs_dir(),
-            _ => store.notes_dir(),
+        let target_dir = if note_type.is_moc() {
+            store.mocs_dir()
+        } else {
+            store.notes_dir()
         };
 
         // Handle conflicts based on strategy

@@ -152,8 +152,8 @@ impl<'a> NoteFilter<'a> {
 
     /// Check type filter
     fn matches_type(&self, note: &crate::lib::note::Note) -> bool {
-        if let Some(nt) = self.note_type {
-            note.note_type() == nt
+        if let Some(ref nt) = self.note_type {
+            note.note_type().as_str() == nt.as_str()
         } else {
             true
         }
@@ -362,12 +362,12 @@ mod tests {
             "qp-abc",
             "Test Note",
             vec![],
-            Some(NoteType::Permanent),
+            Some(NoteType::from(NoteType::PERMANENT)),
             None,
             None,
         );
 
-        let filter = NoteFilter::new().with_type(Some(NoteType::Permanent));
+        let filter = NoteFilter::new().with_type(Some(NoteType::from(NoteType::PERMANENT)));
         let compaction_ctx = CompactionContext::build(&[]).unwrap();
 
         assert!(filter.matches(&note, &compaction_ctx));
@@ -379,12 +379,12 @@ mod tests {
             "qp-abc",
             "Test Note",
             vec![],
-            Some(NoteType::Fleeting),
+            Some(NoteType::from(NoteType::FLEETING)),
             None,
             None,
         );
 
-        let filter = NoteFilter::new().with_type(Some(NoteType::Permanent));
+        let filter = NoteFilter::new().with_type(Some(NoteType::from(NoteType::PERMANENT)));
         let compaction_ctx = CompactionContext::build(&[]).unwrap();
 
         assert!(!filter.matches(&note, &compaction_ctx));

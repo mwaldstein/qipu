@@ -143,9 +143,10 @@ fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
     let mut new_note = note.clone();
 
     // Determine target directory
-    let target_dir = match new_note.note_type() {
-        crate::lib::note::NoteType::Moc => dst.mocs_dir(),
-        _ => dst.notes_dir(),
+    let target_dir = if new_note.note_type().is_moc() {
+        dst.mocs_dir()
+    } else {
+        dst.notes_dir()
     };
 
     // Determine file path

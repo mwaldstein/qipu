@@ -1,6 +1,6 @@
 use crate::lib::db::Database;
 use crate::lib::error::Result;
-use crate::lib::note::{LinkType, NoteType};
+use crate::lib::note::LinkType;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::time::Instant;
@@ -37,7 +37,7 @@ pub fn get_moc_linked_ids(
                 // If transitive and target is a MOC, add to queue for further traversal
                 if transitive {
                     if let Some(meta) = db.get_note_metadata(&edge.to)? {
-                        if meta.note_type == NoteType::Moc {
+                        if meta.note_type.is_moc() {
                             queue.push_back((edge.to.clone(), Some(link_type)));
                         }
                     }

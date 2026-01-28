@@ -27,7 +27,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Note 1".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -51,7 +51,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Note 2".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -93,7 +93,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Quantum Computing".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -115,7 +115,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Computing Systems".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -136,7 +136,7 @@ mod tests {
             NoteMetadata {
                 id: id3.clone(),
                 title: "Quantum Mechanics".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "3.md".to_string(),
                 created: None,
@@ -193,7 +193,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Languages".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["rust".to_string()],
                 path: "1.md".to_string(),
                 created: None,
@@ -215,7 +215,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Systems".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["programming".to_string()],
                 path: "2.md".to_string(),
                 created: None,
@@ -257,7 +257,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Machine Learning".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["learning".to_string()],
                 path: "1.md".to_string(),
                 created: None,
@@ -279,7 +279,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Learning Systems".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["machine".to_string()],
                 path: "2.md".to_string(),
                 created: None,
@@ -324,7 +324,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Machine Learning".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -346,7 +346,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Neural Networks".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -368,7 +368,7 @@ mod tests {
             NoteMetadata {
                 id: id3.clone(),
                 title: "Computer Vision".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "3.md".to_string(),
                 created: None,
@@ -435,7 +435,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "System Architecture".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["system".to_string()],
                 path: "1.md".to_string(),
                 created: None,
@@ -457,7 +457,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "System Design".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -493,7 +493,7 @@ mod tests {
 
     fn create_note(id: &str, title: &str, tags: Vec<&str>, body: &str) -> Note {
         let frontmatter = NoteFrontmatter::new(id.to_string(), title.to_string())
-            .with_type(NoteType::Permanent)
+            .with_type(NoteType::from(NoteType::PERMANENT))
             .with_tags(tags);
         Note::new(frontmatter, body)
     }

@@ -30,7 +30,7 @@ impl super::super::Database {
                 params![
                     note.id(),
                     note.frontmatter.title,
-                    note.frontmatter.note_type.unwrap_or(NoteType::Fleeting).to_string(),
+                    note.frontmatter.note_type.as_ref().unwrap_or(&NoteType::from(NoteType::FLEETING)).to_string(),
                     note.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
                     created_str,
                     updated_str,

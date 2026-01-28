@@ -26,11 +26,12 @@ pub fn output_human(
     }
 
     for result in results {
-        let type_indicator = match result.note_type {
-            NoteType::Fleeting => "F",
-            NoteType::Literature => "L",
-            NoteType::Permanent => "P",
-            NoteType::Moc => "M",
+        let type_indicator = match result.note_type.as_str() {
+            NoteType::FLEETING => "F",
+            NoteType::LITERATURE => "L",
+            NoteType::PERMANENT => "P",
+            NoteType::MOC => "M",
+            _ => "F",
         };
 
         let mut annotations = String::new();

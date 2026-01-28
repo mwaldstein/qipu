@@ -350,7 +350,6 @@ impl super::Database {
 
     /// Quick index: MOCs + N recent notes
     fn quick_index(&self, store_root: &std::path::Path, recent_count: usize) -> Result<()> {
-        use crate::lib::note::NoteType;
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
 
@@ -376,7 +375,7 @@ impl super::Database {
                                 .and_then(|m| m.modified())
                                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
 
-                            if note.note_type() == NoteType::Moc {
+                            if note.note_type().is_moc() {
                                 moc_notes.push((mtime, note));
                             } else {
                                 regular_notes.push((mtime, note));

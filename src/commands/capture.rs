@@ -60,7 +60,7 @@ pub fn execute(
     }
 
     // Default type is fleeting for captures (per spec open question)
-    let note_type = note_type.or(Some(NoteType::Fleeting));
+    let note_type = note_type.or(Some(NoteType::from(NoteType::FLEETING)));
 
     // Create note with the captured content
     let mut note = store.create_note_with_content(&title, note_type, tags, content, id)?;

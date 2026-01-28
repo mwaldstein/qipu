@@ -99,7 +99,7 @@ mod tests {
                 NoteMetadata {
                     id: id.to_string(),
                     title: format!("Note {}", id),
-                    note_type: NoteType::Permanent,
+                    note_type: NoteType::from(NoteType::PERMANENT),
                     tags: vec![],
                     path: format!("{}.md", id),
                     created: None,

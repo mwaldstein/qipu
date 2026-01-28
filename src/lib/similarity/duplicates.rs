@@ -69,7 +69,7 @@ mod tests {
             NoteMetadata {
                 id: id1.clone(),
                 title: "Fruit List".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "1.md".to_string(),
                 created: None,
@@ -93,7 +93,7 @@ mod tests {
             NoteMetadata {
                 id: id2.clone(),
                 title: "Fruit List Copy".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "2.md".to_string(),
                 created: None,
@@ -117,7 +117,7 @@ mod tests {
             NoteMetadata {
                 id: id3.clone(),
                 title: "Similar Fruits".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
                 path: "3.md".to_string(),
                 created: None,

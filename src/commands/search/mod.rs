@@ -216,10 +216,20 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         store
-            .create_note("Permanent Note", Some(NoteType::Permanent), &[], None)
+            .create_note(
+                "Permanent Note",
+                Some(NoteType::from(NoteType::PERMANENT)),
+                &[],
+                None,
+            )
             .unwrap();
         store
-            .create_note("Fleeting Note", Some(NoteType::Fleeting), &[], None)
+            .create_note(
+                "Fleeting Note",
+                Some(NoteType::from(NoteType::FLEETING)),
+                &[],
+                None,
+            )
             .unwrap();
 
         let cli = make_default_cli();
@@ -228,7 +238,7 @@ mod tests {
             &cli,
             &store,
             "note",
-            Some(NoteType::Permanent),
+            Some(NoteType::from(NoteType::PERMANENT)),
             None,
             false,
             None,
@@ -259,10 +269,15 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         store
-            .create_note("MOC Note", Some(NoteType::Moc), &[], None)
+            .create_note("MOC Note", Some(NoteType::from(NoteType::MOC)), &[], None)
             .unwrap();
         store
-            .create_note("Regular Note", Some(NoteType::Fleeting), &[], None)
+            .create_note(
+                "Regular Note",
+                Some(NoteType::from(NoteType::FLEETING)),
+                &[],
+                None,
+            )
             .unwrap();
 
         let cli = make_default_cli();

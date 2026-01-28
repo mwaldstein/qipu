@@ -4,52 +4,66 @@ use std::fmt;
 use std::str::FromStr;
 
 /// Note type (per specs/knowledge-model.md)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum NoteType {
-    /// Quick capture, low ceremony, meant to be refined later
-    #[default]
-    Fleeting,
-    /// Notes derived from external sources (URLs, books, papers)
-    Literature,
-    /// Distilled insights in author's own words, meant to stand alone
-    Permanent,
-    /// Map of Content - curated index organizing a topic
-    Moc,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct NoteType(String);
+
+impl PartialEq<&str> for NoteType {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<String> for NoteType {
+    fn eq(&self, other: &String) -> bool {
+        &self.0 == other
+    }
+}
+
+impl From<String> for NoteType {
+    fn from(s: String) -> Self {
+        NoteType(s.to_lowercase())
+    }
+}
+
+impl From<&str> for NoteType {
+    fn from(s: &str) -> Self {
+        NoteType(s.to_lowercase())
+    }
+}
+
+impl Default for NoteType {
+    fn default() -> Self {
+        NoteType("fleeting".to_string())
+    }
 }
 
 impl NoteType {
-    /// All valid note types
-    pub const VALID_TYPES: &'static [&'static str] =
-        &["fleeting", "literature", "permanent", "moc"];
+    pub const FLEETING: &'static str = "fleeting";
+    pub const LITERATURE: &'static str = "literature";
+    pub const PERMANENT: &'static str = "permanent";
+    pub const MOC: &'static str = "moc";
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn is_moc(&self) -> bool {
+        self.0 == Self::MOC
+    }
 }
 
 impl FromStr for NoteType {
     type Err = QipuError;
 
     fn from_str(s: &str) -> Result<Self> {
-        match s.to_lowercase().as_str() {
-            "fleeting" => Ok(NoteType::Fleeting),
-            "literature" => Ok(NoteType::Literature),
-            "permanent" => Ok(NoteType::Permanent),
-            "moc" => Ok(NoteType::Moc),
-            other => Err(QipuError::Other(format!(
-                "unknown note type: {} (expected: {})",
-                other,
-                Self::VALID_TYPES.join(", ")
-            ))),
-        }
+        Ok(NoteType(s.to_lowercase()))
     }
 }
 
 impl fmt::Display for NoteType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            NoteType::Fleeting => write!(f, "fleeting"),
-            NoteType::Literature => write!(f, "literature"),
-            NoteType::Permanent => write!(f, "permanent"),
-            NoteType::Moc => write!(f, "moc"),
-        }
+        write!(f, "{}", self.0)
     }
 }
 

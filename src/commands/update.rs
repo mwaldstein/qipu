@@ -77,12 +77,12 @@ pub fn execute(
 
     // Update type if provided
     if let Some(new_type) = note_type {
-        note.frontmatter.note_type = Some(new_type);
+        note.frontmatter.note_type = Some(new_type.clone());
         modified = true;
 
         // Move file to appropriate directory if type changed
         if let Some(path) = &note.path {
-            let is_moc = matches!(new_type, crate::lib::note::NoteType::Moc);
+            let is_moc = new_type.is_moc();
             let was_moc: bool = path
                 .parent()
                 .and_then(|p: &std::path::Path| p.file_name())

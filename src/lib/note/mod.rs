@@ -100,17 +100,26 @@ mod tests {
 
     #[test]
     fn test_note_type_parsing() {
-        assert_eq!("fleeting".parse::<NoteType>().unwrap(), NoteType::Fleeting);
+        assert_eq!(
+            "fleeting".parse::<NoteType>().unwrap(),
+            NoteType::from(NoteType::FLEETING)
+        );
         assert_eq!(
             "literature".parse::<NoteType>().unwrap(),
-            NoteType::Literature
+            NoteType::from(NoteType::LITERATURE)
         );
         assert_eq!(
             "permanent".parse::<NoteType>().unwrap(),
-            NoteType::Permanent
+            NoteType::from(NoteType::PERMANENT)
         );
-        assert_eq!("moc".parse::<NoteType>().unwrap(), NoteType::Moc);
-        assert_eq!("MOC".parse::<NoteType>().unwrap(), NoteType::Moc);
+        assert_eq!(
+            "moc".parse::<NoteType>().unwrap(),
+            NoteType::from(NoteType::MOC)
+        );
+        assert_eq!(
+            "MOC".parse::<NoteType>().unwrap(),
+            NoteType::from(NoteType::MOC)
+        );
     }
 
     #[test]
@@ -145,7 +154,7 @@ This is the body.
         let note = Note::parse(content, None).unwrap();
         assert_eq!(note.id(), "qp-a1b2");
         assert_eq!(note.title(), "Test Note");
-        assert_eq!(note.note_type(), NoteType::Fleeting);
+        assert_eq!(note.note_type(), NoteType::from(NoteType::FLEETING));
         assert_eq!(note.frontmatter.tags, vec!["test"]);
         assert_eq!(note.body.trim(), "This is the body.");
     }
@@ -153,7 +162,7 @@ This is the body.
     #[test]
     fn test_note_to_markdown() {
         let frontmatter = NoteFrontmatter::new("qp-test".to_string(), "Test".to_string())
-            .with_type(NoteType::Fleeting);
+            .with_type(NoteType::from(NoteType::FLEETING));
         let note = Note::new(frontmatter, "Body content.");
 
         let md = note.to_markdown().unwrap();

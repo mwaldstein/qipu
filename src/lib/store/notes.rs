@@ -14,19 +14,20 @@ pub(crate) fn strip_frontmatter(content: &str) -> String {
 
 /// Get default body for a note type
 pub(crate) fn default_body(note_type: NoteType) -> String {
-    match note_type {
-        NoteType::Fleeting => "## Summary\n\n\n\n## Notes\n\n".to_string(),
-        NoteType::Literature => "## Summary\n\n\n\n## Notes\n\n\n\n## Quotes\n\n".to_string(),
-        NoteType::Permanent => "## Summary\n\n\n\n## Notes\n\n\n\n## See Also\n\n".to_string(),
-        NoteType::Moc => {
+    match note_type.as_str() {
+        NoteType::FLEETING => "## Summary\n\n\n\n## Notes\n\n".to_string(),
+        NoteType::LITERATURE => "## Summary\n\n\n\n## Notes\n\n\n\n## Quotes\n\n".to_string(),
+        NoteType::PERMANENT => "## Summary\n\n\n\n## Notes\n\n\n\n## See Also\n\n".to_string(),
+        NoteType::MOC => {
             "## Summary\n\n\n\n## Overview\n\n\n\n## Reading Path\n\n\n\n## Topics\n\n".to_string()
         }
+        _ => "## Summary\n\n\n\n## Notes\n\n".to_string(),
     }
 }
 
 pub(crate) fn default_template(note_type: NoteType) -> &'static str {
-    match note_type {
-        NoteType::Fleeting => {
+    match note_type.as_str() {
+        NoteType::FLEETING => {
             r#"## Summary
 
 <!-- One-sentence summary of this thought -->
@@ -36,7 +37,7 @@ pub(crate) fn default_template(note_type: NoteType) -> &'static str {
 <!-- Quick capture - refine later -->
 "#
         }
-        NoteType::Literature => {
+        NoteType::LITERATURE => {
             r#"## Summary
 
 <!-- Key takeaway from this source -->
@@ -50,7 +51,7 @@ pub(crate) fn default_template(note_type: NoteType) -> &'static str {
 <!-- Notable quotes from the source -->
 "#
         }
-        NoteType::Permanent => {
+        NoteType::PERMANENT => {
             r#"## Summary
 
 <!-- One idea, in your own words, that can stand alone -->
@@ -64,24 +65,25 @@ pub(crate) fn default_template(note_type: NoteType) -> &'static str {
 <!-- Related notes: explain *why* each is related, not just bare links -->
 "#
         }
-        NoteType::Moc => {
+        NoteType::MOC => {
             r#"## Summary
 
-<!-- What this map covers and why it exists -->
+ <!-- What this map covers and why it exists -->
 
-## Overview
+ ## Overview
 
-<!-- Brief introduction to the topic -->
+ <!-- Brief introduction to topic -->
 
-## Reading Path
+ ## Reading Path
 
-<!-- Suggested order for exploring this topic -->
+ <!-- Suggested order for exploring this topic -->
 
-## Topics
+ ## Topics
 
-<!-- Organized links to notes, grouped by subtopic -->
-<!-- Explain what belongs here and why -->
-"#
+ <!-- Organized links to notes, grouped by subtopic -->
+ <!-- Explain what belongs here and why -->
+ "#
         }
+        _ => todo!(),
     }
 }

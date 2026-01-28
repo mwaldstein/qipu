@@ -378,7 +378,7 @@ mod tests {
     fn test_default_config() {
         let config = StoreConfig::default();
         assert_eq!(config.version, STORE_FORMAT_VERSION);
-        assert_eq!(config.default_note_type, NoteType::Fleeting);
+        assert_eq!(config.default_note_type, NoteType::from(NoteType::FLEETING));
         assert_eq!(config.id_scheme, IdScheme::Hash);
         assert!(config.editor.is_none());
         assert!(config.store_path.is_none());

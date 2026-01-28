@@ -175,13 +175,13 @@ fn test_list_filter_by_tag_none_matching() {
 fn test_list_filter_by_type() {
     let (_temp_dir, store) = create_test_store();
     let mut note1 = store.create_note("Fleeting Note", None, &[], None).unwrap();
-    note1.frontmatter.note_type = Some(NoteType::Fleeting);
+    note1.frontmatter.note_type = Some(NoteType::from(NoteType::FLEETING));
     store.save_note(&mut note1).unwrap();
 
     let mut note2 = store
         .create_note("Permanent Note", None, &[], None)
         .unwrap();
-    note2.frontmatter.note_type = Some(NoteType::Permanent);
+    note2.frontmatter.note_type = Some(NoteType::from(NoteType::PERMANENT));
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
@@ -189,7 +189,7 @@ fn test_list_filter_by_type() {
         &cli,
         &store,
         None,
-        Some(NoteType::Permanent),
+        Some(NoteType::from(NoteType::PERMANENT)),
         None,
         None,
         None,

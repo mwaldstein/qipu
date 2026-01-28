@@ -55,7 +55,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-1".to_string(),
                 title: "Note 1".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["rust".to_string(), "programming".to_string()],
                 path: "1.md".to_string(),
                 created: None,
@@ -69,7 +69,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-2".to_string(),
                 title: "Note 2".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["rust".to_string(), "systems".to_string()],
                 path: "2.md".to_string(),
                 created: None,
@@ -82,8 +82,8 @@ mod tests {
             "qp-3".to_string(),
             NoteMetadata {
                 id: "qp-3".to_string(),
-                title: "Note 3".to_string(),
-                note_type: NoteType::Permanent,
+                title: "Note3".to_string(),
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![
                     "rust".to_string(),
                     "programming".to_string(),
@@ -101,7 +101,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-4".to_string(),
                 title: "Note 4".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["python".to_string(), "programming".to_string()],
                 path: "4.md".to_string(),
                 created: None,
@@ -115,7 +115,7 @@ mod tests {
             NoteMetadata {
                 id: "qp-5".to_string(),
                 title: "Note 5".to_string(),
-                note_type: NoteType::Permanent,
+                note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec!["java".to_string()],
                 path: "5.md".to_string(),
                 created: None,

@@ -26,10 +26,7 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
     let notes = store.list_notes()?;
 
     // Separate MOCs from regular notes
-    let mut mocs: Vec<_> = notes
-        .iter()
-        .filter(|n| n.note_type() == NoteType::Moc)
-        .collect();
+    let mut mocs: Vec<_> = notes.iter().filter(|n| n.note_type().is_moc()).collect();
 
     // Sort MOCs by updated (most recent first), then by id for stability
     mocs.sort_by(
@@ -43,10 +40,7 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
 
     let top_mocs: Vec<_> = mocs.into_iter().collect();
 
-    let mut recent_notes: Vec<_> = notes
-        .iter()
-        .filter(|n| n.note_type() != NoteType::Moc)
-        .collect();
+    let mut recent_notes: Vec<_> = notes.iter().filter(|n| !n.note_type().is_moc()).collect();
 
     recent_notes.sort_by(|a, b| {
         let a_time = a
@@ -333,11 +327,12 @@ fn output_human_primer(
         println!("## Recently Updated Notes");
         println!();
         for note in recent_notes {
-            let type_char = match note.note_type() {
-                NoteType::Fleeting => 'F',
-                NoteType::Literature => 'L',
-                NoteType::Permanent => 'P',
-                NoteType::Moc => 'M',
+            let type_char = match note.note_type().as_str() {
+                NoteType::FLEETING => 'F',
+                NoteType::LITERATURE => 'L',
+                NoteType::PERMANENT => 'P',
+                NoteType::MOC => 'M',
+                _ => 'F',
             };
             println!("  {} [{}] {}", note.id(), type_char, note.title());
         }

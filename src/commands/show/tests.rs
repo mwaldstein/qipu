@@ -84,7 +84,7 @@ fn test_show_json_format() {
     let note = store
         .create_note(
             "JSON Note",
-            Some(NoteType::Permanent),
+            Some(NoteType::from(NoteType::PERMANENT)),
             &["json".to_string()],
             None,
         )
@@ -104,7 +104,12 @@ fn test_show_records_format() {
     let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
     let mut note = store
-        .create_note("Records Note", Some(NoteType::Fleeting), &[], None)
+        .create_note(
+            "Records Note",
+            Some(NoteType::from(NoteType::FLEETING)),
+            &[],
+            None,
+        )
         .unwrap();
     note.body = "This is the body content.\nWith multiple lines.".to_string();
     store.save_note(&mut note).unwrap();

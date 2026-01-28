@@ -153,7 +153,7 @@ fn bench_search_with_filters_2000_notes() {
     let _results = db
         .search(
             "test",
-            Some(NoteType::Fleeting),
+            Some(NoteType::from(NoteType::FLEETING)),
             None,
             None,
             None,

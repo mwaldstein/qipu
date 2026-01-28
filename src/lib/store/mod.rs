@@ -344,7 +344,10 @@ mod tests {
 
         let store = Store::open(&store_root).unwrap();
         assert_eq!(store.config().version, STORE_FORMAT_VERSION);
-        assert_eq!(store.config().default_note_type, NoteType::Fleeting);
+        assert_eq!(
+            store.config().default_note_type,
+            NoteType::from(NoteType::FLEETING)
+        );
         assert_eq!(store.config().id_scheme, IdScheme::Hash);
 
         let note = store.create_note("Test Note", None, &[], None).unwrap();

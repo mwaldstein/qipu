@@ -67,10 +67,19 @@ pub(crate) fn ensure_default_templates(templates_dir: &Path) -> Result<()> {
     fs::create_dir_all(templates_dir)?;
 
     let templates = [
-        ("fleeting.md", default_template(NoteType::Fleeting)),
-        ("literature.md", default_template(NoteType::Literature)),
-        ("permanent.md", default_template(NoteType::Permanent)),
-        ("moc.md", default_template(NoteType::Moc)),
+        (
+            "fleeting.md",
+            default_template(NoteType::from(NoteType::FLEETING)),
+        ),
+        (
+            "literature.md",
+            default_template(NoteType::from(NoteType::LITERATURE)),
+        ),
+        (
+            "permanent.md",
+            default_template(NoteType::from(NoteType::PERMANENT)),
+        ),
+        ("moc.md", default_template(NoteType::from(NoteType::MOC))),
     ];
 
     for (name, content) in templates {

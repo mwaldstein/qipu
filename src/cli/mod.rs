@@ -157,7 +157,7 @@ mod tests {
         .unwrap();
         if let Some(Commands::Create(args)) = cli.command {
             assert_eq!(args.title, "My Note");
-            assert_eq!(args.r#type, Some(NoteType::Permanent));
+            assert_eq!(args.r#type, Some(NoteType::from(NoteType::PERMANENT)));
             assert_eq!(args.tag, vec!["test", "demo"]);
         } else {
             panic!("Expected Create command");
@@ -184,7 +184,7 @@ mod tests {
         }) = cli.command
         {
             assert_eq!(tag, Some("test".to_string()));
-            assert_eq!(r#type, Some(NoteType::Fleeting));
+            assert_eq!(r#type, Some(NoteType::from(NoteType::FLEETING)));
             assert_eq!(since, None);
             assert_eq!(custom, None);
             assert_eq!(min_value, None);

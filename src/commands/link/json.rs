@@ -81,6 +81,7 @@ pub fn output_path_json(
     result: &PathResult,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
+    all_notes: &[crate::lib::note::Note],
 ) -> Result<()> {
     let mut json_result = serde_json::to_value(result)?;
     if let Some(ctx) = compaction_ctx {
@@ -119,6 +120,55 @@ pub fn output_path_json(
                                 if truncated {
                                     obj_mut.insert(
                                         "compacted_ids_truncated".to_string(),
+                                        serde_json::json!(true),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    if cli.expand_compaction {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((compacted_notes, truncated)) = ctx
+                            .get_compacted_notes_expanded(
+                                &id,
+                                depth,
+                                cli.compaction_max_nodes,
+                                all_notes,
+                            )
+                        {
+                            if let Some(obj_mut) = note.as_object_mut() {
+                                obj_mut.insert(
+                                    "compacted_notes".to_string(),
+                                    serde_json::json!(compacted_notes
+                                        .iter()
+                                        .map(|n: &&crate::lib::note::Note| {
+                                            serde_json::json!({
+                                                "id": n.id(),
+                                                "title": n.title(),
+                                                "type": n.note_type().to_string(),
+                                                "tags": n.frontmatter.tags,
+                                                "content": n.body,
+                                                "sources": n.frontmatter.sources.iter().map(|s| {
+                                                    let mut obj = serde_json::json!({
+                                                        "url": s.url,
+                                                    });
+                                                    if let Some(title) = &s.title {
+                                                        obj["title"] = serde_json::json!(title);
+                                                    }
+                                                    if let Some(accessed) = &s.accessed {
+                                                        obj["accessed"] = serde_json::json!(accessed);
+                                                    }
+                                                    obj
+                                                }).collect::<Vec<_>>(),
+                                            })
+                                        })
+                                        .collect::<Vec<_>>()
+                                    ),
+                                );
+                                if truncated {
+                                    obj_mut.insert(
+                                        "compacted_notes_truncated".to_string(),
                                         serde_json::json!(true),
                                     );
                                 }

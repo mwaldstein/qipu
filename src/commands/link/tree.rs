@@ -92,15 +92,23 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     // Output
     match cli.format {
         OutputFormat::Json => {
-            output_tree_json(cli, &result, compaction_ctx.as_ref(), note_map.as_ref())?;
+            output_tree_json(
+                cli,
+                &result,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+                &all_notes,
+            )?;
         }
         OutputFormat::Human => {
             output_tree_human(
                 cli,
                 &result,
                 &index,
+                store,
                 compaction_ctx.as_ref(),
                 note_map.as_ref(),
+                &all_notes,
             );
         }
         OutputFormat::Records => {
@@ -111,6 +119,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
                 cli,
                 compaction_ctx.as_ref(),
                 note_map.as_ref(),
+                &all_notes,
             );
         }
     }
@@ -124,6 +133,7 @@ fn output_tree_json(
     result: &TreeResult,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &crate::lib::note::Note>>,
+    all_notes: &[crate::lib::note::Note],
 ) -> Result<()> {
     let mut json_result = serde_json::to_value(result)?;
     if let Some(ctx) = compaction_ctx {
@@ -168,6 +178,55 @@ fn output_tree_json(
                             }
                         }
                     }
+
+                    if cli.expand_compaction {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((compacted_notes, truncated)) = ctx
+                            .get_compacted_notes_expanded(
+                                &id,
+                                depth,
+                                cli.compaction_max_nodes,
+                                all_notes,
+                            )
+                        {
+                            if let Some(obj_mut) = note.as_object_mut() {
+                                obj_mut.insert(
+                                    "compacted_notes".to_string(),
+                                    serde_json::json!(compacted_notes
+                                        .iter()
+                                        .map(|n: &&crate::lib::note::Note| {
+                                            serde_json::json!({
+                                                "id": n.id(),
+                                                "title": n.title(),
+                                                "type": n.note_type().to_string(),
+                                                "tags": n.frontmatter.tags,
+                                                "content": n.body,
+                                                "sources": n.frontmatter.sources.iter().map(|s| {
+                                                    let mut obj = serde_json::json!({
+                                                        "url": s.url,
+                                                    });
+                                                    if let Some(title) = &s.title {
+                                                        obj["title"] = serde_json::json!(title);
+                                                    }
+                                                    if let Some(accessed) = &s.accessed {
+                                                        obj["accessed"] = serde_json::json!(accessed);
+                                                    }
+                                                    obj
+                                                }).collect::<Vec<_>>(),
+                                            })
+                                        })
+                                        .collect::<Vec<_>>()
+                                    ),
+                                );
+                                if truncated {
+                                    obj_mut.insert(
+                                        "compacted_notes_truncated".to_string(),
+                                        serde_json::json!(true),
+                                    );
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -181,8 +240,10 @@ fn output_tree_human(
     cli: &Cli,
     result: &TreeResult,
     index: &Index,
+    _store: &Store,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &crate::lib::note::Note>>,
+    all_notes: &[crate::lib::note::Note],
 ) {
     if result.notes.is_empty() {
         if !cli.quiet {
@@ -205,6 +266,7 @@ fn output_tree_human(
         cli: &'a Cli,
         compaction_ctx: Option<&'a CompactionContext>,
         note_map: Option<&'a HashMap<&'a str, &'a crate::lib::note::Note>>,
+        all_notes: &'a [crate::lib::note::Note],
     }
 
     // Print tree recursively
@@ -275,6 +337,51 @@ fn output_tree_human(
             }
         }
 
+        // Expand compaction: include full compacted note content
+        if config.cli.expand_compaction {
+            if let Some(ctx) = config.compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(id);
+                if compacts_count > 0 {
+                    let depth = config.cli.compaction_depth.unwrap_or(1);
+                    if let Some((compacted_notes, _truncated)) = ctx.get_compacted_notes_expanded(
+                        id,
+                        depth,
+                        config.cli.compaction_max_nodes,
+                        config.all_notes,
+                    ) {
+                        println!("{}  Compacted Notes:", config.prefix);
+                        for compacted_note in compacted_notes {
+                            println!(
+                                "{}    #### {} ({})",
+                                config.prefix,
+                                compacted_note.title(),
+                                compacted_note.id()
+                            );
+                            println!("{}    Type: {}", config.prefix, compacted_note.note_type());
+                            if !compacted_note.frontmatter.tags.is_empty() {
+                                println!(
+                                    "{}    Tags: {}",
+                                    config.prefix,
+                                    compacted_note.frontmatter.tags.join(", ")
+                                );
+                            }
+                            println!(
+                                "{}    {}",
+                                config.prefix,
+                                compacted_note
+                                    .body
+                                    .lines()
+                                    .take(3)
+                                    .collect::<Vec<_>>()
+                                    .join("\n{}    ")
+                            );
+                            println!();
+                        }
+                    }
+                }
+            }
+        }
+
         if let Some(kids) = children.get(id) {
             let new_prefix = if config.prefix.is_empty() {
                 "".to_string()
@@ -310,6 +417,7 @@ fn output_tree_human(
                         cli: config.cli,
                         compaction_ctx: config.compaction_ctx,
                         note_map: config.note_map,
+                        all_notes: config.all_notes,
                     };
                     print_tree(&entry.to, children, index, &new_visited, &child_config);
                 }
@@ -325,6 +433,7 @@ fn output_tree_human(
         cli,
         compaction_ctx,
         note_map,
+        all_notes,
     };
     print_tree(
         &result.root,
@@ -354,6 +463,7 @@ fn output_tree_records(
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &crate::lib::note::Note>>,
+    all_notes: &[crate::lib::note::Note],
 ) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
@@ -410,6 +520,74 @@ fn output_tree_records(
                                 cli.compaction_max_nodes.unwrap_or(ids.len()),
                                 compacts_count
                             ));
+                        }
+                    }
+                }
+            }
+        }
+
+        if cli.expand_compaction {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&note.id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((compacted_notes, _truncated)) = ctx.get_compacted_notes_expanded(
+                        &note.id,
+                        depth,
+                        cli.compaction_max_nodes,
+                        all_notes,
+                    ) {
+                        for compacted_note in compacted_notes {
+                            let compacted_tags_csv = if compacted_note.frontmatter.tags.is_empty() {
+                                "-".to_string()
+                            } else {
+                                compacted_note.frontmatter.tags.join(",")
+                            };
+
+                            let compacted_path_str = compacted_note
+                                .path
+                                .as_ref()
+                                .map(|p| p.display().to_string())
+                                .unwrap_or_else(|| "-".to_string());
+
+                            lines.push(format!(
+                                "N {} {} \"{}\" tags={} path={} compacted_from={}",
+                                compacted_note.id(),
+                                compacted_note.note_type(),
+                                escape_quotes(compacted_note.title()),
+                                compacted_tags_csv,
+                                compacted_path_str,
+                                note.id
+                            ));
+
+                            let compacted_summary = compacted_note.summary();
+                            if !compacted_summary.is_empty() {
+                                let compacted_summary_line =
+                                    compacted_summary.lines().next().unwrap_or("").trim();
+                                if !compacted_summary_line.is_empty() {
+                                    lines.push(format!(
+                                        "S {} {}",
+                                        compacted_note.id(),
+                                        compacted_summary_line
+                                    ));
+                                }
+                            }
+
+                            for source in &compacted_note.frontmatter.sources {
+                                let title = source.title.as_deref().unwrap_or(&source.url);
+                                let accessed = source.accessed.as_deref().unwrap_or("-");
+                                lines.push(format!(
+                                    "D source url={} title=\"{}\" accessed={} from={}",
+                                    source.url,
+                                    escape_quotes(title),
+                                    accessed,
+                                    compacted_note.id()
+                                ));
+                            }
+
+                            lines.push(format!("B {}", compacted_note.id()));
+                            lines.push(compacted_note.body.trim().to_string());
+                            lines.push(format!("B-END {}", compacted_note.id()));
                         }
                     }
                 }

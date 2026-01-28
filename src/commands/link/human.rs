@@ -87,8 +87,10 @@ pub fn output_human(
 pub fn output_path_human(
     cli: &Cli,
     result: &PathResult,
+    _store: &crate::lib::store::Store,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &Note>>,
+    all_notes: &[crate::lib::note::Note],
 ) {
     if !result.found {
         if !cli.quiet {
@@ -150,6 +152,48 @@ pub fn output_path_human(
                             String::new()
                         };
                         println!("  Compacted: {}{}", ids_str, suffix);
+                    }
+                }
+            }
+        }
+
+        // Expand compaction: include full compacted note content
+        if cli.expand_compaction {
+            if let Some(ctx) = compaction_ctx {
+                let compacts_count = ctx.get_compacts_count(&note.id);
+                if compacts_count > 0 {
+                    let depth = cli.compaction_depth.unwrap_or(1);
+                    if let Some((compacted_notes, _truncated)) = ctx.get_compacted_notes_expanded(
+                        &note.id,
+                        depth,
+                        cli.compaction_max_nodes,
+                        all_notes,
+                    ) {
+                        println!("  Compacted Notes:");
+                        for compacted_note in compacted_notes {
+                            println!(
+                                "    #### {} ({})",
+                                compacted_note.title(),
+                                compacted_note.id()
+                            );
+                            println!("    Type: {}", compacted_note.note_type());
+                            if !compacted_note.frontmatter.tags.is_empty() {
+                                println!(
+                                    "    Tags: {}",
+                                    compacted_note.frontmatter.tags.join(", ")
+                                );
+                            }
+                            println!(
+                                "    {}",
+                                compacted_note
+                                    .body
+                                    .lines()
+                                    .take(3)
+                                    .collect::<Vec<_>>()
+                                    .join("\n    ")
+                            );
+                            println!();
+                        }
                     }
                 }
             }

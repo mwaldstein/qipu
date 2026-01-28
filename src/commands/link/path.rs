@@ -96,10 +96,23 @@ pub fn execute(
     // Output
     match cli.format {
         OutputFormat::Json => {
-            json::output_path_json(cli, &result, compaction_ctx.as_ref(), note_map.as_ref())?;
+            json::output_path_json(
+                cli,
+                &result,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+                &all_notes,
+            )?;
         }
         OutputFormat::Human => {
-            human::output_path_human(cli, &result, compaction_ctx.as_ref(), note_map.as_ref());
+            human::output_path_human(
+                cli,
+                &result,
+                store,
+                compaction_ctx.as_ref(),
+                note_map.as_ref(),
+                &all_notes,
+            );
         }
         OutputFormat::Records => {
             records::output_path_records(
@@ -109,6 +122,7 @@ pub fn execute(
                 cli,
                 compaction_ctx.as_ref(),
                 note_map.as_ref(),
+                &all_notes,
             );
         }
     }

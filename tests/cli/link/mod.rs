@@ -1,5 +1,6 @@
 mod add_remove;
 mod compaction;
+mod expand_compaction;
 mod ignore_value;
 mod list;
 mod path;

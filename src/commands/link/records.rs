@@ -251,6 +251,7 @@ pub fn output_path_records(
     cli: &Cli,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &Note>>,
+    all_notes: &[Note],
 ) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
@@ -309,6 +310,77 @@ pub fn output_path_records(
                                     cli.compaction_max_nodes.unwrap_or(ids.len()),
                                     compacts_count
                                 ));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if cli.expand_compaction {
+                if let Some(ctx) = compaction_ctx {
+                    let compacts_count = ctx.get_compacts_count(&note.id);
+                    if compacts_count > 0 {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((compacted_notes, _truncated)) = ctx
+                            .get_compacted_notes_expanded(
+                                &note.id,
+                                depth,
+                                cli.compaction_max_nodes,
+                                all_notes,
+                            )
+                        {
+                            for compacted_note in compacted_notes {
+                                let compacted_tags_csv =
+                                    if compacted_note.frontmatter.tags.is_empty() {
+                                        "-".to_string()
+                                    } else {
+                                        compacted_note.frontmatter.tags.join(",")
+                                    };
+
+                                let compacted_path_str = compacted_note
+                                    .path
+                                    .as_ref()
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|| "-".to_string());
+
+                                lines.push(format!(
+                                    "N {} {} \"{}\" tags={} path={} compacted_from={}",
+                                    compacted_note.id(),
+                                    compacted_note.note_type(),
+                                    escape_quotes(compacted_note.title()),
+                                    compacted_tags_csv,
+                                    compacted_path_str,
+                                    note.id
+                                ));
+
+                                let compacted_summary = compacted_note.summary();
+                                if !compacted_summary.is_empty() {
+                                    let compacted_summary_line =
+                                        compacted_summary.lines().next().unwrap_or("").trim();
+                                    if !compacted_summary_line.is_empty() {
+                                        lines.push(format!(
+                                            "S {} {}",
+                                            compacted_note.id(),
+                                            compacted_summary_line
+                                        ));
+                                    }
+                                }
+
+                                for source in &compacted_note.frontmatter.sources {
+                                    let title = source.title.as_deref().unwrap_or(&source.url);
+                                    let accessed = source.accessed.as_deref().unwrap_or("-");
+                                    lines.push(format!(
+                                        "D source url={} title=\"{}\" accessed={} from={}",
+                                        source.url,
+                                        escape_quotes(title),
+                                        accessed,
+                                        compacted_note.id()
+                                    ));
+                                }
+
+                                lines.push(format!("B {}", compacted_note.id()));
+                                lines.push(compacted_note.body.trim().to_string());
+                                lines.push(format!("B-END {}", compacted_note.id()));
                             }
                         }
                     }

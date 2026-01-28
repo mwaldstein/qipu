@@ -414,4 +414,170 @@ mod tests {
         ];
         assert_eq!(types, expected);
     }
+
+    #[test]
+    fn test_partial_customization_only_note_types() {
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            note_types: [
+                ("custom-note-1".to_string(), NoteTypeConfig::default()),
+                ("custom-note-2".to_string(), NoteTypeConfig::default()),
+            ]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert!(ontology.is_valid_note_type("fleeting"));
+        assert!(ontology.is_valid_note_type("custom-note-1"));
+        assert!(ontology.is_valid_note_type("custom-note-2"));
+        assert!(!ontology.is_valid_note_type("nonexistent"));
+
+        assert!(ontology.is_valid_link_type("related"));
+        assert!(!ontology.is_valid_link_type("custom-link"));
+    }
+
+    #[test]
+    fn test_partial_customization_only_link_types() {
+        let link_config = LinkTypeConfig {
+            inverse: Some("custom-inverse".to_string()),
+            ..Default::default()
+        };
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            link_types: [("custom-link".to_string(), link_config)]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert!(ontology.is_valid_note_type("fleeting"));
+        assert!(!ontology.is_valid_note_type("custom-note"));
+
+        assert!(ontology.is_valid_link_type("related"));
+        assert!(ontology.is_valid_link_type("custom-link"));
+        assert_eq!(ontology.get_inverse("custom-link"), "custom-inverse");
+    }
+
+    #[test]
+    fn test_invalid_extend_missing_inverse_type() {
+        let link_config = LinkTypeConfig {
+            inverse: Some("nonexistent-inverse".to_string()),
+            ..Default::default()
+        };
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            link_types: [("custom-link".to_string(), link_config)]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert_eq!(ontology.get_inverse("custom-link"), "nonexistent-inverse");
+        assert!(!ontology.is_valid_link_type("nonexistent-inverse"));
+    }
+
+    #[test]
+    fn test_invalid_extend_self_referencing_inverse() {
+        let link_config = LinkTypeConfig {
+            inverse: Some("self-link".to_string()),
+            ..Default::default()
+        };
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            link_types: [("self-link".to_string(), link_config)]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert_eq!(ontology.get_inverse("self-link"), "self-link");
+    }
+
+    #[test]
+    fn test_invalid_extend_circular_inverses() {
+        let link_config_a = LinkTypeConfig {
+            inverse: Some("link-b".to_string()),
+            ..Default::default()
+        };
+        let link_config_b = LinkTypeConfig {
+            inverse: Some("link-a".to_string()),
+            ..Default::default()
+        };
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            link_types: [
+                ("link-a".to_string(), link_config_a),
+                ("link-b".to_string(), link_config_b),
+            ]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert_eq!(ontology.get_inverse("link-a"), "link-b");
+        assert_eq!(ontology.get_inverse("link-b"), "link-a");
+    }
+
+    #[test]
+    fn test_extended_mode_with_empty_custom_types() {
+        let config = OntologyConfig {
+            mode: OntologyMode::Extended,
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert!(ontology.is_valid_note_type("fleeting"));
+        assert!(ontology.is_valid_link_type("related"));
+        assert_eq!(ontology.get_inverse("supports"), "supported-by");
+    }
+
+    #[test]
+    fn test_replacement_mode_with_only_note_types() {
+        let config = OntologyConfig {
+            mode: OntologyMode::Replacement,
+            note_types: [("custom-type".to_string(), NoteTypeConfig::default())]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert!(ontology.is_valid_note_type("custom-type"));
+        assert!(!ontology.is_valid_note_type("fleeting"));
+        assert!(ontology.link_types().is_empty());
+    }
+
+    #[test]
+    fn test_replacement_mode_with_only_link_types() {
+        let link_config = LinkTypeConfig {
+            inverse: Some("my-inverse".to_string()),
+            ..Default::default()
+        };
+        let config = OntologyConfig {
+            mode: OntologyMode::Replacement,
+            link_types: [("custom-link".to_string(), link_config)]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let ontology = Ontology::from_config(&config);
+
+        assert!(ontology.is_valid_link_type("custom-link"));
+        assert!(!ontology.is_valid_link_type("related"));
+        assert!(ontology.note_types().is_empty());
+    }
 }

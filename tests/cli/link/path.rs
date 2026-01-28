@@ -1,12 +1,5 @@
 use crate::cli::support::{extract_id, qipu};
-use predicates::prelude::*;
 use tempfile::tempdir;
-
-// KNOWN LIMITATION:
-// Via annotations in link path don'"'"'"'"'"'"'"'"t appear when start node is compacted.
-// This is a bug in path finding implementation.
-// Via annotations DO work correctly for intermediate nodes that are compacted.
-// See test_link_path_via_multi_hop for a working example.
 
 #[test]
 fn test_link_path_via_basic() {
@@ -165,6 +158,11 @@ fn test_link_path_via_multi_hop() {
         .success();
     qipu()
         .current_dir(dir.path())
+        .args(["link", "add", &note2_id, &note3_id, "--type", "related"])
+        .assert()
+        .success();
+    qipu()
+        .current_dir(dir.path())
         .arg("index")
         .assert()
         .success();
@@ -199,10 +197,9 @@ fn test_link_path_via_multi_hop() {
 
     let links = json["links"].as_array().unwrap();
 
-    let has_via = links.iter().any(|l| {
-        l.get("via").is_some()
-            && l["via"].as_str() == Some(&note2_id)
-    });
+    let has_via = links
+        .iter()
+        .any(|l| l.get("via").is_some() && l["via"].as_str() == Some(&note2_id));
 
     assert!(
         has_via,

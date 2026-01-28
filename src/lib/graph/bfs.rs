@@ -337,6 +337,7 @@ fn reconstruct_path(
     to: &str,
     predecessors: &HashMap<String, PredecessorInfo>,
     provider: &dyn GraphProvider,
+    equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> (Vec<TreeNote>, Vec<TreeLink>) {
     let mut path_nodes: Vec<(String, Option<String>)> = Vec::new();
     let mut path_links: Vec<TreeLink> = Vec::new();
@@ -379,7 +380,18 @@ fn reconstruct_path(
         })
         .collect();
 
-    (tree_notes, path_links)
+    let mut updated_links = path_links;
+    if let (Some(equiv_map), Some(first_link)) = (equivalence_map, updated_links.first_mut()) {
+        if let Some(equiv_ids) = equiv_map.get(from) {
+            if equiv_ids.len() > 1 {
+                if let Some(original_id) = equiv_ids.iter().find(|id| *id != from) {
+                    first_link.via = Some(original_id.clone());
+                }
+            }
+        }
+    }
+
+    (tree_notes, updated_links)
 }
 
 /// Find path between two nodes using BFS or Dijkstra
@@ -426,7 +438,7 @@ pub fn bfs_find_path(
     };
 
     let (notes, links) = if found {
-        reconstruct_path(from, to, &predecessors, provider)
+        reconstruct_path(from, to, &predecessors, provider, equivalence_map)
     } else {
         (Vec::new(), Vec::new())
     };

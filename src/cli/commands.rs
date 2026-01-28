@@ -138,6 +138,10 @@ pub enum Commands {
         #[arg(long)]
         rebuild: bool,
 
+        /// Resume from last checkpoint (for interrupted rebuild)
+        #[arg(long)]
+        resume: bool,
+
         /// Rewrite wiki-links to markdown links (optional; opt-in)
         #[arg(long)]
         rewrite_wiki_links: bool,

@@ -106,6 +106,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 
         Some(Commands::Index {
             rebuild,
+            resume,
             rewrite_wiki_links,
             quick,
             tag,
@@ -117,6 +118,7 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             cli,
             &root,
             *rebuild,
+            *resume,
             *rewrite_wiki_links,
             *quick,
             tag.clone(),

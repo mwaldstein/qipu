@@ -90,6 +90,7 @@ pub fn execute(
     cli: &Cli,
     store: &Store,
     rebuild: bool,
+    resume: bool,
     rewrite_wiki_links: bool,
     quick: bool,
     tag: Option<&str>,
@@ -129,6 +130,8 @@ pub fn execute(
         let result =
             if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
                 selective_index(cli, store, quick, tag, note_type, recent, moc)
+            } else if resume {
+                store.db().rebuild_resume(store.root(), Some(&mut progress))
             } else if rebuild {
                 store.db().rebuild(store.root(), Some(&mut progress))
             } else {
@@ -140,7 +143,7 @@ pub fn execute(
         match result {
             Ok(_) => {}
             Err(QipuError::Interrupted) => {
-                eprintln!("Index interrupted. Run `qipu index` to resume.");
+                eprintln!("Index interrupted. Run `qipu index --resume` to resume.");
                 return Err(QipuError::Interrupted);
             }
             Err(e) => return Err(e),
@@ -149,6 +152,8 @@ pub fn execute(
         let result =
             if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
                 selective_index(cli, store, quick, tag, note_type, recent, moc)
+            } else if resume {
+                store.db().rebuild_resume(store.root(), None)
             } else if rebuild {
                 store.db().rebuild(store.root(), None)
             } else {
@@ -158,7 +163,7 @@ pub fn execute(
         match result {
             Ok(_) => {}
             Err(QipuError::Interrupted) => {
-                eprintln!("Index interrupted. Run `qipu index` to resume.");
+                eprintln!("Index interrupted. Run `qipu index --resume` to resume.");
                 return Err(QipuError::Interrupted);
             }
             Err(e) => return Err(e),

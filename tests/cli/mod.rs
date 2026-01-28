@@ -12,6 +12,7 @@ mod init;
 mod json_schema;
 mod link;
 mod list;
+mod load;
 mod logging;
 mod merge;
 mod misc;

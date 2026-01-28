@@ -51,6 +51,8 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
     let mut notes: Vec<PackNote> = Vec::new();
     let mut links: Vec<PackLink> = Vec::new();
     let mut attachments: Vec<PackAttachment> = Vec::new();
+    let mut config_content: String = String::new();
+    let mut config_encoded_lines: Vec<String> = Vec::new();
 
     let mut current_note: Option<PackNote> = None;
     let mut current_attachment: Option<PackAttachment> = None;
@@ -97,7 +99,23 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
                     .get("links")
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0),
+                config_count: header_data
+                    .get("config")
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0),
             });
+        } else if line.starts_with("CFG ") {
+            config_encoded_lines.push(line[4..].to_string());
+        } else if line == "CFG-END" {
+            if !config_encoded_lines.is_empty() {
+                let encoded = config_encoded_lines.join("");
+                if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
+                    if let Ok(decoded_str) = String::from_utf8(decoded) {
+                        config_content = decoded_str;
+                    }
+                }
+                config_encoded_lines.clear();
+            }
         } else if line.starts_with("N ") {
             // Note metadata line
             if let Some(ref mut note) = current_note {
@@ -391,5 +409,6 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
         notes,
         links,
         attachments,
+        config_content,
     })
 }

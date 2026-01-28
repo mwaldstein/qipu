@@ -70,7 +70,13 @@ fn parse_strategy(s: &str) -> Result<LoadStrategy> {
 }
 
 /// Execute load command
-pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Result<()> {
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    pack_file: &Path,
+    strategy: &str,
+    apply_config: bool,
+) -> Result<()> {
     // Parse strategy
     let strategy = parse_strategy(strategy)?;
 
@@ -99,6 +105,18 @@ pub fn execute(cli: &Cli, store: &Store, pack_file: &Path, strategy: &str) -> Re
             "pack store version {} is higher than store version {} - please upgrade qipu",
             pack_data.header.store_version, STORE_FORMAT_VERSION
         )));
+    }
+
+    // Apply config if requested and config is present
+    if apply_config {
+        if !pack_data.config_content.is_empty() {
+            let config_path = store.root().join("config.toml");
+            std::fs::write(&config_path, &pack_data.config_content)
+                .map_err(|e| QipuError::Other(format!("failed to write config.toml: {}", e)))?;
+            tracing::info!("Applied config from pack to {}", config_path.display());
+        } else {
+            tracing::warn!("Pack contains no config to apply");
+        }
     }
 
     // Load notes

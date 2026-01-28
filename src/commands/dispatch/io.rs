@@ -126,13 +126,14 @@ pub(super) fn handle_load(
     root: &PathBuf,
     pack_file: &PathBuf,
     strategy: &str,
+    apply_config: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::load::execute(cli, &store, pack_file, strategy)?;
+    commands::load::execute(cli, &store, pack_file, strategy, apply_config)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

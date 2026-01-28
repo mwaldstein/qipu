@@ -534,6 +534,10 @@ pub enum Commands {
         /// Conflict resolution strategy: skip, overwrite, merge-links
         #[arg(long, default_value = "skip")]
         strategy: String,
+
+        /// Apply embedded config.toml from pack
+        #[arg(long)]
+        apply_config: bool,
     },
 
     /// Merge note id1 into id2

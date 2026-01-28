@@ -326,7 +326,8 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         Some(Commands::Load {
             pack_file,
             strategy,
-        }) => io::handle_load(cli, &root, pack_file, strategy, start),
+            apply_config,
+        }) => io::handle_load(cli, &root, pack_file, strategy, *apply_config, start),
 
         Some(Commands::Merge { id1, id2, dry_run }) => {
             notes::handle_merge(cli, &root, id1, id2, *dry_run, start)

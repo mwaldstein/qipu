@@ -5,8 +5,6 @@ use rusqlite::{params, Connection};
 /// Indexing strategy for auto-indexing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndexingStrategy {
-    /// Full index (basic + full-text for all notes)
-    Full,
     /// Quick index (basic only for MOCs + N recent notes)
     Quick,
 }
@@ -14,7 +12,6 @@ pub enum IndexingStrategy {
 impl IndexingStrategy {
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "full" => Some(IndexingStrategy::Full),
             "quick" => Some(IndexingStrategy::Quick),
             _ => None,
         }
@@ -28,10 +25,12 @@ pub enum IndexLevel {
     /// Skips body and FTS5 indexing
     Basic = 1,
     /// Level 2: Full-text index (includes body content and FTS5)
+    #[allow(dead_code)]
     Full = 2,
 }
 
 impl IndexLevel {
+    #[allow(dead_code)]
     pub fn from_i32(v: i32) -> Self {
         match v {
             1 => IndexLevel::Basic,
@@ -132,97 +131,6 @@ impl super::Database {
         Ok(())
     }
 
-    /// Insert note at full-text index level (includes body and FTS5)
-    pub fn insert_note_full(conn: &Connection, note: &Note) -> Result<()> {
-        let path_str = note
-            .path
-            .as_ref()
-            .and_then(|p| p.to_str())
-            .ok_or_else(|| QipuError::Other(format!("invalid path for note {}", note.id())))?;
-
-        let created_str = note.frontmatter.created.map(|d| d.to_rfc3339());
-        let updated_str = note.frontmatter.updated.map(|d| d.to_rfc3339());
-        let mtime = note
-            .path
-            .as_ref()
-            .and_then(|p| std::fs::metadata(p).ok())
-            .and_then(|m| m.modified().ok())
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| d.as_nanos() as i64)
-            .unwrap_or(0);
-
-        let compacts_json =
-            serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
-        let sources_json =
-            serde_json::to_string(&note.frontmatter.sources).unwrap_or_else(|_| "[]".to_string());
-        let verified_int = note.frontmatter.verified.map(|b| if b { 1 } else { 0 });
-        let custom_json =
-            serde_json::to_string(&note.frontmatter.custom).unwrap_or_else(|_| "{}".to_string());
-
-        conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts, author, verified, source, sources, generated_by, prompt_hash, custom_json, index_level)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
-            params![
-                note.id(),
-                note.title(),
-                note.note_type().to_string(),
-                path_str,
-                created_str,
-                updated_str,
-                &note.body,
-                mtime,
-                note.frontmatter.value.or(Some(50)),
-                compacts_json,
-                note.frontmatter.author.as_ref(),
-                verified_int,
-                note.frontmatter.source.as_ref(),
-                sources_json,
-                note.frontmatter.generated_by.as_ref(),
-                note.frontmatter.prompt_hash.as_ref(),
-                custom_json,
-                IndexLevel::Full as i32,
-            ],
-        )
-        .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
-
-        let rowid: i64 = conn.last_insert_rowid();
-
-        // Full FTS5 indexing for full-text level
-        conn.execute(
-            "INSERT OR REPLACE INTO notes_fts(rowid, title, body, tags) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                rowid,
-                note.title(),
-                &note.body,
-                note.frontmatter.tags.join(" "),
-            ],
-        )
-        .map_err(|e| {
-            QipuError::Other(format!(
-                "failed to insert note {} into FTS: {}",
-                note.id(),
-                e
-            ))
-        })?;
-
-        for tag in &note.frontmatter.tags {
-            conn.execute(
-                "INSERT OR REPLACE INTO tags (note_id, tag) VALUES (?1, ?2)",
-                params![note.id(), tag],
-            )
-            .map_err(|e| {
-                QipuError::Other(format!(
-                    "failed to insert tag '{}' for note {}: {}",
-                    tag,
-                    note.id(),
-                    e
-                ))
-            })?;
-        }
-
-        Ok(())
-    }
-
     /// Rebuild database at basic index level (metadata only)
     pub fn rebuild_basic(&self, store_root: &std::path::Path) -> Result<()> {
         use crate::lib::store::paths::{MOCS_DIR, NOTES_DIR};
@@ -281,6 +189,7 @@ impl super::Database {
     }
 
     /// Get index level for a note
+    #[allow(dead_code)]
     pub fn get_note_index_level(&self, note_id: &str) -> Result<Option<IndexLevel>> {
         match self.conn.query_row(
             "SELECT index_level FROM notes WHERE id = ?1",
@@ -322,6 +231,7 @@ impl super::Database {
     }
 
     /// Upgrade notes from basic to full-text index level
+    #[allow(dead_code)]
     pub fn upgrade_to_full_text(&self, note_ids: &[String]) -> Result<usize> {
         let mut upgraded = 0;
 
@@ -385,7 +295,7 @@ impl super::Database {
             tracing::info!("No notes to index");
             return Ok(IndexingResult {
                 notes_indexed: 0,
-                strategy: IndexingStrategy::Full,
+                strategy: IndexingStrategy::Quick,
             });
         }
 
@@ -398,14 +308,14 @@ impl super::Database {
             );
             return Ok(IndexingResult {
                 notes_indexed: db_count as usize,
-                strategy: IndexingStrategy::Full,
+                strategy: IndexingStrategy::Quick,
             });
         }
 
         let strategy = force_strategy.or_else(|| {
             if config.strategy == "adaptive" {
                 if note_count < config.adaptive_threshold {
-                    Some(IndexingStrategy::Full)
+                    None
                 } else {
                     Some(IndexingStrategy::Quick)
                 }
@@ -415,14 +325,6 @@ impl super::Database {
         });
 
         match strategy {
-            Some(IndexingStrategy::Full) => {
-                tracing::info!("Auto-indexing with FULL strategy: {} notes", note_count);
-                self.rebuild(store_root, None)?;
-                Ok(IndexingResult {
-                    notes_indexed: note_count,
-                    strategy: IndexingStrategy::Full,
-                })
-            }
             Some(IndexingStrategy::Quick) => {
                 tracing::info!(
                     "Auto-indexing with QUICK strategy: MOCs + {} recent notes from {} total",
@@ -436,12 +338,10 @@ impl super::Database {
                 })
             }
             None => {
-                tracing::warn!(
-                    "Unknown indexing strategy: '{}', skipping auto-index",
-                    config.strategy
-                );
+                tracing::info!("Auto-indexing with BASIC strategy: {} notes", note_count);
+                self.rebuild_basic(store_root)?;
                 Ok(IndexingResult {
-                    notes_indexed: 0,
+                    notes_indexed: note_count,
                     strategy: IndexingStrategy::Quick,
                 })
             }
@@ -474,7 +374,7 @@ impl super::Database {
                         Ok(note) => {
                             let mtime = std::fs::metadata(path)
                                 .and_then(|m| m.modified())
-                                .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH);
+                                .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
 
                             if note.note_type() == NoteType::Moc {
                                 moc_notes.push((mtime, note));
@@ -538,6 +438,7 @@ impl super::Database {
 
 /// Result of adaptive indexing operation
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct IndexingResult {
     /// Number of notes indexed
     pub notes_indexed: usize,

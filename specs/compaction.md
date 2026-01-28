@@ -226,6 +226,7 @@ Recommended approach:
   - node count
   - cohesion (internal edges)
   - boundary edges (external connectivity)
+  - value: low-value clusters (<20) receive significant scoring boost (per value-model.md)
 
 Recommended outputs (especially for `--format json`):
 - list of candidates, each with:

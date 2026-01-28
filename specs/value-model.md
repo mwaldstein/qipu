@@ -186,4 +186,3 @@ This preserves the link-type cost extension point while adding value-based weigh
 ## Open Questions
 - Should `value` influence search ranking by default, or only when explicitly sorted by value?
 - Should digest notes automatically receive a value boost (e.g., `min(80, value)`) during indexing?
-- Should `qipu compact suggest` factor in value when identifying compaction candidates (prefer low-value notes)?

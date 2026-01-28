@@ -13,6 +13,10 @@ use crate::lib::note::NoteType;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
+// TARGET_MIN_CHARS and TARGET_MAX_CHARS define acceptable output range per spec (~4-8k chars).
+// We target midpoint (6k) to balance context density with token efficiency.
+// When notes are scarce, output will be shorter; when abundant, we include as many as possible up to target.
+// This ensures primers are consistently useful regardless of store size.
 const TARGET_MIN_CHARS: usize = 4000;
 const TARGET_MAX_CHARS: usize = 8000;
 

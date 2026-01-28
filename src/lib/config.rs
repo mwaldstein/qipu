@@ -280,12 +280,6 @@ impl StoreConfig {
         fs::write(path, content)?;
         Ok(())
     }
-
-    /// Create default configuration with sensible defaults
-    #[allow(dead_code)]
-    pub fn with_defaults() -> Self {
-        Self::default()
-    }
 }
 
 fn default_version() -> u32 {

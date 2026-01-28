@@ -168,6 +168,7 @@ impl Database {
 
     /// Rebuild the database from scratch by scanning all notes
     #[tracing::instrument(skip(self, store_root, progress), fields(store_root = %store_root.display()))]
+    #[allow(clippy::type_complexity)]
     pub fn rebuild(
         &self,
         store_root: &Path,
@@ -238,8 +239,8 @@ impl Database {
                 .as_ref()
                 .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
 
-            Self::insert_note_internal(tx_ref, &note)?;
-            Self::insert_edges_internal(tx_ref, &note, &ids)?;
+            Self::insert_note_internal(tx_ref, note)?;
+            Self::insert_edges_internal(tx_ref, note, &ids)?;
 
             // Report progress every 100 notes and at the end
             if (i + 1) % 100 == 0 || (i + 1) == total_notes {

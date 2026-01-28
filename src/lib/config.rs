@@ -156,6 +156,7 @@ impl StoreConfig {
     }
 
     /// Set a custom cost for a link type
+    #[allow(dead_code)]
     pub fn set_link_cost(&mut self, link_type: &str, cost: f32) {
         self.graph
             .types
@@ -166,6 +167,7 @@ impl StoreConfig {
 
     /// Resolve a tag alias to its canonical name
     /// Returns: canonical tag name, or the original tag if no alias exists
+    #[allow(dead_code)]
     pub fn resolve_tag_alias(&self, tag: &str) -> String {
         self.tag_aliases
             .get(tag)
@@ -196,6 +198,7 @@ impl StoreConfig {
     }
 
     /// Add a tag alias
+    #[allow(dead_code)]
     pub fn add_tag_alias(&mut self, alias: String, canonical: String) {
         self.tag_aliases.insert(alias, canonical);
     }
@@ -216,6 +219,7 @@ impl StoreConfig {
     }
 
     /// Create default configuration with sensible defaults
+    #[allow(dead_code)]
     pub fn with_defaults() -> Self {
         Self::default()
     }

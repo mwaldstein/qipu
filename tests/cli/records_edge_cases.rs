@@ -71,7 +71,7 @@ fn test_records_very_long_title() {
 
     let output = qipu()
         .current_dir(dir.path())
-        .args(["create", &long_title])
+        .args(["create", long_title])
         .output()
         .unwrap();
     let id = extract_id(&output);
@@ -389,7 +389,7 @@ fn test_records_budget_truncation_header_only() {
 
     // Should have header line
     assert!(
-        stdout.lines().next().map_or(false, |l| l.starts_with("H ")),
+        stdout.lines().next().is_some_and(|l| l.starts_with("H ")),
         "First line should be header"
     );
 }

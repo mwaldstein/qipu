@@ -188,7 +188,7 @@ mod tests {
             assert_eq!(since, None);
             assert_eq!(custom, None);
             assert_eq!(min_value, None);
-            assert_eq!(show_custom, false);
+            assert!(!show_custom);
         } else {
             panic!("Expected List command");
         }

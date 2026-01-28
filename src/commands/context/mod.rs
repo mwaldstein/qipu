@@ -408,6 +408,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         let before_count = selected_notes.len();
 
         // Parse filter expressions
+        #[allow(clippy::type_complexity)]
         let filters: Vec<
             std::sync::Arc<dyn Fn(&std::collections::HashMap<String, serde_yaml::Value>) -> bool>,
         > = options

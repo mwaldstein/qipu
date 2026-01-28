@@ -408,7 +408,7 @@ fn test_search_json_has_required_fields() {
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
     let results = json.as_array().unwrap();
 
-    assert!(results.len() > 0);
+    assert!(!results.is_empty());
 
     for result in results {
         assert!(result["id"].is_string(), "id should be a string");

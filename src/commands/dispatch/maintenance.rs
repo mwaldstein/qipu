@@ -64,6 +64,7 @@ pub(super) fn handle_sync(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_index(
     cli: &Cli,
     root: &PathBuf,

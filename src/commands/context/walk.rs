@@ -11,6 +11,7 @@ use crate::lib::index::IndexBuilder;
 use crate::lib::store::Store;
 
 /// Perform graph walk from a starting note and return the list of note IDs
+#[allow(clippy::too_many_arguments)]
 pub fn walk_for_context(
     cli: &Cli,
     store: &Store,

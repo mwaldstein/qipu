@@ -194,6 +194,7 @@ pub fn create_schema(conn: &Connection) -> Result<SchemaCreateResult> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 pub fn force_set_schema_version(conn: &Connection, version: i32) -> Result<()> {
     conn.execute(
         "INSERT OR REPLACE INTO index_meta (key, value) VALUES ('schema_version', ?1)",

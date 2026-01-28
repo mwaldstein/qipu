@@ -30,6 +30,7 @@ impl super::Database {
     /// - Title: TITLE_WEIGHT boost
     /// - Body: BODY_WEIGHT (baseline)
     /// - Tags: TAGS_WEIGHT boost
+    #[allow(clippy::too_many_arguments)]
     pub fn search(
         &self,
         query: &str,

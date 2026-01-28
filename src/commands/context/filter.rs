@@ -24,6 +24,7 @@ pub enum ComparisonOp {
 /// - Equality: `key=value`
 /// - Existence: `key` (present), `!key` (absent)
 /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+#[allow(clippy::type_complexity)]
 pub fn parse_custom_filter_expression(
     expr: &str,
 ) -> Result<Arc<dyn Fn(&HashMap<String, serde_yaml::Value>) -> bool + 'static>> {

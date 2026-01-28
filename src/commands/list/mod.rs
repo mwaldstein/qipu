@@ -21,6 +21,7 @@ use crate::lib::store::Store;
 use self::format::{output_human, output_json, output_records};
 
 /// Execute the list command
+#[allow(clippy::too_many_arguments)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

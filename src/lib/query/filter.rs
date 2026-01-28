@@ -200,42 +200,42 @@ impl<'a> NoteFilter<'a> {
             if let Some((k, v)) = expr.split_once(">=") {
                 let key = k.trim();
                 let value = v.trim();
-                return !key.is_empty()
+                !key.is_empty()
                     && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a >= b);
+                    && self.match_numeric_comparison(note, key, value, |a, b| a >= b)
             } else if let Some((k, v)) = expr.split_once('>') {
                 let key = k.trim();
                 let value = v.trim();
-                return !key.is_empty()
+                !key.is_empty()
                     && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a > b);
+                    && self.match_numeric_comparison(note, key, value, |a, b| a > b)
             } else if let Some((k, v)) = expr.split_once("<=") {
                 let key = k.trim();
                 let value = v.trim();
-                return !key.is_empty()
+                !key.is_empty()
                     && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a <= b);
+                    && self.match_numeric_comparison(note, key, value, |a, b| a <= b)
             } else if let Some((k, v)) = expr.split_once('<') {
                 let key = k.trim();
                 let value = v.trim();
-                return !key.is_empty()
+                !key.is_empty()
                     && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a < b);
+                    && self.match_numeric_comparison(note, key, value, |a, b| a < b)
             } else if let Some((key, value)) = expr.split_once('=') {
                 // Equality check (key=value)
                 let key = key.trim();
                 let value = value.trim();
-                return !key.is_empty()
+                !key.is_empty()
                     && note
                         .frontmatter
                         .custom
                         .get(key)
                         .map(|v| self.match_custom_value(v, value))
-                        .unwrap_or(false);
+                        .unwrap_or(false)
             } else {
                 // No comparison operator found, check for existence
                 let key = expr.trim();
-                return !key.is_empty() && note.frontmatter.custom.contains_key(key);
+                !key.is_empty() && note.frontmatter.custom.contains_key(key)
             }
         } else {
             true

@@ -85,6 +85,7 @@ impl ProgressTracker {
 }
 
 /// Execute index command
+#[allow(clippy::too_many_arguments)]
 pub fn execute(
     cli: &Cli,
     store: &Store,
@@ -294,11 +295,9 @@ fn filter_quick_index(
     for note in notes {
         if note.note_type() == NoteType::Moc {
             mocs.push(note.clone());
-        } else {
-            if let Some(path) = &note.path {
-                if let Ok(mtime) = std::fs::metadata(path).and_then(|m| m.modified()) {
-                    others.push((mtime, note.clone()));
-                }
+        } else if let Some(path) = &note.path {
+            if let Ok(mtime) = std::fs::metadata(path).and_then(|m| m.modified()) {
+                others.push((mtime, note.clone()));
             }
         }
     }

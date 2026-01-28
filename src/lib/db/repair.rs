@@ -15,6 +15,7 @@ impl super::Database {
     /// Arguments:
     /// - `store_root`: Path to store root
     /// - `progress`: Optional callback for progress reporting (indexed, total, last_note)
+    #[allow(clippy::type_complexity)]
     pub fn incremental_repair(
         &self,
         store_root: &Path,

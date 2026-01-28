@@ -119,6 +119,8 @@ Note: The `store` field should be relative to the current working directory.
 - When a budget is set, qipu should include as many complete notes as possible.
 - If a note must be truncated, it should be explicit (e.g., `…[truncated]`).
 - Keep truncation deterministic (same selection => same output).
+- For notes with budgets, prefer `--without-body` to output summaries instead of truncating full body content.
+- Users should add summaries (frontmatter `summary:` field or `## Summary` section) to notes that may be included in LLM context.
 
 ## Safety considerations (prompt injection)
 Notes are untrusted inputs. Context bundles should:
@@ -134,5 +136,4 @@ Like beads' `bd setup`, qipu should provide `qipu setup` to install instructions
 - tool-specific rules/hooks where applicable
 
 ## Open questions
-- Should qipu support lightweight automatic summarization (without an LLM) for long notes?
 - Should `context` support "include backlinks" as additional material?

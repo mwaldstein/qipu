@@ -11,6 +11,7 @@ pub struct PackHeader {
     pub notes_count: usize,
     pub attachments_count: usize,
     pub links_count: usize,
+    #[serde(default)]
     pub config_count: usize,
 }
 
@@ -71,5 +72,6 @@ pub struct PackData {
     pub notes: Vec<PackNote>,
     pub links: Vec<PackLink>,
     pub attachments: Vec<PackAttachment>,
+    #[serde(default)]
     pub config_content: String,
 }

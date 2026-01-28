@@ -14,6 +14,7 @@ pub mod id;
 pub mod index;
 pub mod logging;
 pub mod note;
+pub mod ontology;
 pub mod query;
 pub mod records;
 pub mod search;

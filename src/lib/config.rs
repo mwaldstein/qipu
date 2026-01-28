@@ -111,7 +111,7 @@ pub struct SearchConfig {
 }
 
 /// Configuration for a single note type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NoteTypeConfig {
     /// Human-readable description
     #[serde(default)]
@@ -142,9 +142,26 @@ pub struct LinkTypeConfig {
     pub usage: Option<String>,
 }
 
+/// Ontology resolution mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OntologyMode {
+    /// Use only standard ontology (built-in note and link types)
+    #[default]
+    Default,
+    /// Extend standard ontology with custom types
+    Extended,
+    /// Replace standard ontology with custom types only
+    Replacement,
+}
+
 /// Custom ontology configuration
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct OntologyConfig {
+    /// Resolution mode for custom types
+    #[serde(default)]
+    pub mode: OntologyMode,
+
     /// Custom note type definitions
     #[serde(default)]
     pub note_types: std::collections::HashMap<String, NoteTypeConfig>,

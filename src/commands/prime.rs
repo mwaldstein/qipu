@@ -10,6 +10,7 @@ use crate::cli::{Cli, OutputFormat};
 use crate::commands::context::path_relative_to_cwd;
 use crate::lib::error::Result;
 use crate::lib::note::NoteType;
+use crate::lib::ontology::Ontology;
 use crate::lib::records::escape_quotes;
 use crate::lib::store::Store;
 
@@ -21,7 +22,10 @@ const TARGET_MIN_CHARS: usize = 4000;
 const TARGET_MAX_CHARS: usize = 8000;
 
 /// Execute the prime command
-pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
+pub fn execute(cli: &Cli, store: &Store, compact: bool, minimal: bool) -> Result<()> {
+    let config = store.config();
+    let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
+
     // Gather data for the primer
     let notes = store.list_notes()?;
 
@@ -65,15 +69,62 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
 
     let store_path = path_relative_to_cwd(store.root());
 
-    let selected_mocs =
-        select_notes_within_budget(&top_mocs, &recent_notes, &store_path, cli.format);
-    let selected_recent =
-        select_recent_within_budget(&recent_notes, &selected_mocs, &store_path, cli.format);
+    // Handle minimal flag: no notes, just ontology and commands
+    let (selected_mocs, selected_recent) = if minimal {
+        (vec![], vec![])
+    } else if compact {
+        // Compact flag: only show notes, no MOCs
+        (
+            vec![],
+            select_recent_within_budget_compact(&recent_notes, &store_path, cli.format),
+        )
+    } else {
+        // Default: show MOCs and recent notes
+        let selected_mocs =
+            select_notes_within_budget(&top_mocs, &recent_notes, &store_path, cli.format);
+        let selected_recent =
+            select_recent_within_budget(&recent_notes, &selected_mocs, &store_path, cli.format);
+        (selected_mocs, selected_recent)
+    };
 
     match cli.format {
         OutputFormat::Json => {
+            let note_types = ontology.note_types();
+            let link_types = ontology.link_types();
+
+            let note_type_objs: Vec<_> = note_types
+                .iter()
+                .map(|nt| {
+                    let type_config = config.ontology.note_types.get(nt);
+                    serde_json::json!({
+                        "name": nt,
+                        "description": type_config.and_then(|c| c.description.clone()),
+                        "usage": type_config.and_then(|c| c.usage.clone()),
+                    })
+                })
+                .collect();
+
+            let link_type_objs: Vec<_> = link_types
+                .iter()
+                .map(|lt| {
+                    let inverse = ontology.get_inverse(lt);
+                    let type_config = config.ontology.link_types.get(lt);
+                    serde_json::json!({
+                        "name": lt,
+                        "inverse": inverse,
+                        "description": type_config.and_then(|c| c.description.clone()),
+                        "usage": type_config.and_then(|c| c.usage.clone()),
+                    })
+                })
+                .collect();
+
             let output = serde_json::json!({
                 "store": store_path,
+                "ontology": {
+                    "mode": format_mode(config.ontology.mode),
+                    "note_types": note_type_objs,
+                    "link_types": link_type_objs,
+                },
                 "primer": {
                     "description": "Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs).",
                     "commands": [
@@ -115,10 +166,23 @@ pub fn execute(cli: &Cli, store: &Store) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         OutputFormat::Human => {
-            output_human_primer(&store_path, &selected_mocs, &selected_recent);
+            output_human_primer(
+                &store_path,
+                &ontology,
+                &config.ontology,
+                &selected_mocs,
+                &selected_recent,
+                compact,
+            );
         }
         OutputFormat::Records => {
-            output_records_primer(&store_path, &selected_mocs, &selected_recent);
+            output_records_primer(
+                &store_path,
+                &ontology,
+                &config.ontology,
+                &selected_mocs,
+                &selected_recent,
+            );
         }
     }
 
@@ -165,6 +229,31 @@ fn select_notes_within_budget<'a>(
         if current_count + moc_chars <= remaining {
             selected.push(*moc);
             current_count += moc_chars;
+        } else {
+            break;
+        }
+    }
+
+    selected
+}
+
+fn select_recent_within_budget_compact<'a>(
+    recent_notes: &'a [&'a crate::lib::note::Note],
+    store_path: &str,
+    format: OutputFormat,
+) -> Vec<&'a crate::lib::note::Note> {
+    let base_chars = estimate_base_char_count(store_path, format);
+    let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
+    let remaining = target.saturating_sub(base_chars);
+
+    let mut selected = Vec::new();
+    let mut current_count = 0;
+
+    for note in recent_notes {
+        let note_chars = estimate_single_note_char_count(note, format, false);
+        if current_count + note_chars <= remaining {
+            selected.push(*note);
+            current_count += note_chars;
         } else {
             break;
         }
@@ -282,8 +371,11 @@ fn estimate_single_note_char_count(
 /// Output primer in human-readable format
 fn output_human_primer(
     store_path: &str,
+    ontology: &Ontology,
+    config: &crate::lib::config::OntologyConfig,
     mocs: &[&crate::lib::note::Note],
     recent_notes: &[&crate::lib::note::Note],
+    compact: bool,
 ) {
     println!("# Qipu Knowledge Store Primer");
     println!();
@@ -294,8 +386,41 @@ fn output_human_primer(
     println!("Qipu is a Zettelkasten-inspired knowledge management system for capturing");
     println!("research notes and navigating knowledge via links, tags, and Maps of Content.");
     println!();
-    println!("Note types: fleeting (quick capture), literature (from sources),");
-    println!("permanent (distilled insights), moc (index/map notes).");
+    println!("## Ontology");
+    println!();
+    println!("Mode: {}", format_mode(config.mode));
+    println!();
+
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    println!("### Note Types");
+    for nt in &note_types {
+        let type_config = config.note_types.get(nt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("  {} - {}", nt, desc);
+        } else {
+            println!("  {}", nt);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("    Usage: {}", usage);
+        }
+    }
+    println!();
+
+    println!("### Link Types");
+    for lt in &link_types {
+        let inverse = ontology.get_inverse(lt);
+        let type_config = config.link_types.get(lt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("  {} -> {} ({})", lt, inverse, desc);
+        } else {
+            println!("  {} -> {}", lt, inverse);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("    Usage: {}", usage);
+        }
+    }
     println!();
     println!("## Quick Reference");
     println!();
@@ -309,7 +434,7 @@ fn output_human_primer(
     println!("  qipu context           Build context bundle for LLM");
     println!();
 
-    if !mocs.is_empty() {
+    if !compact && !mocs.is_empty() {
         println!("## Key Maps of Content");
         println!();
         for moc in mocs {
@@ -357,6 +482,8 @@ fn output_human_primer(
 /// Output primer in records format
 fn output_records_primer(
     store_path: &str,
+    ontology: &Ontology,
+    config: &crate::lib::config::OntologyConfig,
     mocs: &[&crate::lib::note::Note],
     recent_notes: &[&crate::lib::note::Note],
 ) {
@@ -367,6 +494,42 @@ fn output_records_primer(
         "H qipu=1 records=1 store={} mode=prime mocs={} recent={} truncated=false",
         store_path, mocs_count, notes_count
     );
+
+    // Ontology mode record
+    println!("O mode={}", format_mode(config.mode));
+
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    // Note type records
+    for nt in &note_types {
+        let type_config = config.note_types.get(nt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!("T note_type=\"{}\" description=\"{}\"", nt, desc);
+        } else {
+            println!("T note_type=\"{}\"", nt);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("U note_type=\"{}\" usage=\"{}\"", nt, usage);
+        }
+    }
+
+    // Link type records
+    for lt in &link_types {
+        let inverse = ontology.get_inverse(lt);
+        let type_config = config.link_types.get(lt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            println!(
+                "L link_type=\"{}\" inverse=\"{}\" description=\"{}\"",
+                lt, inverse, desc
+            );
+        } else {
+            println!("L link_type=\"{}\" inverse=\"{}\"", lt, inverse);
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            println!("U link_type=\"{}\" usage=\"{}\"", lt, usage);
+        }
+    }
 
     // System description as a special record
     println!("D Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content.");
@@ -410,6 +573,14 @@ fn output_records_primer(
             escape_quotes(note.title()),
             if tags_csv.is_empty() { "-" } else { &tags_csv }
         );
+    }
+}
+
+fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+    match mode {
+        crate::lib::config::OntologyMode::Default => "default",
+        crate::lib::config::OntologyMode::Extended => "extended",
+        crate::lib::config::OntologyMode::Replacement => "replacement",
     }
 }
 

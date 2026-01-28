@@ -158,7 +158,9 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
 
         Some(Commands::Custom { command }) => handlers::handle_custom(cli, &root, command, start),
 
-        Some(Commands::Prime) => maintenance::handle_prime(cli, &root, start),
+        Some(Commands::Prime { compact, minimal }) => {
+            maintenance::handle_prime(cli, &root, *compact, *minimal, start)
+        }
 
         Some(Commands::Onboard) => handlers::handle_onboard(cli),
 

@@ -102,12 +102,18 @@ pub(super) fn handle_index(
     Ok(())
 }
 
-pub(super) fn handle_prime(cli: &Cli, root: &PathBuf, start: Instant) -> Result<()> {
+pub(super) fn handle_prime(
+    cli: &Cli,
+    root: &PathBuf,
+    compact: bool,
+    minimal: bool,
+    start: Instant,
+) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::prime::execute(cli, &store)?;
+    commands::prime::execute(cli, &store, compact, minimal)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

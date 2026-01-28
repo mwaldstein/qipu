@@ -234,7 +234,15 @@ pub enum Commands {
     },
 
     /// Output session-start primer for LLM agents
-    Prime,
+    Prime {
+        /// Compact output (omit MOCs and recent notes)
+        #[arg(long)]
+        compact: bool,
+
+        /// Minimal output (only ontology and commands)
+        #[arg(long)]
+        minimal: bool,
+    },
 
     /// Display minimal AGENTS.md snippet for agent integration
     Onboard,

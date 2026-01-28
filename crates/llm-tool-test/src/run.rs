@@ -8,6 +8,7 @@ use crate::results::{
     QualityMetricsRecord, ResultRecord, ResultsDB,
 };
 
+use std::path::PathBuf;
 use std::time::Instant;
 
 #[cfg(test)]
@@ -38,12 +39,12 @@ run:
         let results_db = ResultsDB::new(&base_dir);
         let cache = Cache::new(&base_dir);
 
-        let fixtures_dir = PathBuf::from("fixtures");
+        let fixtures_dir = PathBuf::from("crates/llm-tool-test/fixtures");
         std::fs::create_dir_all(&fixtures_dir).unwrap();
         let fixture_file = fixtures_dir.join("timeout_test_override.yaml");
         std::fs::write(&fixture_file, scenario_yaml).unwrap();
 
-        let template_dir = PathBuf::from("fixtures/templates/qipu");
+        let template_dir = PathBuf::from("crates/llm-tool-test/fixtures/templates/qipu");
         std::fs::create_dir_all(&template_dir).unwrap();
 
         let cli_timeout = 300;
@@ -89,12 +90,12 @@ evaluation:
         let results_db = ResultsDB::new(&base_dir);
         let cache = Cache::new(&base_dir);
 
-        let fixtures_dir = PathBuf::from("fixtures");
+        let fixtures_dir = PathBuf::from("crates/llm-tool-test/fixtures");
         std::fs::create_dir_all(&fixtures_dir).unwrap();
         let fixture_file = fixtures_dir.join("timeout_test_cli.yaml");
         std::fs::write(&fixture_file, scenario_yaml).unwrap();
 
-        let template_dir = PathBuf::from("fixtures/templates/qipu");
+        let template_dir = PathBuf::from("crates/llm-tool-test/fixtures/templates/qipu");
         std::fs::create_dir_all(&template_dir).unwrap();
 
         let cli_timeout = 60;
@@ -132,7 +133,12 @@ pub fn run_single_scenario(
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<ResultRecord> {
-    let scenario_path = format!("fixtures/{}.yaml", s.name);
+    let fixtures_path = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
+        "crates/llm-tool-test/fixtures"
+    } else {
+        "fixtures"
+    };
+    let scenario_path = format!("{}/{}.yaml", fixtures_path, s.name);
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
     let qipu_version = crate::results::get_qipu_version()?;

@@ -53,7 +53,11 @@ pub fn handle_run_command(
 
     let scenarios_to_run = if all {
         let mut scenarios = Vec::new();
-        let fixtures_dir = PathBuf::from("fixtures");
+        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
+            PathBuf::from("crates/llm-tool-test/fixtures")
+        } else {
+            PathBuf::from("fixtures")
+        };
         if fixtures_dir.exists() {
             find_scenarios(&fixtures_dir, &mut scenarios);
         }
@@ -168,7 +172,7 @@ pub fn handle_list_command(
         }
     }
 
-    let fixtures_dir = std::path::PathBuf::from("fixtures");
+    let fixtures_dir = std::path::PathBuf::from("crates/llm-tool-test/fixtures");
     if fixtures_dir.exists() {
         find_scenarios(&fixtures_dir, &mut scenarios);
     }

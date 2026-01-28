@@ -10,6 +10,7 @@
 //! NOTE: All benchmarks are marked #[ignore] and require --release flag to run.
 //! Debug builds are significantly slower than release builds and will fail benchmarks.
 
+use crate::lib::config::SearchConfig;
 use crate::lib::note::{NoteType, TypedLink};
 use crate::lib::store::InitOptions;
 use crate::lib::store::Store;
@@ -83,7 +84,17 @@ fn bench_search_500_notes() {
     let db = store.db();
 
     let start = Instant::now();
-    let results = db.search("test", None, None, None, None, 100).unwrap();
+    let results = db
+        .search(
+            "test",
+            None,
+            None,
+            None,
+            None,
+            100,
+            &SearchConfig::default(),
+        )
+        .unwrap();
     let duration = start.elapsed();
 
     println!("Search 500 notes: {:?}", duration);
@@ -106,7 +117,17 @@ fn bench_search_2000_notes() {
     let db = store.db();
 
     let start = Instant::now();
-    let results = db.search("test", None, None, None, None, 100).unwrap();
+    let results = db
+        .search(
+            "test",
+            None,
+            None,
+            None,
+            None,
+            100,
+            &SearchConfig::default(),
+        )
+        .unwrap();
     let duration = start.elapsed();
 
     println!("Search 2000 notes: {:?}", duration);
@@ -130,7 +151,15 @@ fn bench_search_with_filters_2000_notes() {
 
     let start = Instant::now();
     let _results = db
-        .search("test", Some(NoteType::Fleeting), None, None, None, 100)
+        .search(
+            "test",
+            Some(NoteType::Fleeting),
+            None,
+            None,
+            None,
+            100,
+            &SearchConfig::default(),
+        )
         .unwrap();
     let duration = start.elapsed();
 

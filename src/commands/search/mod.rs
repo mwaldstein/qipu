@@ -59,6 +59,7 @@ pub fn execute(
         min_value,
         equivalent_tags.as_deref(),
         200,
+        &store.config().search,
     )?;
 
     if cli.verbose {

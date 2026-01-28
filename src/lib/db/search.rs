@@ -1,5 +1,6 @@
 //! Full-text search functionality for the database
 
+use crate::lib::config::SearchConfig;
 use crate::lib::error::{QipuError, Result};
 use crate::lib::index::types::SearchResult;
 use crate::lib::index::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
@@ -37,6 +38,7 @@ impl super::Database {
         min_value: Option<u8>,
         equivalent_tags: Option<&[String]>,
         limit: usize,
+        search_config: &SearchConfig,
     ) -> Result<Vec<SearchResult>> {
         if query.trim().is_empty() {
             return Ok(Vec::new());
@@ -91,10 +93,10 @@ impl super::Database {
         }
 
         // Recency boost: decay factor for age in days
-        // - Notes updated within 7 days get ~0.1 boost
+        // - Notes updated within configured decay days get boost (default: ~0.1 for 7 days)
         // - Notes updated 30+ days ago get minimal boost
         // - Notes updated 90+ days ago get essentially no boost
-        // Formula: 0.1 / (1 + age_days / 7)
+        // Formula: recency_boost_numerator / (1 + age_days / recency_decay_days)
         // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
         // to make recent notes less negative (higher ranking)
         // BM25 column weights provide multiplicative field weighting:
@@ -102,13 +104,18 @@ impl super::Database {
         // - Tags: TAGS_WEIGHT (1.5)
         // - Body: BODY_WEIGHT (1.0, baseline)
         // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
+        let recency_formula = format!(
+            "({} / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / {}))",
+            search_config.recency_boost_numerator,
+            search_config.recency_decay_days
+        );
+
         let sql = format!(
             r#"
             WITH ranked_results AS (
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) +
-                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+                bm25(notes_fts, {}, {}, {}) + {} AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?1 {}
@@ -117,8 +124,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) +
-                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+                bm25(notes_fts, {}, {}, {}) + {} AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?2 {}
@@ -127,8 +133,7 @@ impl super::Database {
 
               SELECT
                 n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) +
-                (0.1 / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / 7.0)) AS rank
+                bm25(notes_fts, {}, {}, {}) + {} AS rank
               FROM notes_fts
               JOIN notes n ON notes_fts.rowid = n.rowid
               WHERE notes_fts MATCH ?3 {}
@@ -142,14 +147,17 @@ impl super::Database {
             TITLE_WEIGHT,
             BODY_WEIGHT,
             TAGS_WEIGHT,
+            recency_formula,
             where_clause,
             TITLE_WEIGHT,
             BODY_WEIGHT,
             TAGS_WEIGHT,
+            recency_formula,
             where_clause,
             TITLE_WEIGHT,
             BODY_WEIGHT,
             TAGS_WEIGHT,
+            recency_formula,
             where_clause
         );
 

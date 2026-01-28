@@ -1,3 +1,4 @@
+use crate::lib::config::SearchConfig;
 use crate::lib::db::*;
 use crate::lib::note::NoteType;
 use crate::lib::store::Store;
@@ -31,7 +32,9 @@ fn test_search_fts_basic() {
     let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root(), None).unwrap();
 
-    let results = db.search("test", None, None, None, None, 10).unwrap();
+    let results = db
+        .search("test", None, None, None, None, 10, &SearchConfig::default())
+        .unwrap();
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].title, "Test Note One");
@@ -73,7 +76,15 @@ fn test_search_with_type_filter() {
     db.rebuild(store.root(), None).unwrap();
 
     let results = db
-        .search("test", Some(NoteType::Fleeting), None, None, None, 10)
+        .search(
+            "test",
+            Some(NoteType::Fleeting),
+            None,
+            None,
+            None,
+            10,
+            &SearchConfig::default(),
+        )
         .unwrap();
 
     assert_eq!(results.len(), 1);
@@ -109,7 +120,15 @@ fn test_search_with_tag_filter() {
     db.rebuild(store.root(), None).unwrap();
 
     let results = db
-        .search("test", None, Some("test-tag"), None, None, 10)
+        .search(
+            "test",
+            None,
+            Some("test-tag"),
+            None,
+            None,
+            10,
+            &SearchConfig::default(),
+        )
         .unwrap();
 
     assert_eq!(results.len(), 1);
@@ -128,7 +147,9 @@ fn test_search_empty_query() {
     let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root(), None).unwrap();
 
-    let results = db.search("", None, None, None, None, 10).unwrap();
+    let results = db
+        .search("", None, None, None, None, 10, &SearchConfig::default())
+        .unwrap();
 
     assert_eq!(results.len(), 0);
 }
@@ -147,7 +168,9 @@ fn test_search_limit() {
     let db = Database::open(store.root(), true).unwrap();
     db.rebuild(store.root(), None).unwrap();
 
-    let results = db.search("test", None, None, None, None, 3).unwrap();
+    let results = db
+        .search("test", None, None, None, None, 3, &SearchConfig::default())
+        .unwrap();
 
     assert_eq!(results.len(), 3);
 }

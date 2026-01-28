@@ -60,6 +60,10 @@ pub struct StoreConfig {
     /// Auto-indexing configuration
     #[serde(default)]
     pub auto_index: AutoIndexConfig,
+
+    /// Search ranking configuration
+    #[serde(default)]
+    pub search: SearchConfig,
 }
 
 /// Configuration for graph traversal and link types
@@ -88,6 +92,18 @@ pub struct AutoIndexConfig {
     /// Notes to include in quick mode
     #[serde(default = "default_quick_notes")]
     pub quick_notes: usize,
+}
+
+/// Configuration for search ranking parameters
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchConfig {
+    /// Recency boost numerator (default 0.1)
+    #[serde(default = "default_recency_boost_numerator")]
+    pub recency_boost_numerator: f64,
+
+    /// Recency decay in days (default 7.0)
+    #[serde(default = "default_recency_decay_days")]
+    pub recency_decay_days: f64,
 }
 
 /// Configuration for a single link type
@@ -233,6 +249,14 @@ fn default_quick_notes() -> usize {
     100
 }
 
+fn default_recency_boost_numerator() -> f64 {
+    0.1
+}
+
+fn default_recency_decay_days() -> f64 {
+    7.0
+}
+
 impl Default for AutoIndexConfig {
     fn default() -> Self {
         AutoIndexConfig {
@@ -240,6 +264,15 @@ impl Default for AutoIndexConfig {
             strategy: default_auto_index_strategy(),
             adaptive_threshold: default_adaptive_threshold(),
             quick_notes: default_quick_notes(),
+        }
+    }
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        SearchConfig {
+            recency_boost_numerator: default_recency_boost_numerator(),
+            recency_decay_days: default_recency_decay_days(),
         }
     }
 }
@@ -277,6 +310,7 @@ impl Default for StoreConfig {
             tag_aliases: std::collections::HashMap::new(),
             graph: GraphConfig::default(),
             auto_index: AutoIndexConfig::default(),
+            search: SearchConfig::default(),
         }
     }
 }
@@ -507,5 +541,25 @@ mod tests {
 
         let equiv = config.get_equivalent_tags("machine-learning");
         assert_eq!(equiv, vec!["ai", "machine-learning", "ml"]);
+    }
+
+    #[test]
+    fn test_search_config_defaults() {
+        let config = StoreConfig::default();
+        assert_eq!(config.search.recency_boost_numerator, 0.1);
+        assert_eq!(config.search.recency_decay_days, 7.0);
+    }
+
+    #[test]
+    fn test_search_config_serialization() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let config = StoreConfig::default();
+        config.save(&path).unwrap();
+
+        let loaded = StoreConfig::load(&path).unwrap();
+        assert_eq!(loaded.search.recency_boost_numerator, 0.1);
+        assert_eq!(loaded.search.recency_decay_days, 7.0);
     }
 }

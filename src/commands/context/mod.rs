@@ -188,7 +188,9 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     // Selection by query
     if let Some(q) = options.query {
-        let results = store.db().search(q, None, None, None, None, 100)?;
+        let results = store
+            .db()
+            .search(q, None, None, None, None, 100, &store.config().search)?;
         for result in results {
             let resolved_id = resolve_id(&result.id)?;
             let via_source = if !cli.no_resolve_compaction && resolved_id != result.id {

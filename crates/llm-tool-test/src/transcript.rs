@@ -5,6 +5,46 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
+/// Redact sensitive information from text
+pub fn redact_sensitive(text: &str) -> String {
+    let mut redacted = text.to_string();
+
+    let patterns: Vec<(&str, &str)> = vec![
+        // API keys/tokens (sk-.*, Bearer, API-Key headers)
+        (r"(?i)(sk-)[a-zA-Z0-9]{20,}", "$1[REDACTED]"),
+        (r"(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*", "Bearer [REDACTED]"),
+        (
+            r#"(?i)(api[_-]?key|apikey|token):\s*['"]?[A-Za-z0-9\-._~+/=]+['"]?"#,
+            "$1: [REDACTED]",
+        ),
+        // Passwords and secrets
+        (
+            r#"(?i)(password|secret|passphrase):\s*['"]?[^\s'"]+['"]?"#,
+            "$1: [REDACTED]",
+        ),
+        // Email addresses
+        (
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            "[REDACTED_EMAIL]",
+        ),
+        // File paths with usernames
+        (r"(?i)/home/[A-Za-z0-9_-]+/", "/home/[REDACTED_USER]/"),
+        (r"(?i)/Users/[A-Za-z0-9_-]+/", "/Users/[REDACTED_USER]/"),
+        (
+            r"(?i)C:\\Users\\[A-Za-z0-9_-]+\\",
+            "C:\\Users\\[REDACTED_USER]\\",
+        ),
+    ];
+
+    for (pattern, replacement) in patterns {
+        if let Ok(re) = Regex::new(pattern) {
+            redacted = re.replace_all(&redacted, replacement).to_string();
+        }
+    }
+
+    redacted
+}
+
 #[allow(dead_code)]
 pub struct TranscriptWriter {
     pub base_dir: PathBuf,
@@ -205,7 +245,8 @@ impl TranscriptWriter {
             content.push_str("\n### Setup Commands\n\n");
             for cmd_result in &report.setup_commands {
                 let status = if cmd_result.success { "✓" } else { "✗" };
-                content.push_str(&format!("- {} `{}`\n", status, cmd_result.command));
+                let redacted_command = redact_sensitive(&cmd_result.command);
+                content.push_str(&format!("- {} `{}`\n", status, redacted_command));
             }
             content.push_str("\n");
         }
@@ -233,9 +274,10 @@ impl TranscriptWriter {
             content.push_str("### Gate Details\n\n");
             for detail in &report.gate_details {
                 let status = if detail.passed { "✓" } else { "✗" };
+                let redacted_message = redact_sensitive(&detail.message);
                 content.push_str(&format!(
                     "- {} {}: {}\n",
-                    status, detail.gate_type, detail.message
+                    status, detail.gate_type, redacted_message
                 ));
             }
             content.push_str("\n");
@@ -596,6 +638,105 @@ impl TranscriptAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_redact_api_key_sk() {
+        let input = "API key: sk-12345678901234567890";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED]"));
+        assert!(!output.contains("sk-12345678901234567890"));
+    }
+
+    #[test]
+    fn test_redact_bearer_token() {
+        let input = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+        let output = redact_sensitive(input);
+        assert!(output.contains("Bearer [REDACTED]"));
+        assert!(!output.contains("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"));
+    }
+
+    #[test]
+    fn test_redact_api_key_header() {
+        let input = "api-key: abc123xyz789";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED]"));
+        assert!(!output.contains("abc123xyz789"));
+    }
+
+    #[test]
+    fn test_redact_password() {
+        let input = "password: mysecret123";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED]"));
+        assert!(!output.contains("mysecret123"));
+    }
+
+    #[test]
+    fn test_redact_secret() {
+        let input = "secret: supersecretvalue";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED]"));
+        assert!(!output.contains("supersecretvalue"));
+    }
+
+    #[test]
+    fn test_redact_email() {
+        let input = "Contact: user@example.com for support";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED_EMAIL]"));
+        assert!(!output.contains("user@example.com"));
+    }
+
+    #[test]
+    fn test_redact_unix_home_path() {
+        let input = "Config at /home/johndoe/.config/app.conf";
+        let output = redact_sensitive(input);
+        assert!(output.contains("/home/[REDACTED_USER]/"));
+        assert!(!output.contains("/home/johndoe/"));
+    }
+
+    #[test]
+    fn test_redact_macos_home_path() {
+        let input = "File at /Users/alicedoe/Desktop/file.txt";
+        let output = redact_sensitive(input);
+        assert!(output.contains("/Users/[REDACTED_USER]/"));
+        assert!(!output.contains("/Users/alicedoe/"));
+    }
+
+    #[test]
+    fn test_redact_windows_path() {
+        let input = "Path C:\\Users\\bobsmith\\Documents";
+        let output = redact_sensitive(input);
+        assert!(output.contains("C:\\Users\\[REDACTED_USER]\\"));
+        assert!(!output.contains("C:\\Users\\bobsmith\\"));
+    }
+
+    #[test]
+    fn test_redact_multiple_patterns() {
+        let input =
+            "Email: test@example.com, API: sk-abc123xyz78912345678, Path: /home/user/file.txt";
+        let output = redact_sensitive(input);
+        assert!(output.contains("[REDACTED_EMAIL]"));
+        assert!(output.contains("[REDACTED]"));
+        assert!(output.contains("/home/[REDACTED_USER]/"));
+        assert!(!output.contains("test@example.com"));
+        assert!(!output.contains("sk-abc123xyz78912345678"));
+        assert!(!output.contains("/home/user/"));
+    }
+
+    #[test]
+    fn test_redact_empty_string() {
+        let input = "";
+        let output = redact_sensitive(input);
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_redact_no_sensitive_data() {
+        let input = "This is normal text without sensitive information";
+        let output = redact_sensitive(input);
+        assert_eq!(output, input);
+    }
 
     #[test]
     fn test_analyze_empty_transcript() {

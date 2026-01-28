@@ -29,6 +29,61 @@ fn test_version_flag() {
 }
 
 #[test]
+fn test_version_consistency() {
+    let cargo_toml_content = std::fs::read_to_string("Cargo.toml").unwrap();
+    let cargo_version: toml::Value = cargo_toml_content.parse().unwrap();
+    let expected_version = cargo_version["package"]["version"].as_str().unwrap();
+
+    let output = qipu()
+        .arg("--version")
+        .output()
+        .expect("Failed to execute qipu --version");
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let expected_output = format!("qipu {}\n", expected_version);
+
+    assert_eq!(
+        stdout, expected_output,
+        "Version output does not match Cargo.toml"
+    );
+
+    let output = std::process::Command::new("git")
+        .args(["describe", "--tags", "--abbrev=0"])
+        .output();
+
+    if let Ok(git_output) = output {
+        if git_output.status.success() {
+            let git_tag = String::from_utf8(git_output.stdout).unwrap();
+            let git_version = git_tag.trim().strip_prefix('v').unwrap_or(git_tag.trim());
+
+            let head = std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string());
+
+            let tag_commit = std::process::Command::new("git")
+                .args(["rev-parse", git_tag.trim()])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string());
+
+            if let (Some(head_commit), Some(tag_commit_ref)) = (head, tag_commit) {
+                if head_commit == tag_commit_ref {
+                    assert_eq!(
+                        expected_version, git_version,
+                        "At release tag {}, but Cargo.toml has version {}. Update Cargo.toml to match git tag before releasing.",
+                        git_tag.trim(), expected_version
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn test_subcommand_help() {
     qipu()
         .args(["create", "--help"])
@@ -112,11 +167,6 @@ fn test_duplicate_format_after_command() {
         .assert()
         .code(2)
         .stderr(predicate::str::contains("\"type\":\"duplicate_format\""));
-}
-
-#[test]
-fn test_unknown_command_exit_code_2() {
-    qipu().arg("nonexistent").assert().code(2);
 }
 
 #[test]

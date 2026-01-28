@@ -355,6 +355,10 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
         ),
 
         Some(Commands::Store { command }) => handlers::handle_store(cli, &root, command, start),
+
+        Some(Commands::Ontology { command }) => {
+            handlers::handle_ontology(cli, &root, command, start)
+        }
     }
 }
 

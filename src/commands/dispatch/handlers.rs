@@ -4,7 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use crate::cli::{Cli, CustomCommands, OutputFormat, StoreCommands, TagsCommands, ValueCommands};
+use crate::cli::{
+    Cli, CustomCommands, OntologyCommands, OutputFormat, StoreCommands, TagsCommands, ValueCommands,
+};
 use crate::lib::error::{QipuError, Result};
 use tracing::debug;
 
@@ -264,6 +266,23 @@ pub(super) fn handle_store(
         StoreCommands::Stats {} => {
             crate::commands::store::execute_stats(cli, &store)?;
             debug!(elapsed = ?start.elapsed(), "store_stats");
+            Ok(())
+        }
+    }
+}
+
+pub(super) fn handle_ontology(
+    cli: &Cli,
+    root: &PathBuf,
+    command: &OntologyCommands,
+    start: Instant,
+) -> Result<()> {
+    let store = discover_or_open_store(cli, root)?;
+
+    match command {
+        OntologyCommands::Show {} => {
+            crate::commands::ontology::execute_show(cli, &store)?;
+            debug!(elapsed = ?start.elapsed(), "ontology_show");
             Ok(())
         }
     }

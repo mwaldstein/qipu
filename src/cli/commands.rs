@@ -7,6 +7,7 @@ use crate::cli::args::CreateArgs;
 use crate::cli::compact::CompactCommands;
 use crate::cli::custom::CustomCommands;
 use crate::cli::link::LinkCommands;
+use crate::cli::ontology::OntologyCommands;
 use crate::cli::parse::parse_note_type;
 use crate::cli::store::StoreCommands;
 use crate::cli::tags::TagsCommands;
@@ -595,5 +596,11 @@ pub enum Commands {
     Store {
         #[command(subcommand)]
         command: StoreCommands,
+    },
+
+    /// Manage and display ontology configuration
+    Ontology {
+        #[command(subcommand)]
+        command: OntologyCommands,
     },
 }

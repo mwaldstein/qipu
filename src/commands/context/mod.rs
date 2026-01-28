@@ -483,7 +483,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         OutputFormat::Json => {
             output::output_json(
                 cli,
-                &store,
+                store,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -500,7 +500,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
         OutputFormat::Human => {
             output::output_human(
                 cli,
-                &store,
+                store,
                 &store_path,
                 &notes_to_output,
                 truncated,
@@ -524,7 +524,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
             };
             output::output_records(
                 cli,
-                &store,
+                store,
                 &store_path,
                 &notes_to_output,
                 &config,

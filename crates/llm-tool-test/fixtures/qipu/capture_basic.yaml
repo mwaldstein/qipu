@@ -1,6 +1,6 @@
 name: capture_basic
 description: "Basic note capture scenario"
-fixture: qipu
+template_folder: qipu
 tier: 1
 tags: [capture, smoke]
 task:

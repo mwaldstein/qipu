@@ -1,0 +1,12 @@
+{
+  "scenario_id": "timeout_test_override",
+  "scenario_hash": "192205a42d8a09d4e78d685bce16b5b68cb757fc8c05cf7eea7300f136ffe61d",
+  "tool": "mock",
+  "model": "mock",
+  "qipu_version": "3ab230e8",
+  "qipu_commit": "3ab230e8",
+  "timestamp": "2026-01-28T08:12:19.828702355+00:00",
+  "duration_secs": 0.181577149,
+  "cost_estimate_usd": 0.0,
+  "token_usage": null
+}

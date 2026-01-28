@@ -43,10 +43,6 @@ pub enum Commands {
         #[arg(long)]
         models: Option<String>,
 
-        /// Maximum cost in USD
-        #[arg(long)]
-        max_usd: Option<f64>,
-
         /// Dry run (don't execute LLM calls)
         #[arg(long)]
         dry_run: bool,

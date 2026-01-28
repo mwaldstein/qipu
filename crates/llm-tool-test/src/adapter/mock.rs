@@ -278,7 +278,7 @@ mod tests {
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -299,7 +299,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -320,7 +320,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -345,7 +345,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -366,7 +366,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -387,7 +387,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -409,7 +409,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -429,7 +429,7 @@ evaluation:
         let scenario_yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -448,7 +448,7 @@ evaluation:
         let scenario_yaml = r#"
 name: e2e_test
 description: "End-to-end test scenario"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Create notes and links for testing"
 evaluation:
@@ -504,7 +504,7 @@ evaluation:
         let scenario_yaml = r#"
 name: e2e_tags_test
 description: "Test search and tag gates"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Create tagged notes for search testing"
 evaluation:
@@ -565,7 +565,7 @@ evaluation:
         let scenario_yaml = r#"
 name: e2e_command_test
 description: "Test command succeeds gate"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Run various commands"
 evaluation:
@@ -609,7 +609,7 @@ evaluation:
         let scenario_yaml = r#"
 name: e2e_cost_test
 description: "Test cost estimation"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test cost calculation"
 evaluation:

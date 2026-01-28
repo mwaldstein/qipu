@@ -34,7 +34,7 @@ fn test_run_command_requires_env_var() {
     let scenario_content = r#"
 name: test_basic
 description: "Basic test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -89,7 +89,7 @@ description: "A test scenario"
 tier: 0
 tags:
   - test
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -123,7 +123,7 @@ description: "First scenario"
 tier: 0
 tags:
   - smoke
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -137,7 +137,7 @@ description: "Second scenario"
 tier: 0
 tags:
   - integration
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -315,7 +315,7 @@ fn test_run_command_dry_run() {
     let scenario_content = r#"
 name: dry_run_test
 description: "Dry run test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -353,7 +353,7 @@ tier: 0
 tags:
   - smoke
   - quick
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -365,7 +365,7 @@ evaluation:
 name: untagged_scenario
 description: "Untagged scenario"
 tier: 0
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -396,7 +396,7 @@ fn test_run_command_with_tool_option() {
     let scenario_content = r#"
 name: tool_test
 description: "Tool option test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -431,7 +431,7 @@ fn test_run_command_with_model_option() {
     let scenario_content = r#"
 name: model_test
 description: "Model option test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -467,7 +467,7 @@ fn test_run_command_with_tier_filter() {
 name: tier0_scenario
 description: "Tier 0 scenario"
 tier: 0
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -479,7 +479,7 @@ evaluation:
 name: tier1_scenario
 description: "Tier 1 scenario"
 tier: 1
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -510,7 +510,7 @@ fn test_run_command_with_timeout() {
     let scenario_content = r#"
 name: timeout_test
 description: "Timeout test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -535,41 +535,6 @@ evaluation:
 }
 
 #[test]
-fn test_run_command_with_budget() {
-    let dir = tempdir().unwrap();
-
-    let fixtures_dir = dir.path().join("fixtures");
-    let qipu_dir = fixtures_dir.join("qipu");
-    fs::create_dir_all(&qipu_dir).unwrap();
-
-    let scenario_content = r#"
-name: budget_test
-description: "Budget test"
-fixture: qipu
-task:
-  prompt: "Test"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-"#;
-    fs::write(qipu_dir.join("budget_test.yaml"), scenario_content).unwrap();
-
-    llm_tool_test()
-        .current_dir(dir.path())
-        .args([
-            "run",
-            "--scenario",
-            "fixtures/qipu/budget_test.yaml",
-            "--max-usd",
-            "0.10",
-        ])
-        .env("LLM_TOOL_TEST_ENABLED", "1")
-        .assert()
-        .success();
-}
-
-#[test]
 fn test_run_command_with_no_cache() {
     let dir = tempdir().unwrap();
 
@@ -580,7 +545,7 @@ fn test_run_command_with_no_cache() {
     let scenario_content = r#"
 name: no_cache_test
 description: "No cache test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:
@@ -619,7 +584,7 @@ tool_matrix:
     models:
       - model1
       - model2
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test"
 evaluation:

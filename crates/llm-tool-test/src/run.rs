@@ -17,178 +17,11 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_budget_enforcement_cli_max_usd() {
-        let scenario_yaml = r#"
-name: budget_test
-description: "Test CLI budget enforcement"
-fixture: qipu
-task:
-  prompt: "Create a note"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-"#;
-        let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
-        let base_dir = PathBuf::from("target/test_budget");
-        std::fs::create_dir_all(&base_dir).unwrap();
-
-        let results_db = ResultsDB::new(&base_dir);
-        let cache = Cache::new(&base_dir);
-
-        // Create a fixture file for the test
-        let fixture_dir = PathBuf::from("fixtures/qipu");
-        std::fs::create_dir_all(&fixture_dir).unwrap();
-        let fixture_file = fixture_dir.join("budget_test.yaml");
-        std::fs::write(&fixture_file, scenario_yaml).unwrap();
-
-        // Test with zero budget - should fail immediately
-        let cli_max_usd = Some(0.0);
-        let result = run_single_scenario(
-            &scenario,
-            "mock",
-            "mock",
-            false,
-            true, // no_cache to avoid cache hits
-            30,
-            &cli_max_usd,
-            &base_dir,
-            &results_db,
-            &cache,
-        );
-
-        // Clean up
-        let _ = std::fs::remove_file(&fixture_file);
-
-        match result {
-            Err(e) => {
-                assert!(
-                    e.to_string().contains("Budget exhausted"),
-                    "Error message should mention budget, got: {}",
-                    e
-                );
-            }
-            Ok(_) => panic!("Should fail with zero budget, but succeeded"),
-        }
-    }
-
-    #[test]
-    fn test_budget_enforcement_scenario_max_usd() {
-        let scenario_yaml = r#"
-name: budget_test_scenario
-description: "Test scenario budget enforcement"
-fixture: qipu
-task:
-  prompt: "Create a note"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-cost:
-  max_usd: 0.0
-"#;
-        let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
-        let base_dir = PathBuf::from("target/test_budget");
-        std::fs::create_dir_all(&base_dir).unwrap();
-
-        let results_db = ResultsDB::new(&base_dir);
-        let cache = Cache::new(&base_dir);
-
-        // Create a fixture file for the test
-        let fixture_dir = PathBuf::from("fixtures/qipu");
-        std::fs::create_dir_all(&fixture_dir).unwrap();
-        let fixture_file = fixture_dir.join("budget_test_scenario.yaml");
-        std::fs::write(&fixture_file, scenario_yaml).unwrap();
-
-        // Test with zero budget from scenario
-        let result = run_single_scenario(
-            &scenario,
-            "mock",
-            "mock",
-            false,
-            true, // no_cache to avoid cache hits
-            30,
-            &None, // No CLI budget
-            &base_dir,
-            &results_db,
-            &cache,
-        );
-
-        // Clean up
-        let _ = std::fs::remove_file(&fixture_file);
-
-        assert!(
-            result.is_err(),
-            "Should fail with zero budget from scenario"
-        );
-        assert!(
-            result.unwrap_err().to_string().contains("Budget exhausted"),
-            "Error message should mention budget"
-        );
-    }
-
-    #[test]
-    fn test_budget_enforcement_takes_minimum() {
-        let scenario_yaml = r#"
-name: budget_test_min
-description: "Test budget enforcement takes minimum"
-fixture: qipu
-task:
-  prompt: "Create a note"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-cost:
-  max_usd: 0.5
-"#;
-        let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
-        let base_dir = PathBuf::from("target/test_budget");
-        std::fs::create_dir_all(&base_dir).unwrap();
-
-        let results_db = ResultsDB::new(&base_dir);
-        let cache = Cache::new(&base_dir);
-
-        // Create a fixture file for the test
-        let fixture_dir = PathBuf::from("fixtures/qipu");
-        std::fs::create_dir_all(&fixture_dir).unwrap();
-        let fixture_file = fixture_dir.join("budget_test_min.yaml");
-        std::fs::write(&fixture_file, scenario_yaml).unwrap();
-
-        // CLI has lower budget than scenario (0.0 vs 0.5) - should use CLI
-        let cli_max_usd = Some(0.0);
-        let result = run_single_scenario(
-            &scenario,
-            "mock",
-            "mock",
-            false,
-            true, // no_cache to avoid cache hits
-            30,
-            &cli_max_usd,
-            &base_dir,
-            &results_db,
-            &cache,
-        );
-
-        // Clean up
-        let _ = std::fs::remove_file(&fixture_file);
-
-        assert!(
-            result.is_err(),
-            "Should fail with CLI budget (lower than scenario)"
-        );
-        assert!(
-            result.unwrap_err().to_string().contains("Budget exhausted"),
-            "Error message should mention budget"
-        );
-    }
-
-    #[test]
     fn test_scenario_timeout_overrides_cli() {
         let scenario_yaml = r#"
 name: timeout_test_override
 description: "Test scenario timeout overrides CLI"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Create a note"
 evaluation:
@@ -197,8 +30,6 @@ evaluation:
       count: 1
 run:
   timeout_secs: 120
-cost:
-  max_usd: 0.0
 "#;
         let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
         let base_dir = PathBuf::from("target/test_timeout");
@@ -220,7 +51,6 @@ cost:
             false,
             true,
             cli_timeout,
-            &None,
             &base_dir,
             &results_db,
             &cache,
@@ -228,16 +58,7 @@ cost:
 
         let _ = std::fs::remove_file(&fixture_file);
 
-        match result {
-            Err(e) => {
-                assert!(
-                    e.to_string().contains("Budget exhausted"),
-                    "Should fail with budget exhaustion: {}",
-                    e
-                );
-            }
-            Ok(_) => panic!("Should fail with zero budget"),
-        }
+        assert!(result.is_ok(), "Should succeed with mock adapter");
     }
 
     #[test]
@@ -245,15 +66,13 @@ cost:
         let scenario_yaml = r#"
 name: timeout_test_cli
 description: "Test CLI timeout is used when scenario doesn't specify"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Create a note"
 evaluation:
   gates:
     - type: min_notes
       count: 1
-cost:
-  max_usd: 0.0
 "#;
         let scenario: Scenario = serde_yaml::from_str(scenario_yaml).unwrap();
         let base_dir = PathBuf::from("target/test_timeout");
@@ -275,7 +94,6 @@ cost:
             false,
             true,
             cli_timeout,
-            &None,
             &base_dir,
             &results_db,
             &cache,
@@ -283,16 +101,7 @@ cost:
 
         let _ = std::fs::remove_file(&fixture_file);
 
-        match result {
-            Err(e) => {
-                assert!(
-                    e.to_string().contains("Budget exhausted"),
-                    "Should fail with budget exhaustion: {}",
-                    e
-                );
-            }
-            Ok(_) => panic!("Should fail with zero budget"),
-        }
+        assert!(result.is_ok(), "Should succeed with mock adapter");
     }
 }
 
@@ -303,12 +112,11 @@ pub fn run_single_scenario(
     dry_run: bool,
     no_cache: bool,
     timeout_secs: u64,
-    cli_max_usd: &Option<f64>,
     _base_dir: &std::path::Path,
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<ResultRecord> {
-    let scenario_path = format!("fixtures/{}/{}.yaml", s.fixture, s.name);
+    let scenario_path = format!("fixtures/{}/{}.yaml", s.template_folder, s.name);
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
     let qipu_version = crate::results::get_qipu_version()?;
@@ -320,28 +128,13 @@ pub fn run_single_scenario(
         .and_then(|r| r.timeout_secs)
         .unwrap_or(timeout_secs);
 
-    // Budget enforcement: check max_usd from CLI and scenario BEFORE setting up fixture
-    let effective_max_usd = match (cli_max_usd, s.cost.as_ref().and_then(|c| c.max_usd)) {
-        (Some(cli), Some(scenario)) => Some(cli.min(scenario)),
-        (Some(cli), None) => Some(*cli),
-        (None, Some(scenario)) => Some(scenario),
-        (None, None) => None,
-    };
-
-    if let Some(max_usd) = effective_max_usd {
-        if max_usd <= 0.0 {
-            anyhow::bail!(
-                "Budget exhausted: max_usd is ${:.4}. Cannot run scenario.",
-                max_usd
-            );
-        }
-        println!("Budget limit: ${:.4}", max_usd);
-    }
-
-    // Set up fixture to get prime output for cache key
-    println!("Setting up environment for fixture: {}", s.fixture);
+    // Set up template folder to get prime output for cache key
+    println!(
+        "Setting up environment for template folder: {}",
+        s.template_folder
+    );
     let env = crate::fixture::TestEnv::new(&s.name)?;
-    env.setup_fixture(&s.fixture)?;
+    env.setup_fixture(&s.template_folder)?;
     println!("Environment created at: {:?}", env.root);
 
     // Get prime output for cache key (empty string if no store yet)
@@ -379,26 +172,19 @@ pub fn run_single_scenario(
             anyhow::bail!("Tool unavailable: {}", e);
         }
 
-        if let Some(setup_steps) = &s.setup {
-            println!("Running {} setup step(s)...", setup_steps.len());
+        if let Some(setup) = &s.setup {
+            println!("Running {} setup command(s)...", setup.commands.len());
             let runner = crate::session::SessionRunner::new();
-            for (i, step) in setup_steps.iter().enumerate() {
-                let args: Vec<&str> = step.args.iter().map(|s| s.as_str()).collect();
-                println!(
-                    "  Step {}/{}: {} {}",
-                    i + 1,
-                    setup_steps.len(),
-                    step.command,
-                    args.join(" ")
-                );
+            for (i, cmd) in setup.commands.iter().enumerate() {
+                println!("  Command {}/{}: {}", i + 1, setup.commands.len(), cmd);
                 let (output, exit_code) =
-                    runner.run_command(&step.command, &args, &env.root, effective_timeout)?;
+                    runner.run_command("sh", &["-c", cmd], &env.root, effective_timeout)?;
                 if exit_code != 0 {
                     anyhow::bail!(
-                        "Setup step {}/{} failed: {} exited with code {}. Output: {}",
+                        "Setup command {}/{} failed: {} exited with code {}. Output: {}",
                         i + 1,
-                        setup_steps.len(),
-                        step.command,
+                        setup.commands.len(),
+                        cmd,
                         exit_code,
                         output
                     );
@@ -414,17 +200,6 @@ pub fn run_single_scenario(
         let duration = start_time.elapsed();
 
         let cost = cost_opt.unwrap_or(0.0);
-
-        // Check if we exceeded the budget
-        if let Some(max_usd) = effective_max_usd {
-            if cost > max_usd {
-                anyhow::bail!(
-                    "Budget exhausted: Run cost ${:.4} exceeded budget ${:.4}",
-                    cost,
-                    max_usd
-                );
-            }
-        }
 
         let transcript_dir = env.root.join("artifacts");
         std::fs::create_dir_all(&transcript_dir)?;

@@ -5,7 +5,7 @@ use std::path::Path;
 pub struct Scenario {
     pub name: String,
     pub description: String,
-    pub fixture: String,
+    pub template_folder: String,
     pub task: Task,
     pub evaluation: Evaluation,
     #[serde(default = "default_tier")]
@@ -13,35 +13,11 @@ pub struct Scenario {
     #[serde(default)]
     pub tool_matrix: Option<Vec<ToolConfig>>,
     #[serde(default)]
-    pub setup: Option<Vec<SetupStep>>,
+    pub setup: Option<Setup>,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
-    pub cost: Option<Cost>,
-    #[serde(default)]
-    pub docs: Option<DocsConfig>,
-    #[serde(default)]
     pub run: Option<RunConfig>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Cost {
-    #[serde(default)]
-    pub max_usd: Option<f64>,
-    #[serde(default = "default_cache")]
-    pub cache: bool,
-}
-
-fn default_cache() -> bool {
-    true
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DocsConfig {
-    #[serde(default)]
-    pub prime: bool,
-    #[serde(default)]
-    pub help_commands: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,10 +29,8 @@ pub struct RunConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SetupStep {
-    pub command: String,
-    #[serde(default)]
-    pub args: Vec<String>,
+pub struct Setup {
+    pub commands: Vec<String>,
 }
 
 fn default_tier() -> usize {
@@ -138,7 +112,7 @@ mod tests {
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -156,7 +130,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -186,7 +160,7 @@ tool_matrix:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -215,7 +189,7 @@ tool_matrix:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -235,7 +209,7 @@ tier: 1
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -253,7 +227,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -261,20 +235,17 @@ evaluation:
     - type: min_notes
       count: 1
 setup:
-  - command: "qipu"
-    args: ["init"]
-  - command: "echo"
-    args: ["setup complete"]
+  commands:
+    - "qipu init"
+    - "echo setup complete"
 "#;
         let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(scenario.name, "test");
         assert!(scenario.setup.is_some());
         let setup = scenario.setup.unwrap();
-        assert_eq!(setup.len(), 2);
-        assert_eq!(setup[0].command, "qipu");
-        assert_eq!(setup[0].args, vec!["init"]);
-        assert_eq!(setup[1].command, "echo");
-        assert_eq!(setup[1].args, vec!["setup complete"]);
+        assert_eq!(setup.commands.len(), 2);
+        assert_eq!(setup.commands[0], "qipu init");
+        assert_eq!(setup.commands[1], "echo setup complete");
     }
 
     #[test]
@@ -282,7 +253,7 @@ setup:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -296,11 +267,11 @@ evaluation:
     }
 
     #[test]
-    fn test_setup_step_with_no_args() {
+    fn test_setup_commands() {
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -308,14 +279,16 @@ evaluation:
     - type: min_notes
       count: 1
 setup:
-  - command: "pwd"
+  commands:
+    - "pwd"
+    - "ls -la"
 "#;
         let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
         assert!(scenario.setup.is_some());
         let setup = scenario.setup.unwrap();
-        assert_eq!(setup.len(), 1);
-        assert_eq!(setup[0].command, "pwd");
-        assert!(setup[0].args.is_empty());
+        assert_eq!(setup.commands.len(), 2);
+        assert_eq!(setup.commands[0], "pwd");
+        assert_eq!(setup.commands[1], "ls -la");
     }
 
     #[test]
@@ -323,7 +296,7 @@ setup:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -345,7 +318,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -377,7 +350,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -399,7 +372,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -425,7 +398,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -443,79 +416,11 @@ evaluation:
     }
 
     #[test]
-    fn test_docs_config() {
-        let yaml = r#"
-name: test
-description: "Test"
-fixture: qipu
-task:
-  prompt: "Test prompt"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-docs:
-  prime: true
-  help_commands:
-    - create
-    - link
-    - list
-"#;
-        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(scenario.name, "test");
-        assert!(scenario.docs.is_some());
-        let docs = scenario.docs.unwrap();
-        assert!(docs.prime);
-        assert_eq!(docs.help_commands, vec!["create", "link", "list"]);
-    }
-
-    #[test]
-    fn test_docs_config_optional() {
-        let yaml = r#"
-name: test
-description: "Test"
-fixture: qipu
-task:
-  prompt: "Test prompt"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-"#;
-        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(scenario.name, "test");
-        assert!(scenario.docs.is_none());
-    }
-
-    #[test]
-    fn test_docs_config_defaults() {
-        let yaml = r#"
-name: test
-description: "Test"
-fixture: qipu
-task:
-  prompt: "Test prompt"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-docs:
-  prime: false
-"#;
-        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(scenario.name, "test");
-        assert!(scenario.docs.is_some());
-        let docs = scenario.docs.unwrap();
-        assert!(!docs.prime);
-        assert!(docs.help_commands.is_empty());
-    }
-
-    #[test]
     fn test_run_config() {
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -539,7 +444,7 @@ run:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -557,7 +462,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -576,58 +481,11 @@ run:
     }
 
     #[test]
-    fn test_cost_config() {
-        let yaml = r#"
-name: test
-description: "Test"
-fixture: qipu
-task:
-  prompt: "Test prompt"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-cost:
-  max_usd: 0.75
-  cache: false
-"#;
-        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(scenario.name, "test");
-        assert!(scenario.cost.is_some());
-        let cost = scenario.cost.unwrap();
-        assert_eq!(cost.max_usd, Some(0.75));
-        assert!(!cost.cache);
-    }
-
-    #[test]
-    fn test_cost_config_defaults() {
-        let yaml = r#"
-name: test
-description: "Test"
-fixture: qipu
-task:
-  prompt: "Test prompt"
-evaluation:
-  gates:
-    - type: min_notes
-      count: 1
-cost:
-  max_usd: 1.00
-"#;
-        let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(scenario.name, "test");
-        assert!(scenario.cost.is_some());
-        let cost = scenario.cost.unwrap();
-        assert_eq!(cost.max_usd, Some(1.00));
-        assert!(cost.cache); // Default is true
-    }
-
-    #[test]
     fn test_tags_field() {
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -646,16 +504,8 @@ tags: [capture, links, retrieval]
         let yaml = r#"
 name: capture_article_basic
 description: "Capture article ideas as linked notes"
-fixture: qipu
+template_folder: qipu
 tags: [capture, links, retrieval]
-docs:
-  prime: true
-  help_commands:
-    - create
-    - link
-    - list
-    - search
-    - show
 task:
   prompt: "Capture key ideas from this article"
 tool_matrix:
@@ -672,9 +522,9 @@ evaluation:
       count: 3
     - type: min_links
       count: 1
-cost:
-  max_usd: 0.75
-  cache: true
+setup:
+  commands:
+    - "qipu init"
 "#;
         let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(scenario.name, "capture_article_basic");
@@ -684,23 +534,17 @@ cost:
         );
         assert_eq!(scenario.tags, vec!["capture", "links", "retrieval"]);
 
-        // Docs
-        assert!(scenario.docs.is_some());
-        let docs = scenario.docs.unwrap();
-        assert!(docs.prime);
-        assert_eq!(docs.help_commands.len(), 5);
-
         // Run config
         assert!(scenario.run.is_some());
         let run = scenario.run.unwrap();
         assert_eq!(run.timeout_secs, Some(600));
         assert_eq!(run.max_turns, Some(40));
 
-        // Cost
-        assert!(scenario.cost.is_some());
-        let cost = scenario.cost.unwrap();
-        assert_eq!(cost.max_usd, Some(0.75));
-        assert!(cost.cache);
+        // Setup
+        assert!(scenario.setup.is_some());
+        let setup = scenario.setup.unwrap();
+        assert_eq!(setup.commands.len(), 1);
+        assert_eq!(setup.commands[0], "qipu init");
 
         // Tool matrix
         assert!(scenario.tool_matrix.is_some());
@@ -716,7 +560,7 @@ cost:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:
@@ -737,7 +581,7 @@ evaluation:
         let yaml = r#"
 name: test
 description: "Test"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: "Test prompt"
 evaluation:

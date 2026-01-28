@@ -1,6 +1,6 @@
 name: compaction_workflow
 description: "Note compaction workflow"
-fixture: qipu
+template_folder: qipu
 tier: 1
 task:
   prompt: "Create four brief notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four notes into this digest."

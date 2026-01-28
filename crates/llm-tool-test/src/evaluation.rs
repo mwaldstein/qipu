@@ -650,7 +650,7 @@ mod tests {
         let scenario_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -662,8 +662,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
 
@@ -683,7 +681,7 @@ mod tests {
         let scenario_fail_2 = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -695,8 +693,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_fail_2, &env_root).unwrap();
@@ -706,7 +702,7 @@ mod tests {
         let scenario_search = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -720,8 +716,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_search, &env_root).unwrap();
@@ -730,7 +724,7 @@ mod tests {
         let scenario_search_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -744,8 +738,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_search_fail, &env_root).unwrap();
@@ -763,7 +755,7 @@ mod tests {
         let scenario_note_exists = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -777,8 +769,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_note_exists, &env_root).unwrap();
@@ -788,7 +778,7 @@ mod tests {
         let scenario_note_exists_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -802,8 +792,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_note_exists_fail, &env_root).unwrap();
@@ -813,7 +801,7 @@ mod tests {
         let link_scenario_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -829,8 +817,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&link_scenario_fail, &env_root).unwrap();
@@ -879,7 +865,7 @@ mod tests {
         let link_scenario_pass = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -895,8 +881,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&link_scenario_pass, &env_root).unwrap();
@@ -906,7 +890,7 @@ mod tests {
         let tag_scenario_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -920,8 +904,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&tag_scenario_fail, &env_root).unwrap();
@@ -944,7 +926,7 @@ mod tests {
         let tag_scenario_pass = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -958,8 +940,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&tag_scenario_pass, &env_root).unwrap();
@@ -969,7 +949,7 @@ mod tests {
         let content_scenario_pass = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -984,8 +964,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&content_scenario_pass, &env_root).unwrap();
@@ -995,7 +973,7 @@ mod tests {
         let content_scenario_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -1010,8 +988,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&content_scenario_fail, &env_root).unwrap();
@@ -1021,7 +997,7 @@ mod tests {
         let command_scenario_pass = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -1035,8 +1011,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&command_scenario_pass, &env_root).unwrap();
@@ -1046,7 +1020,7 @@ mod tests {
         let command_scenario_fail = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -1060,8 +1034,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&command_scenario_fail, &env_root).unwrap();
@@ -1258,7 +1230,7 @@ mod tests {
         let scenario_pass = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -1270,8 +1242,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
         let metrics = evaluate(&scenario_pass, &env_root).unwrap();
@@ -1314,7 +1284,7 @@ mod tests {
         let scenario = Scenario {
             name: "test".to_string(),
             description: "test".to_string(),
-            fixture: "test".to_string(),
+            template_folder: "test".to_string(),
             task: Task {
                 prompt: "test".to_string(),
             },
@@ -1326,8 +1296,6 @@ mod tests {
             tool_matrix: None,
             setup: None,
             tags: vec![],
-            cost: None,
-            docs: None,
             run: None,
         };
 

@@ -1,12 +1,12 @@
 name: setup_test
 description: "Test scenario with setup steps"
-fixture: qipu
+template_folder: qipu
 tier: 1
 task:
   prompt: "Create a new note about testing."
 setup:
-  - command: echo
-    args: ["Running setup for test scenario"]
+  commands:
+    - "echo Running setup for test scenario"
 evaluation:
   gates:
     - type: min_notes

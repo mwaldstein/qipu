@@ -1310,7 +1310,7 @@ dependencies = [
 
 [[package]]
 name = "qipu"
-version = "0.2.46"
+version = "0.2.48"
 dependencies = [
  "anyhow",
  "assert_cmd",

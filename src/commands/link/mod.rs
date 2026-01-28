@@ -19,7 +19,6 @@ pub mod tree;
 pub use crate::lib::graph::{Direction, TreeOptions};
 
 use crate::lib::error::Result;
-use crate::lib::graph::TreeResult;
 use crate::lib::index::{Edge, Index, LinkSource};
 use crate::lib::store::Store;
 

@@ -2,7 +2,7 @@ use super::LinkEntry;
 use crate::cli::Cli;
 use crate::lib::compaction::CompactionContext;
 use crate::lib::error::Result;
-use crate::lib::graph::PathResult;
+use crate::lib::graph::{PathResult, TreeResult};
 
 /// Output in JSON format
 pub fn output_json(
@@ -79,6 +79,114 @@ pub fn output_json(
 pub fn output_path_json(
     cli: &Cli,
     result: &PathResult,
+    compaction_ctx: Option<&CompactionContext>,
+    note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
+    all_notes: &[crate::lib::note::Note],
+) -> Result<()> {
+    let mut json_result = serde_json::to_value(result)?;
+    if let Some(ctx) = compaction_ctx {
+        if let Some(notes) = json_result.get_mut("notes").and_then(|n| n.as_array_mut()) {
+            for note in notes {
+                let id = if let Some(id) = note.get("id").and_then(|i| i.as_str()) {
+                    id.to_owned()
+                } else {
+                    continue;
+                };
+
+                let compacts_count = ctx.get_compacts_count(&id);
+                if compacts_count > 0 {
+                    if let Some(obj_mut) = note.as_object_mut() {
+                        obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
+
+                        if let Some(map) = note_map {
+                            if let Some(note_ref) = map.get(id.as_str()) {
+                                if let Some(pct) = ctx.get_compaction_pct(note_ref, map) {
+                                    obj_mut.insert(
+                                        "compaction_pct".to_string(),
+                                        serde_json::json!(format!("{:.1}", pct)),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    if cli.with_compaction_ids {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((ids, truncated)) =
+                            ctx.get_compacted_ids(&id, depth, cli.compaction_max_nodes)
+                        {
+                            if let Some(obj_mut) = note.as_object_mut() {
+                                obj_mut.insert("compacted_ids".to_string(), serde_json::json!(ids));
+                                if truncated {
+                                    obj_mut.insert(
+                                        "compacted_ids_truncated".to_string(),
+                                        serde_json::json!(true),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    if cli.expand_compaction {
+                        let depth = cli.compaction_depth.unwrap_or(1);
+                        if let Some((compacted_notes, truncated)) = ctx
+                            .get_compacted_notes_expanded(
+                                &id,
+                                depth,
+                                cli.compaction_max_nodes,
+                                all_notes,
+                            )
+                        {
+                            if let Some(obj_mut) = note.as_object_mut() {
+                                obj_mut.insert(
+                                    "compacted_notes".to_string(),
+                                    serde_json::json!(compacted_notes
+                                        .iter()
+                                        .map(|n: &&crate::lib::note::Note| {
+                                            serde_json::json!({
+                                                "id": n.id(),
+                                                "title": n.title(),
+                                                "type": n.note_type().to_string(),
+                                                "tags": n.frontmatter.tags,
+                                                "content": n.body,
+                                                "sources": n.frontmatter.sources.iter().map(|s| {
+                                                    let mut obj = serde_json::json!({
+                                                        "url": s.url,
+                                                    });
+                                                    if let Some(title) = &s.title {
+                                                        obj["title"] = serde_json::json!(title);
+                                                    }
+                                                    if let Some(accessed) = &s.accessed {
+                                                        obj["accessed"] = serde_json::json!(accessed);
+                                                    }
+                                                    obj
+                                                }).collect::<Vec<_>>(),
+                                            })
+                                        })
+                                        .collect::<Vec<_>>()
+                                    ),
+                                );
+                                if truncated {
+                                    obj_mut.insert(
+                                        "compacted_notes_truncated".to_string(),
+                                        serde_json::json!(true),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("{}", serde_json::to_string_pretty(&json_result)?);
+    Ok(())
+}
+
+/// Output tree in JSON format
+pub fn output_tree_json(
+    cli: &Cli,
+    result: &TreeResult,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
     all_notes: &[crate::lib::note::Note],

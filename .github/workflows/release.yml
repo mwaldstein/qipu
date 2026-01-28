@@ -68,6 +68,9 @@ jobs:
         with:
           target: ${{ matrix.target }}
       
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.6.0
+      
       - name: Install cross
         if: matrix.use_cross
         run: cargo install cross --git https://github.com/cross-rs/cross
@@ -106,6 +109,25 @@ jobs:
         run: |
           certutil -hashfile qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip SHA256 > qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
         shell: cmd
+      
+      - name: Sign binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cosign sign-blob \
+            --yes \
+            --output-certificate=qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.pem \
+            --output-signature=qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sig \
+            qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
+      
+      - name: Sign binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cosign sign-blob `
+            --yes `
+            --output-certificate=qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem `
+            --output-signature=qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sig `
+            qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
+        shell: pwsh
       
       - name: Upload release asset (Unix)
         if: matrix.os != 'windows-latest'
@@ -150,6 +172,50 @@ jobs:
           asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
           asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
           asset_content_type: text/plain
+      
+      - name: Upload signature (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sig
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sig
+          asset_content_type: application/octet-stream
+      
+      - name: Upload signature (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sig
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sig
+          asset_content_type: application/octet-stream
+      
+      - name: Upload certificate (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.pem
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.pem
+          asset_content_type: application/x-pem-file
+      
+      - name: Upload certificate (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
+          asset_content_type: application/x-pem-file
 
   publish-crates:
     name: Publish to crates.io

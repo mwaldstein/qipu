@@ -21,4 +21,13 @@ permanent (distilled insights), moc (index/map notes).
   qipu link path A B     Find path between notes
   qipu context           Build context bundle for LLM
 
+## Session Protocol
+
+**Before ending session:**
+1. Capture any new insights: `qipu capture --title "..."`
+2. Link new notes to existing knowledge: `qipu link add <new> <existing> --type <type>`
+3. Commit changes: `git add .qipu && git commit -m "knowledge: ..."`
+
+**Why this matters:** Knowledge not committed is knowledge lost. The graph only grows if you save your work.
+
 Use `qipu context --note <id>` to fetch full note content.

@@ -18,8 +18,6 @@ pub mod tree;
 
 pub use crate::lib::graph::{Direction, TreeOptions};
 
-use std::collections::HashMap;
-
 use crate::lib::error::Result;
 use crate::lib::graph::TreeResult;
 use crate::lib::index::{Edge, Index, LinkSource};

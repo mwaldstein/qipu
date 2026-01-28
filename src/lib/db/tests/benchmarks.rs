@@ -10,7 +10,6 @@
 //! NOTE: All benchmarks are marked #[ignore] and require --release flag to run.
 //! Debug builds are significantly slower than release builds and will fail benchmarks.
 
-use crate::lib::db::Database;
 use crate::lib::note::{NoteType, TypedLink};
 use crate::lib::store::InitOptions;
 use crate::lib::store::Store;

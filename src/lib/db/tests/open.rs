@@ -104,3 +104,67 @@ fn test_database_corrupt_empty_db() {
 
     assert_eq!(note_count, 0);
 }
+
+#[test]
+fn test_open_with_auto_repair_triggers_incremental_repair() {
+    let dir = tempdir().unwrap();
+    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+    let note = store
+        .create_note("Original Title", None, &["tag1".to_string()], None)
+        .unwrap();
+
+    let note_path = note.path.as_ref().unwrap();
+
+    let note_content = fs::read_to_string(note_path).unwrap();
+    let updated_content = note_content.replace("Original Title", "Updated Title");
+
+    fs::write(note_path, updated_content).unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    let db = Database::open(store.root(), true).unwrap();
+
+    let title: String = db
+        .conn
+        .query_row(
+            "SELECT title FROM notes WHERE id = ?1",
+            [note.id()],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert_eq!(title, "Updated Title");
+}
+
+#[test]
+fn test_open_without_auto_repair_does_not_trigger_repair() {
+    let dir = tempdir().unwrap();
+    let store = Store::init(dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+
+    let note = store
+        .create_note("Original Title", None, &["tag1".to_string()], None)
+        .unwrap();
+
+    let note_path = note.path.as_ref().unwrap();
+
+    let note_content = fs::read_to_string(note_path).unwrap();
+    let updated_content = note_content.replace("Original Title", "Updated Title");
+
+    fs::write(note_path, updated_content).unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    let db = Database::open(store.root(), false).unwrap();
+
+    let title: String = db
+        .conn
+        .query_row(
+            "SELECT title FROM notes WHERE id = ?1",
+            [note.id()],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert_eq!(title, "Original Title");
+}

@@ -565,6 +565,26 @@ pub enum Commands {
         /// Set the note's value score (0-100)
         #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
         value: Option<u8>,
+
+        /// Update the source field
+        #[arg(long)]
+        source: Option<String>,
+
+        /// Update the author field
+        #[arg(long)]
+        author: Option<String>,
+
+        /// Update the generated_by field
+        #[arg(long)]
+        generated_by: Option<String>,
+
+        /// Update the prompt_hash field
+        #[arg(long)]
+        prompt_hash: Option<String>,
+
+        /// Update the verified flag
+        #[arg(long, value_parser = crate::cli::parse::parse_bool)]
+        verified: Option<bool>,
     },
 
     /// Manage the qipu store

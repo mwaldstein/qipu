@@ -27,6 +27,11 @@ pub fn execute(
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,
+    source: Option<&str>,
+    author: Option<&str>,
+    generated_by: Option<&str>,
+    prompt_hash: Option<&str>,
+    verified: Option<bool>,
 ) -> Result<()> {
     // Load the note (either by ID or path)
     let mut note = if Path::new(id_or_path).exists() {
@@ -124,6 +129,36 @@ pub fn execute(
     // Update value if provided
     if let Some(new_value) = value {
         note.frontmatter.value = Some(new_value);
+        modified = true;
+    }
+
+    // Update source if provided
+    if let Some(new_source) = source {
+        note.frontmatter.source = Some(new_source.to_string());
+        modified = true;
+    }
+
+    // Update author if provided
+    if let Some(new_author) = author {
+        note.frontmatter.author = Some(new_author.to_string());
+        modified = true;
+    }
+
+    // Update generated_by if provided
+    if let Some(new_generated_by) = generated_by {
+        note.frontmatter.generated_by = Some(new_generated_by.to_string());
+        modified = true;
+    }
+
+    // Update prompt_hash if provided
+    if let Some(new_prompt_hash) = prompt_hash {
+        note.frontmatter.prompt_hash = Some(new_prompt_hash.to_string());
+        modified = true;
+    }
+
+    // Update verified if provided
+    if let Some(new_verified) = verified {
+        note.frontmatter.verified = Some(new_verified);
         modified = true;
     }
 

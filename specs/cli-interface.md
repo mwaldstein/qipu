@@ -65,10 +65,16 @@ Flags:
 - `--tag <tag>`: Add one or more tags.
 - `--remove-tag <tag>`: Remove one or more tags.
 - `--value <n>`: Set the note's value score (0-100).
+- `--source <text>`: Update the source field.
+- `--author <text>`: Update the author field.
+- `--generated-by <text>`: Update the generated_by field.
+- `--prompt-hash <text>`: Update the prompt_hash field.
+- `--verified <bool>`: Update the verified flag (true/false, 1/0, yes/no, y/n).
 
 Examples:
 - `qipu update qp-a1b2 --tag reviewed --value 90`
 - `cat new-body.md | qipu update qp-a1b2 --title "Revised Title"`
+- `qipu update qp-a1b2 --author "John Doe" --verified true`
 
 ### `qipu capture`
 Create a new note from stdin.

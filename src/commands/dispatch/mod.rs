@@ -330,6 +330,11 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             tag,
             remove_tag,
             value,
+            source,
+            author,
+            generated_by,
+            prompt_hash,
+            verified,
         }) => notes::handle_update(
             cli,
             &root,
@@ -339,6 +344,11 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             tag,
             remove_tag,
             *value,
+            source.as_deref(),
+            author.as_deref(),
+            generated_by.as_deref(),
+            prompt_hash.as_deref(),
+            *verified,
             start,
         ),
 

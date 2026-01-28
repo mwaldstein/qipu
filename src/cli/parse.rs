@@ -19,3 +19,15 @@ pub fn parse_min_value(s: &str) -> std::result::Result<u8, String> {
         Ok(value)
     }
 }
+
+/// Parse boolean from string (accepts true, false, 1, 0, yes, no)
+pub fn parse_bool(s: &str) -> std::result::Result<bool, String> {
+    match s.to_lowercase().as_str() {
+        "true" | "1" | "yes" | "y" => Ok(true),
+        "false" | "0" | "no" | "n" => Ok(false),
+        _ => Err(format!(
+            "Invalid boolean value: {}. Use true/false, 1/0, yes/no, or y/n",
+            s
+        )),
+    }
+}

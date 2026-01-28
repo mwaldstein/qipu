@@ -444,6 +444,11 @@ pub(super) fn handle_update(
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,
+    source: Option<&str>,
+    author: Option<&str>,
+    generated_by: Option<&str>,
+    prompt_hash: Option<&str>,
+    verified: Option<bool>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -459,6 +464,11 @@ pub(super) fn handle_update(
         tags,
         remove_tags,
         value,
+        source,
+        author,
+        generated_by,
+        prompt_hash,
+        verified,
     )?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");

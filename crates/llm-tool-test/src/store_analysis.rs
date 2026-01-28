@@ -242,4 +242,214 @@ mod tests {
         assert_eq!(metrics.total_links, 3);
         assert_eq!(metrics.links_per_note, 1.0);
     }
+
+    #[test]
+    fn test_link_with_special_characters() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002_test-special.chars]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_link_with_display_text() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002|display text here]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_empty_link_target() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 0);
+    }
+
+    #[test]
+    fn test_link_with_only_display_text() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[|only display text]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 0);
+    }
+
+    #[test]
+    fn test_malformed_unbalanced_brackets() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002 and [[qp-003 and [[qp-004",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 0);
+    }
+
+    #[test]
+    fn test_link_with_multiple_pipes() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002|first|second|third]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_links_with_whitespace_variations() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "[[  qp-002  ]] and [[qp-003| display text  ]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 2);
+    }
+
+    #[test]
+    fn test_link_with_unicode_characters() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002-日本語-тест]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_links_at_various_positions() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "[[qp-002]] at start, middle [[qp-003]] and end [[qp-004]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 3);
+    }
+
+    #[test]
+    fn test_multiple_consecutive_links() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "[[qp-002]][[qp-003]][[qp-004]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 3);
+    }
+
+    #[test]
+    fn test_link_with_newlines() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-\n002]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_links_with_pipe_in_display_text() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "[[qp-002|A | B | C]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 1);
+    }
+
+    #[test]
+    fn test_duplicate_links_same_target() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Link to [[qp-002]] and again [[qp-002]]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 2);
+    }
+
+    #[test]
+    fn test_link_ending_with_bracket_in_content() {
+        let notes = vec![make_note(
+            "qp-001",
+            "Note 1",
+            "fleeting",
+            vec![],
+            "Array syntax: [1, 2, 3] and link [[qp-002]",
+        )];
+        let json = create_export_json(notes);
+        let metrics = StoreAnalyzer::analyze(&json).unwrap();
+
+        assert_eq!(metrics.total_links, 0);
+    }
 }

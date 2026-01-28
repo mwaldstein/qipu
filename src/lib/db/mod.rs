@@ -159,6 +159,8 @@ impl Database {
                     || msg_lower.contains("corrupt")
                     || msg_lower.contains("malformed")
                     || msg_lower.contains("database is malformed")
+                    || msg_lower.contains("file is not a database")
+                    || msg_lower.contains("database is locked")
             }
             _ => false,
         }

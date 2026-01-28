@@ -577,6 +577,10 @@ pub fn handle_baseline_list_command(results_db: &ResultsDB) -> anyhow::Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::results::{
+        EfficiencyMetricsRecord, EvaluationMetricsRecord, QualityMetricsRecord, ResultRecord,
+    };
+    use tempfile::TempDir;
 
     #[test]
     fn test_env_budget_var_valid() {
@@ -659,5 +663,145 @@ evaluation:
         assert!(scenarios.iter().any(|(name, _)| name == "test2"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    fn create_test_result_record(id: &str) -> ResultRecord {
+        ResultRecord {
+            id: id.to_string(),
+            scenario_id: "test-scenario".to_string(),
+            scenario_hash: "hash123".to_string(),
+            tool: "opencode".to_string(),
+            model: "gpt-4o".to_string(),
+            qipu_commit: "abc123".to_string(),
+            timestamp: Utc::now(),
+            duration_secs: 45.5,
+            cost_usd: 0.01,
+            gates_passed: true,
+            metrics: EvaluationMetricsRecord {
+                gates_passed: 2,
+                gates_total: 2,
+                note_count: 1,
+                link_count: 0,
+                details: vec![],
+                efficiency: EfficiencyMetricsRecord {
+                    total_commands: 3,
+                    unique_commands: 2,
+                    error_count: 0,
+                    retry_count: 1,
+                    help_invocations: 0,
+                    first_try_success_rate: 1.0,
+                    iteration_ratio: 1.5,
+                },
+                quality: QualityMetricsRecord {
+                    avg_title_length: 10.0,
+                    avg_body_length: 50.0,
+                    avg_tags_per_note: 2.0,
+                    notes_without_tags: 0,
+                    links_per_note: 0.0,
+                    orphan_notes: 1,
+                    link_type_diversity: 0,
+                    type_distribution: HashMap::new(),
+                    total_notes: 1,
+                    total_links: 0,
+                },
+                composite_score: 0.9,
+            },
+            judge_score: Some(0.9),
+            outcome: "PASS".to_string(),
+            transcript_path: "/path/to/transcript.txt".to_string(),
+            cache_key: Some("cache-key-123".to_string()),
+            human_review: None,
+        }
+    }
+
+    #[test]
+    fn test_handle_review_command_valid_run() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record = create_test_result_record("run-1");
+        db.append(&record).unwrap();
+
+        let dimensions = vec![("accuracy".to_string(), 0.9), ("clarity".to_string(), 0.8)];
+        let notes = Some("Good work".to_string());
+
+        let result = handle_review_command("run-1", &dimensions, &notes, &db);
+        assert!(result.is_ok());
+
+        let loaded = db.load_by_id("run-1").unwrap();
+        assert!(loaded.is_some());
+        let loaded = loaded.unwrap();
+        assert!(loaded.human_review.is_some());
+        let review = loaded.human_review.unwrap();
+        assert_eq!(review.dimensions.get("accuracy"), Some(&0.9));
+        assert_eq!(review.dimensions.get("clarity"), Some(&0.8));
+        assert_eq!(review.notes, Some("Good work".to_string()));
+    }
+
+    #[test]
+    fn test_handle_review_command_nonexistent_run() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let dimensions = vec![("accuracy".to_string(), 0.9)];
+        let notes = None;
+
+        let result = handle_review_command("nonexistent", &dimensions, &notes, &db);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Run not found"));
+    }
+
+    #[test]
+    fn test_handle_list_command_pending_review() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_result_record("run-1");
+        let record2 = create_test_result_record("run-2");
+        let record3 = create_test_result_record("run-3");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+        db.append(&record3).unwrap();
+
+        let result = handle_list_command(&[], &0, true, &db);
+        assert!(result.is_ok());
+
+        let loaded = db.load_pending_review().unwrap();
+        assert_eq!(loaded.len(), 3);
+    }
+
+    #[test]
+    fn test_handle_list_command_pending_review_empty() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let result = handle_list_command(&[], &0, true, &db);
+        assert!(result.is_ok());
+
+        let loaded = db.load_pending_review().unwrap();
+        assert_eq!(loaded.len(), 0);
+    }
+
+    #[test]
+    fn test_handle_review_command_updates_pending_status() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = ResultsDB::new(temp_dir.path());
+
+        let record1 = create_test_result_record("run-1");
+        let record2 = create_test_result_record("run-2");
+
+        db.append(&record1).unwrap();
+        db.append(&record2).unwrap();
+
+        let pending = db.load_pending_review().unwrap();
+        assert_eq!(pending.len(), 2);
+
+        let dimensions = vec![("accuracy".to_string(), 0.9)];
+        handle_review_command("run-1", &dimensions, &None, &db).unwrap();
+
+        let pending = db.load_pending_review().unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].id, "run-2");
     }
 }

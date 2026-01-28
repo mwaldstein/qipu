@@ -422,11 +422,9 @@ output:
 
         Mock::given(matchers::method("POST"))
             .and(matchers::path("/v1/chat/completions"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "choices": [{"message": {}}]
-                })),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "choices": [{"message": {}}]
+            })))
             .mount(&mock_server)
             .await;
 

@@ -263,6 +263,244 @@ even when you disagree with their conclusions.
 5. **Mention opt-in visibility:** Remind the LLM that custom fields require `--custom` flag in context output
 6. **No discovery:** Tell the LLM not to use `qipu --help` to discover custom keys/commands; your prompt is the source of truth
 
+## Custom Ontology: Domain-Specific Types
+
+Custom ontology allows your application to extend qipu's core type system with domain-specific note types and link types, enabling your LLM integrations to work with your domain's vocabulary and relationships.
+
+### Custom Ontology vs Custom Metadata
+
+- **Custom ontology** extends qipu's core type system (note types and link types). Domain-specific types like `case`, `statute`, or `depends-on` become part of qipu's validation and traversal logic.
+
+- **Custom metadata** adds application-specific attributes to notes (workflow states, IDs, etc.). These are preserved and queryable but don't affect qipu's core semantics.
+
+**Use custom ontology when:** Your domain needs different note types or link relationships than qipu's standard types.
+
+**Use custom metadata when:** Your application needs to track internal state or IDs alongside notes.
+
+For detailed configuration guidance, see `docs/custom-ontology.md`.
+
+### Programmatic Ontology Inspection
+
+Use `qipu ontology show` to inspect the active ontology configuration:
+
+```bash
+# Human-readable output
+qipu ontology show
+# Output:
+# Ontology mode: extended
+#
+# Note types:
+#   fleeting
+#   literature
+#   permanent
+#   moc
+#
+# Link types:
+#   related
+#   supports
+#   contradicts
+#   depends-on -> required-by
+
+# JSON for programmatic consumption
+qipu ontology show --format json
+# {"mode": "extended", "note_types": [...], "link_types": [...]}
+
+# Records format for line-oriented parsing
+qipu ontology show --format records
+```
+
+This is useful for:
+- Validating that your expected custom types are available
+- Building dynamic UI/type selectors
+- Checking ontology mode before type-sensitive operations
+
+### Type Validation in Applications
+
+Qipu validates note and link types automatically. When building integrations:
+
+```bash
+# Type validation happens automatically
+qipu capture --type your-custom-type "Title"  # Fails if type invalid
+qipu link add <id1> <id2> --type custom-link  # Fails if link type invalid
+```
+
+For programmatic validation before operations:
+
+```python
+import subprocess
+import json
+
+def get_valid_note_types():
+    result = subprocess.run(
+        ['qipu', 'ontology', 'show', '--format', 'json'],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    data = json.loads(result.stdout)
+    return [t['name'] for t in data['note_types']]
+
+def validate_type(note_type):
+    valid_types = get_valid_note_types()
+    if note_type not in valid_types:
+        raise ValueError(f"Invalid note type: {note_type}. Valid types: {valid_types}")
+```
+
+### Ontology Modes for Integrators
+
+When configuring custom ontology, choose the resolution mode based on your integration needs:
+
+#### Default Mode
+Uses only standard qipu types. No custom types available.
+
+**Use when:** Your application works with qipu's standard ontology without domain-specific extensions.
+
+```toml
+[ontology]
+mode = "default"  # or omit the mode field
+```
+
+#### Extended Mode (Recommended for Integrators)
+Extends standard ontology with custom types. Both standard and custom types are available.
+
+**Use when:** Your application needs domain-specific types alongside qipu's standard types.
+
+```toml
+[ontology]
+mode = "extended"
+
+[ontology.note_types.task]
+description = "A task or action item"
+usage = "Use for tracking tasks and action items"
+
+[ontology.link_types.depends-on]
+description = "Dependency relationship"
+inverse = "required-by"
+usage = "Use when task B cannot start until task A completes"
+```
+
+**Benefits for integrators:**
+- Standard types remain available for generic operations
+- Your domain-specific types are validated and documented
+- LLMs learn both standard and custom terminology via `qipu prime`
+
+#### Replacement Mode
+Replaces standard ontology with custom types only. Standard types are not available.
+
+**Use when:** Your application requires a complete domain-specific ontology and doesn't use qipu's standard types.
+
+```toml
+[ontology]
+mode = "replacement"
+
+[ontology.note_types.idea]
+description = "An idea or concept"
+usage = "Use for capturing ideas and concepts"
+
+[ontology.link_types.improves]
+description = "Improvement relationship"
+inverse = "improved-by"
+usage = "Use when one idea improves or refines another"
+```
+
+**Considerations for integrators:**
+- You must define all necessary types
+- Existing qipu workflows that depend on standard types will break
+- Suitable for highly specialized domains with established terminologies
+
+**Recommendation:** Start with extended mode unless your domain has specific requirements that conflict with qipu's standard types.
+
+### Teaching LLMs About Domain-Specific Types
+
+Qipu automatically teaches LLMs about custom ontology when you use `qipu prime`:
+
+```bash
+qipu prime
+# Output includes:
+# ## Ontology
+#
+# Note types:
+# - fleeting (Quick capture, low ceremony)
+# - literature (External source material)
+# - permanent (Distilled insight, author's own words)
+# - moc (Map of Content, curated index)
+# - task (A task or action item)
+#   Usage: Use for tracking tasks and action items
+#
+# Link types:
+# - related -> related (General relationship)
+# - supports -> supported-by (Evidence supports a claim)
+# - depends-on -> required-by (Dependency relationship)
+#   Usage: Use when task B cannot start until task A completes
+```
+
+Your system prompt should reference custom ontology for LLMs:
+
+```
+This system uses qipu with custom ontology for task management:
+
+- Custom note type: task (for action items)
+- Custom link type: depends-on (for task dependencies)
+
+When creating tasks, use:
+  qipu create "Task description" --type task
+
+When linking dependent tasks, use:
+  qipu link add <task-a> <task-b> --type depends-on
+
+Custom ontology extends qipu's standard types. Standard types
+(fleeting, literature, permanent, moc) are also available.
+```
+
+### Including Ontology in Context Bundles
+
+Use `--include-ontology` to include ontology information in context output:
+
+```bash
+qipu context --tag project --max-chars 10000 --include-ontology
+# Output includes ontology section with all available types and usage guidance
+```
+
+This is useful when:
+- Your application needs to validate types before operations
+- LLMs should see type definitions in context
+- Building dynamic tool configurations
+
+### Example Integration: Task Management System
+
+```bash
+# 1. Configure custom ontology
+cat >> .qipu/config.toml << 'EOF'
+[ontology]
+mode = "extended"
+
+[ontology.note_types.task]
+description = "A task or action item"
+usage = "Use for tracking tasks and action items"
+
+[ontology.link_types.depends-on]
+description = "Dependency relationship"
+inverse = "required-by"
+usage = "Use when task B cannot start until task A completes"
+EOF
+
+# 2. Verify ontology configuration
+qipu ontology show
+
+# 3. Create tasks with custom type
+TASK_A=$(qipu create "Design authentication flow" --type task --tag auth --format json | jq -r '.id')
+TASK_B=$(qipu create "Implement OAuth provider" --type task --tag auth --format json | jq -r '.id')
+
+# 4. Link with custom link type
+qipu link add "$TASK_A" "$TASK_B" --type depends-on
+
+# 5. Query with context (ontology visible in prime output)
+qipu prime | grep -A 20 "## Ontology"
+
+# 6. Build context for task planning
+qipu context --tag task --include-ontology --max-chars 15000
+```
+
 ## Use Cases
 
 ### 1. Research Curation System (Blibio)

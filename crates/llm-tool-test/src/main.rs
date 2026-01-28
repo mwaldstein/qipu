@@ -15,7 +15,8 @@ mod store_analysis;
 mod transcript;
 
 use clap::Parser;
-use cli::{BaselineAction, Cli, Commands};
+use cli::Cli;
+use cli::Commands;
 use results::{Cache, ResultsDB};
 use scenario::ToolConfig;
 use std::iter::Iterator;
@@ -165,43 +166,15 @@ fn main() -> anyhow::Result<()> {
                 println!("No scenario specified. Use --scenario <path> or --all");
             }
         }
-        Commands::Scenarios {
-            tags,
-            tier,
-            pending_review,
-        } => {
-            commands::handle_list_command(tags, tier, *pending_review, &results_db)?;
+        Commands::Scenarios { tags, tier } => {
+            commands::handle_list_command(tags, tier, &results_db)?;
         }
         Commands::Show { name } => {
             commands::handle_show_command(name, &results_db)?;
         }
-        Commands::Compare { run_ids } => {
-            commands::handle_compare_command(run_ids, &results_db)?;
-        }
-        Commands::Report => {
-            commands::handle_report_command(&results_db)?;
-        }
         Commands::Clean { older_than } => {
             commands::handle_clean_command(&cache, older_than, &base_dir)?;
         }
-        Commands::Review {
-            run_id,
-            dimension,
-            notes,
-        } => {
-            commands::handle_review_command(run_id, dimension, notes, &results_db)?;
-        }
-        Commands::Baseline { action } => match action {
-            BaselineAction::Set { run_id } => {
-                commands::handle_baseline_set_command(run_id, &results_db)?;
-            }
-            BaselineAction::Clear { scenario_id, tool } => {
-                commands::handle_baseline_clear_command(scenario_id, tool, &results_db)?;
-            }
-            BaselineAction::List => {
-                commands::handle_baseline_list_command(&results_db)?;
-            }
-        },
     }
     Ok(())
 }

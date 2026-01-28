@@ -1,5 +1,4 @@
 use crate::evaluation::ScoreTier;
-use crate::results::RegressionReport;
 use crate::results::ResultRecord;
 
 #[derive(Debug, Clone)]
@@ -95,33 +94,4 @@ pub fn print_result_summary(record: &ResultRecord) {
         "Composite Score: {:.2} ({})",
         record.metrics.composite_score, composite_tier
     );
-    if record.human_review.is_some() {
-        println!("Human Review: Yes");
-    }
-}
-
-pub fn print_regression_report(report: &RegressionReport) {
-    println!("\n--- Regression Report ---");
-    println!("Current: {}", report.run_id);
-    println!("Baseline: {}", report.baseline_id);
-
-    if let Some(score_change) = report.score_change_pct {
-        println!("Score change: {:.1}%", score_change);
-    }
-
-    println!("Cost change: {:.1}%", report.cost_change_pct);
-
-    if !report.warnings.is_empty() {
-        println!("\nWarnings:");
-        for warning in &report.warnings {
-            println!("  - {}", warning);
-        }
-    }
-
-    if !report.alerts.is_empty() {
-        println!("\nAlerts:");
-        for alert in &report.alerts {
-            println!("  - {}", alert);
-        }
-    }
 }

@@ -55,7 +55,6 @@ impl ToolAdapter for OpenCodeAdapter {
                     available: true,
                     version: Some(version),
                     authenticated: true, // opencode doesn't require auth check
-                    budget_remaining: None,
                 })
             }
             Err(e) => Err(super::AdapterError::NotAvailable(format!(

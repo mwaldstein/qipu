@@ -20,7 +20,6 @@ impl ToolAdapter for ClaudeCodeAdapter {
                     available: true,
                     version: Some(version),
                     authenticated: true,
-                    budget_remaining: None,
                 })
             }
             Err(e) => Err(super::AdapterError::NotAvailable(format!(

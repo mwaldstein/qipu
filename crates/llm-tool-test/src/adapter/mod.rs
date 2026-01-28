@@ -20,9 +20,6 @@ pub enum AdapterError {
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
 
-    #[error("Budget exhausted")]
-    BudgetExhausted,
-
     #[error("Other error: {0}")]
     Other(#[from] anyhow::Error),
 }
@@ -34,7 +31,6 @@ pub struct ToolStatus {
     pub available: bool,
     pub version: Option<String>,
     pub authenticated: bool,
-    pub budget_remaining: Option<f64>,
 }
 
 /// Context for executing a task.

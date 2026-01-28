@@ -51,11 +51,11 @@ impl MockAdapter {
             transcript_writer.log_tool_result(&output, code)?;
 
             if i > 0 {
-                full_output.push_str("\n");
+                full_output.push('\n');
             }
             full_output.push_str(command);
             if !output.is_empty() {
-                full_output.push_str("\n");
+                full_output.push('\n');
                 full_output.push_str(&output);
                 transcript_writer.log_output(&output)?;
             }
@@ -120,6 +120,7 @@ impl MockAdapter {
                 Gate::CommandSucceeds { command } => {
                     commands.push(format!("qipu {}", command));
                 }
+                #[allow(clippy::if_same_then_else)]
                 Gate::MinLinks { count } => {
                     // Create notes with links to satisfy the minimum link count
                     // Strategy: Create count+1 notes, where each note (except the first)
@@ -173,13 +174,12 @@ impl ToolAdapter for MockAdapter {
             available: true,
             version: Some("1.0.0-mock".to_string()),
             authenticated: true,
-            budget_remaining: Some(100.0),
         })
     }
 
     fn execute_task(
         &self,
-        context: &super::TaskContext,
+        _context: &super::TaskContext,
         _work_dir: &Path,
         _transcript_dir: &Path,
     ) -> Result<super::ExecutionResult, super::AdapterError> {
@@ -212,7 +212,7 @@ impl ToolAdapter for MockAdapter {
         &self,
         scenario: &Scenario,
         cwd: &Path,
-        model: Option<&str>,
+        _model: Option<&str>,
         timeout_secs: u64,
     ) -> anyhow::Result<(String, i32, Option<f64>, Option<super::TokenUsage>)> {
         let runner = SessionRunner::new();
@@ -226,7 +226,7 @@ impl ToolAdapter for MockAdapter {
         let (init_output, init_code) = runner.run_command("qipu", &["init"], cwd, timeout_secs)?;
         full_output.push_str("qipu init");
         if !init_output.is_empty() {
-            full_output.push_str("\n");
+            full_output.push('\n');
             full_output.push_str(&init_output);
         }
         if init_code != 0 && exit_code == 0 {
@@ -245,11 +245,11 @@ impl ToolAdapter for MockAdapter {
             let (output, code) = runner.run_command(cmd_name, &args, cwd, timeout_secs)?;
 
             if i > 0 {
-                full_output.push_str("\n");
+                full_output.push('\n');
             }
             full_output.push_str(command);
             if !output.is_empty() {
-                full_output.push_str("\n");
+                full_output.push('\n');
                 full_output.push_str(&output);
             }
 

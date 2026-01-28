@@ -464,7 +464,6 @@ pub fn run_single_scenario(
             outcome,
             transcript_path: transcript_path.clone(),
             cache_key: Some(cache_key.as_string()),
-            human_review: None,
         };
 
         results_db.append(&record)?;
@@ -482,11 +481,6 @@ pub fn run_single_scenario(
         copy_dir_recursive(&env.root, &fixture_dir)?;
 
         println!("\nArtifacts written to: {}", results_dir.display());
-
-        if let Some(baseline) = results_db.load_baseline(&s.name, tool)? {
-            let report = crate::results::compare_runs(&record, &baseline);
-            output::print_regression_report(&report);
-        }
 
         println!("\nRun completed: {}", record.id);
         println!("Transcript written to: {}", transcript_path);
@@ -545,7 +539,6 @@ pub fn run_single_scenario(
             outcome: "Dry run".to_string(),
             transcript_path: String::new(),
             cache_key: Some(cache_key.as_string()),
-            human_review: None,
         };
 
         output::print_result_summary(&record);

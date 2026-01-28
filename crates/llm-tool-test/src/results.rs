@@ -8,61 +8,6 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct BaselineStore {
-    baselines: HashMap<String, String>,
-}
-
-impl BaselineStore {
-    fn load(path: &Path) -> Result<Self> {
-        if !path.exists() {
-            return Ok(Self::default());
-        }
-        let content = std::fs::read_to_string(path)?;
-        serde_json::from_str(&content).context("Failed to parse baseline store")
-    }
-
-    fn save(&self, path: &Path) -> Result<()> {
-        let content = serde_json::to_string_pretty(self)?;
-        std::fs::write(path, content)?;
-        Ok(())
-    }
-
-    fn key(scenario_id: &str, tool: &str) -> String {
-        format!("{}:{}", scenario_id, tool)
-    }
-
-    fn set(&mut self, scenario_id: &str, tool: &str, run_id: &str) {
-        let key = Self::key(scenario_id, tool);
-        self.baselines.insert(key, run_id.to_string());
-    }
-
-    fn get(&self, scenario_id: &str, tool: &str) -> Option<&String> {
-        let key = Self::key(scenario_id, tool);
-        self.baselines.get(&key)
-    }
-
-    fn remove(&mut self, scenario_id: &str, tool: &str) {
-        let key = Self::key(scenario_id, tool);
-        self.baselines.remove(&key);
-    }
-
-    fn list(&self) -> Vec<(String, String)> {
-        self.baselines
-            .iter()
-            .map(|(k, v)| {
-                let parts: Vec<&str> = k.split(':').collect();
-                let key = if parts.len() == 2 {
-                    format!("{} ({})", parts[0], parts[1])
-                } else {
-                    k.clone()
-                };
-                (key, v.clone())
-            })
-            .collect()
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultRecord {
     pub id: String,
@@ -81,8 +26,6 @@ pub struct ResultRecord {
     pub transcript_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_key: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub human_review: Option<HumanReviewRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,26 +72,16 @@ pub struct GateResultRecord {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HumanReviewRecord {
-    pub dimensions: std::collections::HashMap<String, f64>,
-    pub notes: Option<String>,
-    pub timestamp: DateTime<Utc>,
-}
-
 pub struct ResultsDB {
     results_path: PathBuf,
-    baseline_path: PathBuf,
 }
 
 impl ResultsDB {
     pub fn new(base_dir: &Path) -> Self {
         let results_dir = base_dir.join("results");
         std::fs::create_dir_all(&results_dir).ok();
-        let baseline_path = results_dir.join("baselines.json");
         Self {
             results_path: results_dir.join("results.jsonl"),
-            baseline_path,
         }
     }
 
@@ -186,82 +119,6 @@ impl ResultsDB {
     pub fn load_by_id(&self, id: &str) -> Result<Option<ResultRecord>> {
         let records = self.load_all()?;
         Ok(records.into_iter().find(|r| r.id == id))
-    }
-
-    pub fn update_human_review(
-        &self,
-        id: &str,
-        human_review: HumanReviewRecord,
-    ) -> Result<Option<ResultRecord>> {
-        let mut records = self.load_all()?;
-        let index = records.iter().position(|r| r.id == id);
-
-        if let Some(idx) = index {
-            records[idx].human_review = Some(human_review.clone());
-            let updated_record = records[idx].clone();
-
-            let temp_path = self.results_path.with_extension(".tmp");
-            let mut file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .truncate(true)
-                .open(&temp_path)
-                .context("Failed to create temporary file")?;
-
-            for rec in &records {
-                let line = serde_json::to_string(rec)?;
-                writeln!(file, "{}", line).context("Failed to write record")?;
-            }
-
-            drop(file);
-            std::fs::rename(&temp_path, &self.results_path)
-                .context("Failed to replace results file")?;
-
-            Ok(Some(updated_record))
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn load_pending_review(&self) -> Result<Vec<ResultRecord>> {
-        let records = self.load_all()?;
-        Ok(records
-            .into_iter()
-            .filter(|r| r.human_review.is_none())
-            .collect())
-    }
-
-    pub fn set_baseline(&self, scenario_id: &str, tool: &str, run_id: &str) -> Result<()> {
-        let mut store = BaselineStore::load(&self.baseline_path)?;
-        store.set(scenario_id, tool, run_id);
-        store.save(&self.baseline_path)?;
-        Ok(())
-    }
-
-    pub fn clear_baseline(&self, scenario_id: &str, tool: &str) -> Result<()> {
-        let mut store = BaselineStore::load(&self.baseline_path)?;
-        store.remove(scenario_id, tool);
-        store.save(&self.baseline_path)?;
-        Ok(())
-    }
-
-    pub fn list_baselines(&self) -> Result<Vec<(String, String)>> {
-        let store = BaselineStore::load(&self.baseline_path)?;
-        Ok(store.list())
-    }
-
-    pub fn load_baseline(&self, scenario_id: &str, tool: &str) -> Result<Option<ResultRecord>> {
-        let store = BaselineStore::load(&self.baseline_path)?;
-
-        if let Some(baseline_run_id) = store.get(scenario_id, tool) {
-            return self.load_by_id(baseline_run_id);
-        }
-
-        let mut records = self.load_all()?;
-        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        Ok(records
-            .into_iter()
-            .find(|r| r.scenario_id == scenario_id && r.tool == tool))
     }
 }
 
@@ -358,66 +215,6 @@ impl Cache {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegressionReport {
-    pub run_id: String,
-    pub baseline_id: String,
-    pub score_change_pct: Option<f64>,
-    pub cost_change_pct: f64,
-    pub warnings: Vec<String>,
-    pub alerts: Vec<String>,
-}
-
-pub fn compare_runs(current: &ResultRecord, baseline: &ResultRecord) -> RegressionReport {
-    let mut warnings = Vec::new();
-    let mut alerts = Vec::new();
-
-    let cost_change_pct = if baseline.cost_usd > 0.0 {
-        ((current.cost_usd - baseline.cost_usd) / baseline.cost_usd) * 100.0
-    } else {
-        0.0
-    };
-
-    if cost_change_pct > 50.0 {
-        warnings.push(format!(
-            "Cost increased by {:.1}% ({} -> {})",
-            cost_change_pct, baseline.cost_usd, current.cost_usd
-        ));
-    }
-
-    let score_change_pct = if let (Some(current_score), Some(baseline_score)) =
-        (current.judge_score, baseline.judge_score)
-    {
-        if baseline_score > 0.0 {
-            let change = ((current_score - baseline_score) / baseline_score) * 100.0;
-            if change < -15.0 {
-                warnings.push(format!(
-                    "Judge score degraded by {:.1}% ({} -> {})",
-                    change, baseline_score, current_score
-                ));
-            }
-            Some(change)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    if baseline.gates_passed && !current.gates_passed {
-        alerts.push("Gate failures that previously passed".to_string());
-    }
-
-    RegressionReport {
-        run_id: current.id.clone(),
-        baseline_id: baseline.id.clone(),
-        score_change_pct,
-        cost_change_pct,
-        warnings,
-        alerts,
-    }
-}
-
 pub fn generate_run_id() -> String {
     let now = Utc::now();
     format!("run-{}", now.format("%Y%m%d-%H%M%S-%f"))
@@ -457,7 +254,6 @@ mod results_test_helpers;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     use results_test_helpers::*;
 
@@ -823,7 +619,6 @@ mod tests {
             outcome: "PASS".to_string(),
             transcript_path: "/path/to/transcript.txt".to_string(),
             cache_key: Some("cache-key-123".to_string()),
-            human_review: None,
         };
 
         let json = serde_json::to_string(&original).unwrap();
@@ -899,7 +694,6 @@ mod tests {
             outcome: "PASS".to_string(),
             transcript_path: "/path/to/transcript.txt".to_string(),
             cache_key: None,
-            human_review: None,
         };
 
         let json = serde_json::to_string(&record).unwrap();
@@ -947,283 +741,5 @@ mod tests {
 
         let not_found = test_db.db.load_by_id("run-3").unwrap();
         assert!(not_found.is_none());
-    }
-
-    #[test]
-    fn test_results_db_load_baseline() {
-        let test_db = TestDb::new();
-
-        let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "amp");
-        let mut record3 = create_test_record_with_tool("run-3", "scenario-a", "opencode");
-
-        record3.timestamp = Utc::now();
-        record2.timestamp = Utc::now() - chrono::Duration::seconds(30);
-        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
-
-        test_db.db.append(&record1).unwrap();
-        test_db.db.append(&record2).unwrap();
-        test_db.db.append(&record3).unwrap();
-
-        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
-        assert!(baseline.is_some());
-        assert_eq!(baseline.unwrap().id, "run-3");
-
-        let amp_baseline = test_db.db.load_baseline("scenario-a", "amp").unwrap();
-        assert!(amp_baseline.is_some());
-        assert_eq!(amp_baseline.unwrap().id, "run-2");
-    }
-
-    #[test]
-    fn test_baseline_set_and_load() {
-        let test_db = TestDb::new();
-
-        let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
-        let mut record3 = create_test_record_with_tool("run-3", "scenario-a", "opencode");
-
-        record3.timestamp = Utc::now();
-        record2.timestamp = Utc::now() - chrono::Duration::seconds(30);
-        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
-
-        test_db.db.append(&record1).unwrap();
-        test_db.db.append(&record2).unwrap();
-        test_db.db.append(&record3).unwrap();
-
-        test_db
-            .db
-            .set_baseline("scenario-a", "opencode", "run-1")
-            .unwrap();
-
-        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
-        assert!(baseline.is_some());
-        assert_eq!(baseline.unwrap().id, "run-1");
-    }
-
-    #[test]
-    fn test_baseline_clear() {
-        let test_db = TestDb::new();
-
-        let mut record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let mut record2 = create_test_record_with_tool("run-2", "scenario-a", "opencode");
-
-        record2.timestamp = Utc::now();
-        record1.timestamp = Utc::now() - chrono::Duration::seconds(60);
-
-        test_db.db.append(&record1).unwrap();
-        test_db.db.append(&record2).unwrap();
-
-        test_db
-            .db
-            .set_baseline("scenario-a", "opencode", "run-1")
-            .unwrap();
-        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
-        assert_eq!(baseline.unwrap().id, "run-1");
-
-        test_db.db.clear_baseline("scenario-a", "opencode").unwrap();
-
-        let baseline = test_db.db.load_baseline("scenario-a", "opencode").unwrap();
-        assert!(baseline.is_some());
-        assert_eq!(baseline.unwrap().id, "run-2");
-    }
-
-    #[test]
-    fn test_baseline_list() {
-        let test_db = TestDb::new();
-
-        let record1 = create_test_record_with_tool("run-1", "scenario-a", "opencode");
-        let record2 = create_test_record_with_tool("run-2", "scenario-b", "amp");
-
-        test_db.db.append(&record1).unwrap();
-        test_db.db.append(&record2).unwrap();
-
-        test_db
-            .db
-            .set_baseline("scenario-a", "opencode", "run-1")
-            .unwrap();
-        test_db
-            .db
-            .set_baseline("scenario-b", "amp", "run-2")
-            .unwrap();
-
-        let baselines = test_db.db.list_baselines().unwrap();
-        assert_eq!(baselines.len(), 2);
-    }
-
-    #[test]
-    fn test_baseline_nonexistent_scenario() {
-        let test_db = TestDb::new();
-
-        let record1 = create_test_record("run-1");
-        test_db.db.append(&record1).unwrap();
-
-        test_db
-            .db
-            .set_baseline("scenario-a", "opencode", "run-1")
-            .unwrap();
-
-        let baseline = test_db.db.load_baseline("scenario-b", "opencode").unwrap();
-        assert!(baseline.is_none());
-    }
-
-    #[test]
-    fn test_results_db_persistence() {
-        let temp_dir = TempDir::new().unwrap();
-
-        let db1 = ResultsDB::new(temp_dir.path());
-        let record = create_test_record("run-1");
-        db1.append(&record).unwrap();
-
-        let db2 = ResultsDB::new(temp_dir.path());
-        let loaded = db2.load_by_id("run-1").unwrap();
-
-        assert!(loaded.is_some());
-        assert_eq!(loaded.unwrap().id, "run-1");
-    }
-
-    #[test]
-    fn test_cache_get_put() {
-        let temp_dir = TempDir::new().unwrap();
-        let cache = Cache::new(temp_dir.path());
-
-        let key = CacheKey::compute("scenario", "prompt", "", "tool", "model", "version");
-        let record = create_test_record("run-1");
-
-        cache.put(&key, &record).unwrap();
-
-        let retrieved = cache.get(&key);
-        assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().id, "run-1");
-    }
-
-    #[test]
-    fn test_cache_miss() {
-        let temp_dir = TempDir::new().unwrap();
-        let cache = Cache::new(temp_dir.path());
-
-        let key = CacheKey::compute("scenario", "prompt", "", "tool", "model", "version");
-
-        let retrieved = cache.get(&key);
-        assert!(retrieved.is_none());
-    }
-
-    #[test]
-    fn test_cache_clear() {
-        let temp_dir = TempDir::new().unwrap();
-        let cache = Cache::new(temp_dir.path());
-
-        let key = CacheKey::compute("scenario", "prompt", "", "tool", "model", "version");
-        let record = create_test_record("run-1");
-
-        cache.put(&key, &record).unwrap();
-        assert!(cache.get(&key).is_some());
-
-        cache.clear().unwrap();
-        assert!(cache.get(&key).is_none());
-    }
-
-    #[test]
-    fn test_results_db_update_human_review() {
-        let test_db = TestDb::new();
-
-        let record = create_test_record("run-1");
-        test_db.db.append(&record).unwrap();
-
-        let human_review = HumanReviewRecord {
-            dimensions: {
-                let mut map = HashMap::new();
-                map.insert("accuracy".to_string(), 0.9);
-                map.insert("clarity".to_string(), 0.8);
-                map
-            },
-            notes: Some("Good work".to_string()),
-            timestamp: Utc::now(),
-        };
-
-        let updated = test_db
-            .db
-            .update_human_review("run-1", human_review)
-            .unwrap();
-        assert!(updated.is_some());
-
-        let loaded = test_db.db.load_by_id("run-1").unwrap();
-        assert!(loaded.is_some());
-        let loaded = loaded.unwrap();
-        assert!(loaded.human_review.is_some());
-        let review = loaded.human_review.unwrap();
-        assert_eq!(review.dimensions.get("accuracy"), Some(&0.9));
-        assert_eq!(review.dimensions.get("clarity"), Some(&0.8));
-        assert_eq!(review.notes, Some("Good work".to_string()));
-    }
-
-    #[test]
-    fn test_results_db_update_human_review_nonexistent() {
-        let test_db = TestDb::new();
-
-        let human_review = HumanReviewRecord {
-            dimensions: HashMap::new(),
-            notes: None,
-            timestamp: Utc::now(),
-        };
-
-        let result = test_db
-            .db
-            .update_human_review("nonexistent", human_review)
-            .unwrap();
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn test_results_db_load_pending_review() {
-        let test_db = TestDb::new();
-
-        let record1 = create_test_record("run-1");
-        let record2 = create_test_record("run-2");
-        let record3 = create_test_record("run-3");
-
-        test_db.db.append(&record1).unwrap();
-        test_db.db.append(&record2).unwrap();
-        test_db.db.append(&record3).unwrap();
-
-        let pending = test_db.db.load_pending_review().unwrap();
-        assert_eq!(pending.len(), 3);
-
-        let human_review = HumanReviewRecord {
-            dimensions: HashMap::new(),
-            notes: None,
-            timestamp: Utc::now(),
-        };
-
-        test_db
-            .db
-            .update_human_review("run-2", human_review)
-            .unwrap();
-
-        let pending = test_db.db.load_pending_review().unwrap();
-        assert_eq!(pending.len(), 2);
-        let pending_ids: Vec<_> = pending.iter().map(|r| r.id.clone()).collect();
-        assert!(pending_ids.contains(&"run-1".to_string()));
-        assert!(pending_ids.contains(&"run-3".to_string()));
-    }
-
-    #[test]
-    fn test_human_review_record_serialization() {
-        let review = HumanReviewRecord {
-            dimensions: {
-                let mut map = HashMap::new();
-                map.insert("accuracy".to_string(), 0.9);
-                map.insert("clarity".to_string(), 0.8);
-                map
-            },
-            notes: Some("Great!".to_string()),
-            timestamp: Utc::now(),
-        };
-
-        let json = serde_json::to_string(&review).unwrap();
-        let deserialized: HumanReviewRecord = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(deserialized.dimensions.get("accuracy"), Some(&0.9));
-        assert_eq!(deserialized.dimensions.get("clarity"), Some(&0.8));
-        assert_eq!(deserialized.notes, Some("Great!".to_string()));
     }
 }

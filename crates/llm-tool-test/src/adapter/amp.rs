@@ -22,7 +22,6 @@ impl ToolAdapter for AmpAdapter {
                     available: true,
                     version: Some(version),
                     authenticated: true, // amp doesn't require auth
-                    budget_remaining: None,
                 })
             }
             Err(e) => Err(super::AdapterError::NotAvailable(format!(

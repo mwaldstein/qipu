@@ -71,6 +71,5 @@ pub fn create_test_record_with_tool(id: &str, scenario_id: &str, tool: &str) -> 
         outcome: "PASS".to_string(),
         transcript_path: "/path/to/transcript.txt".to_string(),
         cache_key: Some("cache-key-123".to_string()),
-        human_review: None,
     }
 }

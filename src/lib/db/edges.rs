@@ -118,7 +118,7 @@ impl super::Database {
         Ok(())
     }
 
-    pub(super) fn insert_edges_internal(
+    pub(crate) fn insert_edges_internal(
         conn: &Connection,
         note: &Note,
         ids: &std::collections::HashSet<String>,

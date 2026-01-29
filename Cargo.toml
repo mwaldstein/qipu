@@ -21,10 +21,42 @@ clap = { version = "4", features = ["derive", "env"] }
 # Signal handling
 ctrlc = "3.4"
 
+# Structured logging
+tracing = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# TOML parsing (for tests)
+toml = "0.8"
+
+# Regular expressions
+regex = { version = "1", default-features = false, features = ["std", "unicode"] }
+
+# Base64 encoding
+base64 = "0.22.1"
+
+# MIME type detection
+mime_guess = "2.0.5"
+
+# File system utilities
+walkdir = "2"
+
+# Slug generation
+slug = "0.1"
+
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"
 predicates = "3"
+
+# SQLite for tests
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [profile.dev]
 opt-level = 0

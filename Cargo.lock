@@ -1277,11 +1277,23 @@ name = "qipu"
 version = "0.2.61"
 dependencies = [
  "assert_cmd",
+ "base64",
+ "chrono",
  "clap",
  "ctrlc",
+ "mime_guess",
  "predicates",
  "qipu-core",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "slug",
  "tempfile",
+ "toml",
+ "tracing",
+ "walkdir",
 ]
 
 [[package]]

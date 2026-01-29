@@ -40,7 +40,7 @@ Options:
       --store <STORE>
           Explicit store root path [env: QIPU_STORE=]
       --format <FORMAT>
-          Output format [default: human] [possible values: human, json, records]
+          Output format [default: human]
   -q, --quiet
           Suppress non-essential output
   -v, --verbose

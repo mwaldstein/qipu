@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::time::Instant;
 
 use tracing::debug;
@@ -6,7 +5,8 @@ use tracing::debug;
 use crate::cli::Cli;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
-use qipu_core::store::Store;
+
+use super::utils::discover_compact_store;
 
 /// Execute `qipu compact status`
 pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
@@ -15,24 +15,7 @@ pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
         debug!(note_id, "status_params");
     }
 
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-    let store = if let Some(path) = &cli.store {
-        let resolved = if path.is_absolute() {
-            path.clone()
-        } else {
-            root.join(path)
-        };
-        Store::open(&resolved)?
-    } else {
-        Store::discover(&root)?
-    };
-
-    if cli.verbose {
-        debug!(store = %store.root().display(), "discover_store");
-    }
+    let store = discover_compact_store(cli)?;
 
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;

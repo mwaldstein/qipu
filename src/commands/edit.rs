@@ -7,13 +7,45 @@
 //! - Fails with usage error if no editor is configured/detected
 
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 use tracing::debug;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::{dispatch_format, FormatDispatcher};
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
+
+struct EditFormatter<'a> {
+    note: &'a qipu_core::note::Note,
+    note_path: &'a PathBuf,
+}
+
+impl<'a> FormatDispatcher for EditFormatter<'a> {
+    fn output_json(&self) -> Result<()> {
+        let output = serde_json::json!({
+            "id": self.note.id(),
+            "title": self.note.title(),
+            "type": self.note.note_type().to_string(),
+            "path": self.note_path.to_string_lossy(),
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        Ok(())
+    }
+
+    fn output_human(&self) {
+        println!("{}", self.note.id());
+    }
+
+    fn output_records(&self) {
+        println!(
+            "N id=\"{}\" path={}",
+            self.note.id(),
+            self.note_path.display()
+        );
+    }
+}
 
 /// Execute the edit command
 pub fn execute(
@@ -76,24 +108,13 @@ pub fn execute(
         debug!(note_id = note.id(), elapsed = ?std::time::Instant::now(), "save_note");
     }
 
-    // Output the note ID/path
-    match cli.format {
-        OutputFormat::Json => {
-            let output = serde_json::json!({
-                "id": note.id(),
-                "title": note.title(),
-                "type": note.note_type().to_string(),
-                "path": note_path.to_string_lossy(),
-            });
-            println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Human => {
-            println!("{}", note.id());
-        }
-        OutputFormat::Records => {
-            println!("N id=\"{}\" path={}", note.id(), note_path.display());
-        }
-    }
+    dispatch_format(
+        cli,
+        &EditFormatter {
+            note: &note,
+            note_path: &note_path,
+        },
+    )?;
 
     Ok(())
 }

@@ -12,11 +12,62 @@ use std::time::Instant;
 
 use tracing::debug;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::{dispatch_format, FormatDispatcher};
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
+
+struct CreateFormatter<'a> {
+    note: &'a qipu_core::note::Note,
+    store: &'a Store,
+}
+
+impl<'a> FormatDispatcher for CreateFormatter<'a> {
+    fn output_json(&self) -> Result<()> {
+        let output = serde_json::json!({
+            "id": self.note.id(),
+            "title": self.note.title(),
+            "type": self.note.note_type().to_string(),
+
+            "tags": self.note.frontmatter.tags,
+            "created": self.note.frontmatter.created,
+            "updated": self.note.frontmatter.updated,
+            "source": self.note.frontmatter.source,
+            "author": self.note.frontmatter.author,
+            "generated_by": self.note.frontmatter.generated_by,
+            "prompt_hash": self.note.frontmatter.prompt_hash,
+            "verified": self.note.frontmatter.verified,
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        Ok(())
+    }
+
+    fn output_human(&self) {
+        println!("{}", self.note.id());
+    }
+
+    fn output_records(&self) {
+        println!(
+            "H qipu=1 records=1 store={} mode=create",
+            self.store.root().display()
+        );
+
+        let tags_csv = if self.note.frontmatter.tags.is_empty() {
+            "-".to_string()
+        } else {
+            self.note.frontmatter.tags.join(",")
+        };
+        println!(
+            "N {} {} \"{}\" tags={}",
+            self.note.id(),
+            self.note.note_type(),
+            escape_quotes(self.note.title()),
+            tags_csv
+        );
+    }
+}
 
 /// Execute the create command
 #[allow(clippy::too_many_arguments)]
@@ -80,49 +131,7 @@ pub fn execute(
         }
     }
 
-    match cli.format {
-        OutputFormat::Json => {
-            let output = serde_json::json!({
-                "id": note.id(),
-                "title": note.title(),
-                "type": note.note_type().to_string(),
-
-                "tags": note.frontmatter.tags,
-                "created": note.frontmatter.created,
-                "updated": note.frontmatter.updated,
-                "source": note.frontmatter.source,
-                "author": note.frontmatter.author,
-                "generated_by": note.frontmatter.generated_by,
-                "prompt_hash": note.frontmatter.prompt_hash,
-                "verified": note.frontmatter.verified,
-            });
-            println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Human => {
-            println!("{}", note.id());
-        }
-        OutputFormat::Records => {
-            // Header line per spec (specs/records-output.md)
-            println!(
-                "H qipu=1 records=1 store={} mode=create",
-                store.root().display()
-            );
-
-            // Records format: N <id> <type> "<title>" tags=<csv>
-            let tags_csv = if note.frontmatter.tags.is_empty() {
-                "-".to_string()
-            } else {
-                note.frontmatter.tags.join(",")
-            };
-            println!(
-                "N {} {} \"{}\" tags={}",
-                note.id(),
-                note.note_type(),
-                escape_quotes(note.title()),
-                tags_csv
-            );
-        }
-    }
+    dispatch_format(cli, &CreateFormatter { note: &note, store })?;
 
     // Open in editor if requested
     if open {

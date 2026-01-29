@@ -12,8 +12,9 @@ pub use status::{
     print_records_header, wrap_records_body,
 };
 
-use crate::cli::Cli;
+use crate::cli::{Cli, OutputFormat};
 use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
 use qipu_core::note::Note;
 
 /// Compaction information for a note
@@ -47,5 +48,25 @@ pub fn calculate_compaction_info(
         percentage,
         compacted_ids,
         truncated,
+    }
+}
+
+pub trait FormatDispatcher {
+    fn output_json(&self) -> Result<()>;
+    fn output_human(&self);
+    fn output_records(&self);
+}
+
+pub fn dispatch_format<D: FormatDispatcher>(cli: &Cli, dispatcher: &D) -> Result<()> {
+    match cli.format {
+        OutputFormat::Json => dispatcher.output_json(),
+        OutputFormat::Human => {
+            dispatcher.output_human();
+            Ok(())
+        }
+        OutputFormat::Records => {
+            dispatcher.output_records();
+            Ok(())
+        }
     }
 }

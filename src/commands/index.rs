@@ -6,12 +6,100 @@
 //!
 #![allow(clippy::if_same_then_else)]
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::{dispatch_format, FormatDispatcher};
 use qipu_core::error::{QipuError, Result};
 use qipu_core::index::links;
 use qipu_core::note::{Note, NoteType};
 use qipu_core::store::Store;
 use std::time::Instant;
+
+struct IndexFormatter<'a> {
+    store: &'a Store,
+    notes_count: usize,
+}
+
+impl<'a> FormatDispatcher for IndexFormatter<'a> {
+    fn output_json(&self) -> Result<()> {
+        let output = serde_json::json!({
+            "status": "ok",
+            "notes_indexed": self.notes_count,
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        Ok(())
+    }
+
+    fn output_human(&self) {
+        println!("Indexed {} notes", self.notes_count);
+    }
+
+    fn output_records(&self) {
+        println!(
+            "H qipu=1 records=1 store={} mode=index notes={}",
+            self.store.root().display(),
+            self.notes_count
+        );
+    }
+}
+
+struct IndexStatusFormatter<'a> {
+    store: &'a Store,
+    db_count: i64,
+    basic_count: i64,
+    full_count: i64,
+}
+
+impl<'a> FormatDispatcher for IndexStatusFormatter<'a> {
+    fn output_json(&self) -> Result<()> {
+        let output = serde_json::json!({
+            "total_notes": self.db_count,
+            "basic_indexed": self.basic_count,
+            "full_indexed": self.full_count,
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        Ok(())
+    }
+
+    fn output_human(&self) {
+        println!("Index Status");
+        println!("-------------");
+        println!("Total notes: {}", self.db_count);
+        println!(
+            "Basic indexed: {} ({})",
+            self.basic_count,
+            if self.db_count > 0 {
+                format!(
+                    "{:.0}%",
+                    (self.basic_count as f64) / (self.db_count as f64) * 100.0
+                )
+            } else {
+                "N/A".to_string()
+            }
+        );
+        println!(
+            "Full-text indexed: {} ({})",
+            self.full_count,
+            if self.db_count > 0 {
+                format!(
+                    "{:.0}%",
+                    (self.full_count as f64) / (self.db_count as f64) * 100.0
+                )
+            } else {
+                "N/A".to_string()
+            }
+        );
+    }
+
+    fn output_records(&self) {
+        println!(
+            "H qipu=1 records=1 store={} mode=status total={} basic={} full={}",
+            self.store.root().display(),
+            self.db_count,
+            self.basic_count,
+            self.full_count
+        );
+    }
+}
 
 /// Progress tracker for indexing operations
 struct ProgressTracker {
@@ -184,27 +272,8 @@ pub fn execute(
         }
     }
 
-    match cli.format {
-        OutputFormat::Json => {
-            let output = serde_json::json!({
-                "status": "ok",
-                "notes_indexed": notes_count,
-            });
-            println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
-            let store_path = store.root().display();
-
-            println!(
-                "H qipu=1 records=1 store={} mode=index notes={}",
-                store_path, notes_count
-            );
-        }
-        OutputFormat::Human => {
-            if !cli.quiet {
-                println!("Indexed {} notes", notes_count);
-            }
-        }
+    if !cli.quiet || cli.format != crate::cli::OutputFormat::Human {
+        dispatch_format(cli, &IndexFormatter { store, notes_count })?;
     }
 
     Ok(())
@@ -215,50 +284,15 @@ fn show_index_status(cli: &Cli, store: &Store) -> Result<()> {
     let basic_count = store.db().count_basic_indexed().unwrap_or(0);
     let full_count = store.db().count_full_indexed().unwrap_or(0);
 
-    match cli.format {
-        OutputFormat::Json => {
-            let output = serde_json::json!({
-                "total_notes": db_count,
-                "basic_indexed": basic_count,
-                "full_indexed": full_count,
-            });
-            println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
-            println!(
-                "H qipu=1 records=1 store={} mode=status total={} basic={} full={}",
-                store.root().display(),
-                db_count,
-                basic_count,
-                full_count
-            );
-        }
-        OutputFormat::Human => {
-            println!("Index Status");
-            println!("-------------");
-            println!("Total notes: {}", db_count);
-            println!(
-                "Basic indexed: {} ({})",
-                basic_count,
-                if db_count > 0 {
-                    format!("{:.0}%", basic_count as f64 / db_count as f64 * 100.0)
-                } else {
-                    "N/A".to_string()
-                }
-            );
-            println!(
-                "Full-text indexed: {} ({})",
-                full_count,
-                if db_count > 0 {
-                    format!("{:.0}%", full_count as f64 / db_count as f64 * 100.0)
-                } else {
-                    "N/A".to_string()
-                }
-            );
-        }
-    }
-
-    Ok(())
+    dispatch_format(
+        cli,
+        &IndexStatusFormatter {
+            store,
+            db_count,
+            basic_count,
+            full_count,
+        },
+    )
 }
 
 fn selective_index(

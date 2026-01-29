@@ -9,6 +9,7 @@ mod suggestion;
 mod validation;
 
 pub use context::CompactionContext;
+pub use suggestion::CompactionCandidate;
 
 /// Estimate note size for compaction metrics
 /// Uses summary-sized content (same as records output)

@@ -28,6 +28,7 @@ mod show;
 mod store;
 pub mod support;
 mod sync;
+mod traversal;
 mod value;
 mod wal;
 mod workspace;

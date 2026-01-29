@@ -9,6 +9,179 @@ use qipu_core::store::Store;
 
 use super::utils::{discover_compact_store, estimate_size};
 
+fn handle_empty_compaction(cli: &Cli, digest_id: &str) -> Result<()> {
+    match cli.format {
+        qipu_core::format::OutputFormat::Human => {
+            println!("Note {} does not compact any notes", digest_id);
+        }
+        qipu_core::format::OutputFormat::Json => {
+            let output = serde_json::json!({
+                "digest_id": digest_id,
+                "compacts": [],
+                "count": 0,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        qipu_core::format::OutputFormat::Records => {
+            println!(
+                "H qipu=1 records=1 mode=compact.show digest={} count=0",
+                digest_id
+            );
+        }
+    }
+    Ok(())
+}
+
+fn compute_compaction_metrics(
+    store: &Store,
+    digest_id: &str,
+    direct_compacts: &[String],
+) -> Result<f64> {
+    let digest_note = store.get_note(digest_id)?;
+    let digest_size = estimate_size(&digest_note);
+    let mut expanded_size = 0;
+    for source_id in direct_compacts {
+        if let Ok(note) = store.get_note(source_id) {
+            expanded_size += estimate_size(&note);
+        }
+    }
+    Ok(if expanded_size > 0 {
+        100.0 * (1.0 - (digest_size as f64 / expanded_size as f64))
+    } else {
+        0.0
+    })
+}
+
+fn build_depth_tree_if_needed(
+    store: &Store,
+    ctx: &CompactionContext,
+    digest_id: &str,
+    depth: u32,
+    max_nodes: Option<usize>,
+) -> Result<Vec<CompactionTreeEntry>> {
+    let mut tree = if depth > 1 {
+        build_compaction_tree(store, ctx, digest_id, 0, depth)?
+    } else {
+        Vec::new()
+    };
+    if let Some(max) = max_nodes {
+        if tree.len() > max {
+            tree.truncate(max);
+        }
+    }
+    Ok(tree)
+}
+
+fn output_human_format(
+    store: &Store,
+    ctx: &CompactionContext,
+    cli: &Cli,
+    digest_id: &str,
+    direct_compacts: &[String],
+    compaction_pct: f64,
+    truncated: bool,
+    depth: u32,
+) -> Result<()> {
+    println!("Digest: {}", digest_id);
+    println!("Direct compaction count: {}", direct_compacts.len());
+    if truncated {
+        let total_count = ctx.get_compacts_count(digest_id);
+        println!(
+            "  (truncated: showing {} of {} notes)",
+            cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
+            total_count
+        );
+    }
+    println!("Compaction: {:.1}%", compaction_pct);
+    println!();
+    println!("Compacted notes:");
+    for id in direct_compacts {
+        if let Ok(note) = store.get_note(id) {
+            println!("  - {} ({})", note.frontmatter.title, id);
+        } else {
+            println!("  - {} (not found)", id);
+        }
+    }
+
+    if depth > 1 {
+        println!();
+        println!("Nested compaction (depth {}):", depth);
+        show_nested_compaction(store, ctx, digest_id, 1, depth)?;
+    }
+    Ok(())
+}
+
+fn output_json_format(
+    direct_compacts: &[String],
+    depth_tree: &[CompactionTreeEntry],
+    digest_id: &str,
+    compaction_pct: f64,
+    depth: u32,
+    truncated: bool,
+) -> Result<()> {
+    let mut output = serde_json::json!({
+        "digest_id": digest_id,
+        "compacts": direct_compacts,
+        "count": direct_compacts.len(),
+        "compaction_pct": format!("{:.1}", compaction_pct),
+        "depth": depth,
+        "tree": depth_tree,
+    });
+
+    if truncated {
+        if let Some(obj) = output.as_object_mut() {
+            obj.insert(
+                "compacted_ids_truncated".to_string(),
+                serde_json::json!(true),
+            );
+        }
+    }
+
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}
+
+fn output_records_format(
+    ctx: &CompactionContext,
+    cli: &Cli,
+    digest_id: &str,
+    direct_compacts: &[String],
+    compaction_pct: f64,
+    depth: u32,
+    depth_tree: &[CompactionTreeEntry],
+    truncated: bool,
+) -> Result<()> {
+    println!(
+        "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}% depth={}",
+        digest_id,
+        direct_compacts.len(),
+        compaction_pct,
+        depth
+    );
+    for id in direct_compacts {
+        println!("D compacted {}", id);
+    }
+
+    if truncated {
+        let total_count = ctx.get_compacts_count(digest_id);
+        println!(
+            "D compacted_truncated max={} total={}",
+            cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
+            total_count
+        );
+    }
+
+    if depth > 1 {
+        for entry in depth_tree {
+            println!(
+                "D compacted_tree from={} to={} depth={}",
+                entry.from, entry.to, entry.depth
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Execute `qipu compact show`
 pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
     let start = Instant::now();
@@ -25,62 +198,17 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
         debug!(note_count = all_notes.len(), "build_compaction_context");
     }
 
-    // Get direct compacted notes with truncation support
-    // Use depth=1 for direct compaction only when getting the main list
     let (direct_compacts, truncated) = ctx
         .get_compacted_ids(digest_id, 1, cli.compaction_max_nodes)
         .unwrap_or_else(|| (Vec::new(), false));
 
     if direct_compacts.is_empty() {
-        match cli.format {
-            qipu_core::format::OutputFormat::Human => {
-                println!("Note {} does not compact any notes", digest_id);
-            }
-            qipu_core::format::OutputFormat::Json => {
-                let output = serde_json::json!({
-                    "digest_id": digest_id,
-                    "compacts": [],
-                    "count": 0,
-                });
-                println!("{}", serde_json::to_string_pretty(&output)?);
-            }
-            qipu_core::format::OutputFormat::Records => {
-                println!(
-                    "H qipu=1 records=1 mode=compact.show digest={} count=0",
-                    digest_id
-                );
-            }
-        }
-        return Ok(());
+        return handle_empty_compaction(cli, digest_id);
     }
 
-    // Compute compaction metrics
-    let digest_note = store.get_note(digest_id)?;
-    let digest_size = estimate_size(&digest_note);
-    let mut expanded_size = 0;
-    for source_id in &direct_compacts {
-        if let Ok(note) = store.get_note(source_id) {
-            expanded_size += estimate_size(&note);
-        }
-    }
-    let compaction_pct = if expanded_size > 0 {
-        100.0 * (1.0 - (digest_size as f64 / expanded_size as f64))
-    } else {
-        0.0
-    };
-
-    let depth_tree = if depth > 1 {
-        let mut tree = build_compaction_tree(&store, &ctx, digest_id, 0, depth)?;
-        // Apply max_nodes limit to tree if specified
-        if let Some(max) = cli.compaction_max_nodes {
-            if tree.len() > max {
-                tree.truncate(max);
-            }
-        }
-        tree
-    } else {
-        Vec::new()
-    };
+    let compaction_pct = compute_compaction_metrics(&store, digest_id, &direct_compacts)?;
+    let depth_tree =
+        build_depth_tree_if_needed(&store, &ctx, digest_id, depth, cli.compaction_max_nodes)?;
 
     if cli.verbose {
         debug!(
@@ -94,89 +222,40 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
         );
     }
 
-    // Output
     match cli.format {
         qipu_core::format::OutputFormat::Human => {
-            println!("Digest: {}", digest_id);
-            println!("Direct compaction count: {}", direct_compacts.len());
-            if truncated {
-                let total_count = ctx.get_compacts_count(digest_id);
-                println!(
-                    "  (truncated: showing {} of {} notes)",
-                    cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
-                    total_count
-                );
-            }
-            println!("Compaction: {:.1}%", compaction_pct);
-            println!();
-            println!("Compacted notes:");
-            for id in &direct_compacts {
-                if let Ok(note) = store.get_note(id) {
-                    println!("  - {} ({})", note.frontmatter.title, id);
-                } else {
-                    println!("  - {} (not found)", id);
-                }
-            }
-
-            // Show nested compaction if depth > 1
-            if depth > 1 {
-                println!();
-                println!("Nested compaction (depth {}):", depth);
-                show_nested_compaction(&store, &ctx, digest_id, 1, depth)?;
-            }
+            output_human_format(
+                &store,
+                &ctx,
+                cli,
+                digest_id,
+                &direct_compacts,
+                compaction_pct,
+                truncated,
+                depth,
+            )?;
         }
         qipu_core::format::OutputFormat::Json => {
-            let mut output = serde_json::json!({
-                "digest_id": digest_id,
-                "compacts": direct_compacts,
-                "count": direct_compacts.len(),
-                "compaction_pct": format!("{:.1}", compaction_pct),
-                "depth": depth,
-                "tree": depth_tree,
-            });
-
-            // Add truncated flag if applicable
-            if truncated {
-                if let Some(obj) = output.as_object_mut() {
-                    obj.insert(
-                        "compacted_ids_truncated".to_string(),
-                        serde_json::json!(true),
-                    );
-                }
-            }
-
-            println!("{}", serde_json::to_string_pretty(&output)?);
+            output_json_format(
+                &direct_compacts,
+                &depth_tree,
+                digest_id,
+                compaction_pct,
+                depth,
+                truncated,
+            )?;
         }
         qipu_core::format::OutputFormat::Records => {
-            println!(
-                "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}% depth={}",
+            output_records_format(
+                &ctx,
+                cli,
                 digest_id,
-                direct_compacts.len(),
+                &direct_compacts,
                 compaction_pct,
-                depth
-            );
-            for id in &direct_compacts {
-                println!("D compacted {}", id);
-            }
-
-            // Add truncation marker if applicable
-            if truncated {
-                let total_count = ctx.get_compacts_count(digest_id);
-                println!(
-                    "D compacted_truncated max={} total={}",
-                    cli.compaction_max_nodes.unwrap_or(direct_compacts.len()),
-                    total_count
-                );
-            }
-
-            if depth > 1 {
-                for entry in depth_tree {
-                    println!(
-                        "D compacted_tree from={} to={} depth={}",
-                        entry.from, entry.to, entry.depth
-                    );
-                }
-            }
+                depth,
+                &depth_tree,
+                truncated,
+            )?;
         }
     }
 

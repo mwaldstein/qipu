@@ -1,5 +1,7 @@
+mod attachments;
 mod basic;
-mod features;
+mod metadata;
+mod paths;
 mod s_prefix_semantics;
 mod security;
 mod selectors;

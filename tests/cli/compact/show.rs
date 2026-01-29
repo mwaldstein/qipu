@@ -2,10 +2,6 @@ use crate::cli::support::qipu;
 use predicates::prelude::*;
 use tempfile::tempdir;
 
-// ============================================================================
-// Compaction show tests
-// ============================================================================
-
 #[test]
 fn test_compact_show() {
     use std::fs;

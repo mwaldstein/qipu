@@ -40,3 +40,39 @@ fn test_unknown_note_type_rejected() {
     let note = result.unwrap().expect("Note should exist");
     assert_eq!(note.note_type().as_str(), "invalid_type");
 }
+
+#[test]
+fn test_schema_version_set_on_fresh_install() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::init(dir.path(), crate::store::InitOptions::default()).unwrap();
+
+    let db = store.db();
+
+    let version: i32 = db
+        .conn
+        .query_row(
+            "SELECT value FROM index_meta WHERE key = 'schema_version'",
+            [],
+            |row| row.get::<_, String>(0).map(|s| s.parse().unwrap_or(0)),
+        )
+        .unwrap();
+    assert_eq!(version, crate::db::schema::get_schema_version());
+}
+
+#[test]
+fn test_schema_version_matches_current() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::init(dir.path(), crate::store::InitOptions::default()).unwrap();
+
+    let db = store.db();
+
+    let version: i32 = db
+        .conn
+        .query_row(
+            "SELECT value FROM index_meta WHERE key = 'schema_version'",
+            [],
+            |row| row.get::<_, String>(0).map(|s| s.parse().unwrap_or(0)),
+        )
+        .unwrap();
+    assert_eq!(version, crate::db::schema::get_schema_version());
+}

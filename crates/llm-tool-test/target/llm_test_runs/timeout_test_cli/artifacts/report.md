@@ -5,11 +5,11 @@
 - **ID**: timeout_test_cli
 - **Tool**: mock
 - **Model**: mock
-- **Timestamp**: 2026-01-29T17:02:58.212316453+00:00
+- **Timestamp**: 2026-01-29T18:32:21.469689794+00:00
 
 ## Execution
 
-- **Duration**: 0.22s
+- **Duration**: 0.19s
 - **Cost**: $0.0000
 - **Outcome**: Pass
 

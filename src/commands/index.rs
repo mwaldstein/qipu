@@ -120,6 +120,12 @@ pub fn execute(
 
     let notes_count = notes.len();
 
+    let interrupted = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let interrupted_clone = std::sync::Arc::clone(&interrupted);
+    let _ = ctrlc::set_handler(move || {
+        interrupted_clone.store(true, std::sync::atomic::Ordering::SeqCst);
+    });
+
     if cli.verbose {
         eprintln!("Indexing notes from .qipu/notes/...");
         let mut tracker = ProgressTracker::new();
@@ -131,13 +137,17 @@ pub fn execute(
             if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
                 selective_index(cli, store, quick, tag, note_type, recent, moc)
             } else if resume {
-                store.db().rebuild_resume(store.root(), Some(&mut progress))
+                store
+                    .db()
+                    .rebuild_resume(store.root(), Some(&mut progress), Some(&interrupted))
             } else if rebuild {
-                store.db().rebuild(store.root(), Some(&mut progress))
+                store
+                    .db()
+                    .rebuild(store.root(), Some(&mut progress), Some(&interrupted))
             } else {
                 store
                     .db()
-                    .incremental_repair(store.root(), Some(&mut progress))
+                    .incremental_repair(store.root(), Some(&mut progress), Some(&interrupted))
             };
 
         match result {
@@ -153,11 +163,15 @@ pub fn execute(
             if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
                 selective_index(cli, store, quick, tag, note_type, recent, moc)
             } else if resume {
-                store.db().rebuild_resume(store.root(), None)
+                store
+                    .db()
+                    .rebuild_resume(store.root(), None, Some(&interrupted))
             } else if rebuild {
-                store.db().rebuild(store.root(), None)
+                store.db().rebuild(store.root(), None, Some(&interrupted))
             } else {
-                store.db().incremental_repair(store.root(), None)
+                store
+                    .db()
+                    .incremental_repair(store.root(), None, Some(&interrupted))
             };
 
         match result {

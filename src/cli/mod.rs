@@ -57,7 +57,7 @@ pub struct Cli {
     pub store: Option<PathBuf>,
 
     /// Output format
-    #[arg(long, global = true, value_enum, default_value = "human")]
+    #[arg(long, global = true, value_parser = |s: &str| s.parse::<OutputFormat>(), default_value = "human")]
     pub format: OutputFormat,
 
     /// Suppress non-essential output

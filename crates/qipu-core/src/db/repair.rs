@@ -2,8 +2,7 @@ use crate::error::{QipuError, Result};
 use crate::note::Note;
 use rusqlite::params;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 impl super::Database {
     /// Incremental repair: update only notes with file mtime newer than database mtime
@@ -15,22 +14,17 @@ impl super::Database {
     /// Arguments:
     /// - `store_root`: Path to store root
     /// - `progress`: Optional callback for progress reporting (indexed, total, last_note)
+    /// - `interrupted`: Optional atomic bool flag for interrupt signal handling
     #[allow(clippy::type_complexity)]
     pub fn incremental_repair(
         &self,
         store_root: &Path,
         mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
+        interrupted: Option<&std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Result<()> {
         use crate::note::Note;
         use crate::store::paths::{MOCS_DIR, NOTES_DIR};
         use walkdir::WalkDir;
-
-        let interrupted = Arc::new(AtomicBool::new(false));
-        let interrupted_clone = Arc::clone(&interrupted);
-
-        let _ = ctrlc::set_handler(move || {
-            interrupted_clone.store(true, Ordering::SeqCst);
-        });
 
         let mut changed_notes = Vec::new();
         let mut existing_paths = std::collections::HashSet::new();
@@ -119,7 +113,10 @@ impl super::Database {
                 }
 
                 // Check for interruption after each note
-                if interrupted.load(Ordering::SeqCst) {
+                if interrupted
+                    .map(|i| i.load(Ordering::SeqCst))
+                    .unwrap_or(false)
+                {
                     tx.commit().map_err(|e| {
                         QipuError::Other(format!("failed to commit transaction: {}", e))
                     })?;

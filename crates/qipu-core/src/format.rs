@@ -8,7 +8,6 @@
 use std::fmt;
 use std::str::FromStr;
 
-use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use serde_json::Value;
@@ -16,24 +15,6 @@ use serde_json::Value;
 use crate::compaction::CompactionContext;
 use crate::error::QipuError;
 use crate::note::Note;
-
-impl ValueEnum for OutputFormat {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[
-            OutputFormat::Human,
-            OutputFormat::Json,
-            OutputFormat::Records,
-        ]
-    }
-
-    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
-        match self {
-            OutputFormat::Human => Some(clap::builder::PossibleValue::new("human")),
-            OutputFormat::Json => Some(clap::builder::PossibleValue::new("json")),
-            OutputFormat::Records => Some(clap::builder::PossibleValue::new("records")),
-        }
-    }
-}
 
 /// Compaction output formatting options
 #[derive(Debug, Clone, Copy, Default)]

@@ -2,8 +2,7 @@ use crate::error::{QipuError, Result};
 use crate::note::Note;
 use crate::store::paths::{MOCS_DIR, NOTES_DIR};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use walkdir::WalkDir;
 
 use super::Database;
@@ -31,12 +30,13 @@ impl Database {
         Ok(count)
     }
 
-    #[tracing::instrument(skip(self, store_root, progress), fields(store_root = %store_root.display()))]
+    #[tracing::instrument(skip(self, store_root, progress, interrupted), fields(store_root = %store_root.display()))]
     #[allow(clippy::type_complexity)]
     pub fn rebuild(
         &self,
         store_root: &Path,
         mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
+        interrupted: Option<&std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Result<()> {
         let mut notes = Vec::new();
 
@@ -64,13 +64,6 @@ impl Database {
 
         let ids: std::collections::HashSet<String> =
             notes.iter().map(|n| n.id().to_string()).collect();
-
-        let interrupted = Arc::new(AtomicBool::new(false));
-        let interrupted_clone = Arc::clone(&interrupted);
-
-        let _ = ctrlc::set_handler(move || {
-            interrupted_clone.store(true, Ordering::SeqCst);
-        });
 
         let tx = self
             .conn
@@ -105,7 +98,10 @@ impl Database {
                 }
             }
 
-            if interrupted.load(Ordering::SeqCst) {
+            if interrupted
+                .map(|i| i.load(Ordering::SeqCst))
+                .unwrap_or(false)
+            {
                 let tx = current_tx
                     .take()
                     .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;
@@ -145,12 +141,13 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, store_root, progress), fields(store_root = %store_root.display()))]
+    #[tracing::instrument(skip(self, store_root, progress, interrupted), fields(store_root = %store_root.display()))]
     #[allow(clippy::type_complexity)]
     pub fn rebuild_resume(
         &self,
         store_root: &Path,
         mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
+        interrupted: Option<&std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Result<()> {
         let mut notes = Vec::new();
 
@@ -194,13 +191,6 @@ impl Database {
             return Ok(());
         }
 
-        let interrupted = Arc::new(AtomicBool::new(false));
-        let interrupted_clone = Arc::clone(&interrupted);
-
-        let _ = ctrlc::set_handler(move || {
-            interrupted_clone.store(true, Ordering::SeqCst);
-        });
-
         let tx = self
             .conn
             .unchecked_transaction()
@@ -222,7 +212,7 @@ impl Database {
                 }
             }
 
-            if interrupted.load(Ordering::SeqCst) {
+            if interrupted.map_or(false, |i| i.load(Ordering::SeqCst)) {
                 let tx = current_tx
                     .take()
                     .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;

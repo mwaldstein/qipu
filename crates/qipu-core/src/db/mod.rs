@@ -92,7 +92,7 @@ impl Database {
 
         if needs_rebuild == schema::SchemaCreateResult::NeedsRebuild {
             tracing::info!("Rebuilding database after schema update...");
-            db.rebuild(store_root, None)?;
+            db.rebuild(store_root, None, None)?;
         }
 
         let note_count: i64 = db
@@ -107,7 +107,7 @@ impl Database {
                     "Database is empty but {} note(s) found on filesystem, rebuilding...",
                     fs_count
                 );
-                db.rebuild(store_root, None)?;
+                db.rebuild(store_root, None, None)?;
             }
         } else {
             // Checkpoint WAL to ensure we see all committed changes from other processes

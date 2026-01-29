@@ -14,47 +14,9 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 qipu-core = { path = "crates/qipu-core" }
+
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }
-
-# Serialization
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
-toml = "0.8"
-
-# Date/time handling
-chrono = { version = "0.4", features = ["serde"] }
-
-# Error handling
-thiserror = "1"
-
-# ID generation
-sha2 = "0.10"
-hex = "0.4"
-ulid = "1"
-
-# File system utilities
-walkdir = "2"
-
-# Slug generation
-slug = "0.1"
-
-# Regular expressions for link extraction
-regex = { version = "1", default-features = false, features = ["std", "unicode"] }
-base64 = "0.22.1"
-mime_guess = "2.0.5"
-
-# SQLite database
-rusqlite = { version = "0.31", features = ["bundled"] }
-
-# Structured logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "json", "fmt"] }
-tracing-attributes = "0.1"
-
-# Text stemming
-rust-stemmers = "1.2"
 
 # Signal handling
 ctrlc = "3.4"
@@ -63,7 +25,6 @@ ctrlc = "3.4"
 tempfile = "3"
 assert_cmd = "2"
 predicates = "3"
-serde_json = "1"
 
 [profile.dev]
 opt-level = 0

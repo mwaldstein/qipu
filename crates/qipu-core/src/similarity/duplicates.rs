@@ -65,9 +65,9 @@ mod tests {
         index.note_terms.insert(id1.clone(), term_freqs1);
         index.doc_lengths.insert(id1.clone(), 5);
         index.metadata.insert(
-            id1.clone(),
+            id1,
             NoteMetadata {
-                id: id1.clone(),
+                id: "qp-1".to_string(),
                 title: "Fruit List".to_string(),
                 note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
@@ -89,9 +89,9 @@ mod tests {
         index.note_terms.insert(id2.clone(), term_freqs2);
         index.doc_lengths.insert(id2.clone(), 5);
         index.metadata.insert(
-            id2.clone(),
+            id2,
             NoteMetadata {
-                id: id2.clone(),
+                id: "qp-2".to_string(),
                 title: "Fruit List Copy".to_string(),
                 note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],
@@ -113,9 +113,9 @@ mod tests {
         index.note_terms.insert(id3.clone(), term_freqs3);
         index.doc_lengths.insert(id3.clone(), 5);
         index.metadata.insert(
-            id3.clone(),
+            id3,
             NoteMetadata {
-                id: id3.clone(),
+                id: "qp-3".to_string(),
                 title: "Similar Fruits".to_string(),
                 note_type: NoteType::from(NoteType::PERMANENT),
                 tags: vec![],

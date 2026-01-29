@@ -2,6 +2,10 @@ use crate::index::{Edge, LinkSource};
 use crate::note::NoteType;
 use serde::Serialize;
 
+pub const DIRECTION_OUT: &str = "out";
+pub const DIRECTION_IN: &str = "in";
+pub const DIRECTION_BOTH: &str = "both";
+
 /// Represents the cost of traversing a single edge
 /// For v1, all edges have cost 1.0, but this type supports
 /// future per-link-type cost configuration (e.g., part-of = 0.5)

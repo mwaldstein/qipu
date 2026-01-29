@@ -2,7 +2,7 @@ use crate::compaction::CompactionContext;
 use crate::error::Result;
 use crate::graph::types::{
     filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, SpanningTreeEntry,
-    TreeLink, TreeNote, TreeOptions, TreeResult,
+    TreeLink, TreeNote, TreeOptions, TreeResult, DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
 };
 use crate::graph::GraphProvider;
 use crate::store::Store;
@@ -74,9 +74,9 @@ pub fn dijkstra_traverse(
         return Ok(TreeResult {
             root: root.to_string(),
             direction: match opts.direction {
-                Direction::Out => "out".to_string(),
-                Direction::In => "in".to_string(),
-                Direction::Both => "both".to_string(),
+                Direction::Out => DIRECTION_OUT.to_string(),
+                Direction::In => DIRECTION_IN.to_string(),
+                Direction::Both => DIRECTION_BOTH.to_string(),
             },
             max_hops: opts.max_hops.as_u32_for_display(),
             truncated: false,
@@ -88,11 +88,12 @@ pub fn dijkstra_traverse(
     }
 
     // Initialize with root
+    let root_owned = root.to_string();
     heap.push(Reverse(HeapEntry {
-        node_id: root.to_string(),
+        node_id: root_owned.clone(),
         accumulated_cost: HopCost::from(0),
     }));
-    visited.insert(root.to_string());
+    visited.insert(root_owned);
 
     // Add root note
     if let Some(meta) = provider.get_metadata(root) {
@@ -168,15 +169,22 @@ pub fn dijkstra_traverse(
         }
 
         // Get neighbors based on direction (gather edges from all compacted notes)
-        let source_ids = equivalence_map
-            .and_then(|map| map.get(&current_id).cloned())
-            .unwrap_or_else(|| vec![current_id.clone()]);
+        let source_ids: &[&str] = &match equivalence_map.and_then(|map| map.get(&current_id)) {
+            Some(ids) if !ids.is_empty() => {
+                let mut v: Vec<&str> = Vec::with_capacity(ids.len());
+                for id in ids {
+                    v.push(id.as_str());
+                }
+                v
+            }
+            _ => vec![current_id.as_str()],
+        };
 
         let mut neighbors = Vec::new();
 
         // Outbound edges
         if opts.direction == Direction::Out || opts.direction == Direction::Both {
-            for source_id in &source_ids {
+            for source_id in source_ids {
                 for edge in provider.get_outbound_edges(source_id) {
                     if filter_edge(&edge, opts) {
                         neighbors.push((edge.to.clone(), edge));
@@ -187,7 +195,7 @@ pub fn dijkstra_traverse(
 
         // Inbound edges (Inversion point)
         if opts.direction == Direction::In || opts.direction == Direction::Both {
-            for source_id in &source_ids {
+            for source_id in source_ids {
                 for edge in provider.get_inbound_edges(source_id) {
                     if opts.semantic_inversion {
                         // Virtual Inversion
@@ -225,15 +233,10 @@ pub fn dijkstra_traverse(
 
         for (neighbor_id, edge) in neighbors {
             // Canonicalize edge endpoints if using compaction
-            let canonical_from = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&edge.from)?
+            let (canonical_from, canonical_to) = if let Some(ctx) = compaction_ctx {
+                (ctx.canon(&edge.from)?, ctx.canon(&edge.to)?)
             } else {
-                edge.from.clone()
-            };
-            let canonical_to = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&edge.to)?
-            } else {
-                edge.to.clone()
+                (edge.from.clone(), edge.to.clone())
             };
 
             // Skip self-loops introduced by compaction contraction
@@ -275,19 +278,21 @@ pub fn dijkstra_traverse(
             }
 
             // Track via if neighbor was canonicalized
-            let via = if neighbor_id != canonical_neighbor {
+            let via_for_link = if neighbor_id != canonical_neighbor {
                 Some(neighbor_id.clone())
             } else {
                 None
             };
 
             // Add edge with canonical IDs and via annotation
+            let link_type_str = edge.link_type.to_string();
+            let source_str = edge.source.to_string();
             links.push(TreeLink {
                 from: canonical_from,
                 to: canonical_to,
-                link_type: edge.link_type.to_string(),
-                source: edge.source.to_string(),
-                via: via.clone(),
+                link_type: link_type_str.clone(),
+                source: source_str,
+                via: via_for_link.clone(),
             });
 
             // Process neighbor if not visited (use canonical ID)
@@ -323,7 +328,7 @@ pub fn dijkstra_traverse(
                     from: current_id.clone(),
                     to: canonical_neighbor.clone(),
                     hop: new_cost.as_u32_for_display(),
-                    link_type: edge.link_type.to_string(),
+                    link_type: link_type_str,
                 });
 
                 // Add note metadata (use canonical ID, track via if canonicalized)
@@ -334,7 +339,7 @@ pub fn dijkstra_traverse(
                         note_type: meta.note_type,
                         tags: meta.tags.clone(),
                         path: meta.path.clone(),
-                        via,
+                        via: via_for_link,
                     });
                 }
 
@@ -365,9 +370,9 @@ pub fn dijkstra_traverse(
     Ok(TreeResult {
         root: root.to_string(),
         direction: match opts.direction {
-            Direction::Out => "out".to_string(),
-            Direction::In => "in".to_string(),
-            Direction::Both => "both".to_string(),
+            Direction::Out => DIRECTION_OUT.to_string(),
+            Direction::In => DIRECTION_IN.to_string(),
+            Direction::Both => DIRECTION_BOTH.to_string(),
         },
         max_hops: opts.max_hops.as_u32_for_display(),
         truncated,

@@ -3,7 +3,7 @@ use crate::error::Result;
 use crate::graph::algos::dijkstra::HeapEntry;
 use crate::graph::types::{
     filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, PathResult, TreeLink,
-    TreeNote, TreeOptions,
+    TreeNote, TreeOptions, DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
 };
 use crate::graph::GraphProvider;
 use crate::index::Edge;
@@ -49,14 +49,21 @@ fn collect_neighbors(
     opts: &TreeOptions,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Vec<(String, Edge)> {
-    let source_ids = equivalence_map
-        .and_then(|map| map.get(current_id).cloned())
-        .unwrap_or_else(|| vec![current_id.to_string()]);
+    let source_ids: &[&str] = &match equivalence_map.and_then(|map| map.get(current_id)) {
+        Some(ids) if !ids.is_empty() => {
+            let mut v: Vec<&str> = Vec::with_capacity(ids.len());
+            for id in ids {
+                v.push(id.as_str());
+            }
+            v
+        }
+        _ => vec![current_id],
+    };
 
     let mut neighbors = Vec::new();
 
     if opts.direction == Direction::Out || opts.direction == Direction::Both {
-        for source_id in &source_ids {
+        for source_id in source_ids {
             for edge in provider.get_outbound_edges(source_id) {
                 if filter_edge(&edge, opts) {
                     neighbors.push((edge.to.clone(), edge));
@@ -66,7 +73,7 @@ fn collect_neighbors(
     }
 
     if opts.direction == Direction::In || opts.direction == Direction::Both {
-        for source_id in &source_ids {
+        for source_id in source_ids {
             for edge in provider.get_inbound_edges(source_id) {
                 if opts.semantic_inversion {
                     let virtual_edge = edge.invert(store.config());
@@ -141,8 +148,9 @@ fn bfs_search(
     let mut predecessors: HashMap<String, PredecessorInfo> = HashMap::new();
     let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
 
-    queue.push_back((from.to_string(), HopCost::from(0)));
-    visited.insert(from.to_string());
+    let from_owned = from.to_string();
+    queue.push_back((from_owned.clone(), HopCost::from(0)));
+    visited.insert(from_owned);
 
     while let Some((current_id, accumulated_cost)) = queue.pop_front() {
         if current_id == to {
@@ -169,20 +177,22 @@ fn bfs_search(
                 continue;
             }
 
-            visited.insert(processed.canonical_neighbor.clone());
+            let canonical_neighbor = processed.canonical_neighbor.clone();
+            visited.insert(canonical_neighbor.clone());
+            let link_type_cloned = edge.link_type.clone();
             let canonical_edge = Edge {
                 from: processed.canonical_from,
                 to: processed.canonical_to,
-                link_type: edge.link_type.clone(),
+                link_type: link_type_cloned,
                 source: edge.source,
             };
-            let original_id = if neighbor_id != processed.canonical_neighbor {
+            let original_id = if neighbor_id != canonical_neighbor {
                 Some(neighbor_id.clone())
             } else {
                 None
             };
             predecessors.insert(
-                processed.canonical_neighbor.clone(),
+                canonical_neighbor.clone(),
                 PredecessorInfo {
                     canonical_pred: current_id.clone(),
                     original_id,
@@ -192,7 +202,7 @@ fn bfs_search(
 
             let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
             let new_cost = accumulated_cost + edge_cost;
-            queue.push_back((processed.canonical_neighbor, new_cost));
+            queue.push_back((canonical_neighbor, new_cost));
         }
     }
 
@@ -230,12 +240,13 @@ fn dijkstra_search(
     let mut predecessors: HashMap<String, PredecessorInfo> = HashMap::new();
     let mut heap: BinaryHeap<Reverse<HeapEntry>> = BinaryHeap::new();
 
+    let from_owned = from.to_string();
     heap.push(Reverse(HeapEntry {
-        node_id: from.to_string(),
+        node_id: from_owned.clone(),
         accumulated_cost: HopCost::from(0),
     }));
-    visited.insert(from.to_string());
-    best_costs.insert(from.to_string(), HopCost::from(0));
+    visited.insert(from_owned.clone());
+    best_costs.insert(from_owned, HopCost::from(0));
 
     while let Some(Reverse(HeapEntry {
         node_id: current_id,
@@ -280,24 +291,26 @@ fn dijkstra_search(
                 };
 
             if should_visit {
-                if !visited.contains(&processed.canonical_neighbor) {
-                    visited.insert(processed.canonical_neighbor.clone());
+                let canonical_neighbor = processed.canonical_neighbor.clone();
+                if !visited.contains(&canonical_neighbor) {
+                    visited.insert(canonical_neighbor.clone());
                 }
 
-                best_costs.insert(processed.canonical_neighbor.clone(), new_cost);
+                best_costs.insert(canonical_neighbor.clone(), new_cost);
+                let link_type_cloned = edge.link_type.clone();
                 let canonical_edge = Edge {
                     from: processed.canonical_from,
                     to: processed.canonical_to,
-                    link_type: edge.link_type.clone(),
+                    link_type: link_type_cloned,
                     source: edge.source,
                 };
-                let original_id = if neighbor_id != processed.canonical_neighbor {
+                let original_id = if neighbor_id != canonical_neighbor {
                     Some(neighbor_id.clone())
                 } else {
                     None
                 };
                 predecessors.insert(
-                    processed.canonical_neighbor.clone(),
+                    canonical_neighbor.clone(),
                     PredecessorInfo {
                         canonical_pred: current_id.clone(),
                         original_id,
@@ -306,7 +319,7 @@ fn dijkstra_search(
                 );
 
                 heap.push(Reverse(HeapEntry {
-                    node_id: processed.canonical_neighbor,
+                    node_id: canonical_neighbor,
                     accumulated_cost: new_cost,
                 }));
             }
@@ -321,9 +334,9 @@ fn create_empty_path_result(from: &str, to: &str, direction: Direction) -> PathR
         from: from.to_string(),
         to: to.to_string(),
         direction: match direction {
-            Direction::Out => "out".to_string(),
-            Direction::In => "in".to_string(),
-            Direction::Both => "both".to_string(),
+            Direction::Out => DIRECTION_OUT.to_string(),
+            Direction::In => DIRECTION_IN.to_string(),
+            Direction::Both => DIRECTION_BOTH.to_string(),
         },
         found: false,
         notes: vec![],
@@ -344,20 +357,22 @@ fn reconstruct_path(
 
     let mut current = to.to_string();
     let mut via: Option<String> = None;
-    path_nodes.push((current.clone(), via.clone()));
+    path_nodes.push((current.clone(), via.take()));
 
     while current != from {
         if let Some(pred_info) = predecessors.get(&current) {
+            let link_type_str = pred_info.edge.link_type.to_string();
+            let source_str = pred_info.edge.source.to_string();
             path_links.push(TreeLink {
                 from: pred_info.edge.from.clone(),
                 to: pred_info.edge.to.clone(),
-                link_type: pred_info.edge.link_type.to_string(),
-                source: pred_info.edge.source.to_string(),
+                link_type: link_type_str,
+                source: source_str,
                 via: pred_info.original_id.clone(),
             });
             current = pred_info.canonical_pred.clone();
             via = pred_info.original_id.clone();
-            path_nodes.push((current.clone(), via.clone()));
+            path_nodes.push((current.clone(), via.take()));
         } else {
             break;
         }
@@ -447,9 +462,9 @@ pub fn bfs_find_path(
         from: from.to_string(),
         to: to.to_string(),
         direction: match opts.direction {
-            Direction::Out => "out".to_string(),
-            Direction::In => "in".to_string(),
-            Direction::Both => "both".to_string(),
+            Direction::Out => DIRECTION_OUT.to_string(),
+            Direction::In => DIRECTION_IN.to_string(),
+            Direction::Both => DIRECTION_BOTH.to_string(),
         },
         found,
         path_length: links.len(),

@@ -5,22 +5,12 @@ from pathlib import Path
 
 # Functions grandfathered in (already >100 lines when check was added)
 ALLOWED_FUNCTIONS = {
-    "commands/context/mod.rs:execute",
-    "commands/load/deserialize.rs:looks_like_json",
-    "commands/load/deserialize.rs:parse_records_pack",
     "commands/compact/report.rs:execute",
     "commands/compact/show.rs:execute",
-    "commands/doctor/database.rs:check_semantic_link_types",
-    "lib/db/notes/read.rs:list_notes_full",
-    "lib/db/notes/read.rs:get_note",
-    "lib/db/repair.rs:incremental_repair",
-    "commands/export/mod.rs:execute",
     "commands/compact/suggest.rs:execute",
-    "commands/export/emit/bibliography.rs:export_bibtex",
-    "commands/load/mod.rs:execute",
     "commands/compact/status.rs:execute",
-    "lib/similarity/mod.rs:test_default_threshold_related_notes",
-    "commands/link/tree.rs:execute",
+    "commands/export/emit/bibliography.rs:export_bibtex",
+    "commands/load/deserialize.rs:looks_like_json",
 }
 
 def find_large_functions(src_dir, max_lines=100):

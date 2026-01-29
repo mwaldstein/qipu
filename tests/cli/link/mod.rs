@@ -6,3 +6,4 @@ mod list;
 mod path;
 mod semantic_inversion;
 mod tree;
+mod via_traversal;

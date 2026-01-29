@@ -28,18 +28,22 @@ cargo test --test cli_tests cli::search          # Module path
 
 # Run benchmarks (release mode required)
 cargo test --test bench_tests --release -- --ignored
-```
 
-**Note:** This is a binary crate—do not use `cargo test --lib` (no library target exists).
+# Build documentation
+cargo doc --no-deps         # Build all documentation
+cargo doc --no-deps -p qipu-core  # Build specific crate documentation
+```
 
 ## Project Structure
 
 ```
+crates/
+  qipu-core/        # Core library (domain logic, persistence, indexing)
+  llm-tool-test/    # LLM tool testing utility
 src/
   main.rs           # Entry point, CLI parsing, dispatch
   cli/              # CLI argument definitions (Clap derive)
-  commands/         # Command implementations
-  lib/              # Shared library (db/, store/, note/, graph/, error.rs)
+  commands/         # Command implementations (depend on qipu-core)
 tests/
   cli/              # Integration tests by command
   cli/support.rs    # Test helpers (qipu() command builder)

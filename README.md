@@ -148,6 +148,22 @@ qipu doctor                # Check store health (--fix, --duplicates)
 qipu verify <id>           # Mark note as human-verified
 ```
 
+## Project Structure
+
+```
+crates/
+  qipu-core/        # Core library (domain logic, persistence, indexing)
+  llm-tool-test/    # LLM tool testing utility
+src/
+  main.rs           # Entry point, CLI parsing, dispatch
+  cli/              # CLI argument definitions (Clap derive)
+  commands/         # Command implementations (depend on qipu-core)
+tests/              # Integration tests and benchmarks
+specs/              # Implementable specifications
+```
+
+The `qipu-core` crate is a reusable library that can be used independently of the CLI.
+
 ## Why Not Just Markdown Files?
 
 You could dump everything in `docs/` and `grep` your way through. We've tried it. Here's what breaks:

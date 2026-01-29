@@ -1,6 +1,10 @@
 //! Qipu Core Library
 //!
-//! Core domain logic for the Qipu knowledge management system.
+//! Reusable library providing core domain logic for the Qipu knowledge management system.
+//!
+//! This library encapsulates data persistence, note management, graph operations,
+//! indexing, and search functionality. It can be used independently or as part of
+//! the qipu CLI application.
 
 pub mod compaction;
 pub mod config;

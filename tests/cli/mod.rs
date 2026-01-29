@@ -5,6 +5,7 @@ mod create;
 mod custom;
 mod doctor;
 mod dump;
+mod duplicates;
 mod export;
 mod inbox;
 mod index;

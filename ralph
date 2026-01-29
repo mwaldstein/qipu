@@ -46,6 +46,7 @@ MODE:
   vision-reorg  | reorg     Reorganize/prune core docs
   plan                     Create/update implementation plan
   build                    Implement specs; build/test loop
+  cleanup                  Code cleanup and refactoring
 
 OPTIONS:
   --max-iterations N        Maximum iterations before stopping
@@ -132,6 +133,12 @@ case "$MODE" in
         MAX_ITERATIONS="${MAX_ITERATIONS:-200}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/build.txt}"
+        ;;
+    cleanup)
+        MODE="cleanup"
+        MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
+        MODEL="${MODEL:-opencode/claude-sonnet-4-5}"
+        PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/cleanup.txt}"
         ;;
     *)
         echo "Unknown mode: $MODE" >&2

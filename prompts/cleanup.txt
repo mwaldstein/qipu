@@ -1,0 +1,221 @@
+Plan code cleanup tasks using beads.
+
+Source: `src/*`, `crates/qipu-core/src/*`, `tests/*`, `crates/llm-tool-test/src/*`
+Enforcement: `scripts/check_function_complexity.py`, CI rules (500-line file limit)
+Guidance: `AGENTS.md` (code style guidelines)
+Issues: Use `bd` commands to manage tasks
+
+## TRUST HIERARCHY
+
+1. Code is truth. Docs may be stale or wrong.
+2. Tests prove correctness. Run `cargo test` before closing tasks.
+3. CI rules are absolute: 500-line file limit, 100-line function limit.
+
+## AUDIT PROCESS
+
+For each code category:
+1. Search for violations (file sizes, function complexity, antipatterns)
+2. Verify findings with code inspection
+3. Assess impact and complexity
+4. Create bd tasks with proper sequencing
+5. Add dependencies between tasks where needed
+
+Use subagents in parallel - one per category. Each must:
+- Scan code for specific violations
+- Count and categorize findings
+- Report: violation type, count, file:line refs, estimated effort
+
+## WHAT TO LOOK FOR
+
+### CI Violations
+- Files >500 lines (enforced in CI)
+- Functions >100 lines 
+- Clippy warnings (should be zero with `-D warnings`)
+
+### Code Smells
+- Duplicate patterns (format handling, error messages, validation logic)
+- God functions (too many parameters, too much responsibility)
+- Tight coupling between modules
+- Excessive clone() usage (opportunity for borrowing/Copy/Cow)
+
+### Maintainability Issues
+- Dead code: unused functions, imports, structs, traits
+- TODO/FIXME comments (temporary workarounds)
+- Unreachable code or empty match arms
+- Missing documentation (pub types/functions)
+- Poor separation of concerns
+
+### Test Quality
+- Test files >500 lines (split by feature)
+- Missing test coverage for critical paths
+- Test duplication (extract to helpers)
+- Integration tests without unit test support
+
+## PRIORITIZATION & SEQUENCING
+
+**P1 (High Impact, Unblocked):**
+- Dead code removal (clears the way for other work)
+- Format handling consolidation (reduces duplication)
+- Clone reduction (performance/maintainability)
+
+**P2 (Medium Impact, Blocked by P1):**
+- Split large test files (after dead code removal)
+- Refactor command dispatch (after format consolidation)
+- Extract shared utilities (after duplicate removal)
+
+**P3 (Low Impact):**
+- Documentation improvements
+- Minor refactoring
+- Edge case cleanup
+
+## TASK CREATION RULES
+
+For each issue found, create a bd task with **detailed description** (not just title):
+- **Check existing tasks first**: Run `bd list` and search for duplicates before creating new ones
+  - If similar task exists: update it with `bd update` instead of creating duplicate
+  - Duplicates waste time and create confusion
+- Use `--type task` (not feature/bug)
+- Use `--priority 2` for medium impact, `--priority 3` for low
+- Use `--description` with multi-line bash heredoc for clarity
+- Include detailed description with file:line refs
+- Be specific about what to change (not just "fix X")
+- Describe expected outcome and verification steps
+- Use `bd dep add <issue> <depends-on>` for dependencies
+
+**Description must include:**
+1. What to change (specific file/function/module)
+2. How to change (refactoring approach, split strategy, removal criteria)
+3. Why it matters (CI violation, performance, maintainability)
+4. Verification (how to confirm change is correct)
+5. Context (dependencies, constraints, considerations)
+
+**Use heredoc for multi-line descriptions:**
+```bash
+bd create "Title" --type task --priority 2 --description=$(cat <<'EOF'
+Detailed multi-line description here...
+Multiple paragraphs allowed...
+Bullet points for clarity...
+EOF
+)
+```
+
+**Example using heredoc:**
+```bash
+bd create "Split tests/cli/context/walk.rs" --type task --priority 2 --description=$(cat <<'EOF'
+Break tests/cli/context/walk.rs (825 lines) into modules by feature:
+
+What to change:
+- tests/cli/context/walk.rs (currently 825 lines, exceeds CI limit)
+
+How to change:
+- Create tests/cli/context/walk/mod.rs as entry point
+- Extract traversal logic to tests/cli/context/walk/traversal.rs
+- Extract truncation logic to tests/cli/context/walk/truncation.rs
+- Extract filtering logic to tests/cli/context/walk/filtering.rs
+- Extract common test helpers to tests/cli/context/support.rs
+
+Why it matters:
+- Violates CI 500-line file limit
+- Large files are hard to navigate and maintain
+
+Verification:
+- Ensure all tests still pass: cargo test --test cli_tests context
+- Verify each new file is <500 lines
+
+Context:
+- Depends on dead code hunt to identify unused helpers
+- No functional changes, only reorganization
+EOF
+)
+
+bd dep add <walk-split-id> <dead-code-id>
+```
+
+## OUTPUT
+
+Create bd tasks for all violations found with **full descriptions**:
+
+**File size violations:**
+```bash
+bd create "Split FILENAME (N lines)" --type task --priority 2 \
+  --description="Break FILENAME (currently N lines) into modules by feature:
+  - Create mod.rs as entry point
+  - Extract FEATURE_A logic to feature_a.rs
+  - Extract FEATURE_B logic to feature_b.rs
+  - Extract helpers to support.rs
+  - Ensure all tests pass: cargo test --test <test_module>
+  - Verify each new file is <500 lines"
+```
+
+**Function complexity:**
+```bash
+bd create "Refactor FUNCTION in FILE:LINE" --type task --priority 2 \
+  --description="Extract FUNCTION (currently N lines) into smaller units:
+  - Identify logical sub-functions within FUNCTION
+  - Extract sub-functions (each <100 lines)
+  - Preserve exact behavior (no functional changes)
+  - Run existing tests to verify: cargo test <test_name>
+  - Ensure no performance regression"
+```
+
+**Duplication:**
+```bash
+bd create "Consolidate PATTERN into shared module" --type task --priority 2 \
+  --description="Extract duplicate PATTERN (N occurrences) to shared location:
+  - Find all N occurrences: list file:line references
+  - Create src/commands/SHARED.rs with common implementation
+  - Replace all N occurrences with calls to shared code
+  - Verify behavior unchanged: cargo test
+  - Remove duplication to reduce code by X lines"
+```
+
+**Dead code:**
+```bash
+bd create "Remove dead code in MODULE" --type task --priority 2 \
+  --description="Remove unused code in MODULE:
+  - Unused functions: list names with file:line
+  - Unused imports: list with file:line
+  - Unused types: list with file:line
+  - Verify no tests depend on removed code: cargo test
+  - Remove items after confirmation
+  - Run cargo clippy to verify no unused warnings remain"
+```
+
+**Clone overuse:**
+```bash
+bd create "Reduce clone() usage in MODULE" --type task --priority 2 \
+  --description="Replace unnecessary clones in MODULE (currently N clones):
+  - Identify N unnecessary clones with analysis
+  - Replace with borrowing where possible (use & instead of .clone())
+  - Use Copy trait for small stack-allocated types
+  - Use Cow<str> for conditional ownership transfer
+  - Ensure no behavioral changes: cargo test
+  - Verify performance improvement (optional benchmarks)
+  - Target: reduce clone() count by 30-40%"
+```
+
+Use dependencies to sequence:
+- Test splits depend on dead code removal
+- Refactors depend on consolidation
+- Cleanup depends on foundational work
+
+After creating all tasks, run:
+```bash
+bd ready      # Verify P1 tasks are available
+bd blocked    # Verify P2/P3 tasks have proper blockers
+bd sync       # Save to git
+```
+
+## RULES
+
+- Plan only. No code changes.
+- Verify violations with code inspection (don't trust automated counts alone)
+- **Check for duplicates**: Run `bd list` before creating, update existing instead of duplicating
+- **Descriptions must be detailed**: include file:line refs, what/how/why, verification steps
+- Use dependencies to sequence work properly
+- Focus on high-impact items first (P1 > P2 > P3)
+- Run `bd sync` after creating issues
+- Respect grandfathered exceptions in `check_function_complexity.py`
+- Poor descriptions (just "fix X", "clean up Y") are unacceptable
+
+If no violations found: COMPLETE

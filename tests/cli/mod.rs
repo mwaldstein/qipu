@@ -30,5 +30,6 @@ pub mod support;
 mod sync;
 mod traversal;
 mod value;
+mod value_sorting;
 mod wal;
 mod workspace;

@@ -329,20 +329,20 @@ pub fn run_single_scenario(
             gate_details: metrics
                 .details
                 .iter()
-                .map(|d| crate::transcript::GateDetail {
+                .map(|d| crate::transcript::types::GateDetail {
                     gate_type: d.gate_type.clone(),
                     passed: d.passed,
                     message: d.message.clone(),
                 })
                 .collect(),
-            efficiency: crate::transcript::EfficiencyReport {
+            efficiency: crate::transcript::types::EfficiencyReport {
                 total_commands: metrics.efficiency.total_commands,
                 unique_commands: metrics.efficiency.unique_commands,
                 error_count: metrics.efficiency.error_count,
                 first_try_success_rate: metrics.efficiency.first_try_success_rate,
                 iteration_ratio: metrics.efficiency.iteration_ratio,
             },
-            quality: crate::transcript::QualityReport {
+            quality: crate::transcript::types::QualityReport {
                 avg_title_length: metrics.quality.avg_title_length,
                 avg_body_length: metrics.quality.avg_body_length,
                 avg_tags_per_note: metrics.quality.avg_tags_per_note,
@@ -353,7 +353,7 @@ pub fn run_single_scenario(
             setup_commands: setup_commands
                 .into_iter()
                 .map(
-                    |(cmd, success, output)| crate::transcript::SetupCommandResult {
+                    |(cmd, success, output)| crate::transcript::types::SetupCommandResult {
                         command: cmd,
                         success,
                         output,

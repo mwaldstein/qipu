@@ -13,8 +13,8 @@
   "judge_score": null,
   "judge_response": null,
   "efficiency": {
-    "total_commands": 3,
-    "unique_commands": 3,
+    "total_commands": 4,
+    "unique_commands": 4,
     "error_count": 0,
     "retry_count": 0,
     "help_invocations": 0,

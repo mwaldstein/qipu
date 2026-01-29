@@ -5,11 +5,11 @@
 - **ID**: timeout_test_override
 - **Tool**: mock
 - **Model**: mock
-- **Timestamp**: 2026-01-28T18:58:34.338067658+00:00
+- **Timestamp**: 2026-01-29T17:02:58.211246130+00:00
 
 ## Execution
 
-- **Duration**: 0.17s
+- **Duration**: 0.22s
 - **Cost**: $0.0000
 - **Outcome**: Pass
 
@@ -26,8 +26,8 @@
 
 ## Efficiency
 
-- **Total Commands**: 3
-- **Unique Commands**: 3
+- **Total Commands**: 4
+- **Unique Commands**: 4
 - **Error Count**: 0
 - **First Try Success Rate**: 100.0%
 - **Iteration Ratio**: 1.00

@@ -260,16 +260,6 @@ mod tests {
     }
 
     #[test]
-    fn test_print_records_header_basic() {
-        print_records_header("setup.install", &[]);
-    }
-
-    #[test]
-    fn test_print_records_header_with_fields() {
-        print_records_header("setup.install", &[("integration", "agents-md")]);
-    }
-
-    #[test]
     fn test_wrap_records_body() {
         wrap_records_body("qp-123", "Body line 1\nBody line 2");
     }

@@ -2,11 +2,11 @@
 use crate::cli::Cli;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::index::IndexBuilder;
+use qipu_core::note::Note;
 use qipu_core::note::TypedLink;
 use qipu_core::store::Store;
 use std::collections::HashSet;
 
-/// Execute the merge command
 pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -> Result<()> {
     if id1 == id2 {
         return Err(QipuError::Other(
@@ -14,47 +14,14 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
         ));
     }
 
-    // 1. Load both notes
     let note1 = store.get_note(id1)?;
     let mut note2 = store.get_note(id2)?;
 
-    if !dry_run {
-        println!("Merging {} into {}...", id1, id2);
-    } else {
-        println!("Dry run: would merge {} into {}", id1, id2);
-    }
+    print_merge_message(id1, id2, dry_run);
 
-    // 2. Combine Tags
-    let mut tags: HashSet<String> = note2.frontmatter.tags.iter().cloned().collect();
-    for tag in &note1.frontmatter.tags {
-        tags.insert(tag.clone());
-    }
-    let mut final_tags: Vec<String> = tags.into_iter().collect();
-    final_tags.sort();
-
-    // 3. Combine Typed Links
-    let mut links: Vec<TypedLink> = note2.frontmatter.links.clone();
-    let existing_link_ids: HashSet<(String, String)> = links
-        .iter()
-        .map(|l| (l.link_type.to_string(), l.id.clone()))
-        .collect();
-
-    for link in &note1.frontmatter.links {
-        // Skip links to id2 (they will become self-links) and duplicates
-        if link.id != id2
-            && !existing_link_ids.contains(&(link.link_type.to_string(), link.id.clone()))
-        {
-            links.push(link.clone());
-        }
-    }
-
-    // 4. Combine Body
-    let new_body = format!(
-        "{}\n\n---\n\n### Merged from {}\n\n{}",
-        note2.body.trim(),
-        id1,
-        note1.body.trim()
-    );
+    let final_tags = merge_tags(&note1, &note2);
+    let links = merge_links(&note1, &note2, id2);
+    let new_body = merge_bodies(&note1, &note2, id1);
 
     if dry_run {
         println!("Tags would be: {:?}", final_tags);
@@ -62,48 +29,97 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
         return Ok(());
     }
 
-    // 5. Update Inbound Links
-    let index = IndexBuilder::new(store).build()?;
-    let inbound = index.get_inbound_edges(id1);
+    redirect_inbound_links(store, id1, id2)?;
 
-    // Find unique source notes that link to id1
+    note2.frontmatter.tags = final_tags;
+    note2.frontmatter.links = links;
+    note2.body = new_body;
+    store.save_note(&mut note2)?;
+    store.delete_note(id1)?;
+
+    println!("Merge complete. {} has been merged into {}.", id1, id2);
+    Ok(())
+}
+
+fn print_merge_message(id1: &str, id2: &str, dry_run: bool) {
+    if !dry_run {
+        println!("Merging {} into {}...", id1, id2);
+    } else {
+        println!("Dry run: would merge {} into {}", id1, id2);
+    }
+}
+
+fn merge_tags(note1: &Note, note2: &Note) -> Vec<String> {
+    let mut tags: HashSet<String> = note2.frontmatter.tags.iter().cloned().collect();
+    for tag in &note1.frontmatter.tags {
+        tags.insert(tag.clone());
+    }
+    let mut final_tags: Vec<String> = tags.into_iter().collect();
+    final_tags.sort();
+    final_tags
+}
+
+fn merge_links(note1: &Note, note2: &Note, target_id: &str) -> Vec<TypedLink> {
+    let mut links: Vec<TypedLink> = note2.frontmatter.links.clone();
+    let existing_link_ids: HashSet<(String, String)> = links
+        .iter()
+        .map(|l| (l.link_type.to_string(), l.id.clone()))
+        .collect();
+
+    for link in &note1.frontmatter.links {
+        if link.id != target_id
+            && !existing_link_ids.contains(&(link.link_type.to_string(), link.id.clone()))
+        {
+            links.push(link.clone());
+        }
+    }
+    links
+}
+
+fn merge_bodies(note1: &Note, note2: &Note, source_id: &str) -> String {
+    format!(
+        "{}\n\n---\n\n### Merged from {}\n\n{}",
+        note2.body.trim(),
+        source_id,
+        note1.body.trim()
+    )
+}
+
+fn redirect_inbound_links(store: &Store, from_id: &str, to_id: &str) -> Result<()> {
+    let index = IndexBuilder::new(store).build()?;
+    let inbound = index.get_inbound_edges(from_id);
     let source_ids: HashSet<String> = inbound.iter().map(|e| e.from.clone()).collect();
 
     for source_id in source_ids {
-        if source_id == id1 {
+        if source_id == from_id {
             continue;
-        } // Skip self-links in note1
+        }
 
         let mut source_note = store.get_note(&source_id)?;
         let mut modified = false;
 
-        // Update typed links in frontmatter
         for link in &mut source_note.frontmatter.links {
-            if link.id == id1 {
-                link.id = id2.to_string();
+            if link.id == from_id {
+                link.id = to_id.to_string();
                 modified = true;
             }
         }
 
-        // Deduplicate links in case source_note already linked to id2 with same type
         let mut seen_links = HashSet::new();
         source_note
             .frontmatter
             .links
             .retain(|l| seen_links.insert((l.link_type.to_string(), l.id.clone())));
 
-        // Update wiki-links in body [[id1]] -> [[id2]]
-        // Simple replacement for now, could be improved with regex
-        let old_link = format!("[[{}]]", id1);
-        let new_link = format!("[[{}]]", id2);
+        let old_link = format!("[[{}]]", from_id);
+        let new_link = format!("[[{}]]", to_id);
         if source_note.body.contains(&old_link) {
             source_note.body = source_note.body.replace(&old_link, &new_link);
             modified = true;
         }
 
-        // Also handle piped links [[id1|label]]
-        let old_piped_prefix = format!("[[{}|", id1);
-        let new_piped_prefix = format!("[[{}|", id2);
+        let old_piped_prefix = format!("[[{}|", from_id);
+        let new_piped_prefix = format!("[[{}|", to_id);
         if source_note.body.contains(&old_piped_prefix) {
             source_note.body = source_note
                 .body
@@ -116,17 +132,6 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
             store.save_note(&mut source_note)?;
         }
     }
-
-    // 6. Save Target Note
-    note2.frontmatter.tags = final_tags;
-    note2.frontmatter.links = links;
-    note2.body = new_body;
-    store.save_note(&mut note2)?;
-
-    // 7. Delete Source Note (from both filesystem and database)
-    store.delete_note(id1)?;
-
-    println!("Merge complete. {} has been merged into {}.", id1, id2);
 
     Ok(())
 }

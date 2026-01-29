@@ -16,7 +16,6 @@ ALLOWED_FUNCTIONS = {
     "lib/db/repair.rs:incremental_repair",
     "commands/export/mod.rs:execute",
     "commands/compact/suggest.rs:execute",
-    "commands/merge/mod.rs:execute",
     "commands/export/emit/bibliography.rs:export_bibtex",
     "commands/load/mod.rs:execute",
     "commands/compact/status.rs:execute",

@@ -3,8 +3,10 @@
 //! Provides common patterns for JSON status messages, Records headers,
 //! and other repeated formatting patterns across command modules.
 
+pub mod ontology;
 pub mod status;
 
+pub use ontology::{print_ontology_human, print_ontology_json, print_ontology_records};
 pub use status::{
     add_compaction_to_json, print_json_status, print_note_records, print_records_data,
     print_records_header, wrap_records_body,

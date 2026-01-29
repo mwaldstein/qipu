@@ -302,58 +302,80 @@ impl super::super::Database {
         });
 
         match note_opt {
-            Ok((
-                id,
-                title,
-                note_type,
-                path,
-                created,
-                updated,
-                body,
-                value,
-                compacts_json,
-                author,
-                verified,
-                source,
-                sources_json,
-                generated_by,
-                prompt_hash,
-                custom_json,
-            )) => {
-                let tags = load_tags(&self.conn, &id)?;
-                let links = load_links(&self.conn, &id)?;
-                let compacts = load_compacts(&compacts_json);
-                let sources = load_sources(&sources_json);
-                let custom = load_custom(&custom_json);
-
-                let frontmatter = build_frontmatter(
-                    id.clone(),
-                    title,
-                    note_type,
-                    created,
-                    updated,
-                    tags,
-                    sources,
-                    links,
-                    compacts,
-                    source,
-                    author,
-                    generated_by,
-                    prompt_hash,
-                    verified,
-                    value,
-                    custom,
-                );
-
-                Ok(Some(Note {
-                    frontmatter,
-                    body,
-                    path: Some(PathBuf::from(path)),
-                }))
-            }
+            Ok(raw) => self.build_note_from_query_result(raw),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(QipuError::Other(format!("failed to query note: {}", e))),
         }
+    }
+
+    fn build_note_from_query_result(
+        &self,
+        (
+            id,
+            title,
+            note_type,
+            path,
+            created,
+            updated,
+            body,
+            value,
+            compacts_json,
+            author,
+            verified,
+            source,
+            sources_json,
+            generated_by,
+            prompt_hash,
+            custom_json,
+        ): (
+            String,
+            String,
+            NoteType,
+            String,
+            Option<chrono::DateTime<Utc>>,
+            Option<chrono::DateTime<Utc>>,
+            String,
+            Option<u8>,
+            String,
+            Option<String>,
+            Option<bool>,
+            Option<String>,
+            String,
+            Option<String>,
+            Option<String>,
+            String,
+        ),
+    ) -> Result<Option<Note>> {
+        let tags = load_tags(&self.conn, &id)?;
+        let links = load_links(&self.conn, &id)?;
+        let compacts = load_compacts(&compacts_json);
+        let sources = load_sources(&sources_json);
+        let custom = load_custom(&custom_json);
+
+        let frontmatter = build_frontmatter(
+            id.clone(),
+            title,
+            note_type,
+            created,
+            updated,
+            tags,
+            sources,
+            links,
+            compacts,
+            source,
+            author,
+            generated_by,
+            prompt_hash,
+            verified,
+            value,
+            custom,
+        );
+
+        Ok(Some(Note {
+            frontmatter,
+            body,
+            path: Some(PathBuf::from(path)),
+        }))
     }
 
     pub fn list_note_ids(&self) -> Result<Vec<String>> {

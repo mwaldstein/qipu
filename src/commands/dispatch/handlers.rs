@@ -10,7 +10,7 @@ use crate::cli::{
 use qipu_core::error::{QipuError, Result};
 use tracing::debug;
 
-use super::discover_or_open_store;
+use super::command::discover_or_open_store;
 
 pub(super) fn handle_no_command() -> Result<()> {
     println!("qipu {}", env!("CARGO_PKG_VERSION"));

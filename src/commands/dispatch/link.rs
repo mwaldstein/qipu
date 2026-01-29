@@ -9,7 +9,7 @@ use crate::cli::{Cli, LinkCommands};
 use crate::commands;
 use qipu_core::error::{QipuError, Result};
 
-use super::discover_or_open_store;
+use super::command::discover_or_open_store;
 
 pub(super) fn handle_link(
     cli: &Cli,

@@ -5,3 +5,4 @@ mod report;
 mod show;
 mod status;
 mod suggest;
+mod suggest_value;

@@ -5,5 +5,6 @@ mod budget;
 mod compaction;
 mod formats;
 mod ontology;
+mod selection;
 mod two_hop;
 mod walk;

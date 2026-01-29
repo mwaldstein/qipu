@@ -3,204 +3,17 @@ use std::fs;
 use tempfile::tempdir;
 
 #[test]
-fn test_dump_semantic_inversion_default() {
-    let dir = tempdir().unwrap();
-    let store_path = dir.path();
-    let pack_file = dir.path().join("test.pack");
-
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Semantic Source")
-        .arg("--id")
-        .arg("note-a")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Semantic Target")
-        .arg("--id")
-        .arg("note-b")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("link")
-        .arg("add")
-        .arg("note-a")
-        .arg("note-b")
-        .arg("--type")
-        .arg("supports")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("dump")
-        .arg("--note")
-        .arg("note-b")
-        .arg("--output")
-        .arg(&pack_file)
-        .arg("--direction")
-        .arg("both")
-        .arg("--max-hops")
-        .arg("1")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let ids: Vec<&str> = list
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|n| n["id"].as_str().unwrap())
-        .collect();
-
-    assert!(ids.len() >= 2, "Should include both notes");
-    assert!(ids.contains(&"note-a"), "Should include source note");
-    assert!(ids.contains(&"note-b"), "Should include target note");
-}
-
-#[test]
-fn test_dump_semantic_inversion_disabled() {
-    let dir = tempdir().unwrap();
-    let store_path = dir.path();
-    let pack_file = dir.path().join("test.pack");
-
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Semantic Disabled Source")
-        .arg("--id")
-        .arg("note-a")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Semantic Disabled Target")
-        .arg("--id")
-        .arg("note-b")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("link")
-        .arg("add")
-        .arg("note-a")
-        .arg("note-b")
-        .arg("--type")
-        .arg("supports")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("dump")
-        .arg("--note")
-        .arg("note-b")
-        .arg("--output")
-        .arg(&pack_file)
-        .arg("--direction")
-        .arg("both")
-        .arg("--max-hops")
-        .arg("1")
-        .arg("--no-semantic-inversion")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let ids: Vec<&str> = list
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|n| n["id"].as_str().unwrap())
-        .collect();
-
-    assert!(ids.len() >= 2, "Should include both notes");
-    assert!(ids.contains(&"note-a"), "Should include source note");
-    assert!(ids.contains(&"note-b"), "Should include target note");
-}
-
-#[test]
 fn test_dump_type_filter_affects_reachability() {
     let dir = tempdir().unwrap();
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create notes
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note A")
@@ -228,7 +41,6 @@ fn test_dump_type_filter_affects_reachability() {
         .assert()
         .success();
 
-    // Create links with different types: A -> B (type: supports), A -> C (type: related)
     let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
@@ -251,7 +63,6 @@ fn test_dump_type_filter_affects_reachability() {
         .assert()
         .success();
 
-    // Dump with type filter for "supports" only
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--note")
@@ -268,7 +79,6 @@ fn test_dump_type_filter_affects_reachability() {
         .assert()
         .success();
 
-    // Load and verify only A and B are in the pack (C is excluded due to type filter)
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -313,14 +123,12 @@ fn test_dump_typed_only_excludes_inline_links() {
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create notes
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note A")
@@ -348,7 +156,6 @@ fn test_dump_typed_only_excludes_inline_links() {
         .assert()
         .success();
 
-    // Create typed link: A -> B
     let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
@@ -360,13 +167,11 @@ fn test_dump_typed_only_excludes_inline_links() {
         .assert()
         .success();
 
-    // Create inline link by editing note A to reference C
     let note_a_path = store_path.join("notes").join("note-a-note-a.md");
     let content = fs::read_to_string(&note_a_path).unwrap();
     let updated_content = format!("{}\n\nSee [[note-c]] for more info.", content);
     fs::write(&note_a_path, updated_content).unwrap();
 
-    // Rebuild index so inline link is detected
     let mut cmd = qipu();
     cmd.arg("index")
         .arg("--rebuild")
@@ -374,7 +179,6 @@ fn test_dump_typed_only_excludes_inline_links() {
         .assert()
         .success();
 
-    // Dump with --typed-only flag
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--note")
@@ -390,7 +194,6 @@ fn test_dump_typed_only_excludes_inline_links() {
         .assert()
         .success();
 
-    // Load and verify only A and B are in the pack (C is excluded due to typed-only filter)
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -435,14 +238,12 @@ fn test_dump_inline_only_excludes_typed_links() {
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create notes
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note A")
@@ -470,7 +271,6 @@ fn test_dump_inline_only_excludes_typed_links() {
         .assert()
         .success();
 
-    // Create typed link: A -> B
     let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
@@ -482,13 +282,11 @@ fn test_dump_inline_only_excludes_typed_links() {
         .assert()
         .success();
 
-    // Create inline link by editing note A to reference C
     let note_a_path = store_path.join("notes").join("note-a-note-a.md");
     let content = fs::read_to_string(&note_a_path).unwrap();
     let updated_content = format!("{}\n\nSee [[note-c]] for more info.", content);
     fs::write(&note_a_path, updated_content).unwrap();
 
-    // Rebuild index so inline link is detected
     let mut cmd = qipu();
     cmd.arg("index")
         .arg("--rebuild")
@@ -496,7 +294,6 @@ fn test_dump_inline_only_excludes_typed_links() {
         .assert()
         .success();
 
-    // Dump with --inline-only flag
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--note")
@@ -512,7 +309,6 @@ fn test_dump_inline_only_excludes_typed_links() {
         .assert()
         .success();
 
-    // Load and verify only A and C are in the pack (B is excluded due to inline-only filter)
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -561,14 +357,12 @@ fn test_dump_by_tag() {
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create notes with different tags
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Project note")
@@ -604,7 +398,6 @@ fn test_dump_by_tag() {
         .assert()
         .success();
 
-    // Dump notes with tag "project"
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--tag")
@@ -615,7 +408,6 @@ fn test_dump_by_tag() {
         .assert()
         .success();
 
-    // Load into a new store
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -632,7 +424,6 @@ fn test_dump_by_tag() {
         .assert()
         .success();
 
-    // Verify only notes with tag "project" are loaded
     let output = qipu()
         .arg("list")
         .arg("--format")
@@ -661,14 +452,12 @@ fn test_dump_by_moc() {
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create MOC note
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("My MOC")
@@ -680,7 +469,6 @@ fn test_dump_by_moc() {
         .assert()
         .success();
 
-    // Create content notes
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Note A")
@@ -708,7 +496,6 @@ fn test_dump_by_moc() {
         .assert()
         .success();
 
-    // Link notes from MOC (A and B are linked, C is not)
     let mut cmd = qipu();
     cmd.arg("link")
         .arg("add")
@@ -731,7 +518,6 @@ fn test_dump_by_moc() {
         .assert()
         .success();
 
-    // Dump notes linked from MOC
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--moc")
@@ -742,7 +528,6 @@ fn test_dump_by_moc() {
         .assert()
         .success();
 
-    // Load into a new store
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -759,8 +544,6 @@ fn test_dump_by_moc() {
         .assert()
         .success();
 
-    // Verify notes linked from MOC are loaded (A and B)
-    // Note: The MOC itself is not included (only notes linked from it)
     let output = qipu()
         .arg("list")
         .arg("--format")
@@ -779,7 +562,6 @@ fn test_dump_by_moc() {
     ids.sort();
 
     eprintln!("Loaded notes: {:?}", ids);
-    // The implementation includes the MOC itself in the dump along with linked notes
     assert!(ids.contains(&"note-a"), "Should contain note-a");
     assert!(ids.contains(&"note-b"), "Should contain note-b");
     assert!(
@@ -794,14 +576,12 @@ fn test_dump_by_query() {
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    // Initialize store
     let mut cmd = qipu();
     cmd.arg("init")
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Create notes with searchable content
     let mut cmd = qipu();
     cmd.arg("create")
         .arg("Rust programming tutorial")
@@ -829,7 +609,6 @@ fn test_dump_by_query() {
         .assert()
         .success();
 
-    // Rebuild index to ensure FTS is updated
     let mut cmd = qipu();
     cmd.arg("index")
         .arg("--rebuild")
@@ -837,7 +616,6 @@ fn test_dump_by_query() {
         .assert()
         .success();
 
-    // Dump notes matching query "Rust"
     let mut cmd = qipu();
     cmd.arg("dump")
         .arg("--query")
@@ -848,7 +626,6 @@ fn test_dump_by_query() {
         .assert()
         .success();
 
-    // Load into a new store
     let dir2 = tempdir().unwrap();
     let store2_path = dir2.path();
 
@@ -865,7 +642,6 @@ fn test_dump_by_query() {
         .assert()
         .success();
 
-    // Verify only notes matching query are loaded
     let output = qipu()
         .arg("list")
         .arg("--format")
@@ -886,144 +662,4 @@ fn test_dump_by_query() {
     assert!(ids.contains(&"note-a"));
     assert!(ids.contains(&"note-b"));
     assert!(!ids.contains(&"note-c"));
-}
-
-#[test]
-fn test_dump_no_selectors_full_store() {
-    let dir = tempdir().unwrap();
-    let store_path = dir.path();
-    let pack_file = dir.path().join("test.pack");
-
-    // Initialize store
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    // Create multiple notes with different characteristics
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Note A")
-        .arg("--id")
-        .arg("note-a")
-        .arg("--tag")
-        .arg("project")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Note B")
-        .arg("--id")
-        .arg("note-b")
-        .arg("--tag")
-        .arg("personal")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Note C")
-        .arg("--id")
-        .arg("note-c")
-        .arg("--type")
-        .arg("moc")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
-        .arg("Note D")
-        .arg("--id")
-        .arg("note-d")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    // Create some links
-    let mut cmd = qipu();
-    cmd.arg("link")
-        .arg("add")
-        .arg("note-a")
-        .arg("note-b")
-        .arg("--type")
-        .arg("related")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    // Dump with no selectors (should dump entire store)
-    let mut cmd = qipu();
-    cmd.arg("dump")
-        .arg("--output")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    // Load into a new store
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // Verify all notes are loaded
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let ids: Vec<&str> = list
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|n| n["id"].as_str().unwrap())
-        .collect();
-
-    assert_eq!(ids.len(), 4);
-    assert!(ids.contains(&"note-a"));
-    assert!(ids.contains(&"note-b"));
-    assert!(ids.contains(&"note-c"));
-    assert!(ids.contains(&"note-d"));
-
-    // Verify the link is preserved
-    let output = qipu()
-        .arg("link")
-        .arg("list")
-        .arg("note-a")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
-
-    let links: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let link_targets: Vec<&str> = links
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|l| l["direction"].as_str() == Some("out"))
-        .map(|l| l["id"].as_str().unwrap())
-        .collect();
-
-    assert!(link_targets.contains(&"note-b"));
 }

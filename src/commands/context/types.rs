@@ -1,4 +1,4 @@
-use crate::lib::note::{LinkType, Note};
+use qipu_core::note::{LinkType, Note};
 
 /// Options for the context command
 pub struct ContextOptions<'a> {

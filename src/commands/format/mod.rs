@@ -13,8 +13,8 @@ pub use status::{
 };
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::note::Note;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::note::Note;
 
 /// Compaction information for a note
 pub struct CompactionInfo {

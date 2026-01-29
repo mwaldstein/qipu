@@ -7,10 +7,10 @@
 #![allow(clippy::if_same_then_else)]
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::{QipuError, Result};
-use crate::lib::index::links;
-use crate::lib::note::{Note, NoteType};
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::index::links;
+use qipu_core::note::{Note, NoteType};
+use qipu_core::store::Store;
 use std::time::Instant;
 
 /// Progress tracker for indexing operations
@@ -291,10 +291,10 @@ fn selective_index(
 
 fn filter_quick_index(
     _store: &Store,
-    notes: &[crate::lib::note::Note],
-) -> Vec<crate::lib::note::Note> {
+    notes: &[qipu_core::note::Note],
+) -> Vec<qipu_core::note::Note> {
     let mut mocs = Vec::new();
-    let mut others: Vec<(std::time::SystemTime, crate::lib::note::Note)> = Vec::new();
+    let mut others: Vec<(std::time::SystemTime, qipu_core::note::Note)> = Vec::new();
 
     for note in notes {
         if note.note_type().is_moc() {
@@ -318,9 +318,9 @@ fn filter_quick_index(
 
 fn filter_by_moc(
     store: &Store,
-    notes: &[crate::lib::note::Note],
+    notes: &[qipu_core::note::Note],
     moc_id: &str,
-) -> Vec<crate::lib::note::Note> {
+) -> Vec<qipu_core::note::Note> {
     let mut result = Vec::new();
 
     let moc = notes.iter().find(|n| n.id() == moc_id);
@@ -338,8 +338,8 @@ fn filter_by_moc(
     result
 }
 
-fn filter_by_recent(notes: &[crate::lib::note::Note], n: usize) -> Vec<crate::lib::note::Note> {
-    let mut notes_with_mtime: Vec<(std::time::SystemTime, crate::lib::note::Note)> = Vec::new();
+fn filter_by_recent(notes: &[qipu_core::note::Note], n: usize) -> Vec<qipu_core::note::Note> {
+    let mut notes_with_mtime: Vec<(std::time::SystemTime, qipu_core::note::Note)> = Vec::new();
 
     for note in notes {
         if let Some(path) = &note.path {

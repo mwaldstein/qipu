@@ -3,7 +3,7 @@
 use clap::Args;
 
 use crate::cli::parse::parse_note_type;
-use crate::lib::note::NoteType;
+use qipu_core::note::NoteType;
 
 #[derive(Args, Debug)]
 pub struct InitArgs {

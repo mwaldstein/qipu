@@ -2,8 +2,8 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::list;
-use crate::lib::note::NoteType;
-use crate::lib::store::{InitOptions, Store};
+use qipu_core::note::NoteType;
+use qipu_core::store::{InitOptions, Store};
 use chrono::{Duration, Utc};
 use tempfile::TempDir;
 

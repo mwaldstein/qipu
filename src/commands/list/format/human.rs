@@ -2,20 +2,21 @@
 
 use crate::cli::Cli;
 use crate::commands::format::status::format_custom_value;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::format::build_compaction_annotations;
-use crate::lib::format::output_compaction_ids;
-use crate::lib::note::NoteType;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::format::build_compaction_annotations;
+use qipu_core::format::output_compaction_ids;
+use qipu_core::format::CompactionOutputOptions;
+use qipu_core::note::NoteType;
+use qipu_core::store::Store;
 use std::collections::HashMap;
 
 /// Output in human-readable format
 pub fn output_human(
     cli: &Cli,
     _store: &Store,
-    notes: &[crate::lib::note::Note],
+    notes: &[qipu_core::note::Note],
     compaction_ctx: &CompactionContext,
-    note_map: &HashMap<&str, &crate::lib::note::Note>,
+    note_map: &HashMap<&str, &qipu_core::note::Note>,
     show_custom: bool,
 ) {
     if notes.is_empty() {
@@ -24,6 +25,12 @@ pub fn output_human(
         }
         return;
     }
+
+    let opts = CompactionOutputOptions {
+        with_compaction_ids: cli.with_compaction_ids,
+        compaction_depth: cli.compaction_depth,
+        compaction_max_nodes: cli.compaction_max_nodes,
+    };
 
     for note in notes {
         let type_indicator = match note.note_type().as_str() {
@@ -50,6 +57,6 @@ pub fn output_human(
             }
         }
 
-        output_compaction_ids(cli, note.id(), compaction_ctx);
+        output_compaction_ids(&opts, note.id(), compaction_ctx);
     }
 }

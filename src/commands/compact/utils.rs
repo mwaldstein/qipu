@@ -1,4 +1,4 @@
-use crate::lib::note::Note;
+use qipu_core::note::Note;
 
 /// Estimate note size for compaction metrics
 /// Uses summary-sized content (same as records output)

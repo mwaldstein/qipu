@@ -1,5 +1,5 @@
 use super::types::SelectedNote;
-use crate::lib::note::Note;
+use qipu_core::note::Note;
 use std::time::Instant;
 
 /// Apply character budget to notes
@@ -115,7 +115,7 @@ pub fn estimate_note_size(note: &Note, with_body: bool) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::note::NoteFrontmatter;
+    use qipu_core::note::NoteFrontmatter;
 
     #[test]
     fn test_estimate_note_size() {

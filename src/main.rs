@@ -5,8 +5,6 @@
 
 mod cli;
 mod commands;
-#[path = "lib/mod.rs"]
-mod lib;
 
 use std::env;
 use std::process::ExitCode;
@@ -15,8 +13,8 @@ use std::time::Instant;
 use clap::Parser;
 
 use cli::{Cli, OutputFormat};
-use lib::error::{ExitCode as QipuExitCode, QipuError};
-use lib::logging;
+use qipu_core::error::{ExitCode as QipuExitCode, QipuError};
+use qipu_core::logging;
 
 fn main() -> ExitCode {
     let start = Instant::now();

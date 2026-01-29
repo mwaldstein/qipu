@@ -1,5 +1,5 @@
-use crate::lib::error::{QipuError, Result};
-use crate::lib::note::{Note, Source};
+use qipu_core::error::{QipuError, Result};
+use qipu_core::note::{Note, Source};
 use serde_json::json;
 
 /// Bibliography output format
@@ -86,7 +86,7 @@ pub fn export_bibliography(notes: &[Note], format: BibFormat) -> Result<String> 
     }
 }
 
-fn export_markdown(sources: &[(&Note, &crate::lib::note::Source)]) -> Result<String> {
+fn export_markdown(sources: &[(&Note, &qipu_core::note::Source)]) -> Result<String> {
     let mut output = String::new();
     output.push_str("# Bibliography\n\n");
 
@@ -108,7 +108,7 @@ fn export_markdown(sources: &[(&Note, &crate::lib::note::Source)]) -> Result<Str
     Ok(output)
 }
 
-fn export_bibtex(sources: &[(&Note, &crate::lib::note::Source)]) -> Result<String> {
+fn export_bibtex(sources: &[(&Note, &qipu_core::note::Source)]) -> Result<String> {
     let mut output = String::new();
 
     for (i, (note, source)) in sources.iter().enumerate() {
@@ -142,7 +142,7 @@ fn export_bibtex(sources: &[(&Note, &crate::lib::note::Source)]) -> Result<Strin
     Ok(output)
 }
 
-fn export_csl_json(sources: &[(&Note, &crate::lib::note::Source)]) -> Result<String> {
+fn export_csl_json(sources: &[(&Note, &qipu_core::note::Source)]) -> Result<String> {
     let mut items = Vec::new();
 
     for (i, (note, source)) in sources.iter().enumerate() {

@@ -11,7 +11,7 @@ pub mod suggest;
 pub mod utils;
 
 use crate::cli::{Cli, CompactCommands};
-use crate::lib::error::Result;
+use qipu_core::error::Result;
 
 /// Execute compact subcommand
 pub fn execute(cli: &Cli, command: &CompactCommands) -> Result<()> {

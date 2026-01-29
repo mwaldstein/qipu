@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands;
-use crate::lib::error::{QipuError, Result};
+use qipu_core::error::{QipuError, Result};
 
 use super::discover_or_open_store;
 

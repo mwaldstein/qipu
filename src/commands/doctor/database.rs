@@ -1,5 +1,5 @@
 use super::types::{DoctorResult, Issue, Severity};
-use crate::lib::store::Store;
+use qipu_core::store::Store;
 use std::collections::{HashMap, HashSet};
 
 pub fn check_duplicate_ids(store: &Store, result: &mut DoctorResult) {
@@ -84,7 +84,7 @@ pub fn check_broken_links(store: &Store, result: &mut DoctorResult) {
     }
 }
 
-fn get_note_path(db: &crate::lib::db::Database, note_id: &str) -> Option<String> {
+fn get_note_path(db: &qipu_core::db::Database, note_id: &str) -> Option<String> {
     db.get_note_metadata(note_id)
         .ok()
         .and_then(|metadata| metadata.map(|m| m.path))
@@ -94,7 +94,7 @@ fn report_semantic_link_misuse(
     result: &mut DoctorResult,
     note_id: &str,
     message: String,
-    db: &crate::lib::db::Database,
+    db: &qipu_core::db::Database,
 ) {
     result.add_issue(Issue {
         severity: Severity::Warning,
@@ -110,7 +110,7 @@ fn check_self_referential_link(
     source_id: &str,
     target_id: &str,
     link_type_name: &str,
-    db: &crate::lib::db::Database,
+    db: &qipu_core::db::Database,
     result: &mut DoctorResult,
 ) {
     if source_id == target_id {
@@ -127,7 +127,7 @@ fn check_self_referential_link(
 }
 
 pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
-    use crate::lib::note::LinkType;
+    use qipu_core::note::LinkType;
 
     let db = store.db();
 
@@ -228,10 +228,10 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
 
 fn check_follows_cycles(
     edges: &[(String, String, String)],
-    db: &crate::lib::db::Database,
+    db: &qipu_core::db::Database,
     result: &mut DoctorResult,
 ) {
-    use crate::lib::note::LinkType;
+    use qipu_core::note::LinkType;
 
     // Build adjacency list for follows links
     let mut follows_graph: HashMap<String, Vec<String>> = HashMap::new();

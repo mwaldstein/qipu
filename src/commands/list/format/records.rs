@@ -2,19 +2,19 @@
 
 use crate::cli::Cli;
 use crate::commands::format::status::format_custom_value;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::format::build_compaction_annotations;
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::format::build_compaction_annotations;
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 use std::collections::HashMap;
 
 /// Output in records format
 pub fn output_records(
     cli: &Cli,
     store: &Store,
-    notes: &[crate::lib::note::Note],
+    notes: &[qipu_core::note::Note],
     compaction_ctx: &CompactionContext,
-    note_map: &HashMap<&str, &crate::lib::note::Note>,
+    note_map: &HashMap<&str, &qipu_core::note::Note>,
     show_custom: bool,
 ) {
     println!(
@@ -31,9 +31,9 @@ pub fn output_records(
 /// Output a single note record
 fn output_note_record(
     cli: &Cli,
-    note: &crate::lib::note::Note,
+    note: &qipu_core::note::Note,
     compaction_ctx: &CompactionContext,
-    note_map: &HashMap<&str, &crate::lib::note::Note>,
+    note_map: &HashMap<&str, &qipu_core::note::Note>,
     show_custom: bool,
 ) {
     let tags_csv = if note.frontmatter.tags.is_empty() {
@@ -88,7 +88,7 @@ mod tests {
     fn test_output_records_empty() {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let store =
-            Store::init(temp_dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+            Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let all_notes = store.list_notes().unwrap();
@@ -102,7 +102,7 @@ mod tests {
     fn test_output_records_single_note() {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let store =
-            Store::init(temp_dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+            Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let note = store

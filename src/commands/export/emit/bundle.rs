@@ -1,10 +1,10 @@
 use super::links::{build_link_maps, rewrite_links};
 use crate::cli::Cli;
 use crate::commands::export::ExportOptions;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 
 pub fn export_bundle(
     notes: &[Note],

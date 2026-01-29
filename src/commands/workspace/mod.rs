@@ -4,7 +4,7 @@ pub mod merge;
 pub mod new;
 
 use crate::cli::{Cli, WorkspaceCommands};
-use crate::lib::error::Result;
+use qipu_core::error::Result;
 
 pub fn execute(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
     match command {

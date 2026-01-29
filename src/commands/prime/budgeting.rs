@@ -10,7 +10,7 @@ use crate::commands::prime::output::{build_base_human, build_base_json, build_ba
 pub const TARGET_MIN_CHARS: usize = 4000;
 pub const TARGET_MAX_CHARS: usize = 8000;
 
-fn estimate_char_count(notes: &[&crate::lib::note::Note], format: OutputFormat) -> usize {
+fn estimate_char_count(notes: &[&qipu_core::note::Note], format: OutputFormat) -> usize {
     match format {
         OutputFormat::Json => notes
             .iter()
@@ -33,12 +33,12 @@ fn estimate_char_count(notes: &[&crate::lib::note::Note], format: OutputFormat) 
 }
 
 pub fn select_notes_within_budget<'a>(
-    mocs: &'a [&'a crate::lib::note::Note],
-    _recent_notes: &[&crate::lib::note::Note],
+    mocs: &'a [&'a qipu_core::note::Note],
+    _recent_notes: &[&qipu_core::note::Note],
     store_path: &str,
     format: OutputFormat,
     is_empty: bool,
-) -> Vec<&'a crate::lib::note::Note> {
+) -> Vec<&'a qipu_core::note::Note> {
     let base_chars = estimate_base_char_count(store_path, format, is_empty);
     let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
     let remaining = target.saturating_sub(base_chars);
@@ -60,11 +60,11 @@ pub fn select_notes_within_budget<'a>(
 }
 
 pub fn select_recent_within_budget_compact<'a>(
-    recent_notes: &'a [&'a crate::lib::note::Note],
+    recent_notes: &'a [&'a qipu_core::note::Note],
     store_path: &str,
     format: OutputFormat,
     is_empty: bool,
-) -> Vec<&'a crate::lib::note::Note> {
+) -> Vec<&'a qipu_core::note::Note> {
     let base_chars = estimate_base_char_count(store_path, format, is_empty);
     let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
     let remaining = target.saturating_sub(base_chars);
@@ -86,12 +86,12 @@ pub fn select_recent_within_budget_compact<'a>(
 }
 
 pub fn select_recent_within_budget<'a>(
-    recent_notes: &'a [&'a crate::lib::note::Note],
-    selected_mocs: &[&crate::lib::note::Note],
+    recent_notes: &'a [&'a qipu_core::note::Note],
+    selected_mocs: &[&qipu_core::note::Note],
     store_path: &str,
     format: OutputFormat,
     is_empty: bool,
-) -> Vec<&'a crate::lib::note::Note> {
+) -> Vec<&'a qipu_core::note::Note> {
     let base_chars = estimate_base_char_count(store_path, format, is_empty);
     let moc_chars = estimate_char_count(selected_mocs, format);
     let target = (TARGET_MIN_CHARS + TARGET_MAX_CHARS) / 2;
@@ -122,7 +122,7 @@ fn estimate_base_char_count(store_path: &str, format: OutputFormat, is_empty: bo
 }
 
 fn estimate_single_note_char_count(
-    note: &crate::lib::note::Note,
+    note: &qipu_core::note::Note,
     format: OutputFormat,
     is_moc: bool,
 ) -> usize {

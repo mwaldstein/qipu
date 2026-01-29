@@ -1,9 +1,9 @@
 //! Link path command
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::Store;
 
 use super::{human, json, records, resolve_note_id, TreeOptions};
 
@@ -58,12 +58,12 @@ pub fn execute(
 
     // Verify both notes exist (check canonical IDs)
     if !index.contains(&canonical_from) {
-        return Err(crate::lib::error::QipuError::NoteNotFound {
+        return Err(qipu_core::error::QipuError::NoteNotFound {
             id: canonical_from.clone(),
         });
     }
     if !index.contains(&canonical_to) {
-        return Err(crate::lib::error::QipuError::NoteNotFound {
+        return Err(qipu_core::error::QipuError::NoteNotFound {
             id: canonical_to.clone(),
         });
     }
@@ -73,7 +73,7 @@ pub fn execute(
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
     // bfs_find_path now handles both weighted (Dijkstra) and unweighted (BFS) based on ignore_value flag
-    let result = crate::lib::graph::bfs_find_path(
+    let result = qipu_core::graph::bfs_find_path(
         &index,
         store,
         &canonical_from,
@@ -86,7 +86,7 @@ pub fn execute(
     // Build note map for compaction percentage calculation
     // Per spec (specs/compaction.md lines 104-109)
     let note_map = if compaction_ctx.is_some() {
-        let map: std::collections::HashMap<&str, &crate::lib::note::Note> =
+        let map: std::collections::HashMap<&str, &qipu_core::note::Note> =
             all_notes.iter().map(|n| (n.id(), n)).collect();
         Some(map)
     } else {

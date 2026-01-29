@@ -1,7 +1,7 @@
 use crate::cli::Cli;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::store::paths::WORKSPACES_DIR;
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::store::paths::WORKSPACES_DIR;
+use qipu_core::store::Store;
 use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
@@ -228,7 +228,7 @@ pub fn execute(
 }
 
 fn copy_note(
-    note: &crate::lib::note::Note,
+    note: &qipu_core::note::Note,
     dst: &Store,
     id_mappings: &HashMap<String, String>,
 ) -> Result<()> {
@@ -249,8 +249,8 @@ fn copy_note(
     };
 
     // Determine file path
-    let id_obj = crate::lib::id::NoteId::new_unchecked(new_note.id().to_string());
-    let file_name = crate::lib::id::filename(&id_obj, new_note.title());
+    let id_obj = qipu_core::id::NoteId::new_unchecked(new_note.id().to_string());
+    let file_name = qipu_core::id::filename(&id_obj, new_note.title());
     let file_path = target_dir.join(&file_name);
 
     new_note.path = Some(file_path);
@@ -260,7 +260,7 @@ fn copy_note(
 }
 
 fn copy_note_with_rename(
-    note: &crate::lib::note::Note,
+    note: &qipu_core::note::Note,
     dst: &Store,
     new_id: &str,
     id_mappings: &HashMap<String, String>,
@@ -285,8 +285,8 @@ fn copy_note_with_rename(
     };
 
     // Determine file path
-    let id_obj = crate::lib::id::NoteId::new_unchecked(new_id.to_string());
-    let file_name = crate::lib::id::filename(&id_obj, new_note.title());
+    let id_obj = qipu_core::id::NoteId::new_unchecked(new_id.to_string());
+    let file_name = qipu_core::id::filename(&id_obj, new_note.title());
     let file_path = target_dir.join(&file_name);
 
     new_note.path = Some(file_path);

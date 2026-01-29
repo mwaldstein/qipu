@@ -2,11 +2,11 @@ use super::bundle::export_bundle;
 use super::links::{build_link_maps, rewrite_links};
 use crate::cli::Cli;
 use crate::commands::export::ExportOptions;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::index::Index;
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::index::Index;
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 use std::collections::{HashMap, HashSet};
 
 #[allow(clippy::too_many_arguments)]

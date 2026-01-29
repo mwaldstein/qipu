@@ -1,4 +1,4 @@
-use crate::lib::graph::Direction;
+use qipu_core::graph::Direction;
 use serde::Serialize;
 
 /// Options for the dump command

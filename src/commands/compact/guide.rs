@@ -3,7 +3,7 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::error::Result;
+use qipu_core::error::Result;
 
 /// Execute `qipu compact guide`
 pub fn execute(cli: &Cli) -> Result<()> {

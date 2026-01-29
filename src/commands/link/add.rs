@@ -1,8 +1,8 @@
 //! Link add command
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
-use crate::lib::note::{LinkType, TypedLink};
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::note::{LinkType, TypedLink};
+use qipu_core::store::Store;
 
 use super::resolve_note_id;
 

@@ -2,11 +2,11 @@
 use std::collections::HashMap;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 
 use super::{
     human::output_tree_human, json::output_tree_json, records::output_tree_records,
@@ -52,7 +52,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
 
     // Verify note exists (check canonical ID)
     if !index.contains(&canonical_id) {
-        return Err(crate::lib::error::QipuError::NoteNotFound {
+        return Err(qipu_core::error::QipuError::NoteNotFound {
             id: canonical_id.clone(),
         });
     }
@@ -62,7 +62,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     tree_opts.semantic_inversion = !cli.no_semantic_inversion;
 
     let result = if tree_opts.ignore_value {
-        crate::lib::graph::bfs_traverse(
+        qipu_core::graph::bfs_traverse(
             &index,
             store,
             &canonical_id,
@@ -71,7 +71,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
             equivalence_map.as_ref(),
         )?
     } else {
-        crate::lib::graph::dijkstra_traverse(
+        qipu_core::graph::dijkstra_traverse(
             &index,
             store,
             &canonical_id,

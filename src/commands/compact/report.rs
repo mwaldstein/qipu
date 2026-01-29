@@ -4,9 +4,9 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 use super::utils::estimate_size;
 
@@ -44,7 +44,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
     }
 
     // Build index for edge analysis
-    let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+    let index = qipu_core::index::IndexBuilder::new(&store).build()?;
 
     if cli.verbose {
         debug!("build_index");
@@ -57,7 +57,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
         .unwrap_or_default();
 
     if direct_compacts.is_empty() {
-        return Err(crate::lib::error::QipuError::Other(format!(
+        return Err(qipu_core::error::QipuError::Other(format!(
             "Note {} does not compact any notes",
             digest_id
         )));
@@ -144,7 +144,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
 
     // Output
     match cli.format {
-        crate::lib::format::OutputFormat::Human => {
+        qipu_core::format::OutputFormat::Human => {
             println!("Compaction Report: {}", digest_id);
             println!("=================={}", "=".repeat(digest_id.len()));
             println!();
@@ -184,7 +184,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
                 println!("  Status: VALID (no conflicts or cycles)");
             }
         }
-        crate::lib::format::OutputFormat::Json => {
+        qipu_core::format::OutputFormat::Json => {
             let output = serde_json::json!({
                 "digest_id": digest_id,
                 "compacts_direct_count": compacts_direct_count,
@@ -206,7 +206,7 @@ pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        crate::lib::format::OutputFormat::Records => {
+        qipu_core::format::OutputFormat::Records => {
             println!(
                 "H qipu=1 records=1 mode=compact.report digest={} count={} compaction={:.1}% boundary_ratio={:.2} stale={} valid={}",
                 digest_id,

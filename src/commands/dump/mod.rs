@@ -17,12 +17,12 @@ use std::io::Write;
 use std::path::Path;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::graph::{Direction, TreeOptions};
-use crate::lib::index::{Index, IndexBuilder};
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::graph::{Direction, TreeOptions};
+use qipu_core::index::{Index, IndexBuilder};
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 
 pub use model::{DumpOptions, PackAttachment, PackLink};
 
@@ -167,7 +167,7 @@ fn collect_notes_with_traversal(
 
         let traversal_options = TreeOptions {
             direction: options.direction,
-            max_hops: crate::lib::graph::HopCost::from(options.max_hops),
+            max_hops: qipu_core::graph::HopCost::from(options.max_hops),
             type_include: options.type_include.clone(),
             type_exclude: Vec::new(),
             typed_only: options.typed_only,
@@ -228,7 +228,7 @@ fn collect_links(
         // Only include links between selected notes
         if selected_ids.contains(edge.from.as_str()) && selected_ids.contains(edge.to.as_str()) {
             // Determine if this is an inline link based on source
-            let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
+            let is_inline = matches!(edge.source, qipu_core::index::LinkSource::Inline);
 
             links.push(PackLink {
                 from: edge.from.clone(),
@@ -258,9 +258,9 @@ fn perform_simple_traversal(
     use std::collections::{HashSet, VecDeque};
 
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, crate::lib::graph::HopCost)> = VecDeque::new();
+    let mut queue: VecDeque<(String, qipu_core::graph::HopCost)> = VecDeque::new();
 
-    queue.push_back((root.to_string(), crate::lib::graph::HopCost::from(0)));
+    queue.push_back((root.to_string(), qipu_core::graph::HopCost::from(0)));
     visited.insert(root.to_string());
 
     while let Some((current_id, accumulated_cost)) = queue.pop_front() {
@@ -288,7 +288,7 @@ fn perform_simple_traversal(
                 }
 
                 // Determine if this is an inline link based on source
-                let is_inline = matches!(edge.source, crate::lib::index::LinkSource::Inline);
+                let is_inline = matches!(edge.source, qipu_core::index::LinkSource::Inline);
 
                 if !is_inline && opts.inline_only {
                     continue;
@@ -305,7 +305,7 @@ fn perform_simple_traversal(
 
                 if !visited.contains(neighbor_id) {
                     visited.insert(neighbor_id.clone());
-                    let edge_cost = crate::lib::graph::get_link_type_cost(
+                    let edge_cost = qipu_core::graph::get_link_type_cost(
                         edge.link_type.as_str(),
                         store.config(),
                     );

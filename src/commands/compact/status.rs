@@ -4,9 +4,9 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 /// Execute `qipu compact status`
 pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
@@ -59,7 +59,7 @@ pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
 
     // Output
     match cli.format {
-        crate::lib::format::OutputFormat::Human => {
+        qipu_core::format::OutputFormat::Human => {
             let note = store.get_note(note_id)?;
             println!("Note: {} ({})", note.frontmatter.title, note_id);
             println!();
@@ -95,7 +95,7 @@ pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
                 println!("  Compacts: (none)");
             }
         }
-        crate::lib::format::OutputFormat::Json => {
+        qipu_core::format::OutputFormat::Json => {
             let output = serde_json::json!({
                 "note_id": note_id,
                 "compactor": direct_compactor,
@@ -104,7 +104,7 @@ pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        crate::lib::format::OutputFormat::Records => {
+        qipu_core::format::OutputFormat::Records => {
             println!("H qipu=1 records=1 mode=compact.status note={}", note_id);
             if let Some(compactor) = direct_compactor {
                 println!("D compactor {}", compactor);

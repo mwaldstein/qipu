@@ -1,11 +1,11 @@
 use super::ExportMode;
 use crate::cli::Cli;
 use crate::commands::export::ExportOptions;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::note::{Note, Source};
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::note::{Note, Source};
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 
 pub fn export_records(
     notes: &[Note],

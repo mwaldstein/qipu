@@ -1,10 +1,10 @@
 //! Status message formatting helpers
 
 use crate::cli::Cli;
-use crate::lib::error::Result;
-use crate::lib::note::Note;
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::note::Note;
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 use serde_json::json;
 
 use super::CompactionInfo;
@@ -65,7 +65,7 @@ pub fn build_compaction_annotations(
 /// Handles different YAML value types (string, number, bool, etc.)
 pub fn format_custom_value(value: &serde_yaml::Value) -> String {
     match value {
-        serde_yaml::Value::String(s) => format!("\"{}\"", crate::lib::records::escape_quotes(s)),
+        serde_yaml::Value::String(s) => format!("\"{}\"", qipu_core::records::escape_quotes(s)),
         serde_yaml::Value::Number(n) => n.to_string(),
         serde_yaml::Value::Bool(b) => b.to_string(),
         _ => format!("{:?}", value),

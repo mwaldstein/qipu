@@ -16,11 +16,11 @@ pub mod records;
 pub mod remove;
 pub mod tree;
 
-pub use crate::lib::graph::{Direction, TreeOptions};
+pub use qipu_core::graph::{Direction, TreeOptions};
 
-use crate::lib::error::Result;
-use crate::lib::index::{Edge, Index, LinkSource};
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::index::{Edge, Index, LinkSource};
+use qipu_core::store::Store;
 
 use serde::Serialize;
 
@@ -74,7 +74,7 @@ pub fn resolve_note_id(store: &Store, id_or_path: &str) -> Result<String> {
         }
     }
 
-    Err(crate::lib::error::QipuError::NoteNotFound {
+    Err(qipu_core::error::QipuError::NoteNotFound {
         id: id_or_path.to_string(),
     })
 }

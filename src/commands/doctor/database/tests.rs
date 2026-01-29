@@ -1,6 +1,6 @@
 use super::*;
-use crate::lib::note::{LinkType, TypedLink};
-use crate::lib::store::InitOptions;
+use qipu_core::note::{LinkType, TypedLink};
+use qipu_core::store::InitOptions;
 use tempfile::tempdir;
 
 #[test]

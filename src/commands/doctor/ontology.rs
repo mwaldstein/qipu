@@ -1,9 +1,9 @@
 use super::types::{DoctorResult, Issue, Severity};
-use crate::lib::config::LinkTypeConfig;
-use crate::lib::config::OntologyConfig;
-use crate::lib::note::Note;
-use crate::lib::ontology::Ontology;
-use crate::lib::store::Store;
+use qipu_core::config::LinkTypeConfig;
+use qipu_core::config::OntologyConfig;
+use qipu_core::note::Note;
+use qipu_core::ontology::Ontology;
+use qipu_core::store::Store;
 
 pub fn check_ontology(store: &Store, notes: &[Note], result: &mut DoctorResult) {
     let config = store.config();
@@ -115,8 +115,8 @@ fn check_deprecated_graph_types(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::config::{LinkTypeConfig, NoteTypeConfig, OntologyConfig, OntologyMode};
-    use crate::lib::note::{Note, NoteFrontmatter, TypedLink};
+    use qipu_core::config::{LinkTypeConfig, NoteTypeConfig, OntologyConfig, OntologyMode};
+    use qipu_core::note::{Note, NoteFrontmatter, TypedLink};
     use tempfile::tempdir;
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
             frontmatter: NoteFrontmatter {
                 id: "test1".to_string(),
                 title: "Test Note 1".to_string(),
-                note_type: Some(crate::lib::note::NoteType::from("fleeting")),
+                note_type: Some(qipu_core::note::NoteType::from("fleeting")),
                 ..NoteFrontmatter::new("test1".to_string(), "Test Note 1".to_string())
             },
             path: Some(store_path.join("notes/test1.md")),
@@ -153,7 +153,7 @@ mod tests {
             frontmatter: NoteFrontmatter {
                 id: "test1".to_string(),
                 title: "Test Note 1".to_string(),
-                note_type: Some(crate::lib::note::NoteType::from("invalid-type")),
+                note_type: Some(qipu_core::note::NoteType::from("invalid-type")),
                 ..NoteFrontmatter::new("test1".to_string(), "Test Note 1".to_string())
             },
             path: Some(store_path.join("notes/test1.md")),
@@ -178,10 +178,10 @@ mod tests {
             frontmatter: NoteFrontmatter {
                 id: "test1".to_string(),
                 title: "Test Note 1".to_string(),
-                note_type: Some(crate::lib::note::NoteType::from("fleeting")),
+                note_type: Some(qipu_core::note::NoteType::from("fleeting")),
                 links: vec![TypedLink {
                     id: "test2".to_string(),
-                    link_type: crate::lib::note::LinkType::from("related"),
+                    link_type: qipu_core::note::LinkType::from("related"),
                 }],
                 ..NoteFrontmatter::new("test1".to_string(), "Test Note 1".to_string())
             },
@@ -206,10 +206,10 @@ mod tests {
             frontmatter: NoteFrontmatter {
                 id: "test1".to_string(),
                 title: "Test Note 1".to_string(),
-                note_type: Some(crate::lib::note::NoteType::from("fleeting")),
+                note_type: Some(qipu_core::note::NoteType::from("fleeting")),
                 links: vec![TypedLink {
                     id: "test2".to_string(),
-                    link_type: crate::lib::note::LinkType::from("invalid-type"),
+                    link_type: qipu_core::note::LinkType::from("invalid-type"),
                 }],
                 ..NoteFrontmatter::new("test1".to_string(), "Test Note 1".to_string())
             },

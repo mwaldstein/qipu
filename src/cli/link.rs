@@ -1,5 +1,5 @@
 use super::parse::parse_link_type;
-use crate::lib::note::LinkType;
+use qipu_core::note::LinkType;
 use clap::Subcommand;
 
 /// Link subcommands

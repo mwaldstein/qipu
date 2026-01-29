@@ -12,11 +12,11 @@ pub mod format;
 use chrono::{DateTime, Utc};
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::note::NoteType;
-use crate::lib::query::NoteFilter;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::note::NoteType;
+use qipu_core::query::NoteFilter;
+use qipu_core::store::Store;
 
 use self::format::{output_human, output_json, output_records};
 

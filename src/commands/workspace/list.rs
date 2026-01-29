@@ -1,9 +1,9 @@
 use crate::cli::Cli;
 use crate::cli::OutputFormat;
-use crate::lib::error::Result;
-use crate::lib::store::paths::{WORKSPACES_DIR, WORKSPACE_FILE};
-use crate::lib::store::workspace::WorkspaceMetadata;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::store::paths::{WORKSPACES_DIR, WORKSPACE_FILE};
+use qipu_core::store::workspace::WorkspaceMetadata;
+use qipu_core::store::Store;
 use std::env;
 use std::path::PathBuf;
 use std::time::Instant;

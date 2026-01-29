@@ -7,8 +7,8 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::store::Store;
 
 use super::discover_or_open_store;
 
@@ -75,7 +75,7 @@ pub(super) fn handle_index(
     rewrite_wiki_links: bool,
     quick: bool,
     tag: Option<String>,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     recent: Option<usize>,
     moc: Option<String>,
     status: bool,

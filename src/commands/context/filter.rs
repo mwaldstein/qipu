@@ -5,7 +5,7 @@
 //! - Existence: `key` (present), `!key` (absent)
 //! - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
 
-use crate::lib::error::{QipuError, Result};
+use qipu_core::error::{QipuError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 

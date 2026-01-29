@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/llm-tool-test"]
+members = [".", "crates/llm-tool-test", "crates/qipu-core"]
 
 [package]
 name = "qipu"
@@ -13,6 +13,7 @@ keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
 categories = ["command-line-utilities"]
 
 [dependencies]
+qipu-core = { path = "crates/qipu-core" }
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }
 

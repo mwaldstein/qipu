@@ -1,6 +1,6 @@
 use super::types::{DoctorResult, Issue, Severity};
-use crate::lib::store::paths::ATTACHMENTS_DIR;
-use crate::lib::store::Store;
+use qipu_core::store::paths::ATTACHMENTS_DIR;
+use qipu_core::store::Store;
 
 pub fn check_store_structure(store: &Store, result: &mut DoctorResult) {
     if !store.notes_dir().exists() {

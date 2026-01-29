@@ -1,9 +1,9 @@
 //! Merge two notes into one
 use crate::cli::Cli;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::index::IndexBuilder;
-use crate::lib::note::TypedLink;
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::index::IndexBuilder;
+use qipu_core::note::TypedLink;
+use qipu_core::store::Store;
 use std::collections::HashSet;
 
 /// Execute the merge command

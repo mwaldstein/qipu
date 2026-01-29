@@ -14,11 +14,11 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::note::NoteType;
-use crate::lib::search;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::note::NoteType;
+use qipu_core::search;
+use qipu_core::store::Store;
 
 use self::format::{output_human, output_json, output_records};
 
@@ -94,7 +94,7 @@ pub fn execute(
 
     let (results, notes_cache, _compacts_count) = search::process_search_results(
         results,
-        cli,
+        !cli.no_resolve_compaction,
         store,
         &compaction_ctx,
         &compaction_note_map,
@@ -148,8 +148,8 @@ pub fn execute(
 mod tests {
     use super::*;
     use crate::cli::Cli;
-    use crate::lib::note::NoteType;
-    use crate::lib::store::InitOptions;
+    use qipu_core::note::NoteType;
+    use qipu_core::store::InitOptions;
     use tempfile::tempdir;
 
     #[test]

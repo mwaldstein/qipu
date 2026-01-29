@@ -7,9 +7,9 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::doctor;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::Store;
 
 /// Execute the sync command
 pub fn execute(
@@ -30,15 +30,15 @@ pub fn execute(
     // Step 2: Handle git automation if branch is configured
     if let Some(branch_name) = &store.config().branch {
         if commit || push {
-            use crate::lib::git;
+            use qipu_core::git;
 
             // Determine repository root (assume store parent for now)
             let repo_root = store.root().parent().ok_or_else(|| {
-                crate::lib::error::QipuError::Other("Cannot determine repository root".to_string())
+                qipu_core::error::QipuError::Other("Cannot determine repository root".to_string())
             })?;
 
             if !git::is_git_available() {
-                return Err(crate::lib::error::QipuError::Other(
+                return Err(qipu_core::error::QipuError::Other(
                     "Git not found in PATH".to_string(),
                 ));
             }

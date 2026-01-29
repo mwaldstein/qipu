@@ -111,7 +111,7 @@ pub struct Cli {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::note::NoteType;
+    use qipu_core::note::NoteType;
 
     #[test]
     fn test_parse_cli_help() {

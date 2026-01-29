@@ -7,7 +7,7 @@
 //! Error messages showing valid types from the active ontology are generated in commands
 //! when validation fails (e.g., capture/create/link commands).
 
-use crate::lib::note::{LinkType, NoteType};
+use qipu_core::note::{LinkType, NoteType};
 
 /// Parse note type from string
 ///

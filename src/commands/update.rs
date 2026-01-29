@@ -12,9 +12,9 @@ use std::path::Path;
 use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::{QipuError, Result};
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 
 /// Execute the update command
 #[allow(clippy::too_many_arguments)]
@@ -23,7 +23,7 @@ pub fn execute(
     store: &Store,
     id_or_path: &str,
     title: Option<&str>,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,
@@ -61,8 +61,8 @@ pub fn execute(
 
         // Rename the file if title changed
         if new_title != note.title() {
-            let note_id_ref = crate::lib::id::NoteId::new_unchecked(note_id.clone());
-            let new_file_name = crate::lib::id::filename(&note_id_ref, new_title);
+            let note_id_ref = qipu_core::id::NoteId::new_unchecked(note_id.clone());
+            let new_file_name = qipu_core::id::filename(&note_id_ref, new_title);
             let new_file_path = note_path
                 .parent()
                 .ok_or_else(|| QipuError::Other("cannot determine parent directory".to_string()))?
@@ -92,9 +92,9 @@ pub fn execute(
 
             if is_moc != was_moc {
                 let target_dir = if is_moc {
-                    store.root().join(crate::lib::store::paths::MOCS_DIR)
+                    store.root().join(qipu_core::store::paths::MOCS_DIR)
                 } else {
-                    store.root().join(crate::lib::store::paths::NOTES_DIR)
+                    store.root().join(qipu_core::store::paths::NOTES_DIR)
                 };
 
                 let new_file_path = target_dir
@@ -224,7 +224,7 @@ pub fn execute(
             println!("{}", note_id);
         }
         OutputFormat::Records => {
-            use crate::lib::records::escape_quotes;
+            use qipu_core::records::escape_quotes;
 
             println!(
                 "H qipu=1 records=1 store={} mode=update",

@@ -2,9 +2,9 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::format::{print_ontology_human, print_ontology_json, print_ontology_records};
-use crate::lib::error::Result;
-use crate::lib::ontology::Ontology;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::ontology::Ontology;
+use qipu_core::store::Store;
 
 /// Execute the show command
 pub fn execute_show(cli: &Cli, store: &Store) -> Result<()> {

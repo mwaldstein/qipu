@@ -1,6 +1,6 @@
 use super::*;
-use crate::lib::note::NoteFrontmatter;
-use crate::lib::store::InitOptions;
+use qipu_core::note::NoteFrontmatter;
+use qipu_core::store::InitOptions;
 use tempfile::tempdir;
 
 fn test_store() -> (tempfile::TempDir, Store) {

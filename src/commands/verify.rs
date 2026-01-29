@@ -4,9 +4,9 @@ use std::fs;
 use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 
 /// Execute the verify command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>) -> Result<()> {

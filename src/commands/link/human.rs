@@ -1,10 +1,10 @@
 use super::LinkEntry;
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::graph::types::SpanningTreeEntry;
-use crate::lib::graph::{PathResult, TreeResult};
-use crate::lib::index::Index;
-use crate::lib::note::Note;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::graph::types::SpanningTreeEntry;
+use qipu_core::graph::{PathResult, TreeResult};
+use qipu_core::index::Index;
+use qipu_core::note::Note;
 use std::collections::{HashMap, HashSet};
 
 /// Output in human-readable format
@@ -89,10 +89,10 @@ pub fn output_human(
 pub fn output_path_human(
     cli: &Cli,
     result: &PathResult,
-    _store: &crate::lib::store::Store,
+    _store: &qipu_core::store::Store,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &Note>>,
-    all_notes: &[crate::lib::note::Note],
+    all_notes: &[qipu_core::note::Note],
 ) {
     if !result.found {
         if !cli.quiet {
@@ -211,7 +211,7 @@ pub fn output_tree_human(
     cli: &Cli,
     result: &TreeResult,
     index: &Index,
-    _store: &crate::lib::store::Store,
+    _store: &qipu_core::store::Store,
     compaction_ctx: Option<&CompactionContext>,
     note_map: Option<&HashMap<&str, &Note>>,
     all_notes: &[Note],

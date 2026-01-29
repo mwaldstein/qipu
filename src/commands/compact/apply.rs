@@ -6,9 +6,9 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 /// Execute `qipu compact apply`
 pub fn execute(
@@ -76,7 +76,7 @@ pub fn execute(
     }
 
     if source_ids.is_empty() {
-        return Err(crate::lib::error::QipuError::UsageError(
+        return Err(qipu_core::error::QipuError::UsageError(
             "no source note IDs provided (use --note, --from-stdin, or --notes-file)".to_string(),
         ));
     }
@@ -119,7 +119,7 @@ pub fn execute(
         for err in &errors {
             tracing::warn!("  - {}", err);
         }
-        return Err(crate::lib::error::QipuError::Other(
+        return Err(qipu_core::error::QipuError::Other(
             "compaction invariants violated".to_string(),
         ));
     }
@@ -138,7 +138,7 @@ pub fn execute(
 
     // Output
     match cli.format {
-        crate::lib::format::OutputFormat::Human => {
+        qipu_core::format::OutputFormat::Human => {
             println!("Applied compaction:");
             println!("  Digest: {}", digest_id);
             println!("  Compacts {} notes:", source_ids.len());
@@ -146,7 +146,7 @@ pub fn execute(
                 println!("    - {}", id);
             }
         }
-        crate::lib::format::OutputFormat::Json => {
+        qipu_core::format::OutputFormat::Json => {
             let output = serde_json::json!({
                 "digest_id": digest_id,
                 "compacts": source_ids,
@@ -154,7 +154,7 @@ pub fn execute(
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        crate::lib::format::OutputFormat::Records => {
+        qipu_core::format::OutputFormat::Records => {
             println!(
                 "H qipu=1 records=1 mode=compact.apply digest={} count={}",
                 digest_id,

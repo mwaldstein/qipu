@@ -1,9 +1,9 @@
 use super::types::{DoctorResult, Issue, Severity};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::index::Index;
-use crate::lib::note::Note;
-use crate::lib::store::paths::ATTACHMENTS_DIR;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::index::Index;
+use qipu_core::note::Note;
+use qipu_core::store::paths::ATTACHMENTS_DIR;
+use qipu_core::store::Store;
 use regex::Regex;
 use std::collections::{BTreeSet, HashSet};
 use std::fs;
@@ -137,7 +137,7 @@ pub fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
 }
 
 pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorResult) {
-    use crate::lib::similarity::find_all_duplicates;
+    use qipu_core::similarity::find_all_duplicates;
     let duplicates = find_all_duplicates(index, threshold);
 
     for (id1, id2, score) in duplicates {

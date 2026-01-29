@@ -4,9 +4,9 @@ use base64::{engine::general_purpose, Engine as _};
 
 use super::model::{PackAttachment, PackLink, PackNote};
 use super::LoadStrategy;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::note::{Note, NoteFrontmatter, NoteType, Source};
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::note::{Note, NoteFrontmatter, NoteType, Source};
+use qipu_core::store::Store;
 
 fn write_note_preserving_updated(
     store: &Store,
@@ -223,7 +223,7 @@ pub fn load_links(
                             source_note
                                 .frontmatter
                                 .links
-                                .push(crate::lib::note::TypedLink {
+                                .push(qipu_core::note::TypedLink {
                                     link_type,
                                     id: pack_link.to.clone(),
                                 });

@@ -1,21 +1,28 @@
 //! JSON output formatting for list command
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::format::add_compaction_to_json;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::format::add_compaction_to_json;
+use qipu_core::format::CompactionOutputOptions;
+use qipu_core::store::Store;
 use std::collections::HashMap;
 
 /// Output in JSON format
 pub fn output_json(
     cli: &Cli,
     _store: &Store,
-    notes: &[crate::lib::note::Note],
+    notes: &[qipu_core::note::Note],
     compaction_ctx: &CompactionContext,
-    note_map: &HashMap<&str, &crate::lib::note::Note>,
+    note_map: &HashMap<&str, &qipu_core::note::Note>,
     show_custom: bool,
 ) -> Result<()> {
+    let opts = CompactionOutputOptions {
+        with_compaction_ids: cli.with_compaction_ids,
+        compaction_depth: cli.compaction_depth,
+        compaction_max_nodes: cli.compaction_max_nodes,
+    };
+
     let output: Vec<_> = notes
         .iter()
         .map(|n| {
@@ -30,7 +37,7 @@ pub fn output_json(
                 "path": n.path,
             });
 
-            add_compaction_to_json(cli, n.id(), &mut json, compaction_ctx, note_map);
+            add_compaction_to_json(&opts, n.id(), &mut json, compaction_ctx, note_map);
 
             if show_custom && !n.frontmatter.custom.is_empty() {
                 if let Some(obj) = json.as_object_mut() {
@@ -57,8 +64,7 @@ mod tests {
     #[test]
     fn test_output_json_empty() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let store =
-            Store::init(temp_dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+        let store = Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let all_notes = store.list_notes().unwrap();
@@ -72,8 +78,7 @@ mod tests {
     #[test]
     fn test_output_json_single_note() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let store =
-            Store::init(temp_dir.path(), crate::lib::store::InitOptions::default()).unwrap();
+        let store = Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let note = store

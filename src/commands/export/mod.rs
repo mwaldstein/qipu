@@ -14,10 +14,10 @@ use std::fs::File;
 use std::io::Write;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::Store;
 
 /// Export mode
 #[derive(Debug, Clone, PartialEq)]
@@ -307,7 +307,7 @@ fn convert_to_pdf(content: &str, output_path: &std::path::Path, cli: &Cli) -> Re
 /// Copy referenced attachments to the target directory
 fn copy_attachments(
     store: &Store,
-    notes: &[crate::lib::note::Note],
+    notes: &[qipu_core::note::Note],
     target_dir: &std::path::Path,
     cli: &Cli,
 ) -> Result<()> {

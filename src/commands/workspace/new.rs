@@ -1,11 +1,11 @@
 use crate::cli::Cli;
-use crate::lib::error::Result;
-use crate::lib::index::Index;
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::config;
-use crate::lib::store::paths::{GITIGNORE_FILE, WORKSPACES_DIR, WORKSPACE_FILE};
-use crate::lib::store::workspace::WorkspaceMetadata;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::index::Index;
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::config;
+use qipu_core::store::paths::{GITIGNORE_FILE, WORKSPACES_DIR, WORKSPACE_FILE};
+use qipu_core::store::workspace::WorkspaceMetadata;
+use qipu_core::store::Store;
 use std::collections::{HashSet, VecDeque};
 use std::env;
 use std::path::PathBuf;
@@ -38,14 +38,14 @@ pub fn execute(
     let workspace_path = primary_store.root().join(WORKSPACES_DIR).join(name);
 
     if workspace_path.exists() {
-        return Err(crate::lib::error::QipuError::Other(format!(
+        return Err(qipu_core::error::QipuError::Other(format!(
             "workspace '{}' already exists",
             name
         )));
     }
 
     // Initialize the new store
-    let options = crate::lib::store::InitOptions {
+    let options = qipu_core::store::InitOptions {
         visible: false,
         stealth: false,
         branch: None,
@@ -139,7 +139,7 @@ fn copy_notes(src: &Store, dst: &Store) -> Result<()> {
     Ok(())
 }
 
-fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
+fn copy_note(note: &qipu_core::note::Note, dst: &Store) -> Result<()> {
     let mut new_note = note.clone();
 
     // Determine target directory
@@ -150,8 +150,8 @@ fn copy_note(note: &crate::lib::note::Note, dst: &Store) -> Result<()> {
     };
 
     // Determine file path
-    let id_obj = crate::lib::id::NoteId::new_unchecked(new_note.id().to_string());
-    let file_name = crate::lib::id::filename(&id_obj, new_note.title());
+    let id_obj = qipu_core::id::NoteId::new_unchecked(new_note.id().to_string());
+    let file_name = qipu_core::id::filename(&id_obj, new_note.title());
     let file_path = target_dir.join(&file_name);
 
     new_note.path = Some(file_path);
@@ -181,7 +181,7 @@ fn copy_graph_slice(src: &Store, index: &Index, root_ids: &[String], dst: &Store
                 copy_note(&note, dst)?;
             }
             Err(_) => {
-                return Err(crate::lib::error::QipuError::NoteNotFound {
+                return Err(qipu_core::error::QipuError::NoteNotFound {
                     id: current_id.to_string(),
                 });
             }

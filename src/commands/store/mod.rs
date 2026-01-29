@@ -2,8 +2,8 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::context::path_relative_to_cwd;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 /// Execute the stats command
 pub fn execute_stats(cli: &Cli, store: &Store) -> Result<()> {

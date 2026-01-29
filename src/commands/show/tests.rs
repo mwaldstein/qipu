@@ -2,9 +2,9 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::show;
-use crate::lib::note::NoteType;
-use crate::lib::store::InitOptions;
-use crate::lib::store::Store;
+use qipu_core::note::NoteType;
+use qipu_core::store::InitOptions;
+use qipu_core::store::Store;
 use std::fs;
 use std::io::Write;
 use tempfile::tempdir;

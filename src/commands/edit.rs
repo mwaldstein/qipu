@@ -12,8 +12,8 @@ use std::process::Command;
 use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::{QipuError, Result};
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::store::Store;
 
 /// Execute the edit command
 pub fn execute(
@@ -25,7 +25,7 @@ pub fn execute(
     // Load the note (either by ID or path)
     let mut note = if Path::new(id_or_path).exists() {
         let content = std::fs::read_to_string(id_or_path)?;
-        crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+        qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
     } else {
         store.get_note(id_or_path)?
     };
@@ -67,7 +67,7 @@ pub fn execute(
 
     // Reload the note from disk to get the edited content
     let updated_content = std::fs::read_to_string(&note_path)?;
-    note = crate::lib::note::Note::parse(&updated_content, Some(note_path.clone()))?;
+    note = qipu_core::note::Note::parse(&updated_content, Some(note_path.clone()))?;
 
     // Save the note (this updates both file and database atomically)
     store.save_note(&mut note)?;

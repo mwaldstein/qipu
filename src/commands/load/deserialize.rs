@@ -1,7 +1,7 @@
 #![allow(clippy::manual_strip)]
 
 use super::model::{PackAttachment, PackData, PackHeader, PackLink, PackNote, PackSource};
-use crate::lib::error::{QipuError, Result};
+use qipu_core::error::{QipuError, Result};
 use base64::{engine::general_purpose, Engine as _};
 use std::collections::HashMap;
 use std::path::Path;

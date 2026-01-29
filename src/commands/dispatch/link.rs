@@ -7,7 +7,7 @@ use tracing::debug;
 
 use crate::cli::{Cli, LinkCommands};
 use crate::commands;
-use crate::lib::error::{QipuError, Result};
+use qipu_core::error::{QipuError, Result};
 
 use super::discover_or_open_store;
 
@@ -32,7 +32,7 @@ pub(super) fn handle_link(
             max_chars,
         } => {
             let dir = direction
-                .parse::<crate::lib::graph::Direction>()
+                .parse::<qipu_core::graph::Direction>()
                 .map_err(QipuError::Other)?;
             commands::link::list::execute(
                 cli,
@@ -79,13 +79,13 @@ pub(super) fn handle_link(
             ignore_value,
         } => {
             let dir = direction
-                .parse::<crate::lib::graph::Direction>()
+                .parse::<qipu_core::graph::Direction>()
                 .map_err(|e| {
                     QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
                 })?;
-            let opts = crate::lib::graph::TreeOptions {
+            let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
-                max_hops: crate::lib::graph::HopCost::from(*max_hops),
+                max_hops: qipu_core::graph::HopCost::from(*max_hops),
                 type_include: r#type.clone(),
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,
@@ -118,13 +118,13 @@ pub(super) fn handle_link(
             ignore_value,
         } => {
             let dir = direction
-                .parse::<crate::lib::graph::Direction>()
+                .parse::<qipu_core::graph::Direction>()
                 .map_err(|e| {
                     QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
                 })?;
-            let opts = crate::lib::graph::TreeOptions {
+            let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
-                max_hops: crate::lib::graph::HopCost::from(*max_hops),
+                max_hops: qipu_core::graph::HopCost::from(*max_hops),
                 type_include: r#type.clone(),
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,

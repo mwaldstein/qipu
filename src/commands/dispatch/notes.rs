@@ -8,9 +8,9 @@ use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 
 use super::discover_or_open_store;
 
@@ -49,7 +49,7 @@ pub(super) fn handle_list(
     cli: &Cli,
     root: &PathBuf,
     tag: Option<&str>,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     since: Option<&str>,
     min_value: Option<u8>,
     custom: Option<&str>,
@@ -119,7 +119,7 @@ pub(super) fn handle_inbox(
 
     // Apply compaction visibility filter
     let notes = if !cli.no_resolve_compaction {
-        let compaction_ctx = crate::lib::compaction::CompactionContext::build(&notes)?;
+        let compaction_ctx = qipu_core::compaction::CompactionContext::build(&notes)?;
         notes
             .into_iter()
             .filter(|n| !compaction_ctx.is_compacted(&n.frontmatter.id))
@@ -133,14 +133,14 @@ pub(super) fn handle_inbox(
         .filter(|n| {
             matches!(
                 n.note_type().as_str(),
-                crate::lib::note::NoteType::FLEETING | crate::lib::note::NoteType::LITERATURE
+                qipu_core::note::NoteType::FLEETING | qipu_core::note::NoteType::LITERATURE
             )
         })
         .collect();
 
     // Filter out notes linked from MOCs if requested
     if exclude_linked {
-        let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+        let index = qipu_core::index::IndexBuilder::new(&store).build()?;
         if cli.verbose {
             debug!(elapsed = ?start.elapsed(), "load_indexes");
         }
@@ -165,7 +165,7 @@ pub(super) fn handle_inbox(
 fn output_inbox_notes(
     cli: &Cli,
     store: &Store,
-    inbox_notes: &[crate::lib::note::Note],
+    inbox_notes: &[qipu_core::note::Note],
 ) -> Result<()> {
     match cli.format {
         OutputFormat::Json => {
@@ -203,8 +203,8 @@ fn output_inbox_notes(
             } else {
                 for note in inbox_notes {
                     let type_indicator = match note.note_type().as_str() {
-                        crate::lib::note::NoteType::FLEETING => "F",
-                        crate::lib::note::NoteType::LITERATURE => "L",
+                        qipu_core::note::NoteType::FLEETING => "F",
+                        qipu_core::note::NoteType::LITERATURE => "L",
                         _ => "?",
                     };
                     println!("{} [{}] {}", note.id(), type_indicator, note.title());
@@ -241,7 +241,7 @@ pub(super) fn handle_capture(
     cli: &Cli,
     root: &PathBuf,
     title: Option<&str>,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     tags: &[String],
     source: Option<String>,
     author: Option<String>,
@@ -297,7 +297,7 @@ pub(super) fn handle_search(
     cli: &Cli,
     root: &PathBuf,
     query: &str,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     tag: Option<&str>,
     exclude_mocs: bool,
     min_value: Option<u8>,
@@ -442,7 +442,7 @@ pub(super) fn handle_update(
     root: &PathBuf,
     id_or_path: &str,
     title: Option<&str>,
-    note_type: Option<crate::lib::note::NoteType>,
+    note_type: Option<qipu_core::note::NoteType>,
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,

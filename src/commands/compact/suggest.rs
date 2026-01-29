@@ -4,8 +4,8 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 /// Execute `qipu compact suggest`
 pub fn execute(cli: &Cli) -> Result<()> {
@@ -30,7 +30,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
     }
 
     // Build index for graph analysis
-    let index = crate::lib::index::IndexBuilder::new(&store).build()?;
+    let index = qipu_core::index::IndexBuilder::new(&store).build()?;
 
     if cli.verbose {
         debug!("build_index");
@@ -38,7 +38,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
 
     // Find compaction candidates
     let all_notes = store.list_notes()?;
-    let ctx = crate::lib::compaction::CompactionContext::build(&all_notes)?;
+    let ctx = qipu_core::compaction::CompactionContext::build(&all_notes)?;
 
     if cli.verbose {
         debug!(note_count = all_notes.len(), "build_compaction_context");
@@ -56,7 +56,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
 
     // Output
     match cli.format {
-        crate::lib::format::OutputFormat::Human => {
+        qipu_core::format::OutputFormat::Human => {
             if candidates.is_empty() {
                 println!("No compaction candidates found.");
                 println!();
@@ -99,7 +99,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
                 println!();
             }
         }
-        crate::lib::format::OutputFormat::Json => {
+        qipu_core::format::OutputFormat::Json => {
             let output: Vec<_> = candidates.iter().map(|c| {
                 let note_flags = c.ids.iter()
                     .map(|id| format!("--note {}", id))
@@ -121,7 +121,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
 
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        crate::lib::format::OutputFormat::Records => {
+        qipu_core::format::OutputFormat::Records => {
             println!(
                 "H qipu=1 records=1 mode=compact.suggest candidates={}",
                 candidates.len()

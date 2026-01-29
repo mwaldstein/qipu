@@ -1,9 +1,9 @@
 use super::model::{PackAttachment, PackLink};
-use crate::lib::config::STORE_FORMAT_VERSION;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::note::Note;
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::config::STORE_FORMAT_VERSION;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::note::Note;
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 use base64::{engine::general_purpose, Engine as _};
 
 /// Serialize pack in records format (compact, line-oriented)

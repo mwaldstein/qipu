@@ -1284,6 +1284,35 @@ dependencies = [
  "hex",
  "mime_guess",
  "predicates",
+ "qipu-core",
+ "regex",
+ "rusqlite",
+ "rust-stemmers",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "slug",
+ "tempfile",
+ "thiserror 1.0.69",
+ "toml",
+ "tracing",
+ "tracing-attributes",
+ "tracing-subscriber",
+ "ulid",
+ "walkdir",
+]
+
+[[package]]
+name = "qipu-core"
+version = "0.2.61"
+dependencies = [
+ "base64",
+ "chrono",
+ "clap",
+ "ctrlc",
+ "hex",
+ "mime_guess",
  "regex",
  "rusqlite",
  "rust-stemmers",

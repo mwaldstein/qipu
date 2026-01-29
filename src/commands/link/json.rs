@@ -1,15 +1,15 @@
 use super::LinkEntry;
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::graph::{PathResult, TreeResult};
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::graph::{PathResult, TreeResult};
 
 /// Output in JSON format
 pub fn output_json(
     cli: &Cli,
     entries: &[LinkEntry],
     compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
+    note_map: Option<&std::collections::HashMap<&str, &qipu_core::note::Note>>,
 ) -> Result<()> {
     let json_output: Vec<serde_json::Value> = entries
         .iter()
@@ -80,8 +80,8 @@ pub fn output_path_json(
     cli: &Cli,
     result: &PathResult,
     compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
-    all_notes: &[crate::lib::note::Note],
+    note_map: Option<&std::collections::HashMap<&str, &qipu_core::note::Note>>,
+    all_notes: &[qipu_core::note::Note],
 ) -> Result<()> {
     let mut json_result = serde_json::to_value(result)?;
     if let Some(ctx) = compaction_ctx {
@@ -142,7 +142,7 @@ pub fn output_path_json(
                                     "compacted_notes".to_string(),
                                     serde_json::json!(compacted_notes
                                         .iter()
-                                        .map(|n: &&crate::lib::note::Note| {
+                                        .map(|n: &&qipu_core::note::Note| {
                                             serde_json::json!({
                                                 "id": n.id(),
                                                 "title": n.title(),
@@ -188,8 +188,8 @@ pub fn output_tree_json(
     cli: &Cli,
     result: &TreeResult,
     compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&std::collections::HashMap<&str, &crate::lib::note::Note>>,
-    all_notes: &[crate::lib::note::Note],
+    note_map: Option<&std::collections::HashMap<&str, &qipu_core::note::Note>>,
+    all_notes: &[qipu_core::note::Note],
 ) -> Result<()> {
     let mut json_result = serde_json::to_value(result)?;
     if let Some(ctx) = compaction_ctx {
@@ -250,7 +250,7 @@ pub fn output_tree_json(
                                     "compacted_notes".to_string(),
                                     serde_json::json!(compacted_notes
                                         .iter()
-                                        .map(|n: &&crate::lib::note::Note| {
+                                        .map(|n: &&qipu_core::note::Note| {
                                             serde_json::json!({
                                                 "id": n.id(),
                                                 "title": n.title(),

@@ -1,12 +1,12 @@
 use super::{Direction, LinkEntry, TreeOptions};
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::graph::types::{TreeLink, TreeNote};
-use crate::lib::graph::{PathResult, TreeResult};
-use crate::lib::index::Index;
-use crate::lib::note::Note;
-use crate::lib::records::{escape_quotes, path_relative_to_cwd};
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::graph::types::{TreeLink, TreeNote};
+use qipu_core::graph::{PathResult, TreeResult};
+use qipu_core::index::Index;
+use qipu_core::note::Note;
+use qipu_core::records::{escape_quotes, path_relative_to_cwd};
+use qipu_core::store::Store;
 use std::collections::HashMap;
 
 /// Output in records format
@@ -108,7 +108,7 @@ fn append_note_metadata_lines(
     }
 }
 
-fn append_summary_line(lines: &mut Vec<String>, link_id: &str, note: &crate::lib::note::Note) {
+fn append_summary_line(lines: &mut Vec<String>, link_id: &str, note: &qipu_core::note::Note) {
     let summary = note.summary();
     if !summary.is_empty() {
         let summary_text = summary.lines().next().unwrap_or("").trim();

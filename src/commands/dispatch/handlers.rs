@@ -7,7 +7,7 @@ use std::time::Instant;
 use crate::cli::{
     Cli, CustomCommands, OntologyCommands, OutputFormat, StoreCommands, TagsCommands, ValueCommands,
 };
-use crate::lib::error::{QipuError, Result};
+use qipu_core::error::{QipuError, Result};
 use tracing::debug;
 
 use super::discover_or_open_store;
@@ -82,7 +82,7 @@ pub(super) fn handle_value(
 
             let mut note = if Path::new(id_or_path).exists() {
                 let content = fs::read_to_string(id_or_path)?;
-                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+                qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
             } else {
                 store.get_note(id_or_path)?
             };
@@ -116,7 +116,7 @@ pub(super) fn handle_value(
         ValueCommands::Show { id_or_path } => {
             let note = if Path::new(id_or_path).exists() {
                 let content = fs::read_to_string(id_or_path)?;
-                crate::lib::note::Note::parse(&content, Some(id_or_path.into()))?
+                qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
             } else {
                 store.get_note(id_or_path)?
             };

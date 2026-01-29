@@ -16,10 +16,10 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
-use crate::lib::note::NoteType;
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::note::NoteType;
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 
 /// Execute the capture command
 #[allow(clippy::too_many_arguments)]

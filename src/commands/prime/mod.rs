@@ -11,9 +11,9 @@ pub mod output;
 
 use crate::cli::Cli;
 use crate::commands::context::path_relative_to_cwd;
-use crate::lib::error::Result;
-use crate::lib::ontology::Ontology;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::ontology::Ontology;
+use qipu_core::store::Store;
 
 use budgeting::{
     select_notes_within_budget, select_recent_within_budget, select_recent_within_budget_compact,

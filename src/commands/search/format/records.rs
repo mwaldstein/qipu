@@ -1,20 +1,20 @@
 //! Records output formatting for search command
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::format::build_compaction_annotations;
-use crate::lib::records::escape_quotes;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::format::build_compaction_annotations;
+use qipu_core::records::escape_quotes;
+use qipu_core::store::Store;
 use std::collections::HashMap;
 
 /// Output in records format
 pub fn output_records(
     cli: &Cli,
     store: &Store,
-    results: &[crate::lib::index::SearchResult],
+    results: &[qipu_core::index::SearchResult],
     compaction_ctx: &Option<CompactionContext>,
-    _notes_cache: &HashMap<String, crate::lib::note::Note>,
-    compaction_note_map: &Option<std::collections::HashMap<&str, &crate::lib::note::Note>>,
+    _notes_cache: &HashMap<String, qipu_core::note::Note>,
+    compaction_note_map: &Option<std::collections::HashMap<&str, &qipu_core::note::Note>>,
     query: &str,
 ) {
     println!(

@@ -1,15 +1,15 @@
 use crate::cli::Cli;
 use crate::commands::context::types::{ContextOptions, SelectedNote};
 use crate::commands::context::walk;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::index::IndexBuilder;
-use crate::lib::note::Note;
-use crate::lib::similarity::SimilarityEngine;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::index::IndexBuilder;
+use qipu_core::note::Note;
+use qipu_core::similarity::SimilarityEngine;
+use qipu_core::store::Store;
 
-use crate::lib::db::Database;
-use crate::lib::note::LinkType;
+use qipu_core::db::Database;
+use qipu_core::note::LinkType;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;

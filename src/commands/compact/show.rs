@@ -4,9 +4,9 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 use super::utils::estimate_size;
 
@@ -51,10 +51,10 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
 
     if direct_compacts.is_empty() {
         match cli.format {
-            crate::lib::format::OutputFormat::Human => {
+            qipu_core::format::OutputFormat::Human => {
                 println!("Note {} does not compact any notes", digest_id);
             }
-            crate::lib::format::OutputFormat::Json => {
+            qipu_core::format::OutputFormat::Json => {
                 let output = serde_json::json!({
                     "digest_id": digest_id,
                     "compacts": [],
@@ -62,7 +62,7 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
                 });
                 println!("{}", serde_json::to_string_pretty(&output)?);
             }
-            crate::lib::format::OutputFormat::Records => {
+            qipu_core::format::OutputFormat::Records => {
                 println!(
                     "H qipu=1 records=1 mode=compact.show digest={} count=0",
                     digest_id
@@ -114,7 +114,7 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
 
     // Output
     match cli.format {
-        crate::lib::format::OutputFormat::Human => {
+        qipu_core::format::OutputFormat::Human => {
             println!("Digest: {}", digest_id);
             println!("Direct compaction count: {}", direct_compacts.len());
             if truncated {
@@ -143,7 +143,7 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
                 show_nested_compaction(&store, &ctx, digest_id, 1, depth)?;
             }
         }
-        crate::lib::format::OutputFormat::Json => {
+        qipu_core::format::OutputFormat::Json => {
             let mut output = serde_json::json!({
                 "digest_id": digest_id,
                 "compacts": direct_compacts,
@@ -165,7 +165,7 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
 
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
-        crate::lib::format::OutputFormat::Records => {
+        qipu_core::format::OutputFormat::Records => {
             println!(
                 "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}% depth={}",
                 digest_id,

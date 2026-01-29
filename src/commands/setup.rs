@@ -7,7 +7,7 @@ use crate::cli::{Cli, OutputFormat};
 use crate::commands::format::{
     print_json_status, print_records_data, print_records_header, wrap_records_body,
 };
-use crate::lib::error::QipuError;
+use qipu_core::error::QipuError;
 use std::path::PathBuf;
 
 const ONBOARD_SNIPPET: &str = r#"## Qipu Knowledge

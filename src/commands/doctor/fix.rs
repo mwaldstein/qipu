@@ -1,7 +1,7 @@
 use super::types::DoctorResult;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::Store;
 use std::fs;
 
 /// Attempt to fix issues that are marked as fixable
@@ -24,7 +24,7 @@ pub fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> 
             }
             "missing-config" => {
                 // Recreate default config
-                let config = crate::lib::config::StoreConfig::default();
+                let config = qipu_core::config::StoreConfig::default();
                 let config_path = store.root().join("config.toml");
                 if config.save(&config_path).is_ok() {
                     fixed += 1;

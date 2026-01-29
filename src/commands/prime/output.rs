@@ -1,15 +1,15 @@
 //! Output formatting for prime command
 
-use crate::lib::config::OntologyConfig;
-use crate::lib::note::NoteType;
-use crate::lib::ontology::Ontology;
-use crate::lib::records::escape_quotes;
+use qipu_core::config::OntologyConfig;
+use qipu_core::note::NoteType;
+use qipu_core::ontology::Ontology;
+use qipu_core::records::escape_quotes;
 
-pub fn format_mode(mode: crate::lib::config::OntologyMode) -> &'static str {
+pub fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
     match mode {
-        crate::lib::config::OntologyMode::Default => "default",
-        crate::lib::config::OntologyMode::Extended => "extended",
-        crate::lib::config::OntologyMode::Replacement => "replacement",
+        qipu_core::config::OntologyMode::Default => "default",
+        qipu_core::config::OntologyMode::Extended => "extended",
+        qipu_core::config::OntologyMode::Replacement => "replacement",
     }
 }
 
@@ -78,10 +78,10 @@ pub fn output_json(
     store_path: &str,
     ontology: &Ontology,
     config: &OntologyConfig,
-    selected_mocs: &[&crate::lib::note::Note],
-    selected_recent: &[&crate::lib::note::Note],
+    selected_mocs: &[&qipu_core::note::Note],
+    selected_recent: &[&qipu_core::note::Note],
     is_empty: bool,
-) -> Result<(), crate::lib::error::QipuError> {
+) -> Result<(), qipu_core::error::QipuError> {
     let note_types = ontology.note_types();
     let link_types = ontology.link_types();
 
@@ -122,7 +122,7 @@ pub fn output_json(
     output["mocs"] = serde_json::to_value(
         selected_mocs
             .iter()
-            .map(|n: &&crate::lib::note::Note| {
+            .map(|n: &&qipu_core::note::Note| {
                 serde_json::json!({
                     "id": n.id(),
                     "title": n.title(),
@@ -135,7 +135,7 @@ pub fn output_json(
     output["recent_notes"] = serde_json::to_value(
         selected_recent
             .iter()
-            .map(|n: &&crate::lib::note::Note| {
+            .map(|n: &&qipu_core::note::Note| {
                 serde_json::json!({
                     "id": n.id(),
                     "title": n.title(),
@@ -154,8 +154,8 @@ pub fn output_human(
     store_path: &str,
     ontology: &Ontology,
     config: &OntologyConfig,
-    mocs: &[&crate::lib::note::Note],
-    recent_notes: &[&crate::lib::note::Note],
+    mocs: &[&qipu_core::note::Note],
+    recent_notes: &[&qipu_core::note::Note],
     compact: bool,
     is_empty: bool,
 ) {
@@ -237,8 +237,8 @@ pub fn output_records(
     store_path: &str,
     ontology: &Ontology,
     config: &OntologyConfig,
-    mocs: &[&crate::lib::note::Note],
-    recent_notes: &[&crate::lib::note::Note],
+    mocs: &[&qipu_core::note::Note],
+    recent_notes: &[&qipu_core::note::Note],
     is_empty: bool,
 ) {
     let mocs_count = mocs.len();

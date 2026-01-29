@@ -1,5 +1,5 @@
 use super::LinkMode;
-use crate::lib::note::Note;
+use qipu_core::note::Note;
 use std::collections::HashMap;
 
 pub fn build_link_maps(notes: &[Note]) -> (HashMap<String, String>, HashMap<String, String>) {

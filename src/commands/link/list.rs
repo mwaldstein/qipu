@@ -1,9 +1,9 @@
 //! Link list command
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::store::Store;
 
 use super::{
     filter_and_convert, filter_and_convert_inbound, human, json, records, resolve_note_id,
@@ -67,7 +67,7 @@ pub fn execute(
 
     // Verify canonical note exists
     if !index.contains(&canonical_id) {
-        return Err(crate::lib::error::QipuError::NoteNotFound {
+        return Err(qipu_core::error::QipuError::NoteNotFound {
             id: canonical_id.clone(),
         });
     }
@@ -162,7 +162,7 @@ pub fn execute(
     // Build note map for compaction percentage calculation
     // Per spec (specs/compaction.md lines 104-109)
     let note_map = if compaction_ctx.is_some() {
-        let map: std::collections::HashMap<&str, &crate::lib::note::Note> =
+        let map: std::collections::HashMap<&str, &qipu_core::note::Note> =
             all_notes.iter().map(|n| (n.id(), n)).collect();
         Some(map)
     } else {

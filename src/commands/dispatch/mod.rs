@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::cli::{Cli, Commands};
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 use tracing::debug;
 
 mod handlers;
@@ -282,7 +282,7 @@ fn discover_or_open_store(cli: &Cli, root: &PathBuf) -> Result<Store> {
     };
 
     if let Some(workspace_name) = &cli.workspace {
-        use crate::lib::store::paths::WORKSPACES_DIR;
+        use qipu_core::store::paths::WORKSPACES_DIR;
         let workspace_path = base_store.root().join(WORKSPACES_DIR).join(workspace_name);
         Store::open(&workspace_path)
     } else {

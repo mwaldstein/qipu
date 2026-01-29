@@ -1,7 +1,7 @@
 use super::types::{DoctorResult, Severity};
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
-use crate::lib::store::Store;
+use qipu_core::error::Result;
+use qipu_core::store::Store;
 
 /// Output the doctor result in the appropriate format
 pub fn output_result(cli: &Cli, store: &Store, result: &DoctorResult) -> Result<()> {

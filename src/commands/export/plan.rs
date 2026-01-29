@@ -1,10 +1,10 @@
 use super::ExportOptions;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::{QipuError, Result};
-use crate::lib::graph::{Direction, HopCost, TreeOptions};
-use crate::lib::index::Index;
-use crate::lib::note::Note;
-use crate::lib::store::Store;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::{QipuError, Result};
+use qipu_core::graph::{Direction, HopCost, TreeOptions};
+use qipu_core::index::Index;
+use qipu_core::note::Note;
+use qipu_core::store::Store;
 use std::collections::HashSet;
 
 /// Collect notes based on selection criteria

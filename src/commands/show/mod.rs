@@ -12,12 +12,12 @@ use crate::commands::format::{
     add_compaction_to_json, calculate_compaction_info, print_note_records,
 };
 use crate::commands::link::LinkEntry;
-use crate::lib::compaction::CompactionContext;
-use crate::lib::error::Result;
-use crate::lib::index::IndexBuilder;
-use crate::lib::note::Note;
+use qipu_core::compaction::CompactionContext;
+use qipu_core::error::Result;
+use qipu_core::index::IndexBuilder;
+use qipu_core::note::Note;
 
-use crate::lib::store::Store;
+use qipu_core::store::Store;
 
 /// Execute the show command
 pub fn execute(

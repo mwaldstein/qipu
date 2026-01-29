@@ -8,8 +8,8 @@
 use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
-use crate::lib::error::Result;
-use crate::lib::store::{InitOptions, Store};
+use qipu_core::error::Result;
+use qipu_core::store::{InitOptions, Store};
 
 /// Execute the init command
 pub fn execute(

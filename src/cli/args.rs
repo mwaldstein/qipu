@@ -1,5 +1,5 @@
 use super::parse::parse_note_type;
-use crate::lib::note::NoteType;
+use qipu_core::note::NoteType;
 use clap::Args;
 
 #[derive(Args, Debug, Clone)]

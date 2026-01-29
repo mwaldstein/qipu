@@ -84,35 +84,148 @@ pub struct ExportOptions<'a> {
     pub pdf: bool,
 }
 
+fn build_export_context(
+    store: &Store,
+) -> Result<(
+    qipu_core::index::Index,
+    CompactionContext,
+    Vec<qipu_core::note::Note>,
+)> {
+    let index = IndexBuilder::new(store).build()?;
+    let all_notes = store.list_notes()?;
+    let compaction_ctx = CompactionContext::build(&all_notes)?;
+    Ok((index, compaction_ctx, all_notes))
+}
+
+fn prepare_export_notes(
+    store: &Store,
+    index: &qipu_core::index::Index,
+    all_notes: &[qipu_core::note::Note],
+    compaction_ctx: &CompactionContext,
+    options: &ExportOptions,
+    no_resolve: bool,
+) -> Result<Vec<qipu_core::note::Note>> {
+    let mut selected_notes = plan::collect_notes(store, index, all_notes, options)?;
+
+    if !no_resolve {
+        selected_notes = plan::resolve_compaction_notes(store, compaction_ctx, selected_notes)?;
+    }
+
+    if options.moc_id.is_none() {
+        plan::sort_notes_by_created_id(&mut selected_notes);
+    }
+
+    Ok(selected_notes)
+}
+
+fn generate_output(
+    cli: &Cli,
+    selected_notes: &[qipu_core::note::Note],
+    store: &Store,
+    index: &qipu_core::index::Index,
+    options: &ExportOptions,
+    compaction_ctx: &CompactionContext,
+    all_notes: &[qipu_core::note::Note],
+) -> Result<String> {
+    match cli.format {
+        OutputFormat::Human => match options.mode {
+            ExportMode::Bundle => emit::export_bundle(
+                selected_notes,
+                store,
+                options,
+                cli,
+                compaction_ctx,
+                all_notes,
+            ),
+            ExportMode::Outline => emit::export_outline(
+                selected_notes,
+                store,
+                index,
+                options,
+                cli,
+                compaction_ctx,
+                !cli.no_resolve_compaction,
+                all_notes,
+            ),
+            ExportMode::Bibliography => {
+                emit::export_bibliography(selected_notes, options.bib_format)
+            }
+        },
+        OutputFormat::Json => emit::export_json(
+            selected_notes,
+            store,
+            options,
+            cli,
+            compaction_ctx,
+            all_notes,
+        ),
+        OutputFormat::Records => emit::export_records(
+            selected_notes,
+            store,
+            options,
+            cli,
+            compaction_ctx,
+            all_notes,
+        ),
+    }
+}
+
+fn write_output(
+    cli: &Cli,
+    output_content: &str,
+    output_path: Option<&std::path::Path>,
+    pdf: bool,
+    note_count: usize,
+) -> Result<()> {
+    if let Some(output_path) = output_path {
+        if pdf {
+            convert_to_pdf(output_content, output_path, cli)?;
+        } else {
+            let mut file = File::create(output_path)
+                .map_err(|e| QipuError::Other(format!("failed to create output file: {}", e)))?;
+            file.write_all(output_content.as_bytes())
+                .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
+        }
+
+        if cli.verbose && !cli.quiet {
+            tracing::info!(
+                count = note_count,
+                path = %output_path.display(),
+                format = if pdf { "pdf" } else { "markdown" },
+                "exported notes"
+            );
+        }
+    } else {
+        if pdf {
+            return Err(QipuError::Other(
+                "--pdf requires --output (PDF cannot be written to stdout)".to_string(),
+            ));
+        }
+        print!("{}", output_content);
+    }
+
+    Ok(())
+}
+
 /// Execute the export command
 pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
     use std::time::Instant;
     let start = Instant::now();
 
-    // Build or load index for searching
-    let index = IndexBuilder::new(store).build()?;
+    let (index, compaction_ctx, all_notes) = build_export_context(store)?;
 
     if cli.verbose {
         tracing::debug!(elapsed = ?start.elapsed(), "load_indexes");
     }
 
-    // Build compaction context for resolved view + annotations
-    let all_notes = store.list_notes()?;
-    let compaction_ctx = CompactionContext::build(&all_notes)?;
-
-    // Collect notes based on selection criteria
-    let mut selected_notes = plan::collect_notes(store, &index, &all_notes, &options)?;
-
-    // Apply compaction resolution unless disabled
-    if !cli.no_resolve_compaction {
-        selected_notes = plan::resolve_compaction_notes(store, &compaction_ctx, selected_notes)?;
-    }
-
-    // Sort notes deterministically (by created, then by id)
-    // Skip sorting for MOC-driven exports to preserve MOC ordering
-    if options.moc_id.is_none() {
-        plan::sort_notes_by_created_id(&mut selected_notes);
-    }
+    let selected_notes = prepare_export_notes(
+        store,
+        &index,
+        &all_notes,
+        &compaction_ctx,
+        &options,
+        cli.no_resolve_compaction,
+    )?;
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {
@@ -121,65 +234,21 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         return Ok(());
     }
 
-    // Generate output based on format and mode
-    let output_content = match cli.format {
-        OutputFormat::Human => {
-            // Generate markdown output based on export mode
-            match options.mode {
-                ExportMode::Bundle => emit::export_bundle(
-                    &selected_notes,
-                    store,
-                    &options,
-                    cli,
-                    &compaction_ctx,
-                    &all_notes,
-                )?,
-                ExportMode::Outline => emit::export_outline(
-                    &selected_notes,
-                    store,
-                    &index,
-                    &options,
-                    cli,
-                    &compaction_ctx,
-                    !cli.no_resolve_compaction,
-                    &all_notes,
-                )?,
-                ExportMode::Bibliography => {
-                    emit::export_bibliography(&selected_notes, options.bib_format)?
-                }
-            }
-        }
-        OutputFormat::Json => {
-            // JSON output: list of notes with metadata
-            emit::export_json(
-                &selected_notes,
-                store,
-                &options,
-                cli,
-                &compaction_ctx,
-                &all_notes,
-            )?
-        }
-        OutputFormat::Records => {
-            // Records output: low-overhead format
-            emit::export_records(
-                &selected_notes,
-                store,
-                &options,
-                cli,
-                &compaction_ctx,
-                &all_notes,
-            )?
-        }
-    };
+    let output_content = generate_output(
+        cli,
+        &selected_notes,
+        store,
+        &index,
+        &options,
+        &compaction_ctx,
+        &all_notes,
+    )?;
 
-    // Handle attachment copying and link rewriting if requested
     let output_content = if options.with_attachments {
         if let Some(output_path) = options.output {
             let output_dir = output_path.parent().unwrap_or(std::path::Path::new("."));
             let attachments_target_dir = output_dir.join("attachments");
             copy_attachments(store, &selected_notes, &attachments_target_dir, cli)?;
-            // Rewrite attachment links from ../attachments/ to ./attachments/
             rewrite_attachment_links(&output_content)
         } else {
             if cli.verbose && !cli.quiet {
@@ -191,37 +260,13 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
         output_content
     };
 
-    // Write output to file or stdout
-    if let Some(output_path) = options.output {
-        // If PDF conversion requested, use pandoc
-        if options.pdf {
-            convert_to_pdf(&output_content, output_path, cli)?;
-        } else {
-            let mut file = File::create(output_path)
-                .map_err(|e| QipuError::Other(format!("failed to create output file: {}", e)))?;
-            file.write_all(output_content.as_bytes())
-                .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
-        }
-
-        if cli.verbose && !cli.quiet {
-            tracing::info!(
-                count = selected_notes.len(),
-                path = %output_path.display(),
-                format = if options.pdf { "pdf" } else { "markdown" },
-                "exported notes"
-            );
-        }
-    } else {
-        // PDF to stdout is not supported (requires an output file)
-        if options.pdf {
-            return Err(QipuError::Other(
-                "--pdf requires --output (PDF cannot be written to stdout)".to_string(),
-            ));
-        }
-        print!("{}", output_content);
-    }
-
-    Ok(())
+    write_output(
+        cli,
+        &output_content,
+        options.output,
+        options.pdf,
+        selected_notes.len(),
+    )
 }
 
 /// Rewrite attachment links from ../attachments/ to ./attachments/

@@ -2,7 +2,7 @@
 
 mod basic;
 mod bibliography;
-mod bibliography_format;
+pub mod bibliography_format;
 mod link_mode;
 mod max_hops;
 mod outline;

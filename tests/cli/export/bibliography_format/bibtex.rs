@@ -12,7 +12,6 @@ fn test_export_bibliography_bibtex_format() {
         .assert()
         .success();
 
-    // Create a note with sources
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-source-note.md");
     fs::write(
         &note_path,
@@ -26,7 +25,6 @@ fn test_export_bibliography_bibtex_format() {
         .assert()
         .success();
 
-    // Export in bibliography mode with BibTeX format
     let result = qipu()
         .current_dir(dir.path())
         .args([
@@ -43,61 +41,11 @@ fn test_export_bibliography_bibtex_format() {
 
     let output = String::from_utf8_lossy(&result.get_output().stdout);
 
-    // Verify BibTeX format
     assert!(output.contains("@misc{"));
     assert!(output.contains("title = {Example Article}"));
     assert!(output.contains("url = {https://example.com/article}"));
     assert!(output.contains("note = {Accessed: 2024-01-15}"));
     assert!(output.contains("note = {From: Research Note}"));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_format() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    // Create a note with sources
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-source-note.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Research Note\nsources:\n  - url: https://example.com/article\n    title: Example Article\n    accessed: 2024-01-15\n---\nBody with citation",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    // Export in bibliography mode with CSL JSON format
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    // Verify CSL JSON format
-    assert!(output.contains("\"type\": \"webpage\""));
-    assert!(output.contains("\"URL\": \"https://example.com/article\""));
-    assert!(output.contains("\"title\": \"Example Article\""));
-    assert!(output.contains("\"accessed\""));
-    assert!(output.contains("\"date-parts\""));
-    assert!(output.contains("\"note\": \"From: Research Note\""));
 }
 
 #[test]
@@ -109,7 +57,6 @@ fn test_export_bibliography_bibtex_multiple_sources() {
         .assert()
         .success();
 
-    // Create multiple notes with sources
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(
         &note_a_path,
@@ -130,7 +77,6 @@ fn test_export_bibliography_bibtex_multiple_sources() {
         .assert()
         .success();
 
-    // Export all notes in bibliography mode with BibTeX format
     let result = qipu()
         .current_dir(dir.path())
         .args([
@@ -149,12 +95,10 @@ fn test_export_bibliography_bibtex_multiple_sources() {
 
     let output = String::from_utf8_lossy(&result.get_output().stdout);
 
-    // Verify multiple BibTeX entries are present (sorted by URL)
     assert!(output.contains("title = {Alpha Article}"));
     assert!(output.contains("title = {Beta Article}"));
     assert!(output.contains("url = {https://example.com/gamma}"));
 
-    // Verify deterministic ordering (alpha < beta < gamma alphabetically)
     let alpha_pos = output.find("https://example.com/alpha").unwrap();
     let beta_pos = output.find("https://example.com/beta").unwrap();
     let gamma_pos = output.find("https://example.com/gamma").unwrap();
@@ -171,7 +115,6 @@ fn test_export_bibliography_bibtex_empty() {
         .assert()
         .success();
 
-    // Create a note without sources
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-sources.md");
     fs::write(
         &note_path,
@@ -185,7 +128,6 @@ fn test_export_bibliography_bibtex_empty() {
         .assert()
         .success();
 
-    // Export in bibliography mode with BibTeX format
     qipu()
         .current_dir(dir.path())
         .args([
@@ -200,46 +142,6 @@ fn test_export_bibliography_bibtex_empty() {
         .assert()
         .success()
         .stdout(predicate::str::contains("% No sources found"));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_empty() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    // Create a note without sources
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-sources.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Note Without Sources\n---\nBody without citations",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    // Export in bibliography mode with CSL JSON format
-    qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("[]"));
 }
 
 #[test]
@@ -378,142 +280,6 @@ fn test_export_bibliography_bibtex_url_only() {
 }
 
 #[test]
-fn test_export_bibliography_csl_json_missing_title() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-title-csl.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Note Without Title\nsources:\n  - url: https://example.com/no-title\n    accessed: 2024-01-15\n---\nBody",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    assert!(output.contains("\"type\": \"webpage\""));
-    assert!(output.contains("\"URL\": \"https://example.com/no-title\""));
-    assert!(output.contains("\"accessed\""));
-    assert!(output.contains("\"date-parts\""));
-    assert!(output.contains("\"note\": \"From: Note Without Title\""));
-    assert!(!output.contains("\"title\""));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_missing_accessed() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-accessed-csl.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Note Without Accessed\nsources:\n  - url: https://example.com/no-accessed\n    title: Article Title\n---\nBody",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    assert!(output.contains("\"type\": \"webpage\""));
-    assert!(output.contains("\"URL\": \"https://example.com/no-accessed\""));
-    assert!(output.contains("\"title\": \"Article Title\""));
-    assert!(output.contains("\"note\": \"From: Note Without Accessed\""));
-    assert!(!output.contains("\"accessed\""));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_url_only() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-url-only-csl.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: URL Only Note\nsources:\n  - url: https://example.com/url-only\n---\nBody",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    assert!(output.contains("\"type\": \"webpage\""));
-    assert!(output.contains("\"URL\": \"https://example.com/url-only\""));
-    assert!(output.contains("\"note\": \"From: URL Only Note\""));
-    assert!(!output.contains("\"title\""));
-    assert!(!output.contains("\"accessed\""));
-}
-
-#[test]
 fn test_export_bibliography_bibtex_special_url_chars() {
     let dir = tempdir().unwrap();
     qipu()
@@ -555,51 +321,6 @@ fn test_export_bibliography_bibtex_special_url_chars() {
     assert!(output.contains("title = {URL with Query and Fragment}"));
     assert!(output.contains("url = {https://example.com/path?query=value&param=test#fragment}"));
     assert!(output.contains("note = {Accessed: 2024-01-15}"));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_special_url_chars() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-special-chars-csl.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Special URL Chars\nsources:\n  - url: https://example.com/path?query=value&param=test#fragment\n    title: URL with Query and Fragment\n    accessed: 2024-01-15\n---\nBody",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    assert!(
-        output.contains("\"URL\": \"https://example.com/path?query=value&param=test#fragment\"")
-    );
-    assert!(output.contains("\"title\": \"URL with Query and Fragment\""));
-    assert!(output.contains("\"accessed\""));
 }
 
 #[test]
@@ -688,49 +409,6 @@ fn test_export_bibliography_bibtex_unicode_url() {
     assert!(output.contains("title = {Article with Unicode}"));
     assert!(output.contains("url = {https://example.com/café?title=résumé}"));
     assert!(output.contains("note = {Accessed: 2024-01-15}"));
-}
-
-#[test]
-fn test_export_bibliography_csl_json_unicode_url() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let note_path = dir.path().join(".qipu/notes/qp-aaaa-unicode-csl.md");
-    fs::write(
-        &note_path,
-        "---\nid: qp-aaaa\ntitle: Unicode URL\nsources:\n  - url: https://example.com/café?title=résumé\n    title: Article with Unicode\n    accessed: 2024-01-15\n---\nBody",
-    )
-    .unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("index")
-        .assert()
-        .success();
-
-    let result = qipu()
-        .current_dir(dir.path())
-        .args([
-            "export",
-            "--note",
-            "qp-aaaa",
-            "--mode",
-            "bibliography",
-            "--bib-format",
-            "csl-json",
-        ])
-        .assert()
-        .success();
-
-    let output = String::from_utf8_lossy(&result.get_output().stdout);
-
-    assert!(output.contains("\"URL\": \"https://example.com/café?title=résumé\""));
-    assert!(output.contains("\"title\": \"Article with Unicode\""));
-    assert!(output.contains("\"accessed\""));
 }
 
 #[test]

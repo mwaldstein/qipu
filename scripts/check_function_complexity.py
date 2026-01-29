@@ -8,7 +8,6 @@ ALLOWED_FUNCTIONS = {
     "commands/context/mod.rs:execute",
     "commands/load/deserialize.rs:looks_like_json",
     "commands/load/deserialize.rs:parse_records_pack",
-    "commands/dispatch/mod.rs:run",
     "commands/compact/report.rs:execute",
     "commands/compact/show.rs:execute",
     "commands/doctor/database.rs:check_semantic_link_types",

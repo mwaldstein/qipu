@@ -15,7 +15,7 @@ fn test_database_rebuild_populates_notes() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let note_count: i64 = db
         .conn
@@ -46,7 +46,7 @@ fn test_database_rebuild_cleans_old_data() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let initial_count: i64 = db
         .conn
@@ -59,7 +59,7 @@ fn test_database_rebuild_cleans_old_data() {
     note.frontmatter.tags = vec!["tag2".to_string()];
     store.save_note(&mut note).unwrap();
 
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let final_count: i64 = db
         .conn
@@ -92,7 +92,7 @@ fn test_insert_note_with_fts() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let fts_count: i64 = db
         .conn
@@ -120,7 +120,7 @@ fn test_empty_store_rebuild() {
     let store = Store::init(dir.path(), crate::store::InitOptions::default()).unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let note_count: i64 = db
         .conn

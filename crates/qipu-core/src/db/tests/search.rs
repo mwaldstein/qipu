@@ -30,7 +30,7 @@ fn test_search_fts_basic() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let results = db
         .search("test", None, None, None, None, 10, &SearchConfig::default())
@@ -85,7 +85,7 @@ fn test_search_with_type_filter() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let results = db
         .search(
@@ -129,7 +129,7 @@ fn test_search_with_tag_filter() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let results = db
         .search(
@@ -157,7 +157,7 @@ fn test_search_empty_query() {
         .unwrap();
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let results = db
         .search("", None, None, None, None, 10, &SearchConfig::default())
@@ -178,7 +178,7 @@ fn test_search_limit() {
     }
 
     let db = Database::open(store.root(), true).unwrap();
-    db.rebuild(store.root(), None).unwrap();
+    db.rebuild(store.root(), None, None).unwrap();
 
     let results = db
         .search("test", None, None, None, None, 3, &SearchConfig::default())

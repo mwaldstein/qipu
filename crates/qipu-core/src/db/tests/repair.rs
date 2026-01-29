@@ -13,7 +13,7 @@ fn test_incremental_repair_updates_changed_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let count_before: i64 = db
         .conn
@@ -28,7 +28,7 @@ fn test_incremental_repair_updates_changed_notes() {
     let _before_sync = chrono::Utc::now().timestamp();
     std::thread::sleep(std::time::Duration::from_millis(10));
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let title: String = db
         .conn
@@ -65,7 +65,7 @@ fn test_incremental_repair_removes_deleted_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let count_before: i64 = db
         .conn
@@ -76,7 +76,7 @@ fn test_incremental_repair_removes_deleted_notes() {
     let note1_path = note1.path.as_ref().unwrap();
     std::fs::remove_file(note1_path).unwrap();
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let count_after: i64 = db
         .conn
@@ -102,7 +102,7 @@ fn test_incremental_repair_skips_unchanged_notes() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let mtime_after_first: i64 = db
         .conn
@@ -115,7 +115,7 @@ fn test_incremental_repair_skips_unchanged_notes() {
 
     std::thread::sleep(std::time::Duration::from_millis(10));
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let mtime_after_second: i64 = db
         .conn
@@ -136,7 +136,7 @@ fn test_incremental_repair_handles_empty_database() {
 
     let db = store.db();
 
-    db.incremental_repair(store.root(), None).unwrap();
+    db.incremental_repair(store.root(), None, None).unwrap();
 
     let count: i64 = db
         .conn

@@ -118,7 +118,7 @@ impl Database {
             // Validate consistency and trigger incremental repair if needed (unless disabled)
             if auto_repair && !db.validate_consistency(store_root)? {
                 tracing::info!("Database inconsistent, triggering incremental repair");
-                db.incremental_repair(store_root, None)?;
+                db.incremental_repair(store_root, None, None)?;
             }
         }
 

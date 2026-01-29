@@ -1,5 +1,91 @@
 use crate::cli::support::{extract_id, qipu};
+use std::fs;
 use tempfile::tempdir;
+
+#[test]
+fn test_link_path_with_compaction() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let output_start = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Start Note"])
+        .output()
+        .unwrap();
+    let start_id = extract_id(&output_start);
+
+    let output_middle = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Middle Note"])
+        .output()
+        .unwrap();
+    let middle_id = extract_id(&output_middle);
+
+    let output_end = qipu()
+        .current_dir(dir.path())
+        .args(["create", "End Note"])
+        .output()
+        .unwrap();
+    let end_id = extract_id(&output_end);
+
+    let output_digest = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Digest Note"])
+        .output()
+        .unwrap();
+    let digest_id = extract_id(&output_digest);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &start_id, &middle_id, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &middle_id, &end_id, "--type", "related"])
+        .assert()
+        .success();
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    for entry in fs::read_dir(&notes_dir).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name();
+        if name.to_string_lossy().starts_with(&digest_id) {
+            let note_content = fs::read_to_string(entry.path()).unwrap();
+            let new_content = note_content.replace(
+                &format!("id: {}", digest_id),
+                &format!("id: {}\ncompacts:\n  - {}", digest_id, middle_id),
+            );
+            fs::write(entry.path(), new_content).unwrap();
+            break;
+        }
+    }
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", &start_id, &end_id])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(stdout.contains(&start_id));
+    assert!(stdout.contains(&digest_id));
+    assert!(stdout.contains(&end_id));
+    assert!(!stdout.contains(&middle_id));
+    assert!(stdout.contains("Path length: 2 hop"));
+}
 
 #[test]
 fn test_link_path_via_basic() {

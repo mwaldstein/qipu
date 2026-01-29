@@ -45,6 +45,341 @@ fn finalize_note_content(
     Ok(())
 }
 
+fn parse_header_line(line: &str) -> PackHeader {
+    let parts: Vec<_> = line[2..].split_whitespace().collect();
+    let mut header_data = HashMap::new();
+
+    for part in parts {
+        if let Some((key, value)) = part.split_once('=') {
+            header_data.insert(key, value);
+        }
+    }
+
+    PackHeader {
+        version: header_data.get("version").unwrap_or(&"1.0").to_string(),
+        store_version: header_data
+            .get("store_version")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
+        created: header_data
+            .get("created")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(chrono::Utc::now),
+        store_path: header_data.get("store").unwrap_or(&"").to_string(),
+        notes_count: header_data
+            .get("notes")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
+        attachments_count: header_data
+            .get("attachments")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
+        links_count: header_data
+            .get("links")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
+        config_count: header_data
+            .get("config")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
+    }
+}
+
+fn parse_config_line(
+    line: &str,
+    config_encoded_lines: &mut Vec<String>,
+    config_content: &mut String,
+) {
+    if line.starts_with("CFG ") {
+        config_encoded_lines.push(line[4..].to_string());
+    } else if line == "CFG-END" {
+        if !config_encoded_lines.is_empty() {
+            let encoded = config_encoded_lines.join("");
+            if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
+                if let Ok(decoded_str) = String::from_utf8(decoded) {
+                    *config_content = decoded_str;
+                }
+            }
+            config_encoded_lines.clear();
+        }
+    }
+}
+
+fn parse_note_metadata_line(line: &str) -> Option<PackNote> {
+    let mut parts = line[2..].splitn(3, ' ');
+    let id = parts.next().unwrap_or("").to_string();
+    let note_type = parts.next().unwrap_or("").to_string();
+    let remainder = parts.next().unwrap_or("").trim();
+
+    if id.is_empty() || note_type.is_empty() {
+        return None;
+    }
+
+    let (title, metadata_str) = if let Some(stripped) = remainder.strip_prefix('"') {
+        if let Some(end_quote) = stripped.find('"') {
+            let title = stripped[..end_quote].to_string();
+            let rest = stripped[end_quote + 1..].trim();
+            (title, rest)
+        } else {
+            (stripped.to_string(), "")
+        }
+    } else {
+        let mut title_parts = remainder.splitn(2, ' ');
+        let title = title_parts.next().unwrap_or("").to_string();
+        let rest = title_parts.next().unwrap_or("").trim();
+        (title, rest)
+    };
+
+    let metadata = parse_note_metadata(metadata_str);
+
+    Some(PackNote {
+        id,
+        title,
+        note_type,
+        tags: metadata.tags,
+        created: metadata.created,
+        updated: metadata.updated,
+        path: None,
+        content: String::new(),
+        sources: Vec::new(),
+        summary: metadata.summary,
+        compacts: metadata.compacts,
+        source: metadata.source,
+        author: metadata.author,
+        generated_by: metadata.generated_by,
+        prompt_hash: metadata.prompt_hash,
+        verified: metadata.verified,
+        value: metadata.value,
+        custom: metadata.custom,
+    })
+}
+
+struct NoteMetadata {
+    tags: Vec<String>,
+    created: Option<chrono::DateTime<chrono::Utc>>,
+    updated: Option<chrono::DateTime<chrono::Utc>>,
+    summary: Option<String>,
+    compacts: Vec<String>,
+    source: Option<String>,
+    author: Option<String>,
+    generated_by: Option<String>,
+    prompt_hash: Option<String>,
+    verified: Option<bool>,
+    value: Option<u8>,
+    custom: HashMap<String, serde_json::Value>,
+}
+
+fn parse_note_metadata(metadata_str: &str) -> NoteMetadata {
+    let mut tags = Vec::new();
+    let mut created = None;
+    let mut updated = None;
+    let mut summary = None;
+    let mut compacts = Vec::new();
+    let mut source = None;
+    let mut author = None;
+    let mut generated_by = None;
+    let mut prompt_hash = None;
+    let mut verified = None;
+    let mut value = None;
+    let mut custom: HashMap<String, serde_json::Value> = HashMap::new();
+
+    let mut current_pos = 0;
+    let metadata_chars: Vec<char> = metadata_str.chars().collect();
+
+    while current_pos < metadata_chars.len() {
+        while current_pos < metadata_chars.len() && metadata_chars[current_pos].is_whitespace() {
+            current_pos += 1;
+        }
+        if current_pos >= metadata_chars.len() {
+            break;
+        }
+
+        let key_start = current_pos;
+        while current_pos < metadata_chars.len()
+            && metadata_chars[current_pos] != '='
+            && !metadata_chars[current_pos].is_whitespace()
+        {
+            current_pos += 1;
+        }
+        let key: String = metadata_chars[key_start..current_pos].iter().collect();
+
+        if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '=' {
+            current_pos += 1;
+            let val_start = current_pos;
+            let val: String;
+
+            if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '"' {
+                current_pos += 1;
+                let quote_start = current_pos;
+                while current_pos < metadata_chars.len() && metadata_chars[current_pos] != '"' {
+                    current_pos += 1;
+                }
+                val = metadata_chars[quote_start..current_pos].iter().collect();
+                if current_pos < metadata_chars.len() {
+                    current_pos += 1;
+                }
+            } else {
+                while current_pos < metadata_chars.len()
+                    && !metadata_chars[current_pos].is_whitespace()
+                {
+                    current_pos += 1;
+                }
+                val = metadata_chars[val_start..current_pos].iter().collect();
+            }
+
+            match key.as_str() {
+                "tags" => {
+                    if val != "-" {
+                        tags = val.split(',').map(|s| s.to_string()).collect();
+                    }
+                }
+                "created" => created = val.parse().ok(),
+                "updated" => updated = val.parse().ok(),
+                "summary" => summary = Some(val),
+                "compacts" => {
+                    if val != "-" {
+                        compacts = val.split(',').map(|s| s.to_string()).collect();
+                    }
+                }
+                "source" => source = Some(val),
+                "author" => author = Some(val),
+                "generated_by" => generated_by = Some(val),
+                "prompt_hash" => prompt_hash = Some(val),
+                "verified" => verified = val.parse().ok(),
+                "value" => value = val.parse().ok(),
+                "custom" => {
+                    if let Ok(decoded) = general_purpose::STANDARD.decode(&val) {
+                        if let Ok(json_str) = String::from_utf8(decoded) {
+                            if let Ok(parsed) = serde_json::from_str::<
+                                HashMap<String, serde_json::Value>,
+                            >(&json_str)
+                            {
+                                custom = parsed;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            current_pos += 1;
+        }
+    }
+
+    NoteMetadata {
+        tags,
+        created,
+        updated,
+        summary,
+        compacts,
+        source,
+        author,
+        generated_by,
+        prompt_hash,
+        verified,
+        value,
+        custom,
+    }
+}
+
+fn parse_source_line(line: &str) -> Option<PackSource> {
+    let parts: Vec<_> = line[2..].split_whitespace().collect();
+    let mut url = String::new();
+    let mut title = None;
+    let mut accessed = None;
+
+    for part in parts {
+        if let Some(url_str) = part.strip_prefix("url=") {
+            url = url_str.to_string();
+        } else if let Some(title_str) = part.strip_prefix("title=") {
+            title = Some(title_str.trim_matches('"').to_string());
+        } else if let Some(accessed_str) = part.strip_prefix("accessed=") {
+            accessed = Some(accessed_str.to_string());
+        }
+    }
+
+    if url.is_empty() {
+        return None;
+    }
+
+    Some(PackSource {
+        url,
+        title,
+        accessed,
+    })
+}
+
+fn parse_link_line(line: &str) -> Option<PackLink> {
+    let parts: Vec<_> = line[2..].split_whitespace().collect();
+    if parts.len() < 2 {
+        return None;
+    }
+
+    let from = parts[0].to_string();
+    let to = parts[1].to_string();
+    let link_type = parts
+        .get(2)
+        .and_then(|s| s.strip_prefix("type="))
+        .map(|s| s.to_string());
+    let inline = parts
+        .get(3)
+        .map(|s| s.contains("inline=true"))
+        .unwrap_or(false);
+
+    Some(PackLink {
+        from,
+        to,
+        link_type,
+        inline,
+    })
+}
+
+fn parse_attachment_metadata_line(line: &str) -> Option<PackAttachment> {
+    let parts: Vec<_> = line[2..].split_whitespace().collect();
+    if parts.is_empty() {
+        return None;
+    }
+
+    let path = parts[0].to_string();
+    let mut name = None;
+    let mut content_type = None;
+
+    for part in parts.iter().skip(1) {
+        if let Some(name_str) = part.strip_prefix("name=") {
+            name = Some(name_str.to_string());
+        } else if let Some(content_type_str) = part.strip_prefix("content_type=") {
+            if content_type_str != "-" {
+                content_type = Some(content_type_str.to_string());
+            }
+        }
+    }
+
+    let name = name.unwrap_or_else(|| {
+        Path::new(&path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(&path)
+            .to_string()
+    });
+
+    Some(PackAttachment {
+        path,
+        name,
+        data: String::new(),
+        content_type,
+    })
+}
+
+fn handle_content_line(line: &str, content_lines: &mut Vec<String>, is_base64: &mut bool) {
+    if line.starts_with("B ") {
+        *is_base64 = false;
+        content_lines.push(line[2..].to_string());
+    } else if line.starts_with("C ") {
+        *is_base64 = true;
+        content_lines.push(line[2..].to_string());
+    }
+}
+
 /// Parse pack in records format
 pub fn parse_records_pack(content: &str) -> Result<PackData> {
     let mut header: Option<PackHeader> = None;
@@ -66,341 +401,58 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
         }
 
         if line.starts_with("H ") {
-            // Header line
-            let parts: Vec<_> = line[2..].split_whitespace().collect();
-            let mut header_data = HashMap::new();
-
-            for part in parts {
-                if let Some((key, value)) = part.split_once('=') {
-                    header_data.insert(key, value);
-                }
-            }
-
-            header = Some(PackHeader {
-                version: header_data.get("version").unwrap_or(&"1.0").to_string(),
-                store_version: header_data
-                    .get("store_version")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
-                created: header_data
-                    .get("created")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or_else(chrono::Utc::now),
-                store_path: header_data.get("store").unwrap_or(&"").to_string(),
-                notes_count: header_data
-                    .get("notes")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
-                attachments_count: header_data
-                    .get("attachments")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
-                links_count: header_data
-                    .get("links")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
-                config_count: header_data
-                    .get("config")
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
-            });
-        } else if line.starts_with("CFG ") {
-            config_encoded_lines.push(line[4..].to_string());
-        } else if line == "CFG-END" {
-            if !config_encoded_lines.is_empty() {
-                let encoded = config_encoded_lines.join("");
-                if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
-                    if let Ok(decoded_str) = String::from_utf8(decoded) {
-                        config_content = decoded_str;
-                    }
-                }
-                config_encoded_lines.clear();
-            }
+            header = Some(parse_header_line(line));
+        } else if line.starts_with("CFG ") || line == "CFG-END" {
+            parse_config_line(line, &mut config_encoded_lines, &mut config_content);
         } else if line.starts_with("N ") {
-            // Note metadata line
             if let Some(ref mut note) = current_note {
-                // Finalize previous note
                 finalize_note_content(note, &mut note_content_lines, &mut note_content_is_base64)?;
                 notes.push(note.clone());
             }
-
-            let mut parts = line[2..].splitn(3, ' ');
-            let id = parts.next().unwrap_or("").to_string();
-            let note_type = parts.next().unwrap_or("").to_string();
-            let remainder = parts.next().unwrap_or("").trim();
-
-            if !id.is_empty() && !note_type.is_empty() {
-                let (title, metadata_str) = if let Some(stripped) = remainder.strip_prefix('"') {
-                    if let Some(end_quote) = stripped.find('"') {
-                        let title = stripped[..end_quote].to_string();
-                        let rest = stripped[end_quote + 1..].trim();
-                        (title, rest)
-                    } else {
-                        (stripped.to_string(), "")
-                    }
-                } else {
-                    let mut title_parts = remainder.splitn(2, ' ');
-                    let title = title_parts.next().unwrap_or("").to_string();
-                    let rest = title_parts.next().unwrap_or("").trim();
-                    (title, rest)
-                };
-
-                // Parse metadata
-                let mut tags = Vec::new();
-                let mut created = None;
-                let mut updated = None;
-                let mut summary = None;
-                let mut compacts = Vec::new();
-                let mut source = None;
-                let mut author = None;
-                let mut generated_by = None;
-                let mut prompt_hash = None;
-                let mut verified = None;
-                let mut value = None;
-                let mut custom: HashMap<String, serde_json::Value> = HashMap::new();
-
-                // Split metadata_str carefully to handle quoted values
-                let mut current_pos = 0;
-                let metadata_chars: Vec<char> = metadata_str.chars().collect();
-
-                while current_pos < metadata_chars.len() {
-                    // Skip whitespace
-                    while current_pos < metadata_chars.len()
-                        && metadata_chars[current_pos].is_whitespace()
-                    {
-                        current_pos += 1;
-                    }
-                    if current_pos >= metadata_chars.len() {
-                        break;
-                    }
-
-                    // Find key
-                    let key_start = current_pos;
-                    while current_pos < metadata_chars.len()
-                        && metadata_chars[current_pos] != '='
-                        && !metadata_chars[current_pos].is_whitespace()
-                    {
-                        current_pos += 1;
-                    }
-                    let key: String = metadata_chars[key_start..current_pos].iter().collect();
-
-                    if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '=' {
-                        current_pos += 1; // skip '='
-                        let val_start = current_pos;
-                        let val: String;
-
-                        if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '"'
-                        {
-                            current_pos += 1; // skip opening quote
-                            let quote_start = current_pos;
-                            while current_pos < metadata_chars.len()
-                                && metadata_chars[current_pos] != '"'
-                            {
-                                current_pos += 1;
-                            }
-                            val = metadata_chars[quote_start..current_pos].iter().collect();
-                            if current_pos < metadata_chars.len() {
-                                current_pos += 1;
-                            } // skip closing quote
-                        } else {
-                            while current_pos < metadata_chars.len()
-                                && !metadata_chars[current_pos].is_whitespace()
-                            {
-                                current_pos += 1;
-                            }
-                            val = metadata_chars[val_start..current_pos].iter().collect();
-                        }
-
-                        match key.as_str() {
-                            "tags" => {
-                                if val != "-" {
-                                    tags = val.split(',').map(|s| s.to_string()).collect();
-                                }
-                            }
-                            "created" => created = val.parse().ok(),
-                            "updated" => updated = val.parse().ok(),
-                            "summary" => summary = Some(val),
-                            "compacts" => {
-                                if val != "-" {
-                                    compacts = val.split(',').map(|s| s.to_string()).collect();
-                                }
-                            }
-                            "source" => source = Some(val),
-                            "author" => author = Some(val),
-                            "generated_by" => generated_by = Some(val),
-                            "prompt_hash" => prompt_hash = Some(val),
-                            "verified" => verified = val.parse().ok(),
-                            "value" => value = val.parse().ok(),
-                            "custom" => {
-                                if let Ok(decoded) = general_purpose::STANDARD.decode(&val) {
-                                    if let Ok(json_str) = String::from_utf8(decoded) {
-                                        if let Ok(parsed) = serde_json::from_str::<
-                                            HashMap<String, serde_json::Value>,
-                                        >(
-                                            &json_str
-                                        ) {
-                                            custom = parsed;
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
-                    } else {
-                        current_pos += 1;
-                    }
-                }
-
-                current_note = Some(PackNote {
-                    id,
-                    title,
-                    note_type,
-                    tags,
-                    created,
-                    updated,
-                    path: None,
-                    content: String::new(),
-                    sources: Vec::new(),
-                    summary,
-                    compacts,
-                    source,
-                    author,
-                    generated_by,
-                    prompt_hash,
-                    verified,
-                    value,
-                    custom,
-                });
-            }
-        } else if line.starts_with("B ") {
-            // Body content line - collect it
-            note_content_is_base64 = false;
-            let content_line = line[2..].to_string();
-            note_content_lines.push(content_line);
-        } else if line.starts_with("C ") {
-            // Base64-encoded content line
-            note_content_is_base64 = true;
-            let content_line = line[2..].to_string();
-            note_content_lines.push(content_line);
+            current_note = parse_note_metadata_line(line);
+        } else if line.starts_with("B ") || line.starts_with("C ") {
+            handle_content_line(line, &mut note_content_lines, &mut note_content_is_base64);
         } else if line.starts_with("S ") {
-            // Source line
             if let Some(ref mut note) = current_note {
-                let parts: Vec<_> = line[2..].split_whitespace().collect();
-                let mut url = String::new();
-                let mut title = None;
-                let mut accessed = None;
-
-                for part in parts {
-                    if let Some(url_str) = part.strip_prefix("url=") {
-                        url = url_str.to_string();
-                    } else if let Some(title_str) = part.strip_prefix("title=") {
-                        title = Some(title_str.trim_matches('"').to_string());
-                    } else if let Some(accessed_str) = part.strip_prefix("accessed=") {
-                        accessed = Some(accessed_str.to_string());
-                    }
-                }
-
-                if !url.is_empty() {
-                    note.sources.push(PackSource {
-                        url,
-                        title,
-                        accessed,
-                    });
+                if let Some(source) = parse_source_line(line) {
+                    note.sources.push(source);
                 }
             }
         } else if line.starts_with("L ") {
-            // Link line
-            let parts: Vec<_> = line[2..].split_whitespace().collect();
-            if parts.len() >= 2 {
-                let from = parts[0].to_string();
-                let to = parts[1].to_string();
-                let link_type = parts
-                    .get(2)
-                    .and_then(|s| s.strip_prefix("type="))
-                    .map(|s| s.to_string());
-                let inline = parts
-                    .get(3)
-                    .map(|s| s.contains("inline=true"))
-                    .unwrap_or(false);
-
-                links.push(PackLink {
-                    from,
-                    to,
-                    link_type,
-                    inline,
-                });
+            if let Some(link) = parse_link_line(line) {
+                links.push(link);
             }
         } else if line.starts_with("A ") {
-            // Attachment line
             if let Some(ref mut attachment) = current_attachment {
-                // Finalize previous attachment if any
                 attachments.push(attachment.clone());
             }
-
-            let parts: Vec<_> = line[2..].split_whitespace().collect();
-            if !parts.is_empty() {
-                let path = parts[0].to_string();
-                let mut name = None;
-                let mut content_type = None;
-
-                for part in parts.iter().skip(1) {
-                    if let Some(name_str) = part.strip_prefix("name=") {
-                        name = Some(name_str.to_string());
-                    } else if let Some(content_type_str) = part.strip_prefix("content_type=") {
-                        if content_type_str != "-" {
-                            content_type = Some(content_type_str.to_string());
-                        }
-                    }
-                }
-
-                let name = name.unwrap_or_else(|| {
-                    Path::new(&path)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or(&path)
-                        .to_string()
-                });
-
-                current_attachment = Some(PackAttachment {
-                    path,
-                    name,
-                    data: String::new(), // Will be filled by D lines
-                    content_type,
-                });
-            }
+            current_attachment = parse_attachment_metadata_line(line);
         } else if line.starts_with("D ") {
-            // Attachment data line
             if let Some(ref mut attachment) = current_attachment {
                 attachment.data.push_str(&line[2..]);
             }
         } else if line == "C-END" {
-            // End of note/content block
             if let Some(ref mut note) = current_note {
                 finalize_note_content(note, &mut note_content_lines, &mut note_content_is_base64)?;
             }
         } else if line == "D-END" || line == "A-END" {
-            // End of attachment block
             if let Some(attachment) = current_attachment.take() {
                 attachments.push(attachment);
             }
         } else if line == "END" {
-            // End of pack
             break;
         }
     }
 
-    // Flush any pending note
     if let Some(ref mut note) = current_note {
         finalize_note_content(note, &mut note_content_lines, &mut note_content_is_base64)?;
         notes.push(note.clone());
     }
 
-    // Flush any pending attachment
     if let Some(attachment) = current_attachment {
         attachments.push(attachment);
     }
 
-    // Validate we have a header
     let header =
         header.ok_or_else(|| QipuError::Other("missing header in pack file".to_string()))?;
 

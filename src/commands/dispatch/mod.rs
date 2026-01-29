@@ -30,348 +30,241 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
     match &cli.command {
         None => handlers::handle_no_command(),
 
-        Some(Commands::Init {
-            visible,
-            stealth,
-            branch,
-            no_index,
-            index_strategy,
-        }) => handlers::handle_init(
+        Some(Commands::Init(args)) => handlers::handle_init(
             cli,
             &root,
-            *stealth,
-            *visible,
-            branch.clone(),
-            *no_index,
-            index_strategy.clone(),
+            args.stealth,
+            args.visible,
+            args.branch.clone(),
+            args.no_index,
+            args.index_strategy.clone(),
         ),
 
         Some(Commands::Create(args)) | Some(Commands::New(args)) => {
             notes::handle_create(cli, &root, args, start)
         }
 
-        Some(Commands::List {
-            tag,
-            r#type,
-            since,
-            min_value,
-            custom,
-            show_custom,
-        }) => notes::handle_list(
+        Some(Commands::List(args)) => notes::handle_list(
             cli,
             &root,
-            tag.as_deref(),
-            r#type.clone(),
-            since.as_deref(),
-            *min_value,
-            custom.as_deref(),
-            *show_custom,
+            args.tag.as_deref(),
+            args.r#type.clone(),
+            args.since.as_deref(),
+            args.min_value,
+            args.custom.as_deref(),
+            args.show_custom,
             start,
         ),
 
-        Some(Commands::Show {
-            id_or_path,
-            links,
-            custom,
-        }) => notes::handle_show(cli, &root, id_or_path, *links, *custom, start),
-
-        Some(Commands::Inbox { exclude_linked }) => {
-            notes::handle_inbox(cli, &root, *exclude_linked, start)
+        Some(Commands::Show(args)) => {
+            notes::handle_show(cli, &root, &args.id_or_path, args.links, args.custom, start)
         }
 
-        Some(Commands::Capture {
-            title,
-            r#type,
-            tag,
-            source,
-            author,
-            generated_by,
-            prompt_hash,
-            verified,
-            id,
-        }) => notes::handle_capture(
+        Some(Commands::Inbox(args)) => notes::handle_inbox(cli, &root, args.exclude_linked, start),
+
+        Some(Commands::Capture(args)) => notes::handle_capture(
             cli,
             &root,
-            title.as_deref(),
-            r#type.clone(),
-            tag,
-            source.clone(),
-            author.clone(),
-            generated_by.clone(),
-            prompt_hash.clone(),
-            *verified,
-            id.as_deref(),
+            args.title.as_deref(),
+            args.r#type.clone(),
+            &args.tag,
+            args.source.clone(),
+            args.author.clone(),
+            args.generated_by.clone(),
+            args.prompt_hash.clone(),
+            args.verified,
+            args.id.as_deref(),
             start,
         ),
 
-        Some(Commands::Index {
-            rebuild,
-            resume,
-            rewrite_wiki_links,
-            quick,
-            tag,
-            r#type,
-            recent,
-            moc,
-            status,
-        }) => maintenance::handle_index(
+        Some(Commands::Index(args)) => maintenance::handle_index(
             cli,
             &root,
-            *rebuild,
-            *resume,
-            *rewrite_wiki_links,
-            *quick,
-            tag.clone(),
-            r#type.clone(),
-            *recent,
-            moc.clone(),
-            *status,
+            args.rebuild,
+            args.resume,
+            args.rewrite_wiki_links,
+            args.quick,
+            args.tag.clone(),
+            args.r#type.clone(),
+            args.recent,
+            args.moc.clone(),
+            args.status,
             start,
         ),
 
-        Some(Commands::Search {
-            query,
-            r#type,
-            tag,
-            exclude_mocs,
-            min_value,
-            sort,
-        }) => notes::handle_search(
+        Some(Commands::Search(args)) => notes::handle_search(
             cli,
             &root,
-            query,
-            r#type.clone(),
-            tag.as_deref(),
-            *exclude_mocs,
-            *min_value,
-            sort.as_deref(),
+            &args.query,
+            args.r#type.clone(),
+            args.tag.as_deref(),
+            args.exclude_mocs,
+            args.min_value,
+            args.sort.as_deref(),
             start,
         ),
 
-        Some(Commands::Verify { id_or_path, status }) => {
-            notes::handle_verify(cli, &root, id_or_path, *status, start)
+        Some(Commands::Verify(args)) => {
+            notes::handle_verify(cli, &root, &args.id_or_path, args.status, start)
         }
 
-        Some(Commands::Value { command }) => handlers::handle_value(cli, &root, command, start),
+        Some(Commands::Value(args)) => handlers::handle_value(cli, &root, &args.command, start),
 
-        Some(Commands::Tags { command }) => handlers::handle_tags(cli, &root, command, start),
+        Some(Commands::Tags(args)) => handlers::handle_tags(cli, &root, &args.command, start),
 
-        Some(Commands::Custom { command }) => handlers::handle_custom(cli, &root, command, start),
+        Some(Commands::Custom(args)) => handlers::handle_custom(cli, &root, &args.command, start),
 
-        Some(Commands::Prime { compact, minimal }) => {
-            maintenance::handle_prime(cli, &root, *compact, *minimal, start)
+        Some(Commands::Prime(args)) => {
+            maintenance::handle_prime(cli, &root, args.compact, args.minimal, start)
         }
 
         Some(Commands::Onboard) => handlers::handle_onboard(cli),
 
-        Some(Commands::Setup {
-            list,
-            tool,
-            print,
-            check,
-            remove,
-        }) => handlers::handle_setup(cli, *list, tool.as_deref(), *print, *check, *remove),
+        Some(Commands::Setup(args)) => handlers::handle_setup(
+            cli,
+            args.list,
+            args.tool.as_deref(),
+            args.print,
+            args.check,
+            args.remove,
+        ),
 
-        Some(Commands::Doctor {
-            fix,
-            duplicates,
-            threshold,
-            check,
-        }) => maintenance::handle_doctor(
+        Some(Commands::Doctor(args)) => maintenance::handle_doctor(
             cli,
             &root,
-            *fix,
-            *duplicates,
-            *threshold,
-            check.as_deref(),
+            args.fix,
+            args.duplicates,
+            args.threshold,
+            args.check.as_deref(),
             start,
         ),
 
-        Some(Commands::Sync {
-            validate,
-            fix,
-            commit,
-            push,
-        }) => maintenance::handle_sync(cli, &root, *validate, *fix, *commit, *push, start),
+        Some(Commands::Sync(args)) => maintenance::handle_sync(
+            cli,
+            &root,
+            args.validate,
+            args.fix,
+            args.commit,
+            args.push,
+            start,
+        ),
 
-        Some(Commands::Context {
-            walk,
-            walk_direction,
-            walk_max_hops,
-            walk_type,
-            walk_exclude_type,
-            walk_typed_only,
-            walk_inline_only,
-            walk_max_nodes,
-            walk_max_edges,
-            walk_max_fanout,
-            walk_min_value,
-            walk_ignore_value,
-            note,
-            tag,
-            moc,
-            query,
-            max_chars,
-            transitive,
-            with_body,
-            summary_only,
-            safety_banner,
-            related,
-            backlinks,
-            min_value,
-            custom_filter,
-            custom,
-            include_ontology,
-        }) => {
+        Some(Commands::Context(args)) => {
             // Default to full body unless --summary-only is specified
             // --with-body is kept for backward compatibility but is now the default
-            let use_full_body = !summary_only || *with_body;
+            let use_full_body = !args.summary_only || args.with_body;
             notes::handle_context(
                 cli,
                 &root,
-                walk.as_deref(),
-                walk_direction.as_str(),
-                *walk_max_hops,
-                walk_type,
-                walk_exclude_type,
-                *walk_typed_only,
-                *walk_inline_only,
-                *walk_max_nodes,
-                *walk_max_edges,
-                *walk_max_fanout,
-                *walk_min_value,
-                *walk_ignore_value,
-                note,
-                tag.as_deref(),
-                moc.as_deref(),
-                query.as_deref(),
-                *max_chars,
-                *transitive,
+                args.walk.as_deref(),
+                args.walk_direction.as_str(),
+                args.walk_max_hops,
+                &args.walk_type,
+                &args.walk_exclude_type,
+                args.walk_typed_only,
+                args.walk_inline_only,
+                args.walk_max_nodes,
+                args.walk_max_edges,
+                args.walk_max_fanout,
+                args.walk_min_value,
+                args.walk_ignore_value,
+                &args.note,
+                args.tag.as_deref(),
+                args.moc.as_deref(),
+                args.query.as_deref(),
+                args.max_chars,
+                args.transitive,
                 use_full_body,
-                *safety_banner,
-                *related,
-                *backlinks,
-                *min_value,
-                custom_filter,
-                *custom,
-                *include_ontology,
+                args.safety_banner,
+                args.related,
+                args.backlinks,
+                args.min_value,
+                &args.custom_filter,
+                args.custom,
+                args.include_ontology,
                 start,
             )
         }
 
-        Some(Commands::Export {
-            note,
-            tag,
-            moc,
-            query,
-            output,
-            mode,
-            with_attachments,
-            link_mode,
-            bib_format,
-            max_hops,
-            pdf,
-        }) => io::handle_export(
+        Some(Commands::Export(args)) => io::handle_export(
             cli,
             &root,
-            note,
-            tag.as_deref(),
-            moc.as_deref(),
-            query.as_deref(),
-            output.as_ref(),
-            mode,
-            *with_attachments,
-            link_mode,
-            bib_format,
-            *max_hops,
-            *pdf,
+            &args.note,
+            args.tag.as_deref(),
+            args.moc.as_deref(),
+            args.query.as_deref(),
+            args.output.as_ref(),
+            &args.mode,
+            args.with_attachments,
+            &args.link_mode,
+            &args.bib_format,
+            args.max_hops,
+            args.pdf,
             start,
         ),
 
-        Some(Commands::Link { command }) => link::handle_link(cli, &root, command, start),
-
-        Some(Commands::Compact { command }) => handlers::handle_compact(cli, command),
-
-        Some(Commands::Workspace { command }) => handlers::handle_workspace(cli, command),
-
-        Some(Commands::Dump {
-            file,
-            note,
-            tag,
-            moc,
-            query,
-            direction,
-            max_hops,
-            r#type,
-            typed_only,
-            inline_only,
-            no_attachments,
-            output,
-        }) => io::handle_dump(
+        Some(Commands::Dump(args)) => io::handle_dump(
             cli,
             &root,
-            file.as_ref(),
-            note,
-            tag.as_deref(),
-            moc.as_deref(),
-            query.as_deref(),
-            direction,
-            *max_hops,
-            r#type.clone(),
-            *typed_only,
-            *inline_only,
-            *no_attachments,
-            output.as_ref(),
+            args.file.as_ref(),
+            &args.note,
+            args.tag.as_deref(),
+            args.moc.as_deref(),
+            args.query.as_deref(),
+            &args.direction,
+            args.max_hops,
+            args.r#type.clone(),
+            args.typed_only,
+            args.inline_only,
+            args.no_attachments,
+            args.output.as_ref(),
             start,
         ),
 
-        Some(Commands::Load {
-            pack_file,
-            strategy,
-            apply_config,
-        }) => io::handle_load(cli, &root, pack_file, strategy, *apply_config, start),
+        Some(Commands::Load(args)) => io::handle_load(
+            cli,
+            &root,
+            &args.pack_file,
+            &args.strategy,
+            args.apply_config,
+            start,
+        ),
 
-        Some(Commands::Merge { id1, id2, dry_run }) => {
-            notes::handle_merge(cli, &root, id1, id2, *dry_run, start)
+        Some(Commands::Merge(args)) => {
+            notes::handle_merge(cli, &root, &args.id1, &args.id2, args.dry_run, start)
         }
 
-        Some(Commands::Edit { id_or_path, editor }) => {
-            notes::handle_edit(cli, &root, id_or_path, editor.as_deref(), start)
+        Some(Commands::Link(args)) => link::handle_link(cli, &root, &args.command, start),
+
+        Some(Commands::Compact(args)) => handlers::handle_compact(cli, &args.command),
+
+        Some(Commands::Workspace(args)) => handlers::handle_workspace(cli, &args.command),
+
+        Some(Commands::Edit(args)) => {
+            notes::handle_edit(cli, &root, &args.id_or_path, args.editor.as_deref(), start)
         }
 
-        Some(Commands::Update {
-            id_or_path,
-            title,
-            r#type,
-            tag,
-            remove_tag,
-            value,
-            source,
-            author,
-            generated_by,
-            prompt_hash,
-            verified,
-        }) => notes::handle_update(
+        Some(Commands::Update(args)) => notes::handle_update(
             cli,
             &root,
-            id_or_path,
-            title.as_deref(),
-            r#type.clone(),
-            tag,
-            remove_tag,
-            *value,
-            source.as_deref(),
-            author.as_deref(),
-            generated_by.as_deref(),
-            prompt_hash.as_deref(),
-            *verified,
+            &args.id_or_path,
+            args.title.as_deref(),
+            args.r#type.clone(),
+            &args.tag,
+            &args.remove_tag,
+            args.value,
+            args.source.as_deref(),
+            args.author.as_deref(),
+            args.generated_by.as_deref(),
+            args.prompt_hash.as_deref(),
+            args.verified,
             start,
         ),
 
-        Some(Commands::Store { command }) => handlers::handle_store(cli, &root, command, start),
+        Some(Commands::Store(args)) => handlers::handle_store(cli, &root, &args.command, start),
 
-        Some(Commands::Ontology { command }) => {
-            handlers::handle_ontology(cli, &root, command, start)
+        Some(Commands::Ontology(args)) => {
+            handlers::handle_ontology(cli, &root, &args.command, start)
         }
     }
 }

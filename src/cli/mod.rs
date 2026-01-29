@@ -176,21 +176,13 @@ mod tests {
     fn test_parse_list_with_filters() {
         let cli =
             Cli::try_parse_from(["qipu", "list", "--tag", "test", "--type", "fleeting"]).unwrap();
-        if let Some(Commands::List {
-            tag,
-            r#type,
-            since,
-            min_value,
-            custom,
-            show_custom,
-        }) = cli.command
-        {
-            assert_eq!(tag, Some("test".to_string()));
-            assert_eq!(r#type, Some(NoteType::from(NoteType::FLEETING)));
-            assert_eq!(since, None);
-            assert_eq!(custom, None);
-            assert_eq!(min_value, None);
-            assert!(!show_custom);
+        if let Some(Commands::List(args)) = &cli.command {
+            assert_eq!(args.tag, Some("test".to_string()));
+            assert_eq!(args.r#type, Some(NoteType::from(NoteType::FLEETING)));
+            assert_eq!(args.since, None);
+            assert_eq!(args.custom, None);
+            assert_eq!(args.min_value, None);
+            assert!(!args.show_custom);
         } else {
             panic!("Expected List command");
         }
@@ -199,8 +191,8 @@ mod tests {
     #[test]
     fn test_parse_list_with_min_value() {
         let cli = Cli::try_parse_from(["qipu", "list", "--min-value", "75"]).unwrap();
-        if let Some(Commands::List { min_value, .. }) = cli.command {
-            assert_eq!(min_value, Some(75));
+        if let Some(Commands::List(args)) = &cli.command {
+            assert_eq!(args.min_value, Some(75));
         } else {
             panic!("Expected List command");
         }

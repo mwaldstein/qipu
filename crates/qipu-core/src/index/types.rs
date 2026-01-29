@@ -98,7 +98,7 @@ pub struct SearchResult {
     pub relevance: f64,
     /// Via field - indicates which compacted note triggered this result
     /// Per spec (specs/compaction.md line 122): when a digest appears because
-    /// a compacted note matched, annotate with via=<matching-note-id>
+    /// a compacted note matched, annotate with via=&lt;matching-note-id&gt;
     #[serde(skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
     /// Note importance/quality score (0-100)

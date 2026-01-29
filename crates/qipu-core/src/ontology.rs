@@ -165,7 +165,7 @@ impl Ontology {
 
     /// Get the inverse of a link type
     /// Returns the link type itself if it's its own inverse
-    /// For unknown types, returns inverse-<type>
+    /// For unknown types, returns inverse-&lt;type&gt;
     pub fn get_inverse(&self, link_type: &str) -> String {
         let lt = link_type.to_lowercase();
 

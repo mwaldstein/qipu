@@ -19,4 +19,5 @@ pub mod records;
 pub mod search;
 pub mod similarity;
 pub mod store;
-pub mod text;
+
+mod text;

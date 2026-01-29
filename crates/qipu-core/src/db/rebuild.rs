@@ -212,7 +212,7 @@ impl Database {
                 }
             }
 
-            if interrupted.map_or(false, |i| i.load(Ordering::SeqCst)) {
+            if interrupted.is_some_and(|i| i.load(Ordering::SeqCst)) {
                 let tx = current_tx
                     .take()
                     .ok_or_else(|| QipuError::Other("No active transaction".to_string()))?;

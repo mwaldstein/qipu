@@ -151,7 +151,7 @@ pub(crate) fn extract_links(
     edges
 }
 
-/// Rewrite wiki-links [[id]] and [[id|label]] to markdown links [label](qp-id.md)
+/// Rewrite wiki-links \[\[id\]\] and \[\[id|label\]\] to markdown links [label](qp-id.md)
 pub fn rewrite_wiki_links(note: &mut Note) -> Result<bool> {
     let wiki_link_re = match Regex::new(r"\[\[([^\]]+)\]\]") {
         Ok(re) => re,

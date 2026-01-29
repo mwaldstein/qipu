@@ -203,9 +203,7 @@ impl Store {
                 String::new()
             };
 
-            if let Ok(git_ids) =
-                crate::git::get_ids_from_all_branches(&repo_root, &store_subpath)
-            {
+            if let Ok(git_ids) = crate::git::get_ids_from_all_branches(&repo_root, &store_subpath) {
                 ids.extend(git_ids);
             }
         }

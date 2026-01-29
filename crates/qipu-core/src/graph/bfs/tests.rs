@@ -29,22 +29,16 @@ fn test_bfs_find_path_unweighted() {
     store.save_note(&mut to_note).unwrap();
 
     // Create links: from -> mid -> to
-    from_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: mid_note.id().to_string(),
-        });
+    from_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: mid_note.id().to_string(),
+    });
     store.save_note(&mut from_note).unwrap();
 
-    mid_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: to_note.id().to_string(),
-        });
+    mid_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: to_note.id().to_string(),
+    });
     store.save_note(&mut mid_note).unwrap();
 
     let index = IndexBuilder::new(&store).build().unwrap();
@@ -96,22 +90,16 @@ fn test_bfs_find_path_weighted() {
     store.save_note(&mut to_note).unwrap();
 
     // Create links: from -> mid -> to
-    from_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: mid_note.id().to_string(),
-        });
+    from_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: mid_note.id().to_string(),
+    });
     store.save_note(&mut from_note).unwrap();
 
-    mid_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: to_note.id().to_string(),
-        });
+    mid_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: to_note.id().to_string(),
+    });
     store.save_note(&mut mid_note).unwrap();
 
     let index = IndexBuilder::new(&store).build().unwrap();
@@ -169,13 +157,10 @@ fn test_bfs_find_path_min_value_filter() {
     store.save_note(&mut to_note).unwrap();
 
     // Create links: from -> low_mid -> to and from -> high_mid -> to
-    from_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: low_mid.id().to_string(),
-        });
+    from_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: low_mid.id().to_string(),
+    });
     store.save_note(&mut from_note).unwrap();
 
     low_mid.frontmatter.links.push(crate::note::TypedLink {
@@ -184,22 +169,16 @@ fn test_bfs_find_path_min_value_filter() {
     });
     store.save_note(&mut low_mid).unwrap();
 
-    from_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: high_mid.id().to_string(),
-        });
+    from_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: high_mid.id().to_string(),
+    });
     store.save_note(&mut from_note).unwrap();
 
-    high_mid
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: to_note.id().to_string(),
-        });
+    high_mid.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: to_note.id().to_string(),
+    });
     store.save_note(&mut high_mid).unwrap();
 
     let index = IndexBuilder::new(&store).build().unwrap();
@@ -376,31 +355,22 @@ fn test_bfs_find_path_max_hops() {
     store.save_note(&mut to_note).unwrap();
 
     // Create links: from -> mid1 -> mid2 -> to (3 hops)
-    from_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: mid1_note.id().to_string(),
-        });
+    from_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: mid1_note.id().to_string(),
+    });
     store.save_note(&mut from_note).unwrap();
 
-    mid1_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: mid2_note.id().to_string(),
-        });
+    mid1_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: mid2_note.id().to_string(),
+    });
     store.save_note(&mut mid1_note).unwrap();
 
-    mid2_note
-        .frontmatter
-        .links
-        .push(crate::note::TypedLink {
-            link_type: crate::note::LinkType::from("supports"),
-            id: to_note.id().to_string(),
-        });
+    mid2_note.frontmatter.links.push(crate::note::TypedLink {
+        link_type: crate::note::LinkType::from("supports"),
+        id: to_note.id().to_string(),
+    });
     store.save_note(&mut mid2_note).unwrap();
 
     let index = IndexBuilder::new(&store).build().unwrap();

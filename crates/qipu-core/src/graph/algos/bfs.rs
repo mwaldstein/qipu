@@ -348,23 +348,17 @@ mod tests {
 
         // Create links: root -> mid -> leaf
         let mut root_note = store.get_note(root.id()).unwrap();
-        root_note
-            .frontmatter
-            .links
-            .push(crate::note::TypedLink {
-                link_type: crate::note::LinkType::from("supports"),
-                id: mid.id().to_string(),
-            });
+        root_note.frontmatter.links.push(crate::note::TypedLink {
+            link_type: crate::note::LinkType::from("supports"),
+            id: mid.id().to_string(),
+        });
         store.save_note(&mut root_note).unwrap();
 
         let mut mid_note = store.get_note(mid.id()).unwrap();
-        mid_note
-            .frontmatter
-            .links
-            .push(crate::note::TypedLink {
-                link_type: crate::note::LinkType::from("supports"),
-                id: leaf.id().to_string(),
-            });
+        mid_note.frontmatter.links.push(crate::note::TypedLink {
+            link_type: crate::note::LinkType::from("supports"),
+            id: leaf.id().to_string(),
+        });
         store.save_note(&mut mid_note).unwrap();
 
         let index = IndexBuilder::new(&store).build().unwrap();

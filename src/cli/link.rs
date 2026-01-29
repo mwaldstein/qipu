@@ -1,6 +1,6 @@
 use super::parse::parse_link_type;
-use qipu_core::note::LinkType;
 use clap::Subcommand;
+use qipu_core::note::LinkType;
 
 /// Link subcommands
 #[derive(Subcommand, Debug)]

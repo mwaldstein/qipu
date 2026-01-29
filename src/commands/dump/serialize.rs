@@ -1,10 +1,10 @@
 use super::model::{PackAttachment, PackLink};
+use base64::{engine::general_purpose, Engine as _};
 use qipu_core::config::STORE_FORMAT_VERSION;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::note::Note;
 use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
-use base64::{engine::general_purpose, Engine as _};
 
 /// Serialize pack in records format (compact, line-oriented)
 pub fn serialize_pack_records(

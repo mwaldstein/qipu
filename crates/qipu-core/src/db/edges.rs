@@ -63,12 +63,12 @@ impl super::Database {
 
             for (position, edge) in edges.iter().enumerate() {
                 let link_type_str = edge.link_type.to_string();
-                let inline_flag =
-                    if matches!(edge.source, crate::index::types::LinkSource::Inline) {
-                        1
-                    } else {
-                        0
-                    };
+                let inline_flag = if matches!(edge.source, crate::index::types::LinkSource::Inline)
+                {
+                    1
+                } else {
+                    0
+                };
                 let position = position as i64;
 
                 self.conn
@@ -150,12 +150,12 @@ impl super::Database {
 
             for (position, edge) in edges.iter().enumerate() {
                 let link_type_str = edge.link_type.to_string();
-                let inline_flag =
-                    if matches!(edge.source, crate::index::types::LinkSource::Inline) {
-                        1
-                    } else {
-                        0
-                    };
+                let inline_flag = if matches!(edge.source, crate::index::types::LinkSource::Inline)
+                {
+                    1
+                } else {
+                    0
+                };
                 let position = position as i64;
 
                 conn.execute(

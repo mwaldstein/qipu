@@ -92,11 +92,7 @@ impl<'a> NoteFilter<'a> {
     }
 
     /// Check if a note matches all configured filters
-    pub fn matches(
-        &self,
-        note: &crate::note::Note,
-        compaction_ctx: &CompactionContext,
-    ) -> bool {
+    pub fn matches(&self, note: &crate::note::Note, compaction_ctx: &CompactionContext) -> bool {
         if !self.matches_compaction(note, compaction_ctx) {
             return false;
         }

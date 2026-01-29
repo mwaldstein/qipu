@@ -1,6 +1,6 @@
 use super::parse::parse_note_type;
-use qipu_core::note::NoteType;
 use clap::Args;
+use qipu_core::note::NoteType;
 
 #[derive(Args, Debug, Clone)]
 pub struct CreateArgs {

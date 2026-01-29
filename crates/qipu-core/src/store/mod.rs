@@ -198,8 +198,7 @@ impl Store {
         if options.stealth {
             if let (Some(project_root), Some(store_name)) = (project_root, store_root.file_name()) {
                 if store_root.parent() == Some(project_root) {
-                    let project_gitignore =
-                        project_root.join(crate::store::paths::GITIGNORE_FILE);
+                    let project_gitignore = project_root.join(crate::store::paths::GITIGNORE_FILE);
                     let entry = format!("{}/", store_name.to_string_lossy());
                     config::ensure_project_gitignore_entry(&project_gitignore, &entry)?;
                 }
@@ -230,8 +229,8 @@ impl Store {
 
             let force_strategy = options
                 .index_strategy
-                .as_ref()
-                .and_then(|s| IndexingStrategy::from_str(s));
+                .as_deref()
+                .and_then(IndexingStrategy::parse);
             let _ = db.adaptive_index(store_root, &config.auto_index, force_strategy);
         }
 

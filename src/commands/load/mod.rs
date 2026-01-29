@@ -13,10 +13,10 @@ pub mod model;
 use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
+use loader::{load_attachments, load_links, load_notes};
 use qipu_core::config::STORE_FORMAT_VERSION;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
-use loader::{load_attachments, load_links, load_notes};
 
 pub(crate) enum LoadStrategy {
     Skip,

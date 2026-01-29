@@ -87,8 +87,7 @@ mod tests {
     #[test]
     fn test_output_records_empty() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let store =
-            Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
+        let store = Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let all_notes = store.list_notes().unwrap();
@@ -101,8 +100,7 @@ mod tests {
     #[test]
     fn test_output_records_single_note() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let store =
-            Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
+        let store = Store::init(temp_dir.path(), qipu_core::store::InitOptions::default()).unwrap();
         let cli = create_test_cli();
 
         let note = store

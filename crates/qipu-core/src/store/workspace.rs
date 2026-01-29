@@ -31,10 +31,7 @@ impl WorkspaceMetadata {
             workspace: self.clone(),
         };
         let content = toml::to_string_pretty(&file).map_err(|e| {
-            crate::error::QipuError::Other(format!(
-                "failed to serialize workspace.toml: {}",
-                e
-            ))
+            crate::error::QipuError::Other(format!("failed to serialize workspace.toml: {}", e))
         })?;
         fs::write(path, content)?;
         Ok(())

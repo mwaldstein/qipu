@@ -169,19 +169,78 @@ struct NoteMetadata {
     custom: HashMap<String, serde_json::Value>,
 }
 
-fn parse_note_metadata(metadata_str: &str) -> NoteMetadata {
-    let mut tags = Vec::new();
-    let mut created = None;
-    let mut updated = None;
-    let mut summary = None;
-    let mut compacts = Vec::new();
-    let mut source = None;
-    let mut author = None;
-    let mut generated_by = None;
-    let mut prompt_hash = None;
-    let mut verified = None;
-    let mut value = None;
-    let mut custom: HashMap<String, serde_json::Value> = HashMap::new();
+fn parse_value(metadata_chars: &[char], current_pos: &mut usize) -> String {
+    if *current_pos < metadata_chars.len() && metadata_chars[*current_pos] == '"' {
+        *current_pos += 1;
+        let quote_start = *current_pos;
+        while *current_pos < metadata_chars.len() && metadata_chars[*current_pos] != '"' {
+            *current_pos += 1;
+        }
+        let val = metadata_chars[quote_start..*current_pos].iter().collect();
+        if *current_pos < metadata_chars.len() {
+            *current_pos += 1;
+        }
+        val
+    } else {
+        let val_start = *current_pos;
+        while *current_pos < metadata_chars.len() && !metadata_chars[*current_pos].is_whitespace() {
+            *current_pos += 1;
+        }
+        metadata_chars[val_start..*current_pos].iter().collect()
+    }
+}
+
+fn apply_metadata_value(key: &str, val: &str, metadata: &mut NoteMetadata) {
+    match key {
+        "tags" => {
+            if val != "-" {
+                metadata.tags = val.split(',').map(|s| s.to_string()).collect();
+            }
+        }
+        "created" => metadata.created = val.parse().ok(),
+        "updated" => metadata.updated = val.parse().ok(),
+        "summary" => metadata.summary = Some(val.to_string()),
+        "compacts" => {
+            if val != "-" {
+                metadata.compacts = val.split(',').map(|s| s.to_string()).collect();
+            }
+        }
+        "source" => metadata.source = Some(val.to_string()),
+        "author" => metadata.author = Some(val.to_string()),
+        "generated_by" => metadata.generated_by = Some(val.to_string()),
+        "prompt_hash" => metadata.prompt_hash = Some(val.to_string()),
+        "verified" => metadata.verified = val.parse().ok(),
+        "value" => metadata.value = val.parse().ok(),
+        "custom" => {
+            if let Ok(decoded) = general_purpose::STANDARD.decode(val) {
+                if let Ok(json_str) = String::from_utf8(decoded) {
+                    if let Ok(parsed) =
+                        serde_json::from_str::<HashMap<String, serde_json::Value>>(&json_str)
+                    {
+                        metadata.custom = parsed;
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn parse_key_value_pairs(metadata_str: &str) -> NoteMetadata {
+    let mut metadata = NoteMetadata {
+        tags: Vec::new(),
+        created: None,
+        updated: None,
+        summary: None,
+        compacts: Vec::new(),
+        source: None,
+        author: None,
+        generated_by: None,
+        prompt_hash: None,
+        verified: None,
+        value: None,
+        custom: HashMap::new(),
+    };
 
     let mut current_pos = 0;
     let metadata_chars: Vec<char> = metadata_str.chars().collect();
@@ -205,81 +264,18 @@ fn parse_note_metadata(metadata_str: &str) -> NoteMetadata {
 
         if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '=' {
             current_pos += 1;
-            let val_start = current_pos;
-            let val: String;
-
-            if current_pos < metadata_chars.len() && metadata_chars[current_pos] == '"' {
-                current_pos += 1;
-                let quote_start = current_pos;
-                while current_pos < metadata_chars.len() && metadata_chars[current_pos] != '"' {
-                    current_pos += 1;
-                }
-                val = metadata_chars[quote_start..current_pos].iter().collect();
-                if current_pos < metadata_chars.len() {
-                    current_pos += 1;
-                }
-            } else {
-                while current_pos < metadata_chars.len()
-                    && !metadata_chars[current_pos].is_whitespace()
-                {
-                    current_pos += 1;
-                }
-                val = metadata_chars[val_start..current_pos].iter().collect();
-            }
-
-            match key.as_str() {
-                "tags" => {
-                    if val != "-" {
-                        tags = val.split(',').map(|s| s.to_string()).collect();
-                    }
-                }
-                "created" => created = val.parse().ok(),
-                "updated" => updated = val.parse().ok(),
-                "summary" => summary = Some(val),
-                "compacts" => {
-                    if val != "-" {
-                        compacts = val.split(',').map(|s| s.to_string()).collect();
-                    }
-                }
-                "source" => source = Some(val),
-                "author" => author = Some(val),
-                "generated_by" => generated_by = Some(val),
-                "prompt_hash" => prompt_hash = Some(val),
-                "verified" => verified = val.parse().ok(),
-                "value" => value = val.parse().ok(),
-                "custom" => {
-                    if let Ok(decoded) = general_purpose::STANDARD.decode(&val) {
-                        if let Ok(json_str) = String::from_utf8(decoded) {
-                            if let Ok(parsed) = serde_json::from_str::<
-                                HashMap<String, serde_json::Value>,
-                            >(&json_str)
-                            {
-                                custom = parsed;
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
+            let val = parse_value(&metadata_chars, &mut current_pos);
+            apply_metadata_value(&key, &val, &mut metadata);
         } else {
             current_pos += 1;
         }
     }
 
-    NoteMetadata {
-        tags,
-        created,
-        updated,
-        summary,
-        compacts,
-        source,
-        author,
-        generated_by,
-        prompt_hash,
-        verified,
-        value,
-        custom,
-    }
+    metadata
+}
+
+fn parse_note_metadata(metadata_str: &str) -> NoteMetadata {
+    parse_key_value_pairs(metadata_str)
 }
 
 fn parse_source_line(line: &str) -> Option<PackSource> {

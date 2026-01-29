@@ -10,4 +10,5 @@ mod metadata;
 mod ontology;
 mod selection;
 mod two_hop;
-mod walk;
+mod walk_advanced;
+mod walk_basic;

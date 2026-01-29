@@ -8,7 +8,6 @@ ALLOWED_FUNCTIONS = {
     "commands/compact/report.rs:execute",
     "commands/compact/show.rs:execute",
     "commands/compact/suggest.rs:execute",
-    "commands/compact/status.rs:execute",
     "commands/export/emit/bibliography.rs:export_bibtex",
     "commands/load/deserialize.rs:looks_like_json",
 }

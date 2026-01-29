@@ -19,7 +19,6 @@ ALLOWED_FUNCTIONS = {
     "commands/export/emit/bibliography.rs:export_bibtex",
     "commands/load/mod.rs:execute",
     "commands/compact/status.rs:execute",
-    "lib/index/builder.rs:build",
     "lib/similarity/mod.rs:test_default_threshold_related_notes",
     "commands/link/tree.rs:execute",
 }
@@ -62,7 +61,7 @@ def find_large_functions(src_dir, max_lines=100):
     return violations
 
 if __name__ == '__main__':
-    violations = find_large_functions('src', 100)
+    violations = find_large_functions('src', 100) + find_large_functions('crates', 100)
     
     violation_found = False
     for file, fn, line_num, lines in violations:

@@ -182,6 +182,32 @@ fn test_list_filter_by_since_no_matches() {
 }
 
 #[test]
+fn test_list_filter_by_since_exact_match() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let since_time = chrono::Utc::now().to_rfc3339();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Exact Time Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--since", &since_time])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Exact Time Note"));
+}
+
+#[test]
 fn test_list_filter_by_custom_string() {
     let dir = tempdir().unwrap();
 

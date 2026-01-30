@@ -192,219 +192,192 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 }
 
-#[test]
-fn test_typed_links_preserved_through_dump_load_roundtrip() {
+struct TestStores {
+    _dir1: tempfile::TempDir,
+    _dir2: tempfile::TempDir,
+    pack_file: std::path::PathBuf,
+}
+
+impl TestStores {
+    fn store1_path(&self) -> &std::path::Path {
+        self._dir1.path()
+    }
+
+    fn store2_path(&self) -> &std::path::Path {
+        self._dir2.path()
+    }
+}
+
+fn setup_stores() -> TestStores {
     let dir1 = tempdir().unwrap();
-    let store1_path = dir1.path();
     let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
     let pack_file = dir1.path().join("test.pack.json");
 
-    // 1. Initialize store 1
     qipu()
         .arg("init")
-        .env("QIPU_STORE", store1_path)
+        .env("QIPU_STORE", dir1.path())
         .assert()
         .success();
 
-    // 2. Create multiple notes
-    let output_a = qipu()
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", dir2.path())
+        .assert()
+        .success();
+
+    TestStores {
+        _dir1: dir1,
+        _dir2: dir2,
+        pack_file,
+    }
+}
+
+fn create_note(store_path: &std::path::Path, title: &str) -> String {
+    let output = qipu()
         .arg("create")
-        .arg("Note A")
-        .env("QIPU_STORE", store1_path)
+        .arg(title)
+        .env("QIPU_STORE", store_path)
         .output()
         .unwrap();
-    let id_a = extract_id_from_bytes(&output_a.stdout);
+    extract_id_from_bytes(&output.stdout)
+}
 
-    let output_b = qipu()
-        .arg("create")
-        .arg("Note B")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-    let id_b = extract_id_from_bytes(&output_b.stdout);
-
-    let output_c = qipu()
-        .arg("create")
-        .arg("Note C")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-    let id_c = extract_id_from_bytes(&output_c.stdout);
-
-    let output_d = qipu()
-        .arg("create")
-        .arg("Note D")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-    let id_d = extract_id_from_bytes(&output_d.stdout);
-
-    // 3. Add typed links between notes
+fn add_typed_link(store_path: &std::path::Path, from: &str, to: &str, link_type: &str) {
     qipu()
-        .args(["link", "add", &id_a, &id_b, "--type", "supports"])
-        .env("QIPU_STORE", store1_path)
+        .args(["link", "add", from, to, "--type", link_type])
+        .env("QIPU_STORE", store_path)
         .assert()
         .success();
+}
 
-    qipu()
-        .args(["link", "add", &id_a, &id_c, "--type", "derived-from"])
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    qipu()
-        .args(["link", "add", &id_b, &id_d, "--type", "contradicts"])
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    qipu()
-        .args(["link", "add", &id_c, &id_d, "--type", "part-of"])
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // Index to update the database
-    qipu()
-        .arg("index")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // 4. Pack to JSON
+fn dump_to_json(stores: &TestStores) {
     qipu()
         .arg("dump")
         .arg("--output")
-        .arg(&pack_file)
+        .arg(&stores.pack_file)
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
+        .env("QIPU_STORE", stores.store1_path())
         .assert()
         .success();
+}
 
-    // 5. Initialize store 2
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 6. Load into store 2
+fn load_from_json(stores: &TestStores) {
     qipu()
         .arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
+        .arg(&stores.pack_file)
+        .env("QIPU_STORE", stores.store2_path())
         .assert()
         .success();
+}
 
-    // Index the loaded notes
-    qipu()
-        .arg("index")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 7. Verify typed links are preserved in store 2
-    let output_a_show = qipu()
+fn get_note_links_json(store_path: &std::path::Path, note_id: &str) -> serde_json::Value {
+    let output = qipu()
         .args([
             "show",
-            &id_a,
+            note_id,
             "--links",
             "--format",
             "json",
             "--no-semantic-inversion",
         ])
-        .env("QIPU_STORE", store2_path)
+        .env("QIPU_STORE", store_path)
         .output()
         .unwrap();
+    serde_json::from_slice(&output.stdout).unwrap()
+}
 
-    let json_a: serde_json::Value = serde_json::from_slice(&output_a_show.stdout).unwrap();
-    let links_a = json_a["links"].as_array().unwrap();
+fn verify_link(links: &[serde_json::Value], target_id: &str, link_type: &str) -> bool {
+    links.iter().any(|link| {
+        link["id"].as_str() == Some(target_id) && link["type"].as_str() == Some(link_type)
+    })
+}
 
-    // Verify Note A has links to B (supports) and C (derived-from)
-    assert_eq!(links_a.len(), 2, "Note A should have 2 outbound links");
+struct LinkGraph {
+    pub id_a: String,
+    pub id_b: String,
+    pub id_c: String,
+    pub id_d: String,
+}
 
-    let mut found_supports = false;
-    let mut found_derived_from = false;
+fn setup_link_graph(stores: &TestStores) -> LinkGraph {
+    let id_a = create_note(stores.store1_path(), "Note A");
+    let id_b = create_note(stores.store1_path(), "Note B");
+    let id_c = create_note(stores.store1_path(), "Note C");
+    let id_d = create_note(stores.store1_path(), "Note D");
 
-    for link in links_a {
-        let link_id = link["id"].as_str().unwrap();
-        let link_type = link["type"].as_str().unwrap();
+    add_typed_link(stores.store1_path(), &id_a, &id_b, "supports");
+    add_typed_link(stores.store1_path(), &id_a, &id_c, "derived-from");
+    add_typed_link(stores.store1_path(), &id_b, &id_d, "contradicts");
+    add_typed_link(stores.store1_path(), &id_c, &id_d, "part-of");
 
-        if link_id == id_b && link_type == "supports" {
-            found_supports = true;
-        }
-        if link_id == id_c && link_type == "derived-from" {
-            found_derived_from = true;
-        }
+    qipu()
+        .arg("index")
+        .env("QIPU_STORE", stores.store1_path())
+        .assert()
+        .success();
+
+    dump_to_json(stores);
+    load_from_json(stores);
+    qipu()
+        .arg("index")
+        .env("QIPU_STORE", stores.store2_path())
+        .assert()
+        .success();
+
+    LinkGraph {
+        id_a,
+        id_b,
+        id_c,
+        id_d,
     }
+}
 
+#[test]
+fn test_typed_links_preserved_note_a_links() {
+    let stores = setup_stores();
+    let graph = setup_link_graph(&stores);
+
+    let json = get_note_links_json(stores.store2_path(), &graph.id_a);
+    let links = json["links"].as_array().unwrap();
+
+    assert_eq!(links.len(), 2, "Note A should have 2 outbound links");
     assert!(
-        found_supports,
+        verify_link(links, &graph.id_b, "supports"),
         "Note A should have 'supports' link to Note B"
     );
     assert!(
-        found_derived_from,
+        verify_link(links, &graph.id_c, "derived-from"),
         "Note A should have 'derived-from' link to Note C"
     );
+}
 
-    let output_b_show = qipu()
-        .args([
-            "show",
-            &id_b,
-            "--links",
-            "--format",
-            "json",
-            "--no-semantic-inversion",
-        ])
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
+#[test]
+fn test_typed_links_preserved_note_b_links() {
+    let stores = setup_stores();
+    let graph = setup_link_graph(&stores);
 
-    let json_b: serde_json::Value = serde_json::from_slice(&output_b_show.stdout).unwrap();
-    let links_b = json_b["links"].as_array().unwrap();
+    let json = get_note_links_json(stores.store2_path(), &graph.id_b);
+    let links = json["links"].as_array().unwrap();
 
-    let mut found_contradicts = false;
-    for link in links_b {
-        let link_id = link["id"].as_str().unwrap();
-        let link_type = link["type"].as_str().unwrap();
-
-        if link_id == id_d && link_type == "contradicts" {
-            found_contradicts = true;
-        }
-    }
     assert!(
-        found_contradicts,
+        verify_link(links, &graph.id_d, "contradicts"),
         "Note B should have 'contradicts' link to Note D"
     );
+}
 
-    let output_c_show = qipu()
-        .args([
-            "show",
-            &id_c,
-            "--links",
-            "--format",
-            "json",
-            "--no-semantic-inversion",
-        ])
-        .env("QIPU_STORE", store2_path)
-        .output()
-        .unwrap();
+#[test]
+fn test_typed_links_preserved_note_c_links() {
+    let stores = setup_stores();
+    let graph = setup_link_graph(&stores);
 
-    let json_c: serde_json::Value = serde_json::from_slice(&output_c_show.stdout).unwrap();
-    let links_c = json_c["links"].as_array().unwrap();
+    let json = get_note_links_json(stores.store2_path(), &graph.id_c);
+    let links = json["links"].as_array().unwrap();
 
-    let mut found_part_of = false;
-    for link in links_c {
-        let link_id = link["id"].as_str().unwrap();
-        let link_type = link["type"].as_str().unwrap();
-
-        if link_id == id_d && link_type == "part-of" {
-            found_part_of = true;
-        }
-    }
-    assert!(found_part_of, "Note C should have 'part-of' link to Note D");
+    assert!(
+        verify_link(links, &graph.id_d, "part-of"),
+        "Note C should have 'part-of' link to Note D"
+    );
 }
 
 fn extract_id_from_bytes(bytes: &[u8]) -> String {

@@ -7,411 +7,260 @@ fn qipu() -> Command {
     cargo_bin_cmd!("qipu")
 }
 
-#[test]
-fn test_pack_attachments_roundtrip() {
-    let dir1 = tempdir().unwrap();
-    let store1_path = dir1.path();
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-    let pack_file = dir1.path().join("test.pack");
+struct PackTestSetup {
+    _dir1: tempfile::TempDir,
+    _dir2: tempfile::TempDir,
+    pack_file: std::path::PathBuf,
+}
 
-    // 1. Initialize store 1
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+impl PackTestSetup {
+    fn new(pack_name: &str) -> Self {
+        let dir1 = tempdir().unwrap();
+        let dir2 = tempdir().unwrap();
+        let pack_file = dir1.path().join(pack_name);
 
-    // 2. Create a note
+        qipu()
+            .arg("init")
+            .env("QIPU_STORE", dir1.path())
+            .assert()
+            .success();
+
+        qipu()
+            .arg("init")
+            .env("QIPU_STORE", dir2.path())
+            .assert()
+            .success();
+
+        Self {
+            _dir1: dir1,
+            _dir2: dir2,
+            pack_file,
+        }
+    }
+
+    fn store1_path(&self) -> &std::path::Path {
+        self._dir1.path()
+    }
+
+    fn store2_path(&self) -> &std::path::Path {
+        self._dir2.path()
+    }
+}
+
+fn create_note_in_store(store_path: &std::path::Path, title: &str) -> String {
     qipu()
         .arg("create")
-        .arg("Note with Attachments")
-        .env("QIPU_STORE", store1_path)
+        .arg(title)
+        .env("QIPU_STORE", store_path)
         .assert()
         .success();
 
-    // Get the ID of the created note
     let output = qipu()
         .arg("list")
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
+        .env("QIPU_STORE", store_path)
         .output()
         .unwrap();
 
     let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note_id = list[0]["id"].as_str().unwrap().to_string();
+    list[0]["id"].as_str().unwrap().to_string()
+}
 
-    // 3. Create attachments directory and add test files
-    let attachments_dir = store1_path.join("attachments");
-    fs::create_dir_all(&attachments_dir).unwrap();
-
-    let test_file1 = attachments_dir.join("test1.txt");
-    fs::write(&test_file1, b"Test attachment 1 content").unwrap();
-
-    let test_file2 = attachments_dir.join("test2.json");
-    fs::write(&test_file2, b"{\"key\": \"value\"}").unwrap();
-
-    let test_file3 = attachments_dir.join("image.png");
-    // Create a minimal PNG file (1x1 pixel)
-    let png_data = vec![
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-        0x00, 0x00, 0x00, 0x0D, // IHDR chunk length
-        0x49, 0x48, 0x44, 0x52, // "IHDR"
-        0x00, 0x00, 0x00, 0x01, // Width: 1
-        0x00, 0x00, 0x00, 0x01, // Height: 1
-        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth, color type, etc.
-        0x90, 0x77, 0x53, 0xDE, // CRC
-        0x00, 0x00, 0x00, 0x0C, // IDAT chunk length
-        0x49, 0x44, 0x41, 0x54, // "IDAT"
-        0x08, 0x99, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D,
-        0xB4, // IDAT data + CRC
-        0x00, 0x00, 0x00, 0x00, // IEND chunk length
-        0x49, 0x45, 0x4E, 0x44, // "IEND"
-        0xAE, 0x42, 0x60, 0x82, // CRC
-    ];
-    fs::write(&test_file3, &png_data).unwrap();
-
-    // 4. Reference attachments in the note
-    // Find the actual note file
-    let mut note_path = None;
-    for entry in walkdir::WalkDir::new(store1_path.join("notes")) {
+fn find_note_file(store_path: &std::path::Path, note_id: &str) -> std::path::PathBuf {
+    for entry in walkdir::WalkDir::new(store_path.join("notes")) {
         let entry = entry.unwrap();
         if entry.file_type().is_file() {
             let content = fs::read_to_string(entry.path()).unwrap();
-            if content.contains(&note_id) {
-                note_path = Some(entry.path().to_path_buf());
-                break;
+            if content.contains(note_id) {
+                return entry.path().to_path_buf();
             }
         }
     }
-    let note_path = note_path.expect("Should find note file");
-    let content = fs::read_to_string(&note_path).unwrap();
-    let updated_content = content.replace(
-        "## Notes\n",
-        "## Notes\n\nSee attachment: ![test1](../attachments/test1.txt)\nAnd: ![test2](../attachments/test2.json)\nImage: ![image](../attachments/image.png)\n",
-    );
-    fs::write(&note_path, updated_content).unwrap();
+    panic!("Could not find note file for ID: {}", note_id);
+}
 
-    // Reindex to update database with new body content
+fn add_attachment_ref(note_path: &std::path::Path, ref_text: &str) {
+    let content = fs::read_to_string(note_path).unwrap();
+    let updated = content.replace("## Notes\n", &format!("## Notes\n\n{}\n", ref_text));
+    fs::write(note_path, updated).unwrap();
+}
+
+fn create_minimal_png() -> Vec<u8> {
+    vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90,
+        0x77, 0x53, 0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]
+}
+
+fn setup_attachments(store_path: &std::path::Path, files: &[(&str, &[u8])]) {
+    let attachments_dir = store_path.join("attachments");
+    fs::create_dir_all(&attachments_dir).unwrap();
+
+    for (name, content) in files {
+        fs::write(attachments_dir.join(name), *content).unwrap();
+    }
+}
+
+fn rebuild_index(store_path: &std::path::Path) {
     qipu()
         .arg("index")
         .arg("--rebuild")
-        .env("QIPU_STORE", store1_path)
+        .env("QIPU_STORE", store_path)
         .assert()
         .success();
+}
 
-    // 5. Dump with attachments (default behavior)
+fn dump_pack(setup: &PackTestSetup, args: &[&str]) {
+    let mut cmd_args = vec!["dump", "--output", setup.pack_file.to_str().unwrap()];
+    cmd_args.extend(args);
+
     qipu()
-        .arg("dump")
-        .arg("--output")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store1_path)
+        .args(&cmd_args)
+        .env("QIPU_STORE", setup.store1_path())
         .assert()
         .success();
+}
 
-    // Verify pack file contains attachment data
-    let pack_content = fs::read_to_string(&pack_file).unwrap();
+fn load_pack(setup: &PackTestSetup) {
+    qipu()
+        .arg("load")
+        .arg(&setup.pack_file)
+        .env("QIPU_STORE", setup.store2_path())
+        .assert()
+        .success();
+}
+
+fn verify_note_loaded(setup: &PackTestSetup, note_id: &str, expected_title: &str) {
+    qipu()
+        .arg("show")
+        .arg(note_id)
+        .env("QIPU_STORE", setup.store2_path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(expected_title));
+}
+
+fn verify_attachment_restored(setup: &PackTestSetup, name: &str, expected_content: &[u8]) {
+    let file = setup.store2_path().join("attachments").join(name);
+    assert!(file.exists(), "Attachment {} should exist", name);
+    let content = fs::read(&file).unwrap();
+    assert_eq!(
+        content, expected_content,
+        "Attachment {} content should match",
+        name
+    );
+}
+
+#[test]
+fn test_pack_attachments_roundtrip() {
+    let setup = PackTestSetup::new("test.pack");
+    let note_id = create_note_in_store(setup.store1_path(), "Note with Attachments");
+
+    setup_attachments(
+        setup.store1_path(),
+        &[
+            ("test1.txt", b"Test attachment 1 content"),
+            ("test2.json", b"{\"key\": \"value\"}"),
+            ("image.png", &create_minimal_png()),
+        ],
+    );
+
+    let note_path = find_note_file(setup.store1_path(), &note_id);
+    add_attachment_ref(
+        &note_path,
+        "See attachment: ![test1](../attachments/test1.txt)\nAnd: ![test2](../attachments/test2.json)\nImage: ![image](../attachments/image.png)",
+    );
+
+    rebuild_index(setup.store1_path());
+    dump_pack(&setup, &[]);
+    load_pack(&setup);
+
+    let pack_content = fs::read_to_string(&setup.pack_file).unwrap();
     assert!(pack_content.contains("name=test1.txt"));
     assert!(pack_content.contains("name=test2.json"));
     assert!(pack_content.contains("name=image.png"));
 
-    // 6. Initialize store 2
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    verify_note_loaded(&setup, &note_id, "Note with Attachments");
 
-    // 7. Load pack into store 2
-    qipu()
-        .arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 8. Verify note was loaded
-    qipu()
-        .arg("show")
-        .arg(&note_id)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Note with Attachments"));
-
-    // 9. Verify attachments were restored
-    let attachments_dir2 = store2_path.join("attachments");
-    assert!(attachments_dir2.exists());
-
-    let restored_file1 = attachments_dir2.join("test1.txt");
-    assert!(restored_file1.exists());
-    let content1 = fs::read(&restored_file1).unwrap();
-    assert_eq!(content1, b"Test attachment 1 content");
-
-    let restored_file2 = attachments_dir2.join("test2.json");
-    assert!(restored_file2.exists());
-    let content2 = fs::read(&restored_file2).unwrap();
-    assert_eq!(content2, b"{\"key\": \"value\"}");
-
-    let restored_file3 = attachments_dir2.join("image.png");
-    assert!(restored_file3.exists());
-    let content3 = fs::read(&restored_file3).unwrap();
-    assert_eq!(content3, png_data);
+    verify_attachment_restored(&setup, "test1.txt", b"Test attachment 1 content");
+    verify_attachment_restored(&setup, "test2.json", b"{\"key\": \"value\"}");
+    verify_attachment_restored(&setup, "image.png", &create_minimal_png());
 }
 
 #[test]
 fn test_pack_no_attachments_flag() {
-    let dir1 = tempdir().unwrap();
-    let store1_path = dir1.path();
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-    let pack_file = dir1.path().join("test_no_attach.pack");
+    let setup = PackTestSetup::new("test_no_attach.pack");
+    let note_id = create_note_in_store(setup.store1_path(), "Note without Attachments");
 
-    // 1. Initialize store 1
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // 2. Create a note
-    qipu()
-        .arg("create")
-        .arg("Note without Attachments")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // Get the ID
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note_id = list[0]["id"].as_str().unwrap().to_string();
-
-    // 3. Create attachments in store 1
-    let attachments_dir = store1_path.join("attachments");
-    fs::create_dir_all(&attachments_dir).unwrap();
-
-    let test_file = attachments_dir.join("should_not_pack.txt");
-    fs::write(&test_file, b"This should not be packed").unwrap();
-
-    // Reference it in the note
-    // Find the actual note file
-    let mut note_path = None;
-    for entry in walkdir::WalkDir::new(store1_path.join("notes")) {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            let content = fs::read_to_string(entry.path()).unwrap();
-            if content.contains(&note_id) {
-                note_path = Some(entry.path().to_path_buf());
-                break;
-            }
-        }
-    }
-    let note_path = note_path.expect("Should find note file");
-    let content = fs::read_to_string(&note_path).unwrap();
-    let updated_content = content.replace(
-        "## Notes\n",
-        "## Notes\n\nSee: ![file](../attachments/should_not_pack.txt)\n",
+    setup_attachments(
+        setup.store1_path(),
+        &[("should_not_pack.txt", b"This should not be packed")],
     );
-    fs::write(&note_path, updated_content).unwrap();
 
-    // Reindex to update database
-    qipu()
-        .arg("index")
-        .arg("--rebuild")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    let note_path = find_note_file(setup.store1_path(), &note_id);
+    add_attachment_ref(
+        &note_path,
+        "See: ![file](../attachments/should_not_pack.txt)",
+    );
 
-    // 4. Dump with --no-attachments
-    qipu()
-        .arg("dump")
-        .arg("--output")
-        .arg(&pack_file)
-        .arg("--no-attachments")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    rebuild_index(setup.store1_path());
+    dump_pack(&setup, &["--no-attachments"]);
+    load_pack(&setup);
 
-    // Verify pack file does NOT contain attachment data
-    let pack_content = fs::read_to_string(&pack_file).unwrap();
+    let pack_content = fs::read_to_string(&setup.pack_file).unwrap();
     assert!(!pack_content.contains("name=should_not_pack.txt"));
     assert!(!pack_content.contains("This should not be packed"));
 
-    // 5. Initialize store 2
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    verify_note_loaded(&setup, &note_id, "Note without Attachments");
 
-    // 6. Load pack into store 2
-    qipu()
-        .arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 7. Verify note was loaded
-    qipu()
-        .arg("show")
-        .arg(&note_id)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Note without Attachments"));
-
-    // 8. Verify attachments were NOT restored
-    let attachments_dir2 = store2_path.join("attachments");
-    let restored_file = attachments_dir2.join("should_not_pack.txt");
-    assert!(!restored_file.exists());
+    let file = setup.store2_path().join("attachments/should_not_pack.txt");
+    assert!(
+        !file.exists(),
+        "Attachment should NOT be restored with --no-attachments"
+    );
 }
 
 #[test]
 fn test_pack_attachments_multiple_notes() {
-    let dir1 = tempdir().unwrap();
-    let store1_path = dir1.path();
-    let dir2 = tempdir().unwrap();
-    let store2_path = dir2.path();
-    let pack_file = dir1.path().join("test_multi.pack");
+    let setup = PackTestSetup::new("test_multi.pack");
+    let note1_id = create_note_in_store(setup.store1_path(), "First Note");
+    let note2_id = create_note_in_store(setup.store1_path(), "Second Note");
 
-    // 1. Initialize store 1
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // 2. Create two notes
-    qipu()
-        .arg("create")
-        .arg("First Note")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    qipu()
-        .arg("create")
-        .arg("Second Note")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
-
-    // Get IDs
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store1_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let note1_id = list[0]["id"].as_str().unwrap().to_string();
-    let note2_id = list[1]["id"].as_str().unwrap().to_string();
-
-    // 3. Create attachments
-    let attachments_dir = store1_path.join("attachments");
-    fs::create_dir_all(&attachments_dir).unwrap();
-
-    fs::write(attachments_dir.join("shared.txt"), b"Shared file").unwrap();
-    fs::write(attachments_dir.join("note1_only.txt"), b"Note 1 only").unwrap();
-    fs::write(attachments_dir.join("note2_only.txt"), b"Note 2 only").unwrap();
-
-    // Reference attachments in notes
-    // Find the actual note file for note1
-    let mut note1_path = None;
-    for entry in walkdir::WalkDir::new(store1_path.join("notes")) {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            let content = fs::read_to_string(entry.path()).unwrap();
-            if content.contains(&note1_id) {
-                note1_path = Some(entry.path().to_path_buf());
-                break;
-            }
-        }
-    }
-    let note1_path = note1_path.expect("Should find note1 file");
-    let content1 = fs::read_to_string(&note1_path).unwrap();
-    let updated1 = content1.replace(
-        "## Notes\n",
-        "## Notes\n\n![shared](../attachments/shared.txt)\n![note1](../attachments/note1_only.txt)\n",
+    setup_attachments(
+        setup.store1_path(),
+        &[
+            ("shared.txt", b"Shared file"),
+            ("note1_only.txt", b"Note 1 only"),
+            ("note2_only.txt", b"Note 2 only"),
+        ],
     );
-    fs::write(&note1_path, updated1).unwrap();
 
-    // Find the actual note file for note2
-    let mut note2_path = None;
-    for entry in walkdir::WalkDir::new(store1_path.join("notes")) {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            let content = fs::read_to_string(entry.path()).unwrap();
-            if content.contains(&note2_id) && !content.contains(&note1_id) {
-                note2_path = Some(entry.path().to_path_buf());
-                break;
-            }
-        }
-    }
-    let note2_path = note2_path.expect("Should find note2 file");
-    let content2 = fs::read_to_string(&note2_path).unwrap();
-    let updated2 = content2.replace(
-        "## Notes\n",
-        "## Notes\n\n![shared](../attachments/shared.txt)\n![note2](../attachments/note2_only.txt)\n",
+    let note1_path = find_note_file(setup.store1_path(), &note1_id);
+    add_attachment_ref(
+        &note1_path,
+        "![shared](../attachments/shared.txt)\n![note1](../attachments/note1_only.txt)",
     );
-    fs::write(&note2_path, updated2).unwrap();
 
-    // Reindex to update database
-    qipu()
-        .arg("index")
-        .arg("--rebuild")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    let note2_path = find_note_file(setup.store1_path(), &note2_id);
+    add_attachment_ref(
+        &note2_path,
+        "![shared](../attachments/shared.txt)\n![note2](../attachments/note2_only.txt)",
+    );
 
-    // 4. Dump all notes (default behavior)
-    qipu()
-        .arg("dump")
-        .arg("--output")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    rebuild_index(setup.store1_path());
+    dump_pack(&setup, &[]);
+    load_pack(&setup);
 
-    // Verify pack contains all three attachments (deduplicated if shared)
-    let pack_content = fs::read_to_string(&pack_file).unwrap();
+    let pack_content = fs::read_to_string(&setup.pack_file).unwrap();
     assert!(pack_content.contains("name=shared.txt"));
     assert!(pack_content.contains("name=note1_only.txt"));
     assert!(pack_content.contains("name=note2_only.txt"));
 
-    // 5. Initialize store 2
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 6. Load pack
-    qipu()
-        .arg("load")
-        .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    // 7. Verify all attachments restored
-    let attachments_dir2 = store2_path.join("attachments");
-    assert!(attachments_dir2.join("shared.txt").exists());
-    assert!(attachments_dir2.join("note1_only.txt").exists());
-    assert!(attachments_dir2.join("note2_only.txt").exists());
-
-    let shared_content = fs::read(attachments_dir2.join("shared.txt")).unwrap();
-    assert_eq!(shared_content, b"Shared file");
+    verify_attachment_restored(&setup, "shared.txt", b"Shared file");
+    verify_attachment_restored(&setup, "note1_only.txt", b"Note 1 only");
+    verify_attachment_restored(&setup, "note2_only.txt", b"Note 2 only");
 }

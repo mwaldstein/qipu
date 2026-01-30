@@ -1,4 +1,5 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
+use std::path::Path;
 use std::process::Output;
 use tempfile::tempdir;
 
@@ -6,8 +7,6 @@ fn qipu() -> Command {
     cargo_bin_cmd!("qipu")
 }
 
-/// Extract note ID from create command output (first line)
-/// Create outputs: <id>\n<path>\n, so we take the first line
 fn extract_id(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout)
         .lines()
@@ -16,150 +15,164 @@ fn extract_id(output: &Output) -> String {
         .unwrap_or_default()
 }
 
-#[test]
-fn test_workspace_from_note_performs_graph_slice() {
-    let dir = tempdir().unwrap();
-    let root = dir.path();
-
-    // 1. Init store
-    qipu().arg("init").current_dir(root).assert().success();
-
-    // 2. Create a root note
+fn create_note(root: &Path, title: &str) -> String {
     let output = qipu()
         .arg("create")
-        .arg("Root Note")
+        .arg(title)
         .current_dir(root)
         .output()
         .unwrap();
-    let root_id = extract_id(&output);
+    extract_id(&output)
+}
+
+fn add_link(root: &Path, from: &str, to: &str, link_type: &str) {
+    qipu()
+        .arg("link")
+        .arg("add")
+        .arg("--type")
+        .arg(link_type)
+        .arg(from)
+        .arg(to)
+        .current_dir(root)
+        .assert()
+        .success();
+}
+
+fn init_store(root: &Path) {
+    qipu().arg("init").current_dir(root).assert().success();
+}
+
+struct TestGraph {
+    root_id: String,
+    child1_id: String,
+    child2_id: String,
+    grandchild_id: String,
+    far_id: String,
+}
+
+fn setup_test_graph(root: &Path) -> TestGraph {
+    init_store(root);
+
+    let root_id = create_note(root, "Root Note");
     assert!(!root_id.is_empty(), "Root ID should not be empty");
 
-    // 3. Create linked notes (1 hop away)
-    let output = qipu()
-        .arg("create")
-        .arg("Child 1")
-        .current_dir(root)
-        .output()
-        .unwrap();
-    let child1_id = extract_id(&output);
+    let child1_id = create_note(root, "Child 1");
+    let child2_id = create_note(root, "Child 2");
 
-    let output = qipu()
-        .arg("create")
-        .arg("Child 2")
-        .current_dir(root)
-        .output()
-        .unwrap();
-    let child2_id = extract_id(&output);
+    add_link(root, &root_id, &child1_id, "part-of");
+    add_link(root, &root_id, &child2_id, "part-of");
 
-    // 4. Link root to children
-    qipu()
-        .arg("link")
-        .arg("add")
-        .arg("--type")
-        .arg("part-of")
-        .arg(&root_id)
-        .arg(&child1_id)
-        .current_dir(root)
-        .assert()
-        .success();
+    let grandchild_id = create_note(root, "Grandchild");
+    add_link(root, &child1_id, &grandchild_id, "part-of");
 
-    qipu()
-        .arg("link")
-        .arg("add")
-        .arg("--type")
-        .arg("part-of")
-        .arg(&root_id)
-        .arg(&child2_id)
-        .current_dir(root)
-        .assert()
-        .success();
+    let far_id = create_note(root, "Far Away Note");
+    add_link(root, &grandchild_id, &far_id, "related");
 
-    // 5. Create a grandchild (2 hops away)
-    let output = qipu()
-        .arg("create")
-        .arg("Grandchild")
-        .current_dir(root)
-        .output()
-        .unwrap();
-    let grandchild_id = extract_id(&output);
+    TestGraph {
+        root_id,
+        child1_id,
+        child2_id,
+        grandchild_id,
+        far_id,
+    }
+}
 
-    qipu()
-        .arg("link")
-        .arg("add")
-        .arg("--type")
-        .arg("part-of")
-        .arg(&child1_id)
-        .arg(&grandchild_id)
-        .current_dir(root)
-        .assert()
-        .success();
-
-    // 6. Create a note far away (4 hops away - should not be included)
-    let output = qipu()
-        .arg("create")
-        .arg("Far Away Note")
-        .current_dir(root)
-        .output()
-        .unwrap();
-    let far_id = extract_id(&output);
-
-    qipu()
-        .arg("link")
-        .arg("add")
-        .arg("--type")
-        .arg("related")
-        .arg(&grandchild_id)
-        .arg(&far_id)
-        .current_dir(root)
-        .assert()
-        .success();
-
-    // 7. Create workspace with --from-note (should include notes within 3 hops)
+fn create_workspace_from_note(root: &Path, name: &str, note_id: &str) {
     qipu()
         .arg("workspace")
         .arg("new")
-        .arg("slice_test")
+        .arg(name)
         .arg("--from-note")
-        .arg(&root_id)
+        .arg(note_id)
         .current_dir(root)
         .assert()
         .success();
+}
 
-    // 8. List notes in workspace
+fn list_workspace_notes(root: &Path, workspace: &str) -> String {
     let output = qipu()
         .arg("list")
         .arg("--workspace")
-        .arg("slice_test")
+        .arg(workspace)
         .current_dir(root)
         .output()
         .unwrap();
-    let workspace_notes = String::from_utf8(output.stdout).unwrap();
+    String::from_utf8(output.stdout).unwrap()
+}
 
-    // 9. Verify all notes within 3 hops are included
+#[test]
+fn test_workspace_from_note_includes_root() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    let graph = setup_test_graph(root);
+    create_workspace_from_note(root, "slice_test", &graph.root_id);
+
+    let workspace_notes = list_workspace_notes(root, "slice_test");
     assert!(
-        workspace_notes.contains(&root_id),
+        workspace_notes.contains(&graph.root_id),
         "Root note should be in workspace"
     );
+}
+
+#[test]
+fn test_workspace_from_note_includes_1_hop_notes() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    let graph = setup_test_graph(root);
+    create_workspace_from_note(root, "slice_test", &graph.root_id);
+
+    let workspace_notes = list_workspace_notes(root, "slice_test");
     assert!(
-        workspace_notes.contains(&child1_id),
+        workspace_notes.contains(&graph.child1_id),
         "Child 1 (1 hop) should be in workspace"
     );
     assert!(
-        workspace_notes.contains(&child2_id),
+        workspace_notes.contains(&graph.child2_id),
         "Child 2 (1 hop) should be in workspace"
     );
+}
+
+#[test]
+fn test_workspace_from_note_includes_2_hop_notes() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    let graph = setup_test_graph(root);
+    create_workspace_from_note(root, "slice_test", &graph.root_id);
+
+    let workspace_notes = list_workspace_notes(root, "slice_test");
     assert!(
-        workspace_notes.contains(&grandchild_id),
+        workspace_notes.contains(&graph.grandchild_id),
         "Grandchild (2 hops) should be in workspace"
     );
+}
 
-    // 10. Verify far away note (4 hops) is NOT included
+#[test]
+fn test_workspace_from_note_excludes_notes_beyond_3_hops() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    let graph = setup_test_graph(root);
+    create_workspace_from_note(root, "slice_test", &graph.root_id);
+
+    let workspace_notes = list_workspace_notes(root, "slice_test");
     assert!(
-        !workspace_notes.contains(&far_id),
+        !workspace_notes.contains(&graph.far_id),
         "Far away note (4 hops) should NOT be in workspace"
     );
+}
 
-    // 11. Verify workspace has 4 notes total
+#[test]
+fn test_workspace_from_note_expected_note_count() {
+    let dir = tempdir().unwrap();
+    let root = dir.path();
+
+    let graph = setup_test_graph(root);
+    create_workspace_from_note(root, "slice_test", &graph.root_id);
+
+    let workspace_notes = list_workspace_notes(root, "slice_test");
     let line_count = workspace_notes.lines().filter(|l| !l.is_empty()).count();
     assert_eq!(
         line_count, 4,

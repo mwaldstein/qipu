@@ -84,6 +84,15 @@ pub(crate) fn default_template(note_type: NoteType) -> &'static str {
  <!-- Explain what belongs here and why -->
  "#
         }
-        _ => todo!(),
+        _ => {
+            r#"## Summary
+
+<!-- One-sentence summary of this thought -->
+
+## Notes
+
+<!-- Quick capture - refine later -->
+"#
+        }
     }
 }

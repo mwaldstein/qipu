@@ -1,5 +1,4 @@
 use super::ToolAdapter;
-use crate::results::estimate_cost_from_tokens;
 use crate::scenario::{Gate, Scenario};
 use crate::session::SessionRunner;
 use std::path::Path;

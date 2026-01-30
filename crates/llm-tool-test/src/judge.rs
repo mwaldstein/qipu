@@ -22,6 +22,10 @@ pub fn load_rubric(path: &Path) -> Result<Rubric> {
     Ok(rubric)
 }
 
+/// TODO: Future LLM-as-judge implementation via direct API call.
+/// Currently unused - the evaluation module uses CLI-based judge execution instead.
+/// Kept for future migration from CLI to API-based evaluation.
+#[cfg(test)]
 pub async fn run_judge(
     model: &str,
     transcript_summary: &str,
@@ -88,6 +92,7 @@ pub async fn run_judge(
     Ok(judge_response)
 }
 
+#[cfg(test)]
 fn build_judge_prompt(
     transcript_summary: &str,
     store_export: &str,
@@ -134,6 +139,8 @@ Provide JSON only, no additional text."#,
     )
 }
 
+/// Test helper for mock API calls. Only available in test builds.
+#[cfg(test)]
 async fn run_judge_with_client(
     model: &str,
     transcript_summary: &str,

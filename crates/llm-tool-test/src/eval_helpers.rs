@@ -212,6 +212,7 @@ pub fn compute_composite_score(
 
 /// Create a note by piping content to `qipu capture` via stdin.
 /// This is useful for tests that need to create notes programmatically.
+#[cfg(test)]
 pub fn create_note_with_stdin(env_root: &Path, content: &str) {
     let qipu = get_qipu_path();
     let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");

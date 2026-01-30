@@ -44,24 +44,24 @@ pub(super) fn handle_create(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn handle_list(
-    cli: &Cli,
-    root: &Path,
-    tag: Option<&str>,
-    note_type: Option<qipu_core::note::NoteType>,
-    since: Option<&str>,
-    min_value: Option<u8>,
-    custom: Option<&str>,
-    show_custom: bool,
-    start: Instant,
-) -> Result<()> {
+pub struct ListOptions<'a> {
+    pub tag: Option<&'a str>,
+    pub note_type: Option<qipu_core::note::NoteType>,
+    pub since: Option<&'a str>,
+    pub min_value: Option<u8>,
+    pub custom: Option<&'a str>,
+    pub show_custom: bool,
+    pub start: Instant,
+}
+
+pub(super) fn handle_list(cli: &Cli, root: &Path, opts: ListOptions<'_>) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
+        debug!(elapsed = ?opts.start.elapsed(), "discover_store");
     }
 
-    let since_dt = since
+    let since_dt = opts
+        .since
         .map(|s| {
             DateTime::parse_from_rfc3339(s)
                 .map(|dt| dt.with_timezone(&chrono::Utc))
@@ -72,15 +72,15 @@ pub(super) fn handle_list(
     commands::list::execute(
         cli,
         &store,
-        tag,
-        note_type,
+        opts.tag,
+        opts.note_type,
         since_dt,
-        min_value,
-        custom,
-        show_custom,
+        opts.min_value,
+        opts.custom,
+        opts.show_custom,
     )?;
     if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
+        debug!(elapsed = ?opts.start.elapsed(), "execute_command");
     }
     Ok(())
 }

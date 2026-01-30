@@ -78,16 +78,19 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_list(ctx: &CommandContext, args: &ListArgs) -> Result<()> {
+        use crate::commands::dispatch::notes::ListOptions;
         notes::handle_list(
             ctx.cli,
             ctx.root,
-            args.tag.as_deref(),
-            args.r#type.clone(),
-            args.since.as_deref(),
-            args.min_value,
-            args.custom.as_deref(),
-            args.show_custom,
-            ctx.start,
+            ListOptions {
+                tag: args.tag.as_deref(),
+                note_type: args.r#type.clone(),
+                since: args.since.as_deref(),
+                min_value: args.min_value,
+                custom: args.custom.as_deref(),
+                show_custom: args.show_custom,
+                start: ctx.start,
+            },
         )
     }
 

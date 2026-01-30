@@ -209,3 +209,32 @@ pub fn compute_composite_score(
 
     composite.max(0.0).min(1.0)
 }
+
+/// Create a note by piping content to `qipu capture` via stdin.
+/// This is useful for tests that need to create notes programmatically.
+pub fn create_note_with_stdin(env_root: &Path, content: &str) {
+    let qipu = get_qipu_path();
+    let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
+
+    let mut child = std::process::Command::new(qipu_abs)
+        .arg("capture")
+        .current_dir(env_root)
+        .stdin(std::process::Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn");
+
+    {
+        use std::io::Write;
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+        stdin
+            .write_all(content.as_bytes())
+            .expect("Failed to write to stdin");
+    }
+
+    let output = child.wait_with_output().expect("Failed to wait");
+    assert!(
+        output.status.success(),
+        "Capture failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

@@ -21,33 +21,6 @@ fn setup_env() -> (tempfile::TempDir, std::path::PathBuf) {
     (dir, path)
 }
 
-fn create_note_with_stdin(env_root: &std::path::Path, content: &str) {
-    let qipu = crate::eval_helpers::get_qipu_path();
-    let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
-
-    let mut child = std::process::Command::new(qipu_abs)
-        .arg("capture")
-        .current_dir(env_root)
-        .stdin(std::process::Stdio::piped())
-        .spawn()
-        .expect("Failed to spawn");
-
-    {
-        use std::io::Write;
-        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        stdin
-            .write_all(content.as_bytes())
-            .expect("Failed to write to stdin");
-    }
-
-    let output = child.wait_with_output().expect("Failed to wait");
-    assert!(
-        output.status.success(),
-        "Capture failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn create_test_scenario(gate: Gate) -> Scenario {
     Scenario {
         name: "test".to_string(),

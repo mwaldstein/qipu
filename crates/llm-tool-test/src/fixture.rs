@@ -1,3 +1,4 @@
+use crate::run::utils::copy_dir_recursive;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -48,25 +49,4 @@ impl TestEnv {
             _ => String::new(), // Return empty string if prime fails or store doesn't exist yet
         }
     }
-}
-
-fn copy_dir_recursive(src: &Path, dst: &Path) -> anyhow::Result<()> {
-    if !dst.exists() {
-        fs::create_dir_all(dst)?;
-    }
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let src_path = entry.path();
-        let dst_path = dst.join(entry.file_name());
-        if ty.is_dir() {
-            // Don't copy scenarios into the test environment, they are meta-data
-            if entry.file_name() != "scenarios" {
-                copy_dir_recursive(&src_path, &dst_path)?;
-            }
-        } else {
-            fs::copy(&src_path, &dst_path)?;
-        }
-    }
-    Ok(())
 }

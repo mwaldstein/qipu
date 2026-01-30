@@ -12,35 +12,43 @@ use tracing::debug;
 
 use super::command::discover_or_open_store;
 
-pub(super) fn handle_init(
-    cli: &Cli,
-    root: &PathBuf,
-    stealth: bool,
-    visible: bool,
-    branch: Option<String>,
-    no_index: bool,
-    index_strategy: Option<String>,
-) -> Result<()> {
+pub struct InitOptions {
+    pub stealth: bool,
+    pub visible: bool,
+    pub branch: Option<String>,
+    pub no_index: bool,
+    pub index_strategy: Option<String>,
+}
+
+pub(super) fn handle_init(cli: &Cli, root: &PathBuf, options: InitOptions) -> Result<()> {
     crate::commands::init::execute(
         cli,
         root,
-        stealth,
-        visible,
-        branch,
-        no_index,
-        index_strategy,
+        options.stealth,
+        options.visible,
+        options.branch,
+        options.no_index,
+        options.index_strategy,
     )
 }
 
-pub(super) fn handle_setup(
-    cli: &Cli,
-    list: bool,
-    tool: Option<&str>,
-    print: bool,
-    check: bool,
-    remove: bool,
-) -> Result<()> {
-    crate::commands::setup::execute(cli, list, tool, print, check, remove)
+pub struct SetupOptions<'a> {
+    pub list: bool,
+    pub tool: Option<&'a str>,
+    pub print: bool,
+    pub check: bool,
+    pub remove: bool,
+}
+
+pub(super) fn handle_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
+    crate::commands::setup::execute(
+        cli,
+        options.list,
+        options.tool,
+        options.print,
+        options.check,
+        options.remove,
+    )
 }
 
 pub(super) fn handle_onboard(cli: &Cli) -> Result<()> {

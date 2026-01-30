@@ -13,81 +13,86 @@ use qipu_core::error::{QipuError, Result};
 
 use super::command::discover_or_open_store;
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn handle_export(
-    cli: &Cli,
-    root: &PathBuf,
-    note_ids: &[String],
-    tag: Option<&str>,
-    moc_id: Option<&str>,
-    query: Option<&str>,
-    output: Option<&PathBuf>,
-    mode: &str,
-    with_attachments: bool,
-    link_mode: &str,
-    bib_format: &str,
-    max_hops: u32,
-    pdf: bool,
-    start: Instant,
-) -> Result<()> {
-    let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
+/// Parameters for the export command handler
+pub struct ExportParams<'a> {
+    pub cli: &'a Cli,
+    pub root: &'a PathBuf,
+    pub note_ids: &'a [String],
+    pub tag: Option<&'a str>,
+    pub moc_id: Option<&'a str>,
+    pub query: Option<&'a str>,
+    pub output: Option<&'a PathBuf>,
+    pub mode: &'a str,
+    pub with_attachments: bool,
+    pub link_mode: &'a str,
+    pub bib_format: &'a str,
+    pub max_hops: u32,
+    pub pdf: bool,
+    pub start: Instant,
+}
+
+pub(super) fn handle_export(params: ExportParams) -> Result<()> {
+    let store = discover_or_open_store(params.cli, params.root)?;
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "discover_store");
     }
-    let export_mode = commands::export::ExportMode::parse(mode)?;
-    let link_mode = commands::export::LinkMode::parse(link_mode)?;
-    let bib_format = commands::export::emit::bibliography::BibFormat::parse(bib_format)?;
+    let export_mode = commands::export::ExportMode::parse(params.mode)?;
+    let link_mode = commands::export::LinkMode::parse(params.link_mode)?;
+    let bib_format = commands::export::emit::bibliography::BibFormat::parse(params.bib_format)?;
     commands::export::execute(
-        cli,
+        params.cli,
         &store,
         commands::export::ExportOptions {
-            note_ids,
-            tag,
-            moc_id,
-            query,
-            output: output.map(|p| p.as_path()),
+            note_ids: params.note_ids,
+            tag: params.tag,
+            moc_id: params.moc_id,
+            query: params.query,
+            output: params.output.map(|p| p.as_path()),
             mode: export_mode,
-            with_attachments,
+            with_attachments: params.with_attachments,
             link_mode,
             bib_format,
-            max_hops,
-            pdf,
+            max_hops: params.max_hops,
+            pdf: params.pdf,
         },
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "execute_command");
     }
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn handle_dump(
-    cli: &Cli,
-    root: &PathBuf,
-    file: Option<&PathBuf>,
-    note_ids: &[String],
-    tag: Option<&str>,
-    moc_id: Option<&str>,
-    query: Option<&str>,
-    direction: &str,
-    max_hops: u32,
-    type_include: Vec<String>,
-    typed_only: bool,
-    inline_only: bool,
-    no_attachments: bool,
-    output: Option<&PathBuf>,
-    start: Instant,
-) -> Result<()> {
-    let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
+/// Parameters for the dump command handler
+pub struct DumpParams<'a> {
+    pub cli: &'a Cli,
+    pub root: &'a PathBuf,
+    pub file: Option<&'a PathBuf>,
+    pub note_ids: &'a [String],
+    pub tag: Option<&'a str>,
+    pub moc_id: Option<&'a str>,
+    pub query: Option<&'a str>,
+    pub direction: &'a str,
+    pub max_hops: u32,
+    pub type_include: Vec<String>,
+    pub typed_only: bool,
+    pub inline_only: bool,
+    pub no_attachments: bool,
+    pub output: Option<&'a PathBuf>,
+    pub start: Instant,
+}
+
+pub(super) fn handle_dump(params: DumpParams) -> Result<()> {
+    let store = discover_or_open_store(params.cli, params.root)?;
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "discover_store");
     }
 
-    let dir = direction
+    let dir = params
+        .direction
         .parse::<commands::link::Direction>()
         .map_err(QipuError::Other)?;
 
-    let resolved_output = match (file, output) {
+    let resolved_output = match (params.file, params.output) {
         (Some(_), Some(_)) => {
             return Err(QipuError::Other(
                 "both positional file and --output were provided; use one".to_string(),
@@ -99,43 +104,52 @@ pub(super) fn handle_dump(
     };
 
     commands::dump::execute(
-        cli,
+        params.cli,
         &store,
         commands::dump::DumpOptions {
-            note_ids,
-            tag,
-            moc_id,
-            query,
+            note_ids: params.note_ids,
+            tag: params.tag,
+            moc_id: params.moc_id,
+            query: params.query,
             direction: dir,
-            max_hops,
-            type_include,
-            typed_only,
-            inline_only,
-            include_attachments: !no_attachments,
+            max_hops: params.max_hops,
+            type_include: params.type_include,
+            typed_only: params.typed_only,
+            inline_only: params.inline_only,
+            include_attachments: !params.no_attachments,
             output: resolved_output,
         },
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "execute_command");
     }
     Ok(())
 }
 
-pub(super) fn handle_load(
-    cli: &Cli,
-    root: &PathBuf,
-    pack_file: &PathBuf,
-    strategy: &str,
-    apply_config: bool,
-    start: Instant,
-) -> Result<()> {
-    let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
+/// Parameters for the load command handler
+pub struct LoadParams<'a> {
+    pub cli: &'a Cli,
+    pub root: &'a PathBuf,
+    pub pack_file: &'a PathBuf,
+    pub strategy: &'a str,
+    pub apply_config: bool,
+    pub start: Instant,
+}
+
+pub(super) fn handle_load(params: LoadParams) -> Result<()> {
+    let store = discover_or_open_store(params.cli, params.root)?;
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "discover_store");
     }
-    commands::load::execute(cli, &store, pack_file, strategy, apply_config)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
+    commands::load::execute(
+        params.cli,
+        &store,
+        params.pack_file,
+        params.strategy,
+        params.apply_config,
+    )?;
+    if params.cli.verbose {
+        debug!(elapsed = ?params.start.elapsed(), "execute_command");
     }
     Ok(())
 }

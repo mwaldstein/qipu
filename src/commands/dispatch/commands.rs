@@ -20,7 +20,9 @@ pub(super) mod dispatch_command {
         ontology::OntologyCommands, store::StoreCommands, tags::TagsCommands, value::ValueCommands,
         workspace::WorkspaceCommands,
     };
-    use crate::commands::dispatch::{handlers, io, link, maintenance, notes};
+    use crate::commands::dispatch::handlers::{self, InitOptions, SetupOptions};
+    use crate::commands::dispatch::io::{self, DumpParams, ExportParams, LoadParams};
+    use crate::commands::dispatch::{link, maintenance, notes};
 
     pub(super) fn execute(cmd: &Commands, ctx: &CommandContext) -> Result<()> {
         match cmd {
@@ -61,11 +63,13 @@ pub(super) mod dispatch_command {
         handlers::handle_init(
             ctx.cli,
             ctx.root,
-            args.stealth,
-            args.visible,
-            args.branch.clone(),
-            args.no_index,
-            args.index_strategy.clone(),
+            InitOptions {
+                stealth: args.stealth,
+                visible: args.visible,
+                branch: args.branch.clone(),
+                no_index: args.no_index,
+                index_strategy: args.index_strategy.clone(),
+            },
         )
     }
 
@@ -177,11 +181,13 @@ pub(super) mod dispatch_command {
     fn execute_setup(ctx: &CommandContext, args: &SetupArgs) -> Result<()> {
         handlers::handle_setup(
             ctx.cli,
-            args.list,
-            args.tool.as_deref(),
-            args.print,
-            args.check,
-            args.remove,
+            SetupOptions {
+                list: args.list,
+                tool: args.tool.as_deref(),
+                print: args.print,
+                check: args.check,
+                remove: args.remove,
+            },
         )
     }
 
@@ -251,53 +257,53 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_export(ctx: &CommandContext, args: &ExportArgs) -> Result<()> {
-        io::handle_export(
-            ctx.cli,
-            ctx.root,
-            &args.note,
-            args.tag.as_deref(),
-            args.moc.as_deref(),
-            args.query.as_deref(),
-            args.output.as_ref(),
-            &args.mode,
-            args.with_attachments,
-            &args.link_mode,
-            &args.bib_format,
-            args.max_hops,
-            args.pdf,
-            ctx.start,
-        )
+        io::handle_export(ExportParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            note_ids: &args.note,
+            tag: args.tag.as_deref(),
+            moc_id: args.moc.as_deref(),
+            query: args.query.as_deref(),
+            output: args.output.as_ref(),
+            mode: &args.mode,
+            with_attachments: args.with_attachments,
+            link_mode: &args.link_mode,
+            bib_format: &args.bib_format,
+            max_hops: args.max_hops,
+            pdf: args.pdf,
+            start: ctx.start,
+        })
     }
 
     fn execute_dump(ctx: &CommandContext, args: &DumpArgs) -> Result<()> {
-        io::handle_dump(
-            ctx.cli,
-            ctx.root,
-            args.file.as_ref(),
-            &args.note,
-            args.tag.as_deref(),
-            args.moc.as_deref(),
-            args.query.as_deref(),
-            &args.direction,
-            args.max_hops,
-            args.r#type.clone(),
-            args.typed_only,
-            args.inline_only,
-            args.no_attachments,
-            args.output.as_ref(),
-            ctx.start,
-        )
+        io::handle_dump(DumpParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            file: args.file.as_ref(),
+            note_ids: &args.note,
+            tag: args.tag.as_deref(),
+            moc_id: args.moc.as_deref(),
+            query: args.query.as_deref(),
+            direction: &args.direction,
+            max_hops: args.max_hops,
+            type_include: args.r#type.clone(),
+            typed_only: args.typed_only,
+            inline_only: args.inline_only,
+            no_attachments: args.no_attachments,
+            output: args.output.as_ref(),
+            start: ctx.start,
+        })
     }
 
     fn execute_load(ctx: &CommandContext, args: &LoadArgs) -> Result<()> {
-        io::handle_load(
-            ctx.cli,
-            ctx.root,
-            &args.pack_file,
-            &args.strategy,
-            args.apply_config,
-            ctx.start,
-        )
+        io::handle_load(LoadParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            pack_file: &args.pack_file,
+            strategy: &args.strategy,
+            apply_config: args.apply_config,
+            start: ctx.start,
+        })
     }
 
     fn execute_merge(ctx: &CommandContext, args: &MergeArgs) -> Result<()> {

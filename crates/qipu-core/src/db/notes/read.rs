@@ -146,10 +146,6 @@ impl super::super::Database {
                 sql.push_str(" AND");
             } else {
                 sql.push_str(" WHERE");
-                #[allow(unused_assignments)]
-                {
-                    has_where = true;
-                }
             }
             sql.push_str(" n.created >= ?");
             params.push(Box::new(since.unwrap().to_rfc3339()));

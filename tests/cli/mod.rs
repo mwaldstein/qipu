@@ -21,7 +21,7 @@ mod ontology;
 mod prime;
 mod progressive_disclosure;
 mod provenance;
-mod records_edge_cases;
+mod records;
 mod rewrite_links;
 mod search;
 mod setup;

@@ -1,3 +1,19 @@
+//! Judge module for LLM-as-judge evaluation.
+//!
+//! This module provides rubric-based evaluation functionality for assessing
+//! LLM tool performance. Currently supports loading rubrics from YAML files
+//! with future support for direct LLM API-based evaluation.
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use llm_tool_test::judge;
+//! use std::path::Path;
+//!
+//! let rubric = judge::load_rubric(Path::new("rubrics/quality.yaml")).unwrap();
+//! println!("Loaded rubric with {} criteria", rubric.criteria.len());
+//! ```
+
 pub mod types;
 
 pub use types::*;
@@ -5,6 +21,23 @@ pub use types::*;
 use anyhow::{Context, Result};
 use std::path::Path;
 
+/// Load a rubric from a YAML file and validate criterion weights sum to 1.0.
+///
+/// # Arguments
+///
+/// * `path` - Path to the rubric YAML file
+///
+/// # Returns
+///
+/// * `Ok(Rubric)` - Parsed and validated rubric
+/// * `Err` - IO error, parse error, or weight validation error
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The file cannot be read
+/// - The YAML is malformed
+/// - Criterion weights don't sum to approximately 1.0 (within 0.01 tolerance)
 pub fn load_rubric(path: &Path) -> Result<Rubric> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read rubric file: {}", path.display()))?;
@@ -22,9 +55,27 @@ pub fn load_rubric(path: &Path) -> Result<Rubric> {
     Ok(rubric)
 }
 
-/// TODO: Future LLM-as-judge implementation via direct API call.
-/// Currently unused - the evaluation module uses CLI-based judge execution instead.
-/// Kept for future migration from CLI to API-based evaluation.
+/// Run LLM-as-judge evaluation via OpenAI API.
+///
+/// This is a test-only implementation for future use. The production
+/// evaluation system uses CLI-based judge execution instead.
+///
+/// # Arguments
+///
+/// * `model` - OpenAI model to use (e.g., "gpt-4o-mini")
+/// * `transcript_summary` - Summary of the LLM tool interaction
+/// * `store_export` - JSON export of the qipu store state
+/// * `task_description` - Description of the task that was performed
+/// * `rubric` - Evaluation rubric with criteria
+///
+/// # Returns
+///
+/// * `Ok(JudgeResponse)` - Parsed judge evaluation
+/// * `Err` - API error or response parsing error
+///
+/// # Environment Variables
+///
+/// Requires either `OPENAI_API_KEY` or `LLM_TOOL_TEST_API_KEY` to be set.
 #[cfg(test)]
 pub async fn run_judge(
     model: &str,
@@ -139,7 +190,10 @@ Provide JSON only, no additional text."#,
     )
 }
 
-/// Test helper for mock API calls. Only available in test builds.
+/// Run judge with a custom API client for testing.
+///
+/// Test helper that allows specifying a custom API base URL and key,
+/// useful for mocking in tests.
 #[cfg(test)]
 async fn run_judge_with_client(
     model: &str,

@@ -1,14 +1,54 @@
+//! JSONL-based results database.
+//!
+//! Provides persistent append-only storage of test results
+//! in JSON Lines format for easy querying and analysis.
+
 use crate::results::types::ResultRecord;
 use anyhow::{Context, Result};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
+/// JSONL-based results database.
+///
+/// Stores test results as JSON Lines in a `results.jsonl` file,
+/// providing append-only writes and full/ID-based loading.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use llm_tool_test::results::{ResultsDB, ResultRecord};
+/// use std::path::Path;
+///
+/// let db = ResultsDB::new(Path::new("./test-data"));
+///
+/// // Append a result
+/// db.append(&record).unwrap();
+///
+/// // Load all results
+/// let all_results = db.load_all().unwrap();
+///
+/// // Load specific result by ID
+/// if let Some(record) = db.load_by_id("run-20250130-120000").unwrap() {
+///     println!("Found result: {}", record.scenario_id);
+/// }
+/// ```
 pub struct ResultsDB {
     results_path: PathBuf,
 }
 
 impl ResultsDB {
+    /// Create a new results database in the specified base directory.
+    ///
+    /// Results will be stored in a `results/results.jsonl` file.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_dir` - Base directory for the results database
+    ///
+    /// # Returns
+    ///
+    /// A new `ResultsDB` instance
     pub fn new(base_dir: &Path) -> Self {
         let results_dir = base_dir.join("results");
         std::fs::create_dir_all(&results_dir).ok();
@@ -17,6 +57,16 @@ impl ResultsDB {
         }
     }
 
+    /// Append a result record to the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - Result record to append
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - On success
+    /// * `Err` - IO or serialization error
     pub fn append(&self, record: &ResultRecord) -> Result<()> {
         let mut file = OpenOptions::new()
             .create(true)
@@ -29,6 +79,12 @@ impl ResultsDB {
         Ok(())
     }
 
+    /// Load all result records from the database.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<ResultRecord>)` - All records, or empty vector if file doesn't exist
+    /// * `Err` - IO or parse error
     pub fn load_all(&self) -> Result<Vec<ResultRecord>> {
         if !self.results_path.exists() {
             return Ok(Vec::new());
@@ -48,6 +104,17 @@ impl ResultsDB {
         Ok(records)
     }
 
+    /// Load a specific result record by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Run ID to search for
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Some(ResultRecord))` - Record if found
+    /// * `Ok(None)` - If no record with the given ID exists
+    /// * `Err` - IO or parse error during search
     pub fn load_by_id(&self, id: &str) -> Result<Option<ResultRecord>> {
         let records = self.load_all()?;
         Ok(records.into_iter().find(|r| r.id == id))

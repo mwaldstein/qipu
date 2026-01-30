@@ -1,3 +1,25 @@
+//! Results management for LLM tool test runs.
+//!
+//! This module provides persistent storage and caching of test results,
+//! including a JSONL-based results database and a file-based cache system.
+//!
+//! # Submodules
+//!
+//! - `cache` - File-based result caching
+//! - `db` - JSONL results database
+//! - `types` - Result data structures
+//! - `utils` - Utility functions for result handling
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use llm_tool_test::results::{Cache, ResultsDB, ResultRecord};
+//! use std::path::Path;
+//!
+//! let cache = Cache::new(Path::new("./test-data"));
+//! let db = ResultsDB::new(Path::new("./test-data"));
+//! ```
+
 pub mod cache;
 pub mod db;
 pub mod types;

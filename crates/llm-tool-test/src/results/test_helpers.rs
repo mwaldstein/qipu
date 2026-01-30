@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use tempfile::TempDir;
 
 pub struct TestDb {
+    #[allow(dead_code)]
     pub temp_dir: TempDir,
     pub db: ResultsDB,
 }

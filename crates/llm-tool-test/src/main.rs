@@ -134,7 +134,15 @@ fn main() -> anyhow::Result<()> {
             judge_model,
             no_judge,
             timeout_secs,
+            max_usd,
         } => {
+            // Get session budget: CLI flag takes precedence over env var
+            let session_budget = max_usd.or_else(|| {
+                std::env::var("LLM_TOOL_TEST_BUDGET_USD")
+                    .ok()
+                    .and_then(|v| v.parse::<f64>().ok())
+            });
+
             if let Some(ref path) = scenario {
                 let resolved_path = resolve_scenario_path(path);
                 let _s = scenario::load(&resolved_path)?;
@@ -152,6 +160,7 @@ fn main() -> anyhow::Result<()> {
                     *timeout_secs,
                     judge_model,
                     *no_judge,
+                    session_budget,
                     &base_dir,
                     &results_db,
                     &cache,
@@ -171,6 +180,7 @@ fn main() -> anyhow::Result<()> {
                     *timeout_secs,
                     judge_model,
                     *no_judge,
+                    session_budget,
                     &base_dir,
                     &results_db,
                     &cache,

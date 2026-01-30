@@ -85,6 +85,7 @@ pub fn get_qipu_version() -> anyhow::Result<String> {
 /// let cost = estimate_cost_from_tokens("gpt-4o", 1000, 500);
 /// // Returns approximate cost based on current pricing
 /// ```
+#[allow(dead_code)]
 pub fn estimate_cost_from_tokens(model: &str, input_tokens: usize, output_tokens: usize) -> f64 {
     let Some(pricing) = get_model_pricing(model) else {
         return 0.0;

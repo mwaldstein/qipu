@@ -381,7 +381,6 @@ evaluation:
                 {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_scenario_execution");
-                    return;
                 } else {
                     panic!("Scenario execution failed: {}", e);
                 }
@@ -442,7 +441,6 @@ evaluation:
                 {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_with_search_and_tags");
-                    return;
                 } else {
                     panic!("Scenario execution failed: {}", e);
                 }
@@ -486,7 +484,6 @@ evaluation:
                 {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_command_succeeds_gate");
-                    return;
                 } else {
                     panic!("Scenario execution failed: {}", e);
                 }
@@ -533,7 +530,6 @@ evaluation:
                 {
                     println!("Skipping test: qipu binary not found in PATH");
                     println!("To run this test: PATH=$PATH:./target/debug cargo test -p llm-tool-test test_end_to_end_cost_estimation");
-                    return;
                 } else {
                     panic!("Scenario execution failed: {}", e);
                 }

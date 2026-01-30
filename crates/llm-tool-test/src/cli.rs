@@ -62,6 +62,10 @@ pub enum Commands {
         /// Maximum execution time in seconds per command
         #[arg(long, default_value = "300")]
         timeout_secs: u64,
+
+        /// Maximum budget in USD for this session (overrides env var)
+        #[arg(long)]
+        max_usd: Option<f64>,
     },
     /// List available scenarios
     Scenarios {

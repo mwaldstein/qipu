@@ -60,6 +60,7 @@ pub fn handle_run_command(
     timeout_secs: u64,
     judge_model: &Option<String>,
     no_judge: bool,
+    session_budget: Option<f64>,
     base_dir: &Path,
     results_db: &ResultsDB,
     cache: &Cache,
@@ -114,6 +115,22 @@ pub fn handle_run_command(
     for (name, path) in scenarios_to_run {
         let s = load(&path)?;
         println!("Loaded scenario: {}", name);
+
+        // Budget enforcement: check scenario cost limit against session budget
+        if let Some(ref cost_config) = s.cost {
+            // Check per-run limit against session budget
+            if let Some(session_max) = session_budget {
+                if cost_config.max_usd > session_max {
+                    anyhow::bail!(
+                        "Scenario '{}' cost limit (${:.2}) exceeds session budget (${:.2}). \
+                         Increase budget with --max-usd or LLM_TOOL_TEST_BUDGET_USD env var.",
+                        name,
+                        cost_config.max_usd,
+                        session_max
+                    );
+                }
+            }
+        }
 
         let matrix = crate::build_tool_matrix(tools, models, tool, model, &s.tool_matrix);
 

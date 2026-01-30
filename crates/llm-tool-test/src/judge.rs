@@ -227,7 +227,7 @@ async fn run_judge_with_client(
     });
 
     let response = client
-        .post(&format!("{}/v1/chat/completions", api_base))
+        .post(format!("{}/v1/chat/completions", api_base))
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&request_body)
         .send()

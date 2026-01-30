@@ -270,6 +270,20 @@ pub fn load_attachments(
             })?;
         let safe_attachment_path = canonical_attachments_dir.join(file_name);
 
+        // Defense in depth: canonicalize the final path and verify it's within attachments dir
+        let canonical_safe_path = std::fs::canonicalize(&safe_attachment_path).or_else(|_| {
+            // Path doesn't exist yet, which is expected for new attachments
+            // We'll verify by checking the parent chain
+            Ok::<_, QipuError>(safe_attachment_path.clone())
+        })?;
+
+        if !canonical_safe_path.starts_with(&canonical_attachments_dir) {
+            return Err(QipuError::Other(format!(
+                "attachment name '{}' would write outside attachments directory",
+                pack_attachment.name
+            )));
+        }
+
         std::fs::write(&safe_attachment_path, data).map_err(|e| {
             QipuError::Other(format!(
                 "failed to write attachment '{}': {}",

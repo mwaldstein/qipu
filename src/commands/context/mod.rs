@@ -25,8 +25,8 @@ use qipu_core::error::Result;
 use qipu_core::store::Store;
 
 use select::{collect_selected_notes, filter_and_sort_selected_notes};
-pub use types::ContextOptions;
-use types::RecordsOutputConfig;
+pub use types::{ContextOptions, HumanOutputParams, RecordsParams};
+use types::{ContextOutputParams, RecordsOutputConfig};
 
 /// Convert an absolute path to a path relative to the current working directory
 pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
@@ -70,7 +70,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     filter_and_sort_selected_notes(cli, &mut selected_notes, &options);
 
-    let (truncated, notes_to_output, excluded_notes) = match cli.format {
+    let (truncated, notes_to_output, _excluded_notes) = match cli.format {
         OutputFormat::Records => (false, selected_notes.iter().collect(), Vec::new()),
         _ => budget::apply_budget(&selected_notes, options.max_chars, options.with_body),
     };
@@ -79,39 +79,37 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     match cli.format {
         OutputFormat::Json => {
-            output::output_json(
+            output::output_json(ContextOutputParams {
                 cli,
                 store,
-                &store_path,
-                &notes_to_output,
+                store_path: &store_path,
+                notes: &notes_to_output,
+                compaction_ctx: &compaction_ctx,
+                note_map: &note_map,
+                all_notes: &all_notes,
+                include_custom: options.include_custom,
+                include_ontology: options.include_ontology,
                 truncated,
-                options.with_body,
-                &compaction_ctx,
-                &note_map,
-                &all_notes,
-                options.max_chars,
-                &excluded_notes,
-                options.include_custom,
-                options.include_ontology,
-            )?;
+                with_body: options.with_body,
+                max_chars: options.max_chars,
+            })?;
         }
         OutputFormat::Human => {
-            output::output_human(
+            output::output_human(HumanOutputParams {
                 cli,
                 store,
-                &store_path,
-                &notes_to_output,
+                store_path: &store_path,
+                notes: &notes_to_output,
+                compaction_ctx: &compaction_ctx,
+                note_map: &note_map,
+                all_notes: &all_notes,
+                include_custom: options.include_custom,
+                include_ontology: options.include_ontology,
                 truncated,
-                options.with_body,
-                options.safety_banner,
-                &compaction_ctx,
-                &note_map,
-                &all_notes,
-                options.max_chars,
-                &excluded_notes,
-                options.include_custom,
-                options.include_ontology,
-            );
+                with_body: options.with_body,
+                safety_banner: options.safety_banner,
+                max_chars: options.max_chars,
+            });
         }
         OutputFormat::Records => {
             let config = RecordsOutputConfig {
@@ -120,18 +118,18 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 safety_banner: options.safety_banner,
                 max_chars: options.max_chars,
             };
-            output::output_records(
+            output::output_records(RecordsParams {
                 cli,
                 store,
-                &store_path,
-                &notes_to_output,
-                &config,
-                &compaction_ctx,
-                &note_map,
-                &all_notes,
-                options.include_custom,
-                options.include_ontology,
-            );
+                store_path: &store_path,
+                notes: &notes_to_output,
+                config: &config,
+                compaction_ctx: &compaction_ctx,
+                note_map: &note_map,
+                all_notes: &all_notes,
+                include_custom: options.include_custom,
+                include_ontology: options.include_ontology,
+            });
         }
     }
 

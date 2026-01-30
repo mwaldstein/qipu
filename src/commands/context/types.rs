@@ -42,3 +42,58 @@ pub struct RecordsOutputConfig {
     pub safety_banner: bool,
     pub max_chars: Option<usize>,
 }
+
+pub struct ContextOutputParams<'a> {
+    pub cli: &'a crate::cli::Cli,
+    pub store: &'a qipu_core::store::Store,
+    pub store_path: &'a str,
+    pub notes: &'a [&'a SelectedNote<'a>],
+    pub compaction_ctx: &'a qipu_core::compaction::CompactionContext,
+    pub note_map: &'a std::collections::HashMap<&'a str, &'a qipu_core::note::Note>,
+    pub all_notes: &'a [qipu_core::note::Note],
+    pub include_custom: bool,
+    pub include_ontology: bool,
+    pub truncated: bool,
+    pub with_body: bool,
+    pub max_chars: Option<usize>,
+}
+
+pub struct HumanOutputParams<'a> {
+    pub cli: &'a crate::cli::Cli,
+    pub store: &'a qipu_core::store::Store,
+    pub store_path: &'a str,
+    pub notes: &'a [&'a SelectedNote<'a>],
+    pub compaction_ctx: &'a qipu_core::compaction::CompactionContext,
+    pub note_map: &'a std::collections::HashMap<&'a str, &'a qipu_core::note::Note>,
+    pub all_notes: &'a [qipu_core::note::Note],
+    pub include_custom: bool,
+    pub include_ontology: bool,
+    pub truncated: bool,
+    pub with_body: bool,
+    pub safety_banner: bool,
+    pub max_chars: Option<usize>,
+}
+
+pub struct RecordsParams<'a> {
+    pub cli: &'a crate::cli::Cli,
+    pub store: &'a qipu_core::store::Store,
+    pub store_path: &'a str,
+    pub notes: &'a [&'a SelectedNote<'a>],
+    pub config: &'a RecordsOutputConfig,
+    pub compaction_ctx: &'a qipu_core::compaction::CompactionContext,
+    pub note_map: &'a std::collections::HashMap<&'a str, &'a qipu_core::note::Note>,
+    pub all_notes: &'a [qipu_core::note::Note],
+    pub include_custom: bool,
+    pub include_ontology: bool,
+}
+
+pub struct BuildNoteJsonParams<'a> {
+    pub cli: &'a crate::cli::Cli,
+    pub note: &'a qipu_core::note::Note,
+    pub selected: &'a SelectedNote<'a>,
+    pub compaction_ctx: &'a qipu_core::compaction::CompactionContext,
+    pub note_map: &'a std::collections::HashMap<&'a str, &'a qipu_core::note::Note>,
+    pub all_notes: &'a [qipu_core::note::Note],
+    pub include_custom: bool,
+    pub content: &'a str,
+}

@@ -1,11 +1,15 @@
 use crate::compaction::CompactionContext;
 use crate::error::Result;
+use crate::graph::algos::shared::{
+    build_filtered_result, build_result, calculate_edge_cost, canonicalize_edge, canonicalize_node,
+    collect_inbound_neighbors, collect_outbound_neighbors, get_source_ids,
+    has_unexpanded_neighbors, neighbor_passes_filter, prepare_neighbors, root_passes_filter,
+    sort_results, NeighborContext,
+};
 use crate::graph::types::{
-    filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, SpanningTreeEntry,
-    TreeLink, TreeNote, TreeOptions, TreeResult, DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
+    Direction, HopCost, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult,
 };
 use crate::graph::GraphProvider;
-use crate::index::Edge;
 use crate::store::Store;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
@@ -66,222 +70,25 @@ impl DijkstraState {
     }
 
     fn check_limits(&mut self, opts: &TreeOptions) -> bool {
-        if let Some(max) = opts.max_nodes {
-            if self.visited.len() >= max {
-                self.truncated = true;
-                self.truncation_reason = Some("max_nodes".to_string());
-                return false;
-            }
-        }
-
-        if let Some(max) = opts.max_edges {
-            if self.links.len() >= max {
-                self.truncated = true;
-                self.truncation_reason = Some("max_edges".to_string());
-                return false;
-            }
-        }
-
-        true
+        super::shared::check_limits(
+            self.visited.len(),
+            self.links.len(),
+            &mut self.truncated,
+            &mut self.truncation_reason,
+            opts,
+        )
     }
-}
-
-/// Check if root passes min_value filter
-fn root_passes_filter(provider: &dyn GraphProvider, root: &str, opts: &TreeOptions) -> bool {
-    if let Some(meta) = provider.get_metadata(root) {
-        let value = meta.value.unwrap_or(50);
-        opts.min_value.is_none_or(|min| value >= min)
-    } else {
-        false
-    }
-}
-
-/// Build empty result when root is filtered out
-fn build_filtered_result(root: &str, opts: &TreeOptions) -> TreeResult {
-    TreeResult {
-        root: root.to_string(),
-        direction: match opts.direction {
-            Direction::Out => DIRECTION_OUT.to_string(),
-            Direction::In => DIRECTION_IN.to_string(),
-            Direction::Both => DIRECTION_BOTH.to_string(),
-        },
-        max_hops: opts.max_hops.as_u32_for_display(),
-        truncated: false,
-        truncation_reason: Some("min_value filter excluded root".to_string()),
-        notes: vec![],
-        links: vec![],
-        spanning_tree: vec![],
-    }
-}
-
-/// Get source IDs considering equivalence map
-fn get_source_ids<'a>(
-    current_id: &'a str,
-    equivalence_map: Option<&'a HashMap<String, Vec<String>>>,
-) -> Vec<&'a str> {
-    match equivalence_map.and_then(|map| map.get(current_id)) {
-        Some(ids) if !ids.is_empty() => ids.iter().map(|s| s.as_str()).collect(),
-        _ => vec![current_id],
-    }
-}
-
-/// Check if there are unexpanded neighbors at max_hops
-fn has_unexpanded_neighbors(
-    provider: &dyn GraphProvider,
-    source_ids: &[&str],
-    opts: &TreeOptions,
-) -> bool {
-    let has_outbound = if opts.direction == Direction::Out || opts.direction == Direction::Both {
-        source_ids.iter().any(|id| {
-            provider
-                .get_outbound_edges(id)
-                .iter()
-                .any(|e| filter_edge(e, opts))
-        })
-    } else {
-        false
-    };
-
-    let has_inbound = if opts.direction == Direction::In || opts.direction == Direction::Both {
-        source_ids.iter().any(|id| {
-            provider
-                .get_inbound_edges(id)
-                .iter()
-                .any(|e| filter_edge(e, opts))
-        })
-    } else {
-        false
-    };
-
-    has_outbound || has_inbound
-}
-
-/// Collect all neighbors from outbound edges
-fn collect_outbound_neighbors(
-    provider: &dyn GraphProvider,
-    source_ids: &[&str],
-    opts: &TreeOptions,
-) -> Vec<(String, Edge)> {
-    let mut neighbors = Vec::new();
-    for source_id in source_ids {
-        for edge in provider.get_outbound_edges(source_id) {
-            if filter_edge(&edge, opts) {
-                let to = edge.to.clone();
-                neighbors.push((to, edge));
-            }
-        }
-    }
-    neighbors
-}
-
-/// Collect all neighbors from inbound edges (with optional semantic inversion)
-fn collect_inbound_neighbors(
-    provider: &dyn GraphProvider,
-    store: &Store,
-    source_ids: &[&str],
-    opts: &TreeOptions,
-) -> Vec<(String, Edge)> {
-    let mut neighbors = Vec::new();
-    for source_id in source_ids {
-        for edge in provider.get_inbound_edges(source_id) {
-            if opts.semantic_inversion {
-                let virtual_edge = edge.invert(store.config());
-                if filter_edge(&virtual_edge, opts) {
-                    let to = virtual_edge.to.clone();
-                    neighbors.push((to, virtual_edge));
-                }
-            } else if filter_edge(&edge, opts) {
-                let from = edge.from.clone();
-                neighbors.push((from, edge));
-            }
-        }
-    }
-    neighbors
-}
-
-/// Sort and apply max_fanout to neighbors
-fn prepare_neighbors(
-    mut neighbors: Vec<(String, Edge)>,
-    opts: &TreeOptions,
-    truncated: &mut bool,
-    truncation_reason: &mut Option<String>,
-) -> Vec<(String, Edge)> {
-    neighbors.sort_by(|a, b| {
-        a.1.link_type
-            .cmp(&b.1.link_type)
-            .then_with(|| a.0.cmp(&b.0))
-    });
-
-    if let Some(max_fanout) = opts.max_fanout {
-        if neighbors.len() > max_fanout {
-            *truncated = true;
-            *truncation_reason = Some("max_fanout".to_string());
-        }
-        neighbors.into_iter().take(max_fanout).collect()
-    } else {
-        neighbors
-    }
-}
-
-/// Check if neighbor passes min_value filter
-fn neighbor_passes_filter(
-    provider: &dyn GraphProvider,
-    canonical_neighbor: &str,
-    visited: &HashSet<String>,
-    opts: &TreeOptions,
-) -> bool {
-    if visited.contains(canonical_neighbor) {
-        return true;
-    }
-    if let Some(meta) = provider.get_metadata(canonical_neighbor) {
-        let value = meta.value.unwrap_or(50);
-        opts.min_value.is_none_or(|min| value >= min)
-    } else {
-        false
-    }
-}
-
-/// Calculate edge cost based on options
-fn calculate_edge_cost(
-    edge: &Edge,
-    canonical_neighbor: &str,
-    provider: &dyn GraphProvider,
-    store: &Store,
-    opts: &TreeOptions,
-) -> HopCost {
-    if opts.ignore_value {
-        get_link_type_cost(edge.link_type.as_str(), store.config())
-    } else if let Some(meta) = provider.get_metadata(canonical_neighbor) {
-        let value = meta.value.unwrap_or(50);
-        get_edge_cost(edge.link_type.as_str(), value, store.config())
-    } else {
-        get_link_type_cost(edge.link_type.as_str(), store.config())
-    }
-}
-
-/// Context for processing a neighbor
-struct NeighborContext<'a> {
-    current_id: &'a str,
-    accumulated_cost: HopCost,
-    provider: &'a dyn GraphProvider,
-    store: &'a Store,
-    opts: &'a TreeOptions,
-    compaction_ctx: Option<&'a CompactionContext>,
 }
 
 /// Process a single neighbor, updating state
 fn process_neighbor_dijkstra(
     neighbor_id: String,
-    edge: Edge,
+    edge: crate::index::Edge,
     state: &mut DijkstraState,
     ctx: &NeighborContext<'_>,
 ) -> Result<()> {
     // Canonicalize edge endpoints
-    let (canonical_from, canonical_to) = if let Some(compact_ctx) = ctx.compaction_ctx {
-        (compact_ctx.canon(&edge.from)?, compact_ctx.canon(&edge.to)?)
-    } else {
-        (edge.from.clone(), edge.to.clone())
-    };
+    let (canonical_from, canonical_to) = canonicalize_edge(&edge, ctx.compaction_ctx)?;
 
     // Skip self-loops
     if canonical_from == canonical_to {
@@ -289,11 +96,7 @@ fn process_neighbor_dijkstra(
     }
 
     // Canonicalize neighbor ID
-    let canonical_neighbor = if let Some(compact_ctx) = ctx.compaction_ctx {
-        compact_ctx.canon(&neighbor_id)?
-    } else {
-        neighbor_id.clone()
-    };
+    let canonical_neighbor = canonicalize_node(&neighbor_id, ctx.compaction_ctx)?;
 
     // Check filter
     if !neighbor_passes_filter(ctx.provider, &canonical_neighbor, &state.visited, ctx.opts) {
@@ -378,41 +181,6 @@ fn process_neighbor_dijkstra(
     }
 
     Ok(())
-}
-
-/// Sort all result collections for determinism
-fn sort_results(state: &mut DijkstraState) {
-    state.notes.sort_by(|a, b| a.id.cmp(&b.id));
-    state.links.sort_by(|a, b| {
-        a.from
-            .cmp(&b.from)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| a.to.cmp(&b.to))
-    });
-    state.spanning_tree.sort_by(|a, b| {
-        a.hop
-            .cmp(&b.hop)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| a.to.cmp(&b.to))
-    });
-}
-
-/// Build final TreeResult from state
-fn build_result(root: &str, opts: &TreeOptions, state: DijkstraState) -> TreeResult {
-    TreeResult {
-        root: root.to_string(),
-        direction: match opts.direction {
-            Direction::Out => DIRECTION_OUT.to_string(),
-            Direction::In => DIRECTION_IN.to_string(),
-            Direction::Both => DIRECTION_BOTH.to_string(),
-        },
-        max_hops: opts.max_hops.as_u32_for_display(),
-        truncated: state.truncated,
-        truncation_reason: state.truncation_reason,
-        notes: state.notes,
-        links: state.links,
-        spanning_tree: state.spanning_tree,
-    }
 }
 
 /// Perform Dijkstra traversal from a root node (weighted by note value)
@@ -515,8 +283,16 @@ pub fn dijkstra_traverse(
         }
     }
 
-    sort_results(&mut state);
-    Ok(build_result(root, opts, state))
+    sort_results(&mut state.notes, &mut state.links, &mut state.spanning_tree);
+    Ok(build_result(
+        root,
+        opts,
+        state.truncated,
+        state.truncation_reason,
+        state.notes,
+        state.links,
+        state.spanning_tree,
+    ))
 }
 
 #[cfg(test)]

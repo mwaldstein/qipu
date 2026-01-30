@@ -1,6 +1,6 @@
 //! Command trait and context for dispatching commands
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Instant;
 
 use crate::cli::Cli;
@@ -8,9 +8,7 @@ use qipu_core::error::Result;
 use qipu_core::store::Store;
 
 /// Discover or open a store based on CLI configuration
-pub fn discover_or_open_store(cli: &Cli, root: &PathBuf) -> Result<Store> {
-    use qipu_core::store::paths::WORKSPACES_DIR;
-
+pub fn discover_or_open_store(cli: &Cli, root: &Path) -> Result<Store> {
     let base_store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -33,12 +31,12 @@ pub fn discover_or_open_store(cli: &Cli, root: &PathBuf) -> Result<Store> {
 /// Shared context for command execution
 pub struct CommandContext<'a> {
     pub cli: &'a Cli,
-    pub root: &'a PathBuf,
+    pub root: &'a Path,
     pub start: Instant,
 }
 
 impl<'a> CommandContext<'a> {
-    pub fn new(cli: &'a Cli, root: &'a PathBuf, start: Instant) -> Self {
+    pub fn new(cli: &'a Cli, root: &'a Path, start: Instant) -> Self {
         Self { cli, root, start }
     }
 

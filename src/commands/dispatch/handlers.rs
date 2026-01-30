@@ -1,7 +1,7 @@
 //! Local command handlers (not moved to other submodules)
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Instant;
 
 use crate::cli::{
@@ -20,7 +20,7 @@ pub struct InitOptions {
     pub index_strategy: Option<String>,
 }
 
-pub(super) fn handle_init(cli: &Cli, root: &PathBuf, options: InitOptions) -> Result<()> {
+pub(super) fn handle_init(cli: &Cli, root: &Path, options: InitOptions) -> Result<()> {
     crate::commands::init::execute(
         cli,
         root,
@@ -65,7 +65,7 @@ pub(super) fn handle_workspace(cli: &Cli, command: &crate::cli::WorkspaceCommand
 
 pub(super) fn handle_value(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &ValueCommands,
     start: Instant,
 ) -> Result<()> {
@@ -156,7 +156,7 @@ pub(super) fn handle_value(
 
 pub(super) fn handle_tags(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &TagsCommands,
     start: Instant,
 ) -> Result<()> {
@@ -211,7 +211,7 @@ pub(super) fn handle_tags(
 
 pub(super) fn handle_custom(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &CustomCommands,
     start: Instant,
 ) -> Result<()> {
@@ -255,7 +255,7 @@ pub(super) fn handle_custom(
 
 pub(super) fn handle_store(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &StoreCommands,
     start: Instant,
 ) -> Result<()> {
@@ -272,7 +272,7 @@ pub(super) fn handle_store(
 
 pub(super) fn handle_ontology(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &OntologyCommands,
     start: Instant,
 ) -> Result<()> {

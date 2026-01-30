@@ -1,6 +1,6 @@
 //! Handlers for link-related commands
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -13,7 +13,7 @@ use super::command::discover_or_open_store;
 
 pub(super) fn handle_link(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     command: &LinkCommands,
     start: Instant,
 ) -> Result<()> {

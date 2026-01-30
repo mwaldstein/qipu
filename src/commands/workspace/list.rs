@@ -2,7 +2,7 @@ use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use crate::cli::OutputFormat;
 use qipu_core::error::Result;
-use qipu_core::store::paths::{WORKSPACES_DIR, WORKSPACE_FILE};
+use qipu_core::store::paths::WORKSPACE_FILE;
 use qipu_core::store::workspace::WorkspaceMetadata;
 use qipu_core::store::Store;
 use std::path::PathBuf;

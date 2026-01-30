@@ -2,7 +2,6 @@ use crate::cli::paths::resolve_root_path;
 use crate::Cli;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
-use qipu_core::store::paths::WORKSPACES_DIR;
 use qipu_core::store::Store;
 use std::fs;
 

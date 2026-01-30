@@ -1,6 +1,6 @@
 //! Handlers for maintenance commands (doctor, sync, index, prime)
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -14,7 +14,7 @@ use super::command::discover_or_open_store;
 
 pub(super) fn handle_doctor(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     fix: bool,
     duplicates: bool,
     threshold: f64,
@@ -31,7 +31,7 @@ pub(super) fn handle_doctor(
         Store::open_unchecked(&visible_path, false)?
     } else {
         return Err(QipuError::StoreNotFound {
-            search_root: root.clone(),
+            search_root: root.to_path_buf(),
         });
     };
 
@@ -48,7 +48,7 @@ pub(super) fn handle_doctor(
 
 pub(super) fn handle_sync(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     validate: bool,
     fix: bool,
     commit: bool,
@@ -69,7 +69,7 @@ pub(super) fn handle_sync(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_index(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     rebuild: bool,
     resume: bool,
     rewrite_wiki_links: bool,
@@ -106,7 +106,7 @@ pub(super) fn handle_index(
 
 pub(super) fn handle_prime(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     compact: bool,
     minimal: bool,
     start: Instant,

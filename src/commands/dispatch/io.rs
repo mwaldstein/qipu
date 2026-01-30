@@ -1,8 +1,6 @@
 //! Handlers for I/O commands (export, dump, load)
 
-#![allow(clippy::ptr_arg)]
-
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use tracing::debug;
@@ -16,7 +14,7 @@ use super::command::discover_or_open_store;
 /// Parameters for the export command handler
 pub struct ExportParams<'a> {
     pub cli: &'a Cli,
-    pub root: &'a PathBuf,
+    pub root: &'a Path,
     pub note_ids: &'a [String],
     pub tag: Option<&'a str>,
     pub moc_id: Option<&'a str>,
@@ -65,7 +63,7 @@ pub(super) fn handle_export(params: ExportParams) -> Result<()> {
 /// Parameters for the dump command handler
 pub struct DumpParams<'a> {
     pub cli: &'a Cli,
-    pub root: &'a PathBuf,
+    pub root: &'a Path,
     pub file: Option<&'a PathBuf>,
     pub note_ids: &'a [String],
     pub tag: Option<&'a str>,
@@ -129,7 +127,7 @@ pub(super) fn handle_dump(params: DumpParams) -> Result<()> {
 /// Parameters for the load command handler
 pub struct LoadParams<'a> {
     pub cli: &'a Cli,
-    pub root: &'a PathBuf,
+    pub root: &'a Path,
     pub pack_file: &'a PathBuf,
     pub strategy: &'a str,
     pub apply_config: bool,

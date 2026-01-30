@@ -1,6 +1,6 @@
 //! Handlers for note-related commands
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Instant;
 
 use chrono::DateTime;
@@ -16,7 +16,7 @@ use super::command::discover_or_open_store;
 
 pub(super) fn handle_create(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     args: &crate::cli::CreateArgs,
     start: Instant,
 ) -> Result<()> {
@@ -47,7 +47,7 @@ pub(super) fn handle_create(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_list(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     tag: Option<&str>,
     note_type: Option<qipu_core::note::NoteType>,
     since: Option<&str>,
@@ -87,7 +87,7 @@ pub(super) fn handle_list(
 
 pub(super) fn handle_show(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     id_or_path: &str,
     links: bool,
     show_custom: bool,
@@ -106,7 +106,7 @@ pub(super) fn handle_show(
 
 pub(super) fn handle_inbox(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     exclude_linked: bool,
     start: Instant,
 ) -> Result<()> {
@@ -235,7 +235,7 @@ fn output_inbox_notes(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_capture(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     title: Option<&str>,
     note_type: Option<qipu_core::note::NoteType>,
     tags: &[String],
@@ -272,7 +272,7 @@ pub(super) fn handle_capture(
 
 pub(super) fn handle_verify(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     id_or_path: &str,
     status: Option<bool>,
     start: Instant,
@@ -291,7 +291,7 @@ pub(super) fn handle_verify(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_search(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     query: &str,
     note_type: Option<qipu_core::note::NoteType>,
     tag: Option<&str>,
@@ -323,7 +323,7 @@ pub(super) fn handle_search(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_merge(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     id1: &str,
     id2: &str,
     dry_run: bool,
@@ -342,7 +342,7 @@ pub(super) fn handle_merge(
 
 pub(super) fn handle_edit(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     id_or_path: &str,
     editor: Option<&str>,
     start: Instant,
@@ -361,7 +361,7 @@ pub(super) fn handle_edit(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_update(
     cli: &Cli,
-    root: &PathBuf,
+    root: &Path,
     id_or_path: &str,
     title: Option<&str>,
     note_type: Option<qipu_core::note::NoteType>,

@@ -1,5 +1,4 @@
 use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_search_records_format_truncated_field() {

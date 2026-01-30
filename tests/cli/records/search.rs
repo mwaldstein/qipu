@@ -1,7 +1,6 @@
 //! Records format search and empty result tests
 
 use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_records_empty_result_set_search() {

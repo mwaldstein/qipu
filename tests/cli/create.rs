@@ -1,7 +1,6 @@
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
 
 // ============================================================================
 // Create command tests

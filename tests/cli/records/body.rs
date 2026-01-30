@@ -1,7 +1,6 @@
 //! Records format body marker tests
 
 use crate::support::{extract_id, qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_records_body_markers() {

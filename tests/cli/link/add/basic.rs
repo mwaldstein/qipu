@@ -1,6 +1,5 @@
 use crate::support::{extract_id, qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_link_add_and_list() {

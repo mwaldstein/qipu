@@ -1,7 +1,6 @@
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
 
 #[test]
 fn test_doctor_compaction_cycle_detection() {

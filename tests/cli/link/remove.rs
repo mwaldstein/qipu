@@ -2,7 +2,6 @@ use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use rusqlite::Connection;
-use tempfile::tempdir;
 
 #[test]
 fn test_link_remove() {

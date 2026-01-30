@@ -1,5 +1,4 @@
 use crate::support::{extract_id, qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_custom_link_cost_with_value_penalties() {

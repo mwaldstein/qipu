@@ -1,6 +1,5 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
-use tempfile::tempdir;
 
 #[test]
 fn test_custom_set_json_string() {

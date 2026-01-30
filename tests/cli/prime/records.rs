@@ -1,6 +1,5 @@
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_prime_records_format() {

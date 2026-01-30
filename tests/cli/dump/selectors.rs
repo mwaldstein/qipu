@@ -1,4 +1,4 @@
-use crate::support::{qipu, setup_test_dir};
+use crate::support::qipu;
 use tempfile::tempdir;
 
 #[test]

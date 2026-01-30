@@ -1,5 +1,4 @@
 use crate::support::{extract_id, qipu, setup_test_dir};
-use tempfile::tempdir;
 
 /// Test that link tree uses weighted traversal by default (without --ignore-value)
 /// and that high-value notes are visited before low-value notes even if they're further away

@@ -1,5 +1,4 @@
 use crate::support::{extract_id, qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_cycle_shows_seen() {

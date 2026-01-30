@@ -18,17 +18,16 @@ pub(crate) fn extract_links(
     path_to_id: &HashMap<PathBuf, String>,
 ) -> Vec<Edge> {
     let mut edges = Vec::new();
-    let from_id = note.id().to_string();
 
     // Extract typed links from frontmatter
     for link in &note.frontmatter.links {
         let to_id = link.id.clone();
         if !valid_ids.contains(&to_id) {
-            unresolved.insert(to_id.clone());
+            unresolved.insert(to_id);
             continue;
         }
         edges.push(Edge {
-            from: from_id.clone(),
+            from: note.id().to_string(),
             to: to_id,
             link_type: link.link_type.clone(),
             source: LinkSource::Typed,
@@ -49,12 +48,12 @@ pub(crate) fn extract_links(
             continue;
         }
         if !valid_ids.contains(&to_id) {
-            unresolved.insert(to_id.clone());
+            unresolved.insert(to_id);
             continue;
         }
         // Inline links default to "related" type
         edges.push(Edge {
-            from: from_id.clone(),
+            from: note.id().to_string(),
             to: to_id,
             link_type: crate::note::LinkType::from("related"),
             source: LinkSource::Inline,
@@ -130,12 +129,12 @@ pub(crate) fn extract_links(
         };
 
         if !valid_ids.contains(&to_id) {
-            unresolved.insert(to_id.clone());
+            unresolved.insert(to_id);
             continue;
         }
 
         edges.push(Edge {
-            from: from_id.clone(),
+            from: note.id().to_string(),
             to: to_id,
             link_type: crate::note::LinkType::from("related"),
             source: LinkSource::Inline,

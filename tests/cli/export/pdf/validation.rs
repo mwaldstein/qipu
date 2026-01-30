@@ -2,7 +2,6 @@ use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use std::process::Command;
-use tempfile::tempdir;
 
 #[test]
 fn test_export_pdf_requires_output_file() {

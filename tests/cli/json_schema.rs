@@ -1,6 +1,5 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id_from_bytes, qipu};
-use tempfile::tempdir;
 
 // ============================================================================
 // JSON Schema Compliance Tests

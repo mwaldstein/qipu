@@ -1,7 +1,6 @@
 //! Records format character handling tests
 
 use crate::support::{extract_id, qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_records_very_long_title() {

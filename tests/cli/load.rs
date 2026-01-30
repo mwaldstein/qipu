@@ -1,7 +1,6 @@
 //! Tests for `qipu load` command
 
 use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_load_with_apply_config() {

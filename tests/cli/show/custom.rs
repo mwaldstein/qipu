@@ -1,7 +1,6 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_show_json_custom_omitted_by_default() {

@@ -1,6 +1,5 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
-use tempfile::tempdir;
 
 // ============================================================================
 // Progressive disclosure workflow tests

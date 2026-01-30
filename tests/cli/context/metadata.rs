@@ -1,7 +1,6 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use std::fs;
-use tempfile::tempdir;
 
 #[test]
 fn test_context_custom_metadata_omitted_by_default() {

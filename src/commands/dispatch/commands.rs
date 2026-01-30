@@ -113,16 +113,18 @@ pub(super) mod dispatch_command {
         notes::handle_capture(
             ctx.cli,
             ctx.root,
-            args.title.as_deref(),
-            args.r#type.clone(),
-            &args.tag,
-            args.source.clone(),
-            args.author.clone(),
-            args.generated_by.clone(),
-            args.prompt_hash.clone(),
-            args.verified,
-            args.id.as_deref(),
-            ctx.start,
+            notes::CaptureOptions {
+                title: args.title.clone(),
+                note_type: args.r#type.clone(),
+                tags: args.tag.clone(),
+                source: args.source.clone(),
+                author: args.author.clone(),
+                generated_by: args.generated_by.clone(),
+                prompt_hash: args.prompt_hash.clone(),
+                verified: args.verified,
+                id: args.id.clone(),
+                start: ctx.start,
+            },
         )
     }
 

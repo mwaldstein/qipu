@@ -232,40 +232,39 @@ fn output_inbox_notes(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn handle_capture(
-    cli: &Cli,
-    root: &Path,
-    title: Option<&str>,
-    note_type: Option<qipu_core::note::NoteType>,
-    tags: &[String],
-    source: Option<String>,
-    author: Option<String>,
-    generated_by: Option<String>,
-    prompt_hash: Option<String>,
-    verified: Option<bool>,
-    id: Option<&str>,
-    start: Instant,
-) -> Result<()> {
+pub struct CaptureOptions {
+    pub title: Option<String>,
+    pub note_type: Option<qipu_core::note::NoteType>,
+    pub tags: Vec<String>,
+    pub source: Option<String>,
+    pub author: Option<String>,
+    pub generated_by: Option<String>,
+    pub prompt_hash: Option<String>,
+    pub verified: Option<bool>,
+    pub id: Option<String>,
+    pub start: Instant,
+}
+
+pub(super) fn handle_capture(cli: &Cli, root: &Path, opts: CaptureOptions) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
+        debug!(elapsed = ?opts.start.elapsed(), "discover_store");
     }
     commands::capture::execute(
         cli,
         &store,
-        title,
-        note_type,
-        tags,
-        source,
-        author,
-        generated_by,
-        prompt_hash,
-        verified,
-        id,
+        opts.title.as_deref(),
+        opts.note_type,
+        &opts.tags,
+        opts.source,
+        opts.author,
+        opts.generated_by,
+        opts.prompt_hash,
+        opts.verified,
+        opts.id.as_deref(),
     )?;
     if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
+        debug!(elapsed = ?opts.start.elapsed(), "execute_command");
     }
     Ok(())
 }

@@ -133,7 +133,7 @@ fn main() -> anyhow::Result<()> {
                 let resolved_path = resolve_scenario_path(path);
                 let _s = scenario::load(&resolved_path)?;
                 commands::handle_run_command(
-                    &scenario,
+                    scenario,
                     *all,
                     tags,
                     tier,

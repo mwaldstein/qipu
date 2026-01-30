@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -80,7 +82,7 @@ impl Config {
         let model_lower = model.to_lowercase();
 
         let mut keys: Vec<_> = self.models.keys().collect();
-        keys.sort_by(|a, b| b.len().cmp(&a.len()));
+        keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
         for key in keys {
             if model_lower.contains(key) {

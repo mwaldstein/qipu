@@ -126,6 +126,7 @@ evaluation:
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_single_scenario(
     s: &crate::scenario::Scenario,
     tool: &str,

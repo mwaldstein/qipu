@@ -45,6 +45,7 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_run_command(
     scenario: &Option<String>,
     all: bool,
@@ -59,7 +60,7 @@ pub fn handle_run_command(
     timeout_secs: u64,
     judge_model: &Option<String>,
     no_judge: bool,
-    base_dir: &PathBuf,
+    base_dir: &Path,
     results_db: &ResultsDB,
     cache: &Cache,
 ) -> anyhow::Result<()> {
@@ -263,7 +264,7 @@ pub fn handle_show_command(name: &str, results_db: &ResultsDB) -> anyhow::Result
 pub fn handle_clean_command(
     cache: &Cache,
     older_than: &Option<String>,
-    base_dir: &PathBuf,
+    base_dir: &Path,
 ) -> anyhow::Result<()> {
     let cutoff_time = if let Some(duration_str) = older_than {
         let duration = parse_duration(duration_str)?;

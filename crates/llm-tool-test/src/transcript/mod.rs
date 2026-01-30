@@ -3,6 +3,7 @@ mod redact;
 pub mod types;
 pub mod writer;
 
+#[cfg(test)]
 mod tests {
     mod analyzer;
     mod logging_tests;

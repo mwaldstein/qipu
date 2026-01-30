@@ -104,7 +104,7 @@ impl StoreAnalyzer {
             .iter()
             .filter(|note| {
                 let id = &note.id;
-                link_map.get(id).map_or(true, |v| v.is_empty())
+                link_map.get(id).is_none_or(|v| v.is_empty())
             })
             .count();
 

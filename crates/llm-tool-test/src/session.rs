@@ -112,10 +112,7 @@ impl SessionRunner {
         };
 
         // Get output (should be ready by now)
-        let output = match output_rx.recv() {
-            Ok(output) => output,
-            Err(_) => Vec::new(),
-        };
+        let output: Vec<u8> = output_rx.recv().unwrap_or_default();
 
         let _ = reader_thread.join();
         let _ = wait_thread.join();

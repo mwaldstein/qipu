@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::transcript::redact::redact_sensitive;
 use crate::transcript::types::{EvaluationReport, RunMetadata, RunReport};
 use serde_json::json;
@@ -167,8 +169,8 @@ impl TranscriptWriter {
     }
 
     fn write_report_header(&self, report: &RunReport, content: &mut String) {
-        content.push_str(&format!("# Test Run Report\n\n"));
-        content.push_str(&format!("## Scenario\n\n"));
+        content.push_str("# Test Run Report\n\n");
+        content.push_str("## Scenario\n\n");
         content.push_str(&format!("- **ID**: {}\n", report.scenario_id));
         content.push_str(&format!("- **Tool**: {}\n", report.tool));
         content.push_str(&format!("- **Model**: {}\n", report.model));
@@ -176,7 +178,7 @@ impl TranscriptWriter {
     }
 
     fn write_execution_section(&self, report: &RunReport, content: &mut String) {
-        content.push_str(&format!("## Execution\n\n"));
+        content.push_str("## Execution\n\n");
         content.push_str(&format!("- **Duration**: {:.2}s\n", report.duration_secs));
         content.push_str(&format!("- **Cost**: ${:.4}\n", report.cost_usd));
 
@@ -195,7 +197,7 @@ impl TranscriptWriter {
                 let redacted_command = redact_sensitive(&cmd_result.command);
                 content.push_str(&format!("- {} `{}`\n", status, redacted_command));
             }
-            content.push_str("\n");
+            content.push('\n');
         }
         if let Some(ref usage) = report.token_usage {
             content.push_str(&format!(
@@ -207,7 +209,7 @@ impl TranscriptWriter {
     }
 
     fn write_evaluation_section(&self, report: &RunReport, content: &mut String) {
-        content.push_str(&format!("## Evaluation Metrics\n\n"));
+        content.push_str("## Evaluation Metrics\n\n");
         content.push_str(&format!(
             "- **Gates Passed**: {}/{}\n",
             report.gates_passed, report.gates_total
@@ -217,7 +219,7 @@ impl TranscriptWriter {
         if let Some(score) = report.composite_score {
             content.push_str(&format!("- **Composite Score**: {:.2}\n", score));
         }
-        content.push_str("\n");
+        content.push('\n');
 
         if !report.gate_details.is_empty() {
             content.push_str("### Gate Details\n\n");
@@ -229,12 +231,12 @@ impl TranscriptWriter {
                     status, detail.gate_type, redacted_message
                 ));
             }
-            content.push_str("\n");
+            content.push('\n');
         }
     }
 
     fn write_efficiency_section(&self, report: &RunReport, content: &mut String) {
-        content.push_str(&format!("## Efficiency\n\n"));
+        content.push_str("## Efficiency\n\n");
         content.push_str(&format!(
             "- **Total Commands**: {}\n",
             report.efficiency.total_commands
@@ -258,7 +260,7 @@ impl TranscriptWriter {
     }
 
     fn write_quality_section(&self, report: &RunReport, content: &mut String) {
-        content.push_str(&format!("## Quality\n\n"));
+        content.push_str("## Quality\n\n");
         content.push_str(&format!(
             "- **Average Title Length**: {:.1}\n",
             report.quality.avg_title_length
@@ -305,7 +307,7 @@ impl TranscriptWriter {
         content.push_str(&format!("- **Outcome**: {}\n\n", evaluation.outcome));
 
         if let Some(judge_score) = evaluation.judge_score_1_to_5 {
-            content.push_str(&format!("## Judge Score\n\n"));
+            content.push_str("## Judge Score\n\n");
             content.push_str(&format!("**{}** / 5\n\n", judge_score));
         }
 
@@ -331,21 +333,21 @@ impl TranscriptWriter {
             for feedback in &evaluation.judge_feedback {
                 content.push_str(&format!("{}\n", feedback));
             }
-            content.push_str("\n");
+            content.push('\n');
         }
 
         content.push_str("## Human Review\n\n");
-        content.push_str(&format!("<!--\n"));
-        content.push_str(&format!("Human Score: __/5\n\n"));
-        content.push_str(&format!("Further Human Notes:\n"));
-        content.push_str(&format!("-->\n\n"));
+        content.push_str("<!--\n");
+        content.push_str("Human Score: __/5\n\n");
+        content.push_str("Further Human Notes:\n");
+        content.push_str("-->\n\n");
 
         content.push_str("## Links\n\n");
-        content.push_str(&format!("- [Transcript](transcript.raw.txt)\n"));
-        content.push_str(&format!("- [Metrics](metrics.json)\n"));
-        content.push_str(&format!("- [Events](events.jsonl)\n"));
-        content.push_str(&format!("- [Fixture](../fixture/)\n"));
-        content.push_str(&format!("- [Store Snapshot](store_snapshot/export.json)\n"));
+        content.push_str("- [Transcript](transcript.raw.txt)\n");
+        content.push_str("- [Metrics](metrics.json)\n");
+        content.push_str("- [Events](events.jsonl)\n");
+        content.push_str("- [Fixture](../fixture/)\n");
+        content.push_str("- [Store Snapshot](store_snapshot/export.json)\n");
 
         fs::write(self.base_dir.join("evaluation.md"), content)?;
         Ok(())

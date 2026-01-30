@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::pricing::get_model_pricing;
 use chrono::Utc;
 

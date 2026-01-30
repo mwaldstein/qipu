@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::transcript::types::{CommandEvent, EfficiencyMetrics};
 use regex::Regex;
 
@@ -70,7 +72,7 @@ impl TranscriptAnalyzer {
             0.0
         };
 
-        let iteration_ratio = if unique_commands.len() > 0 {
+        let iteration_ratio = if !unique_commands.is_empty() {
             total_commands as f64 / unique_commands.len() as f64
         } else {
             0.0

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(Debug, PartialEq)]
 pub struct ModelPricing {
     pub input_cost_per_1k_tokens: f64,

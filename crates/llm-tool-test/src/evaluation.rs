@@ -344,16 +344,14 @@ fn maybe_run_judge(
 }
 
 fn compute_efficiency_or_default(env_root: &Path) -> EfficiencyMetrics {
-    crate::eval_helpers::compute_efficiency_metrics(env_root).unwrap_or_else(|_| {
-        EfficiencyMetrics {
-            total_commands: 0,
-            unique_commands: 0,
-            error_count: 0,
-            retry_count: 0,
-            help_invocations: 0,
-            first_try_success_rate: 0.0,
-            iteration_ratio: 0.0,
-        }
+    crate::eval_helpers::compute_efficiency_metrics(env_root).unwrap_or(EfficiencyMetrics {
+        total_commands: 0,
+        unique_commands: 0,
+        error_count: 0,
+        retry_count: 0,
+        help_invocations: 0,
+        first_try_success_rate: 0.0,
+        iteration_ratio: 0.0,
     })
 }
 

@@ -62,7 +62,7 @@ function Install-Binary {
     
     $filename = "$BinaryName-$Version-$Target.zip"
     $url = "https://github.com/$Repo/releases/download/v$Version/$filename"
-    $checksumUrl = "$url.sha256"
+    $checksumUrl = "https://github.com/$Repo/releases/download/v$Version/SHA256SUMS"
     
     Write-Host "Downloading $filename..."
     
@@ -71,7 +71,7 @@ function Install-Binary {
     
     try {
         $zipPath = Join-Path $tmpDir $filename
-        $checksumPath = "$zipPath.sha256"
+        $checksumPath = Join-Path $tmpDir "SHA256SUMS"
         
         # Download binary
         try {
@@ -87,7 +87,21 @@ function Install-Binary {
             Invoke-WebRequest -Uri $checksumUrl -OutFile $checksumPath -UseBasicParsing
             
             Write-Host "Verifying checksum..."
-            $expectedHash = (Get-Content $checksumPath -Raw).Trim().Split()[0]
+            # Extract expected hash from SHA256SUMS file for our specific file
+            $checksumLines = Get-Content $checksumPath
+            $expectedHash = $null
+            foreach ($line in $checksumLines) {
+                $parts = $line.Trim() -split '\s+', 2
+                if ($parts[1] -eq $filename) {
+                    $expectedHash = $parts[0]
+                    break
+                }
+            }
+            
+            if (-not $expectedHash) {
+                throw "Could not find checksum for $filename in SHA256SUMS"
+            }
+            
             $actualHash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
             
             if ($expectedHash.ToLower() -ne $actualHash.ToLower()) {

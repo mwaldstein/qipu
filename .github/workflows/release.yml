@@ -102,12 +102,14 @@ jobs:
       - name: Generate checksum (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          shasum -a 256 qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz > qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
+          shasum -a 256 qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz >> SHA256SUMS.partial
       
       - name: Generate checksum (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          certutil -hashfile qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip SHA256 > qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
+          certutil -hashfile qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip SHA256 | findstr /v "SHA256" | findstr /v "CertUtil" > hash.tmp
+          set /p HASH=<hash.tmp
+          echo %HASH%  qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip >> SHA256SUMS.partial
         shell: cmd
       
       - name: Sign binary (Unix)
@@ -151,27 +153,12 @@ jobs:
           asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
           asset_content_type: application/zip
       
-      - name: Upload checksum (Unix)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload partial checksums
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
-          asset_content_type: text/plain
-      
-      - name: Upload checksum (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
-          asset_content_type: text/plain
+          name: checksums-${{ matrix.target }}
+          path: SHA256SUMS.partial
+          retention-days: 1
       
       - name: Upload signature (Unix)
         if: matrix.os != 'windows-latest'
@@ -216,6 +203,33 @@ jobs:
           asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
           asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
           asset_content_type: application/x-pem-file
+
+  combine-checksums:
+    name: Combine Checksums
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all partial checksums
+        uses: actions/download-artifact@v4
+        with:
+          path: checksums
+          pattern: checksums-*
+          merge-multiple: true
+      
+      - name: Combine into SHA256SUMS
+        run: |
+          cat checksums/SHA256SUMS.partial* > SHA256SUMS
+          cat SHA256SUMS
+      
+      - name: Upload SHA256SUMS to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./SHA256SUMS
+          asset_name: SHA256SUMS
+          asset_content_type: text/plain
 
   publish-crates:
     name: Publish to crates.io

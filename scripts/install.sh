@@ -67,7 +67,7 @@ get_latest_version() {
 download_binary() {
     local filename="${BINARY_NAME}-${VERSION}-${TARGET}.tar.gz"
     local url="https://github.com/${REPO}/releases/download/v${VERSION}/${filename}"
-    local checksum_url="${url}.sha256"
+    local checksum_url="https://github.com/${REPO}/releases/download/v${VERSION}/SHA256SUMS"
     
     echo "Downloading ${filename}..."
     
@@ -83,18 +83,13 @@ download_binary() {
         exit 1
     fi
     
-    if ! curl -fsSL -o "${filename}.sha256" "$checksum_url"; then
+    if ! curl -fsSL -o "SHA256SUMS" "$checksum_url"; then
         echo -e "${YELLOW}Warning: Could not download checksum file${NC}"
     else
         echo "Verifying checksum..."
-        # Extract just the hash from the checksum file
-        expected_hash=$(cat "${filename}.sha256" | awk '{print $1}')
-        actual_hash=$(shasum -a 256 "$filename" | awk '{print $1}')
-        
-        if [ "$expected_hash" != "$actual_hash" ]; then
+        # Use sha256sum to verify against SHA256SUMS file
+        if ! shasum -a 256 -c SHA256SUMS 2>/dev/null | grep -q "${filename}: OK"; then
             echo -e "${RED}Error: Checksum verification failed${NC}"
-            echo "Expected: $expected_hash"
-            echo "Actual:   $actual_hash"
             exit 1
         fi
         echo -e "${GREEN}Checksum verified${NC}"

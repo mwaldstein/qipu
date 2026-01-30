@@ -1,15 +1,23 @@
 //! Link tree command
 use std::collections::HashMap;
 
-/// Result type for building compaction context
-type CompactionContextResult = (
-    Option<CompactionContext>,
-    Option<HashMap<String, Vec<String>>>,
-    String,
-);
+use qipu_core::compaction::CompactionContext;
+
+/// Bundle of compaction-related context for tree traversal.
+///
+/// This struct holds all necessary context when building a tree view
+/// with compaction support, avoiding complex tuple types.
+#[derive(Debug)]
+pub struct CompactionContextBundle {
+    /// The compaction context if compaction is enabled.
+    pub ctx: Option<CompactionContext>,
+    /// Map of note IDs to their equivalent note IDs.
+    pub equivalence_map: Option<HashMap<String, Vec<String>>>,
+    /// The canonical note ID (after resolving aliases/compaction).
+    pub canonical_id: String,
+}
 
 use crate::cli::{Cli, OutputFormat};
-use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::graph::TreeResult;
 use qipu_core::index::IndexBuilder;
@@ -34,12 +42,11 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
     }
 
     let all_notes = store.list_notes()?;
-    let (compaction_ctx, equivalence_map, canonical_id) =
-        build_compaction_context(cli, &all_notes, &note_id)?;
+    let bundle = build_compaction_context(cli, &all_notes, &note_id)?;
 
-    if !index.contains(&canonical_id) {
+    if !index.contains(&bundle.canonical_id) {
         return Err(qipu_core::error::QipuError::NoteNotFound {
-            id: canonical_id.clone(),
+            id: bundle.canonical_id.clone(),
         });
     }
 
@@ -47,20 +54,20 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
         cli,
         &index,
         store,
-        &canonical_id,
+        &bundle.canonical_id,
         &opts,
-        compaction_ctx.as_ref(),
-        equivalence_map.as_ref(),
+        bundle.ctx.as_ref(),
+        bundle.equivalence_map.as_ref(),
     )?;
 
-    let note_map = build_note_map(compaction_ctx.as_ref(), &all_notes);
+    let note_map = build_note_map(bundle.ctx.as_ref(), &all_notes);
 
     match cli.format {
         OutputFormat::Json => {
             output_tree_json(
                 cli,
                 &result,
-                compaction_ctx.as_ref(),
+                bundle.ctx.as_ref(),
                 note_map.as_ref(),
                 &all_notes,
             )?;
@@ -71,7 +78,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
                 &result,
                 &index,
                 store,
-                compaction_ctx.as_ref(),
+                bundle.ctx.as_ref(),
                 note_map.as_ref(),
                 &all_notes,
             );
@@ -82,7 +89,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
                 store,
                 &opts,
                 cli,
-                compaction_ctx.as_ref(),
+                bundle.ctx.as_ref(),
                 note_map.as_ref(),
                 &all_notes,
             );
@@ -96,26 +103,30 @@ fn build_compaction_context(
     cli: &Cli,
     all_notes: &[Note],
     note_id: &str,
-) -> Result<CompactionContextResult> {
-    let compaction_ctx = if !cli.no_resolve_compaction {
+) -> Result<CompactionContextBundle> {
+    let ctx = if !cli.no_resolve_compaction {
         Some(CompactionContext::build(all_notes)?)
     } else {
         None
     };
 
-    let equivalence_map = if let Some(ref ctx) = compaction_ctx {
-        Some(ctx.build_equivalence_map(all_notes)?)
+    let equivalence_map = if let Some(ref c) = ctx {
+        Some(c.build_equivalence_map(all_notes)?)
     } else {
         None
     };
 
-    let canonical_id = if let Some(ref ctx) = compaction_ctx {
-        ctx.canon(note_id)?
+    let canonical_id = if let Some(ref c) = ctx {
+        c.canon(note_id)?
     } else {
         note_id.to_string()
     };
 
-    Ok((compaction_ctx, equivalence_map, canonical_id))
+    Ok(CompactionContextBundle {
+        ctx,
+        equivalence_map,
+        canonical_id,
+    })
 }
 
 fn perform_traversal(

@@ -7,6 +7,7 @@ pub mod args;
 pub mod commands;
 pub mod compact;
 pub mod custom;
+pub mod format;
 pub mod link;
 pub mod ontology;
 pub mod output;

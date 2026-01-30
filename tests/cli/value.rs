@@ -1,7 +1,5 @@
-use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 // ============================================================================
 // Value command tests
@@ -9,14 +7,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_value_set_basic() {
-    let dir = tempdir().unwrap();
-
-    // Init and create a note
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())

@@ -1,18 +1,11 @@
-use crate::support::setup_test_dir;
 //! Tests for wiki-link rewriting feature
 
-use tempfile::tempdir;
-
-fn qipu() -> assert_cmd::Command {
-    assert_cmd::cargo::cargo_bin_cmd!("qipu")
-}
+use crate::support::{qipu, setup_test_dir};
 
 #[test]
 fn test_index_rewrites_wiki_links() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
     let root = dir.path();
-
-    qipu().current_dir(root).arg("init").assert().success();
 
     qipu()
         .current_dir(root)

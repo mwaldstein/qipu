@@ -1,18 +1,9 @@
-use crate::support::setup_test_dir;
-use crate::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_merge_notes_basic() {
-    let dir = tempdir().unwrap();
-
-    // 1. Init
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // 2. Create two notes
     let output1 = qipu()

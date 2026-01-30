@@ -1,6 +1,6 @@
 //! Tests for `qipu load` command
 
-use crate::cli::support::qipu;
+use crate::support::qipu;
 use tempfile::tempdir;
 
 #[test]

@@ -2,7 +2,7 @@
 //!
 //! Issue: qipu-rzv - Prime: support store-local override file (.qipu/PRIME.md)
 
-use crate::cli::support::{qipu, setup_test_dir};
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 

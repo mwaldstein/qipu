@@ -28,7 +28,7 @@ mod setup;
 mod show;
 mod store;
 mod store_discovery;
-pub mod support;
+
 mod sync;
 mod traversal;
 mod traversal_dump;

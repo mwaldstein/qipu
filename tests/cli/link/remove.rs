@@ -1,4 +1,4 @@
-use crate::cli::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use rusqlite::Connection;
 use tempfile::tempdir;

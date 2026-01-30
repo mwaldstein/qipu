@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::support::qipu;
 use std::fs;
 use tempfile::tempdir;
 

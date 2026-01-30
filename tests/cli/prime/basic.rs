@@ -1,4 +1,4 @@
-use crate::cli::support::{qipu, setup_test_dir};
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 
 #[test]

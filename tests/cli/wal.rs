@@ -1,4 +1,4 @@
-use crate::cli::support::{extract_id_from_bytes, qipu};
+use crate::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 

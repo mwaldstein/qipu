@@ -1,6 +1,6 @@
 //! Records format search and empty result tests
 
-use crate::cli::support::qipu;
+use crate::support::qipu;
 use tempfile::tempdir;
 
 #[test]

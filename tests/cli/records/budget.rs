@@ -1,6 +1,6 @@
 //! Records format budget truncation tests
 
-use crate::cli::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]

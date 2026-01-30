@@ -1,7 +1,7 @@
 mod compaction_validation;
 mod ontology_validation;
 
-use crate::cli::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 

@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::support::qipu;
 use predicates::prelude::*;
 use std::process::Command;
 use tempfile::tempdir;

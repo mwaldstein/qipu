@@ -1,4 +1,4 @@
-use crate::cli::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu};
 use std::fs;
 use tempfile::tempdir;
 

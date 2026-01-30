@@ -1,4 +1,4 @@
-use crate::cli::support::qipu;
+use crate::support::qipu;
 use predicates::prelude::*;
 use serde_json::Value;
 use tempfile::tempdir;

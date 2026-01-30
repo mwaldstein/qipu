@@ -1,4 +1,4 @@
-use crate::cli::support::{extract_id_from_bytes, qipu, setup_test_dir};
+use crate::support::{extract_id_from_bytes, qipu, setup_test_dir};
 use predicates::prelude::*;
 
 #[test]

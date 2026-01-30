@@ -6,7 +6,6 @@
 //! - `--editor <cmd>`: override default editor
 //! - Fails with usage error if no editor is configured/detected
 
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -55,12 +54,7 @@ pub fn execute(
     editor_override: Option<&str>,
 ) -> Result<()> {
     // Load the note (either by ID or path)
-    let mut note = if Path::new(id_or_path).exists() {
-        let content = std::fs::read_to_string(id_or_path)?;
-        qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
     // Ensure the note has a path
     let note_path = note

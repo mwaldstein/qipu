@@ -7,14 +7,12 @@
 //! - Reading from stdin replaces note body (preserving frontmatter)
 
 use std::io::Read;
-use std::path::Path;
 
 use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
-use qipu_core::note::Note;
 use qipu_core::store::Store;
 
 /// Execute the update command
@@ -35,12 +33,7 @@ pub fn execute(
     verified: Option<bool>,
 ) -> Result<()> {
     // Load the note (either by ID or path)
-    let mut note = if Path::new(id_or_path).exists() {
-        let content = std::fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
     let note_id = note.id().to_string();
     let note_path = note

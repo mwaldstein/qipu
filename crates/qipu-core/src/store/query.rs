@@ -1,5 +1,8 @@
 //! Note query and retrieval operations
 
+use std::fs;
+use std::path::Path;
+
 use crate::error::{QipuError, Result};
 use crate::note::Note;
 
@@ -42,5 +45,18 @@ impl Store {
     pub fn get_tag_frequencies(&self) -> Result<Vec<(String, i64)>> {
         let db = self.db();
         db.get_tag_frequencies()
+    }
+
+    /// Load a note by ID or path
+    ///
+    /// If `id_or_path` refers to an existing file, reads and parses it.
+    /// Otherwise, treats it as a note ID and looks it up in the store.
+    pub fn load_note_by_id_or_path(&self, id_or_path: &str) -> Result<Note> {
+        if Path::new(id_or_path).exists() {
+            let content = fs::read_to_string(id_or_path)?;
+            Note::parse(&content, Some(id_or_path.into()))
+        } else {
+            self.get_note(id_or_path)
+        }
     }
 }

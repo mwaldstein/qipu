@@ -4,9 +4,6 @@
 //! - `qipu show <id-or-path>` - print note to stdout
 //! - `qipu show <id-or-path> --links` - inspect links for a note
 
-use std::fs;
-use std::path::Path;
-
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::format::{
     add_compaction_to_json, calculate_compaction_info, print_note_records,
@@ -27,14 +24,8 @@ pub fn execute(
     show_links: bool,
     show_custom: bool,
 ) -> Result<()> {
-    // Try to interpret as path first
-    let mut note = if Path::new(id_or_path).exists() {
-        let content = fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        // Treat as ID
-        store.get_note(id_or_path)?
-    };
+    // Load note by ID or path
+    let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
     // Build compaction context for annotations and resolution
     // Per spec (specs/compaction.md lines 116-119)

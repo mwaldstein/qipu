@@ -3,10 +3,7 @@
 use crate::cli::OutputFormat;
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
-use qipu_core::note::Note;
 use qipu_core::store::Store;
-use std::fs;
-use std::path::Path;
 
 /// Parse a value string using YAML for automatic type detection
 ///
@@ -35,12 +32,7 @@ pub fn set_custom_field(
     format: OutputFormat,
     quiet: bool,
 ) -> Result<()> {
-    let mut note = if Path::new(id_or_path).exists() {
-        let content = fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
     let note_id = note.id().to_string();
     let parsed_value = parse_custom_value(value);
@@ -105,12 +97,7 @@ pub fn get_custom_field(
     key: &str,
     format: OutputFormat,
 ) -> Result<()> {
-    let note = if Path::new(id_or_path).exists() {
-        let content = fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let note = store.load_note_by_id_or_path(id_or_path)?;
 
     let note_id = note.id().to_string();
 
@@ -158,12 +145,7 @@ pub fn get_custom_field(
 
 /// Show all custom metadata for a note
 pub fn show_custom_fields(store: &Store, id_or_path: &str, format: OutputFormat) -> Result<()> {
-    let note = if Path::new(id_or_path).exists() {
-        let content = fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let note = store.load_note_by_id_or_path(id_or_path)?;
 
     let note_id = note.id().to_string();
 
@@ -243,12 +225,7 @@ pub fn unset_custom_field(
     format: OutputFormat,
     quiet: bool,
 ) -> Result<()> {
-    let mut note = if Path::new(id_or_path).exists() {
-        let content = fs::read_to_string(id_or_path)?;
-        Note::parse(&content, Some(id_or_path.into()))?
-    } else {
-        store.get_note(id_or_path)?
-    };
+    let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
     let note_id = note.id().to_string();
 

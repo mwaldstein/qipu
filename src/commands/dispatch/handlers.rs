@@ -1,6 +1,5 @@
 //! Local command handlers (not moved to other submodules)
 
-use std::fs;
 use std::path::Path;
 use std::time::Instant;
 
@@ -80,12 +79,7 @@ pub(super) fn handle_value(
                 ));
             }
 
-            let mut note = if Path::new(id_or_path).exists() {
-                let content = fs::read_to_string(id_or_path)?;
-                qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
-            } else {
-                store.get_note(id_or_path)?
-            };
+            let mut note = store.load_note_by_id_or_path(id_or_path)?;
 
             let note_id = note.id().to_string();
 
@@ -115,12 +109,7 @@ pub(super) fn handle_value(
         }
 
         ValueCommands::Show { id_or_path } => {
-            let note = if Path::new(id_or_path).exists() {
-                let content = fs::read_to_string(id_or_path)?;
-                qipu_core::note::Note::parse(&content, Some(id_or_path.into()))?
-            } else {
-                store.get_note(id_or_path)?
-            };
+            let note = store.load_note_by_id_or_path(id_or_path)?;
 
             let note_id = note.id().to_string();
             let value = note.frontmatter.value.unwrap_or(50);

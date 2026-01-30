@@ -248,6 +248,7 @@ pub fn bfs_traverse(
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::graph::types::{HopCost, TreeOptions};
     use crate::index::IndexBuilder;
     use crate::store::Store;
     use tempfile::tempdir;

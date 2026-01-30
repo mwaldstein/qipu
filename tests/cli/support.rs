@@ -104,6 +104,7 @@ pub fn create_note_with_tags(dir: &TempDir, title: &str, tags: &[&str]) -> Strin
 
 /// Initialize a store in the given directory
 /// Runs `qipu init` and asserts success
+#[allow(dead_code)]
 pub fn init_store(dir: &TempDir) {
     qipu()
         .current_dir(dir.path())
@@ -114,6 +115,7 @@ pub fn init_store(dir: &TempDir) {
 
 /// Setup a custom ontology by writing config to .qipu/config.toml
 /// The config_content should be a valid TOML string for the ontology configuration
+#[allow(dead_code)]
 pub fn setup_custom_ontology(dir: &TempDir, config_content: &str) {
     let config_path = dir.path().join(".qipu/config.toml");
     fs::write(config_path, config_content).unwrap();

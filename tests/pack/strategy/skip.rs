@@ -1,5 +1,4 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
-use predicates::prelude::*;
 use tempfile::tempdir;
 
 fn qipu() -> Command {

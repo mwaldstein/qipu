@@ -3,7 +3,6 @@
 //! Additional utility tests for index command
 
 use super::helper::{create_test_store_with_notes, qipu};
-use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]

@@ -1,6 +1,13 @@
 //! Link tree command
 use std::collections::HashMap;
 
+/// Result type for building compaction context
+type CompactionContextResult = (
+    Option<CompactionContext>,
+    Option<HashMap<String, Vec<String>>>,
+    String,
+);
+
 use crate::cli::{Cli, OutputFormat};
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
@@ -89,11 +96,7 @@ fn build_compaction_context(
     cli: &Cli,
     all_notes: &[Note],
     note_id: &str,
-) -> Result<(
-    Option<CompactionContext>,
-    Option<HashMap<String, Vec<String>>>,
-    String,
-)> {
+) -> Result<CompactionContextResult> {
     let compaction_ctx = if !cli.no_resolve_compaction {
         Some(CompactionContext::build(all_notes)?)
     } else {

@@ -49,7 +49,7 @@ mod tests {
         let result = resolve_root_path(None);
         // Result should either be current_dir or "."
         if let Ok(current) = env::current_dir() {
-            assert!(result == current || result == PathBuf::from("."));
+            assert!(result == current || result.as_os_str() == ".");
         } else {
             assert_eq!(result, PathBuf::from("."));
         }

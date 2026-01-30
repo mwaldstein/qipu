@@ -17,9 +17,9 @@
 macro_rules! output_by_format {
     ($format:expr, json => $json:block, human => $human:block, records => $records:block) => {
         match $format {
-            crate::cli::OutputFormat::Json => $json,
-            crate::cli::OutputFormat::Human => $human,
-            crate::cli::OutputFormat::Records => $records,
+            $crate::cli::OutputFormat::Json => $json,
+            $crate::cli::OutputFormat::Human => $human,
+            $crate::cli::OutputFormat::Records => $records,
         }
     };
 }
@@ -30,12 +30,12 @@ macro_rules! output_by_format {
 macro_rules! output_by_format_result {
     ($format:expr, json => $json:expr, human => $human:block, records => $records:block) => {
         match $format {
-            crate::cli::OutputFormat::Json => $json,
-            crate::cli::OutputFormat::Human => {
+            $crate::cli::OutputFormat::Json => $json,
+            $crate::cli::OutputFormat::Human => {
                 $human;
                 Ok(())
             }
-            crate::cli::OutputFormat::Records => {
+            $crate::cli::OutputFormat::Records => {
                 $records;
                 Ok(())
             }

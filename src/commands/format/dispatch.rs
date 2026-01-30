@@ -26,5 +26,4 @@
 /// )?;
 /// ```
 // Re-export macros from cli::format for convenient access
-pub use crate::output_by_format;
 pub use crate::output_by_format_result;

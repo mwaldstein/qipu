@@ -92,16 +92,14 @@ fn parse_config_line(
 ) {
     if line.starts_with("CFG ") {
         config_encoded_lines.push(line[4..].to_string());
-    } else if line == "CFG-END" {
-        if !config_encoded_lines.is_empty() {
-            let encoded = config_encoded_lines.join("");
-            if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
-                if let Ok(decoded_str) = String::from_utf8(decoded) {
-                    *config_content = decoded_str;
-                }
+    } else if line == "CFG-END" && !config_encoded_lines.is_empty() {
+        let encoded = config_encoded_lines.join("");
+        if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
+            if let Ok(decoded_str) = String::from_utf8(decoded) {
+                *config_content = decoded_str;
             }
-            config_encoded_lines.clear();
         }
+        config_encoded_lines.clear();
     }
 }
 

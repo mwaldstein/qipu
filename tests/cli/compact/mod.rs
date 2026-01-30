@@ -1,5 +1,8 @@
 mod annotations;
-mod apply;
+mod apply_errors;
+mod apply_file;
+mod apply_mixed;
+mod apply_stdin;
 mod multi_level;
 mod report;
 mod show;

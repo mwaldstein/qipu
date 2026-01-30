@@ -10,7 +10,6 @@ use std::path::Path;
 use crate::error::{QipuError, Result};
 use crate::ontology::Ontology;
 
-#[allow(unused_imports)]
 pub use types::{
     AutoIndexConfig, GraphConfig, LinkTypeConfig, NoteTypeConfig, OntologyConfig, OntologyMode,
     SearchConfig, StoreConfig, STORE_FORMAT_VERSION,

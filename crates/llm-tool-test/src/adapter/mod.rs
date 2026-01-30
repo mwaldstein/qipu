@@ -2,6 +2,9 @@ pub mod claude_code;
 pub mod mock;
 pub mod opencode;
 
+#[cfg(test)]
+mod mock_test;
+
 use crate::scenario::Scenario;
 use std::path::Path;
 

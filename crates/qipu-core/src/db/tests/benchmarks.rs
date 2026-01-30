@@ -11,13 +11,14 @@
 //! Debug builds are significantly slower than release builds and will fail benchmarks.
 
 use crate::config::SearchConfig;
+use crate::graph::bfs_traverse;
+use crate::graph::types::{Direction, HopCost, TreeOptions};
+use crate::index::IndexBuilder;
 use crate::note::{NoteType, TypedLink};
 use crate::store::InitOptions;
 use crate::store::Store;
 use std::time::Instant;
 use tempfile::tempdir;
-
-use crate::graph::types::Direction;
 
 /// Helper to create a test store with specified number of notes
 fn create_test_store_with_notes(count: usize) -> Store {
@@ -270,14 +271,21 @@ fn bench_backlinks_2000_notes() {
 #[ignore]
 fn bench_traverse_1_hop_200_notes() {
     let store = create_test_store_with_links(200, 3);
-    let db = store.db();
 
     let start_note_id = find_note_by_title(&store, "Test Note 0").expect("Start note should exist");
 
+    let index = IndexBuilder::new(&store).build().unwrap();
+
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(1),
+        max_nodes: Some(100),
+        ignore_value: true,
+        ..Default::default()
+    };
+
     let start = Instant::now();
-    let _results = db
-        .traverse(&start_note_id, Direction::Out, 1, Some(100))
-        .unwrap();
+    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 1 hop 200 notes: {:?}", duration);
@@ -295,14 +303,21 @@ fn bench_traverse_1_hop_200_notes() {
 #[ignore]
 fn bench_traverse_3_hops_200_notes() {
     let store = create_test_store_with_links(200, 3);
-    let db = store.db();
 
     let start_note_id = find_note_by_title(&store, "Test Note 0").expect("Start note should exist");
 
+    let index = IndexBuilder::new(&store).build().unwrap();
+
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(3),
+        max_nodes: Some(100),
+        ignore_value: true,
+        ..Default::default()
+    };
+
     let start = Instant::now();
-    let _results = db
-        .traverse(&start_note_id, Direction::Out, 3, Some(100))
-        .unwrap();
+    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 200 notes: {:?}", duration);
@@ -320,14 +335,21 @@ fn bench_traverse_3_hops_200_notes() {
 #[ignore]
 fn bench_traverse_3_hops_500_notes() {
     let store = create_test_store_with_links(500, 3);
-    let db = store.db();
 
     let start_note_id = find_note_by_title(&store, "Test Note 0").expect("Start note should exist");
 
+    let index = IndexBuilder::new(&store).build().unwrap();
+
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(3),
+        max_nodes: Some(100),
+        ignore_value: true,
+        ..Default::default()
+    };
+
     let start = Instant::now();
-    let _results = db
-        .traverse(&start_note_id, Direction::Out, 3, Some(100))
-        .unwrap();
+    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 500 notes: {:?}", duration);
@@ -345,14 +367,21 @@ fn bench_traverse_3_hops_500_notes() {
 #[ignore]
 fn bench_traverse_3_hops_2000_notes() {
     let store = create_test_store_with_links(2000, 3);
-    let db = store.db();
 
     let start_note_id = find_note_by_title(&store, "Test Note 0").expect("Start note should exist");
 
+    let index = IndexBuilder::new(&store).build().unwrap();
+
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(3),
+        max_nodes: Some(100),
+        ignore_value: true,
+        ..Default::default()
+    };
+
     let start = Instant::now();
-    let _results = db
-        .traverse(&start_note_id, Direction::Out, 3, Some(100))
-        .unwrap();
+    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 2000 notes: {:?}", duration);
@@ -370,14 +399,21 @@ fn bench_traverse_3_hops_2000_notes() {
 #[ignore]
 fn bench_traverse_both_directions_3_hops_500_notes() {
     let store = create_test_store_with_links(500, 3);
-    let db = store.db();
 
     let start_note_id = find_note_by_title(&store, "Test Note 0").expect("Start note should exist");
 
+    let index = IndexBuilder::new(&store).build().unwrap();
+
+    let opts = TreeOptions {
+        direction: Direction::Both,
+        max_hops: HopCost::from(3),
+        max_nodes: Some(100),
+        ignore_value: true,
+        ..Default::default()
+    };
+
     let start = Instant::now();
-    let _results = db
-        .traverse(&start_note_id, Direction::Both, 3, Some(100))
-        .unwrap();
+    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal both directions 3 hops 500 notes: {:?}", duration);

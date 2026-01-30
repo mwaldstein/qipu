@@ -1,4 +1,6 @@
-use crate::graph::types::Direction;
+use crate::graph::bfs_traverse;
+use crate::graph::types::{Direction, HopCost, TreeOptions};
+use crate::index::IndexBuilder;
 use crate::note::TypedLink;
 use crate::store::Store;
 use tempfile::tempdir;
@@ -39,14 +41,22 @@ fn test_traverse_outbound() {
     });
     store.save_note(&mut note3).unwrap();
 
-    let db = store.db();
-    let reachable = db.traverse(note1_id, Direction::Out, 3, None).unwrap();
+    let index = IndexBuilder::new(&store).build().unwrap();
 
-    assert_eq!(reachable.len(), 4);
-    assert!(reachable.iter().any(|id| id == note1_id));
-    assert!(reachable.iter().any(|id| id == note2_id));
-    assert!(reachable.iter().any(|id| id == note3_id));
-    assert!(reachable.iter().any(|id| id == note4_id));
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(3),
+        ignore_value: true,
+        ..Default::default()
+    };
+
+    let result = bfs_traverse(&index, &store, note1_id, &opts, None, None).unwrap();
+
+    assert_eq!(result.notes.len(), 4);
+    assert!(result.notes.iter().any(|n| n.id == note1_id));
+    assert!(result.notes.iter().any(|n| n.id == note2_id));
+    assert!(result.notes.iter().any(|n| n.id == note3_id));
+    assert!(result.notes.iter().any(|n| n.id == note4_id));
 }
 
 #[test]
@@ -76,13 +86,21 @@ fn test_traverse_inbound() {
     });
     store.save_note(&mut note3).unwrap();
 
-    let db = store.db();
-    let reachable = db.traverse(note2_id, Direction::In, 3, None).unwrap();
+    let index = IndexBuilder::new(&store).build().unwrap();
 
-    assert_eq!(reachable.len(), 3);
-    assert!(reachable.iter().any(|id| id == note1_id));
-    assert!(reachable.iter().any(|id| id == note2_id));
-    assert!(reachable.iter().any(|id| id == note3_id));
+    let opts = TreeOptions {
+        direction: Direction::In,
+        max_hops: HopCost::from(3),
+        ignore_value: true,
+        ..Default::default()
+    };
+
+    let result = bfs_traverse(&index, &store, note2_id, &opts, None, None).unwrap();
+
+    assert_eq!(result.notes.len(), 3);
+    assert!(result.notes.iter().any(|n| n.id == note1_id));
+    assert!(result.notes.iter().any(|n| n.id == note2_id));
+    assert!(result.notes.iter().any(|n| n.id == note3_id));
 }
 
 #[test]
@@ -112,13 +130,21 @@ fn test_traverse_both_directions() {
     });
     store.save_note(&mut note3).unwrap();
 
-    let db = store.db();
-    let reachable = db.traverse(note2_id, Direction::Both, 3, None).unwrap();
+    let index = IndexBuilder::new(&store).build().unwrap();
 
-    assert_eq!(reachable.len(), 3);
-    assert!(reachable.iter().any(|id| id == note1_id));
-    assert!(reachable.iter().any(|id| id == note2_id));
-    assert!(reachable.iter().any(|id| id == note3_id));
+    let opts = TreeOptions {
+        direction: Direction::Both,
+        max_hops: HopCost::from(3),
+        ignore_value: true,
+        ..Default::default()
+    };
+
+    let result = bfs_traverse(&index, &store, note2_id, &opts, None, None).unwrap();
+
+    assert_eq!(result.notes.len(), 3);
+    assert!(result.notes.iter().any(|n| n.id == note1_id));
+    assert!(result.notes.iter().any(|n| n.id == note2_id));
+    assert!(result.notes.iter().any(|n| n.id == note3_id));
 }
 
 #[test]
@@ -148,13 +174,21 @@ fn test_traverse_max_hops() {
     });
     store.save_note(&mut note2).unwrap();
 
-    let db = store.db();
-    let reachable = db.traverse(note1_id, Direction::Out, 1, None).unwrap();
+    let index = IndexBuilder::new(&store).build().unwrap();
 
-    assert_eq!(reachable.len(), 2);
-    assert!(reachable.iter().any(|id| id == note1_id));
-    assert!(reachable.iter().any(|id| id == note2_id));
-    assert!(!reachable.iter().any(|id| id == note3_id));
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(1),
+        ignore_value: true,
+        ..Default::default()
+    };
+
+    let result = bfs_traverse(&index, &store, note1_id, &opts, None, None).unwrap();
+
+    assert_eq!(result.notes.len(), 2);
+    assert!(result.notes.iter().any(|n| n.id == note1_id));
+    assert!(result.notes.iter().any(|n| n.id == note2_id));
+    assert!(!result.notes.iter().any(|n| n.id == note3_id));
 }
 
 #[test]
@@ -184,10 +218,19 @@ fn test_traverse_max_nodes() {
     });
     store.save_note(&mut note2).unwrap();
 
-    let db = store.db();
-    let reachable = db.traverse(note1_id, Direction::Out, 3, Some(2)).unwrap();
+    let index = IndexBuilder::new(&store).build().unwrap();
 
-    assert_eq!(reachable.len(), 2);
-    assert!(reachable.iter().any(|id| id == note1_id));
-    assert!(reachable.iter().any(|id| id == note2_id));
+    let opts = TreeOptions {
+        direction: Direction::Out,
+        max_hops: HopCost::from(3),
+        max_nodes: Some(2),
+        ignore_value: true,
+        ..Default::default()
+    };
+
+    let result = bfs_traverse(&index, &store, note1_id, &opts, None, None).unwrap();
+
+    assert_eq!(result.notes.len(), 2);
+    assert!(result.notes.iter().any(|n| n.id == note1_id));
+    assert!(result.notes.iter().any(|n| n.id == note2_id));
 }

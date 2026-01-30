@@ -22,7 +22,6 @@ pub fn load_rubric(path: &Path) -> Result<Rubric> {
     Ok(rubric)
 }
 
-#[allow(dead_code)]
 pub async fn run_judge(
     model: &str,
     transcript_summary: &str,
@@ -89,7 +88,6 @@ pub async fn run_judge(
     Ok(judge_response)
 }
 
-#[allow(dead_code)]
 fn build_judge_prompt(
     transcript_summary: &str,
     store_export: &str,
@@ -136,7 +134,6 @@ Provide JSON only, no additional text."#,
     )
 }
 
-#[allow(dead_code)]
 async fn run_judge_with_client(
     model: &str,
     transcript_summary: &str,

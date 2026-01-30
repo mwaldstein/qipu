@@ -1,17 +1,14 @@
+use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
-use std::path::PathBuf;
 use tracing::debug;
 
 /// Discover or open store for compact commands
 /// Resolves root directory, handles --store flag, or discovers store from root
 pub fn discover_compact_store(cli: &Cli) -> Result<Store> {
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let root = resolve_root_path(cli.root.clone());
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()

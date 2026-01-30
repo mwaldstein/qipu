@@ -12,6 +12,7 @@ pub mod link;
 pub mod ontology;
 pub mod output;
 pub mod parse;
+pub mod paths;
 pub mod store;
 pub mod tags;
 pub mod value;

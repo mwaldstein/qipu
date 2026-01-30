@@ -1,17 +1,13 @@
-use crate::cli::Cli;
+use crate::cli::paths::resolve_root_path;
+use crate::Cli;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::paths::WORKSPACES_DIR;
 use qipu_core::store::Store;
-use std::env;
 use std::fs;
-use std::path::PathBuf;
 
 pub fn execute(cli: &Cli, name: &str, force: bool) -> Result<()> {
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let root = resolve_root_path(cli.root.clone());
 
     let primary_store = Store::discover(&root)?;
     let workspace_path = primary_store.root().join(WORKSPACES_DIR).join(name);

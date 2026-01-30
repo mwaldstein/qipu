@@ -1,9 +1,8 @@
 //! Command dispatch logic for qipu
 
-use std::env;
-use std::path::PathBuf;
 use std::time::Instant;
 
+use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use qipu_core::error::Result;
 use tracing::debug;
@@ -20,10 +19,7 @@ use command::{Command, CommandContext, NoCommand};
 
 pub fn run(cli: &Cli, start: Instant) -> Result<()> {
     // Determine the root directory
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let root = resolve_root_path(cli.root.clone());
 
     debug!(elapsed = ?start.elapsed(), "resolve_root");
 

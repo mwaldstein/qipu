@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use tracing::debug;
 
+use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
@@ -30,10 +31,7 @@ pub fn execute(
         );
     }
 
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let root = resolve_root_path(cli.root.clone());
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()

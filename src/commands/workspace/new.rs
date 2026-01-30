@@ -1,4 +1,5 @@
-use crate::cli::Cli;
+use crate::cli::paths::resolve_root_path;
+use crate::Cli;
 use qipu_core::error::Result;
 use qipu_core::index::Index;
 use qipu_core::index::IndexBuilder;
@@ -7,8 +8,6 @@ use qipu_core::store::paths::{GITIGNORE_FILE, WORKSPACES_DIR, WORKSPACE_FILE};
 use qipu_core::store::workspace::WorkspaceMetadata;
 use qipu_core::store::Store;
 use std::collections::{HashSet, VecDeque};
-use std::env;
-use std::path::PathBuf;
 use std::time::Instant;
 use tracing::debug;
 
@@ -29,10 +28,7 @@ pub fn execute(
         debug!(name, temp, empty, copy_primary, "new_params");
     }
 
-    let root = cli
-        .root
-        .clone()
-        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let root = resolve_root_path(cli.root.clone());
 
     let primary_store = Store::discover(&root)?;
     let workspace_path = primary_store.root().join(WORKSPACES_DIR).join(name);

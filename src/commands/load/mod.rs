@@ -121,7 +121,9 @@ pub fn execute(
     );
 
     match cli.format {
-        OutputFormat::Human => {}
+        OutputFormat::Human => {
+            // Human format output is handled by the tracing event above
+        }
         OutputFormat::Json => {
             let result = serde_json::json!({
                 "pack_file": pack_file.display().to_string(),

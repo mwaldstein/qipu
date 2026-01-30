@@ -318,7 +318,9 @@ fn perform_simple_traversal(
                                 selected_notes.push(note);
                                 seen_ids.insert(neighbor_id.clone());
                             }
-                            Err(_) => {} // Skip if note not found
+                            Err(_) => {
+                                // Note not found, skip silently
+                            }
                         }
                     }
                 }

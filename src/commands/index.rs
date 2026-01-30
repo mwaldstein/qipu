@@ -239,7 +239,9 @@ pub fn execute(
             };
 
         match result {
-            Ok(_) => {}
+            Ok(_) => {
+                // Success - continue to output formatting
+            }
             Err(QipuError::Interrupted) => {
                 eprintln!("Index interrupted. Run `qipu index --resume` to resume.");
                 return Err(QipuError::Interrupted);
@@ -263,7 +265,9 @@ pub fn execute(
             };
 
         match result {
-            Ok(_) => {}
+            Ok(_) => {
+                // Success - continue to output formatting
+            }
             Err(QipuError::Interrupted) => {
                 eprintln!("Index interrupted. Run `qipu index --resume` to resume.");
                 return Err(QipuError::Interrupted);

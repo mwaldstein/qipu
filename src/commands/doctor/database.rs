@@ -180,7 +180,9 @@ pub fn check_semantic_link_types(store: &Store, result: &mut DoctorResult) {
                 LinkType::FOLLOWS => {
                     // Will check for cycles in a separate pass
                 }
-                _ => {}
+                _ => {
+                    // Other link types don't require special validation in this pass
+                }
             }
         }
 

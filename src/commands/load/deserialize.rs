@@ -222,7 +222,9 @@ fn apply_metadata_value(key: &str, val: &str, metadata: &mut NoteMetadata) {
                 }
             }
         }
-        _ => {}
+        _ => {
+            // Unknown metadata keys are intentionally ignored for forward compatibility
+        }
     }
 }
 

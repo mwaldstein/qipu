@@ -132,7 +132,9 @@ pub fn execute(
                             }
                             target_store.save_note(&mut target_note)?;
                         }
-                        "skip" => {}
+                        "skip" => {
+                            // Intentionally do nothing - note is skipped
+                        }
                         "rename" => unreachable!(),
                         _ => unreachable!(),
                     }

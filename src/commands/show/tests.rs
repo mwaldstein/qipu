@@ -60,10 +60,11 @@ fn test_show_by_file_path() {
     let cli = make_default_cli();
 
     let result = show::execute(&cli, &store, file_path.to_str().unwrap(), false, false);
-    match result {
-        Ok(_) => {}
-        Err(e) => panic!("Show by file path failed: {}", e),
-    }
+    assert!(
+        result.is_ok(),
+        "Show by file path failed: {:?}",
+        result.err()
+    );
 }
 
 #[test]

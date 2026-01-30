@@ -62,7 +62,9 @@ pub fn attempt_fixes(store: &Store, result: &mut DoctorResult) -> Result<usize> 
                     }
                 }
             }
-            _ => {}
+            _ => {
+                // Other issue types don't have automated fixes
+            }
         }
     }
 

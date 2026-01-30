@@ -109,13 +109,15 @@ pub(super) fn handle_prime(
     root: &Path,
     compact: bool,
     minimal: bool,
+    full: bool,
+    mcp: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::prime::execute(cli, &store, compact, minimal)?;
+    commands::prime::execute(cli, &store, compact, minimal, full, mcp)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

@@ -317,3 +317,31 @@ pub fn output_records(
         );
     }
 }
+
+/// MCP mode output (~50 tokens) - minimal primer for agent environments
+/// Contains only essential reminders to keep context small
+pub fn output_mcp_human(_store_path: &str) {
+    println!("Qipu knowledge graph. Commands: capture, search, link.");
+    println!("Session protocol: capture insights, link notes, git commit.");
+}
+
+/// MCP mode output in JSON format (~50 tokens equivalent)
+pub fn output_mcp_json() {
+    let output = serde_json::json!({
+        "tool": "qipu",
+        "type": "knowledge-graph",
+        "commands": ["capture", "search", "link"],
+        "protocol": "capture, link, commit"
+    });
+    println!("{}", serde_json::to_string(&output).unwrap());
+}
+
+/// MCP mode output in records format (~50 tokens equivalent)
+pub fn output_mcp_records() {
+    println!("H qipu=1 mode=mcp");
+    println!("D Knowledge graph tool. Capture insights, search, link notes.");
+    println!("C capture \"Create note from stdin\"");
+    println!("C search \"Search notes\"");
+    println!("C link \"Link notes\"");
+    println!("W Commit changes: git add .qipu && git commit");
+}

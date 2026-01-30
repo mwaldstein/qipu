@@ -5,8 +5,12 @@
 //!   at the start of an agent session.
 //! - Requirements: deterministic ordering, stable formatting, bounded size (~1-2k tokens)
 //! - Contents: qipu explanation, command reference, store location, key MOCs, recent notes
+//!
+//! MCP Mode: Detects if running in MCP/agent environment and outputs minimal primer (~50 tokens).
+//! Detection methods: QIPU_MCP_MODE env var, MCP_SERVER env var, or MCP settings file.
 
 pub mod budgeting;
+pub mod mcp;
 pub mod output;
 
 use crate::cli::Cli;
@@ -18,16 +22,43 @@ use qipu_core::store::Store;
 use budgeting::{
     select_notes_within_budget, select_recent_within_budget, select_recent_within_budget_compact,
 };
-use output::{output_human, output_json, output_records};
+use mcp::detect_mcp_mode;
+use output::{
+    output_human, output_json, output_mcp_human, output_mcp_json, output_mcp_records,
+    output_records,
+};
 
 /// Execute the prime command
-pub fn execute(cli: &Cli, store: &Store, compact: bool, minimal: bool) -> Result<()> {
+pub fn execute(
+    cli: &Cli,
+    store: &Store,
+    compact: bool,
+    minimal: bool,
+    full: bool,
+    mcp: bool,
+) -> Result<()> {
     let config = store.config();
     let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
 
     let notes = store.list_notes()?;
     let is_empty = notes.is_empty();
 
+    // Determine output mode: MCP mode vs full mode
+    // Priority: --mcp flag > --full flag > auto-detect > full mode (default)
+    let use_mcp_mode = mcp || (!full && detect_mcp_mode());
+
+    // Handle MCP mode output (~50 tokens)
+    if use_mcp_mode {
+        let store_path = path_relative_to_cwd(store.root());
+        match cli.format {
+            crate::cli::OutputFormat::Json => output_mcp_json(),
+            crate::cli::OutputFormat::Human => output_mcp_human(&store_path),
+            crate::cli::OutputFormat::Records => output_mcp_records(),
+        }
+        return Ok(());
+    }
+
+    // Full mode output (~1-2k tokens)
     let mut mocs: Vec<_> = notes.iter().filter(|n| n.note_type().is_moc()).collect();
 
     mocs.sort_by(

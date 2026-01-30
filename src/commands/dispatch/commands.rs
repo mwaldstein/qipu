@@ -171,7 +171,15 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_prime(ctx: &CommandContext, args: &PrimeArgs) -> Result<()> {
-        maintenance::handle_prime(ctx.cli, ctx.root, args.compact, args.minimal, ctx.start)
+        maintenance::handle_prime(
+            ctx.cli,
+            ctx.root,
+            args.compact,
+            args.minimal,
+            args.full,
+            args.mcp,
+            ctx.start,
+        )
     }
 
     fn execute_onboard(ctx: &CommandContext) -> Result<()> {

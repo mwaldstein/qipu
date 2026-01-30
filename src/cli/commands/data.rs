@@ -237,4 +237,12 @@ pub struct PrimeArgs {
     /// Minimal output (only ontology and commands)
     #[arg(long)]
     pub minimal: bool,
+
+    /// Force full CLI output (ignore MCP detection)
+    #[arg(long, conflicts_with = "mcp")]
+    pub full: bool,
+
+    /// Force minimal MCP output (~50 tokens)
+    #[arg(long, conflicts_with = "full")]
+    pub mcp: bool,
 }

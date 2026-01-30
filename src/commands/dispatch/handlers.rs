@@ -12,15 +12,6 @@ use tracing::debug;
 
 use super::command::discover_or_open_store;
 
-pub(super) fn handle_no_command() -> Result<()> {
-    println!("qipu {}", env!("CARGO_PKG_VERSION"));
-    println!();
-    println!("A Zettelkasten-inspired knowledge management CLI.");
-    println!();
-    println!("Run `qipu --help` for usage information.");
-    Ok(())
-}
-
 pub(super) fn handle_init(
     cli: &Cli,
     root: &PathBuf,

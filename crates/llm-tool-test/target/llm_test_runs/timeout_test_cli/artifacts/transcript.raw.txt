@@ -3,4 +3,4 @@ Initialized qipu store at /home/micah/dev/qipu/crates/llm-tool-test/target/llm_t
 
 Run `qipu prime` for workflow context.
 qipu create 'Mock Note 1'
-qp-192e
+qp-d668

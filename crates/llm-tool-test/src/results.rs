@@ -1,261 +1,21 @@
-use crate::pricing::get_model_pricing;
-use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResultRecord {
-    pub id: String,
-    pub scenario_id: String,
-    pub scenario_hash: String,
-    pub tool: String,
-    pub model: String,
-    pub qipu_commit: String,
-    pub timestamp: DateTime<Utc>,
-    pub duration_secs: f64,
-    pub cost_usd: f64,
-    pub gates_passed: bool,
-    pub metrics: EvaluationMetricsRecord,
-    pub judge_score: Option<f64>,
-    pub outcome: String,
-    pub transcript_path: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cache_key: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EvaluationMetricsRecord {
-    pub gates_passed: usize,
-    pub gates_total: usize,
-    pub note_count: usize,
-    pub link_count: usize,
-    pub details: Vec<GateResultRecord>,
-    pub efficiency: EfficiencyMetricsRecord,
-    pub quality: QualityMetricsRecord,
-    pub composite_score: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EfficiencyMetricsRecord {
-    pub total_commands: usize,
-    pub unique_commands: usize,
-    pub error_count: usize,
-    pub retry_count: usize,
-    pub help_invocations: usize,
-    pub first_try_success_rate: f64,
-    pub iteration_ratio: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct QualityMetricsRecord {
-    pub avg_title_length: f64,
-    pub avg_body_length: f64,
-    pub avg_tags_per_note: f64,
-    pub notes_without_tags: usize,
-    pub links_per_note: f64,
-    pub orphan_notes: usize,
-    pub link_type_diversity: usize,
-    pub type_distribution: HashMap<String, usize>,
-    pub total_notes: usize,
-    pub total_links: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GateResultRecord {
-    pub gate_type: String,
-    pub passed: bool,
-    pub message: String,
-}
-
-pub struct ResultsDB {
-    results_path: PathBuf,
-}
-
-impl ResultsDB {
-    pub fn new(base_dir: &Path) -> Self {
-        let results_dir = base_dir.join("results");
-        std::fs::create_dir_all(&results_dir).ok();
-        Self {
-            results_path: results_dir.join("results.jsonl"),
-        }
-    }
-
-    pub fn append(&self, record: &ResultRecord) -> Result<()> {
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.results_path)
-            .context("Failed to open results.jsonl")?;
-
-        let line = serde_json::to_string(record)?;
-        writeln!(file, "{}", line).context("Failed to write to results.jsonl")?;
-        Ok(())
-    }
-
-    pub fn load_all(&self) -> Result<Vec<ResultRecord>> {
-        if !self.results_path.exists() {
-            return Ok(Vec::new());
-        }
-
-        let file = File::open(&self.results_path)?;
-        let reader = BufReader::new(file);
-        let mut records = Vec::new();
-
-        for line in reader.lines() {
-            let line = line.context("Failed to read line from results.jsonl")?;
-            let record: ResultRecord =
-                serde_json::from_str(&line).context("Failed to parse result record")?;
-            records.push(record);
-        }
-
-        Ok(records)
-    }
-
-    pub fn load_by_id(&self, id: &str) -> Result<Option<ResultRecord>> {
-        let records = self.load_all()?;
-        Ok(records.into_iter().find(|r| r.id == id))
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub struct CacheKey {
-    pub scenario_hash: String,
-    pub prompt_hash: String,
-    pub prime_output_hash: String,
-    pub tool: String,
-    pub model: String,
-    pub qipu_version: String,
-}
-
-impl CacheKey {
-    pub fn compute(
-        scenario_yaml: &str,
-        prompt: &str,
-        prime_output: &str,
-        tool: &str,
-        model: &str,
-        qipu_version: &str,
-    ) -> Self {
-        let mut hasher = Sha256::new();
-        hasher.update(scenario_yaml.as_bytes());
-        let scenario_hash = format!("{:x}", hasher.finalize());
-
-        let mut hasher = Sha256::new();
-        hasher.update(prompt.as_bytes());
-        let prompt_hash = format!("{:x}", hasher.finalize());
-
-        let mut hasher = Sha256::new();
-        hasher.update(prime_output.as_bytes());
-        let prime_output_hash = format!("{:x}", hasher.finalize());
-
-        Self {
-            scenario_hash,
-            prompt_hash,
-            prime_output_hash,
-            tool: tool.to_string(),
-            model: model.to_string(),
-            qipu_version: qipu_version.to_string(),
-        }
-    }
-
-    pub fn as_string(&self) -> String {
-        format!(
-            "{}_{}_{}_{}_{}_{}",
-            self.scenario_hash,
-            self.prompt_hash,
-            self.prime_output_hash,
-            self.tool,
-            self.model,
-            self.qipu_version
-        )
-    }
-}
-
-pub struct Cache {
-    cache_dir: PathBuf,
-}
-
-impl Cache {
-    pub fn new(base_dir: &Path) -> Self {
-        let cache_dir = base_dir.join("cache");
-        std::fs::create_dir_all(&cache_dir).ok();
-        Self { cache_dir }
-    }
-
-    pub fn get(&self, key: &CacheKey) -> Option<ResultRecord> {
-        let cache_file = self.cache_dir.join(key.as_string());
-        if !cache_file.exists() {
-            return None;
-        }
-
-        let content = std::fs::read_to_string(&cache_file).ok()?;
-        serde_json::from_str(&content).ok()
-    }
-
-    pub fn put(&self, key: &CacheKey, record: &ResultRecord) -> Result<()> {
-        let cache_file = self.cache_dir.join(key.as_string());
-        let content = serde_json::to_string_pretty(record)?;
-        std::fs::write(&cache_file, content)?;
-        Ok(())
-    }
-
-    pub fn clear(&self) -> Result<()> {
-        for entry in std::fs::read_dir(&self.cache_dir)? {
-            let path = entry?.path();
-            if path.is_file() {
-                std::fs::remove_file(path)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-pub fn generate_run_id() -> String {
-    let now = Utc::now();
-    format!("run-{}", now.format("%Y%m%d-%H%M%S-%f"))
-}
-
-pub fn get_qipu_version() -> Result<String> {
-    let output = std::process::Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .current_dir("..")
-        .output()
-        .ok();
-
-    if let Some(output) = output {
-        if output.status.success() {
-            let commit = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            return Ok(commit[..8].to_string());
-        }
-    }
-
-    Ok("unknown".to_string())
-}
-
-pub fn estimate_cost_from_tokens(model: &str, input_tokens: usize, output_tokens: usize) -> f64 {
-    let Some(pricing) = get_model_pricing(model) else {
-        return 0.0;
-    };
-
-    let input_cost = (input_tokens as f64 / 1000.0) * pricing.input_cost_per_1k_tokens;
-    let output_cost = (output_tokens as f64 / 1000.0) * pricing.output_cost_per_1k_tokens;
-
-    input_cost + output_cost
-}
+pub mod cache;
+pub mod db;
+pub mod types;
+pub mod utils;
 
 #[cfg(test)]
-mod results_test_helpers;
+pub mod test_helpers;
+
+pub use cache::Cache;
+pub use db::ResultsDB;
+pub use types::*;
+pub use utils::{estimate_cost_from_tokens, generate_run_id, get_qipu_version};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use results_test_helpers::*;
+    use test_helpers::*;
+    use types::CacheKey;
 
     #[test]
     fn test_estimate_cost_claude_sonnet() {
@@ -571,6 +331,9 @@ mod tests {
 
     #[test]
     fn test_result_record_json_round_trip() {
+        use std::collections::HashMap;
+        use types::GateResultRecord;
+
         let original = ResultRecord {
             id: "test-run-id".to_string(),
             scenario_id: "test-scenario".to_string(),
@@ -578,7 +341,7 @@ mod tests {
             tool: "opencode".to_string(),
             model: "gpt-4o".to_string(),
             qipu_commit: "abc123".to_string(),
-            timestamp: Utc::now(),
+            timestamp: chrono::Utc::now(),
             duration_secs: 45.5,
             cost_usd: 0.01,
             gates_passed: true,
@@ -650,6 +413,8 @@ mod tests {
 
     #[test]
     fn test_result_record_json_skip_none_cache_key() {
+        use std::collections::HashMap;
+
         let record = ResultRecord {
             id: "test-run-id".to_string(),
             scenario_id: "test-scenario".to_string(),
@@ -657,7 +422,7 @@ mod tests {
             tool: "opencode".to_string(),
             model: "gpt-4o".to_string(),
             qipu_commit: "abc123".to_string(),
-            timestamp: Utc::now(),
+            timestamp: chrono::Utc::now(),
             duration_secs: 45.5,
             cost_usd: 0.01,
             gates_passed: true,

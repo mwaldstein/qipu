@@ -1,3 +1,5 @@
+pub mod utils;
+
 use crate::adapter::{
     amp::AmpAdapter, claude_code::ClaudeCodeAdapter, mock::MockAdapter, opencode::OpenCodeAdapter,
     ToolAdapter,
@@ -7,9 +9,9 @@ use crate::results::{
     Cache, CacheKey, EfficiencyMetricsRecord, EvaluationMetricsRecord, GateResultRecord,
     QualityMetricsRecord, ResultRecord, ResultsDB,
 };
+use crate::run::utils::{copy_dir_recursive, get_results_dir};
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
 
 #[cfg(test)]
@@ -123,30 +125,6 @@ evaluation:
             result
         );
     }
-}
-
-fn copy_dir_recursive(src: &Path, dst: &Path) -> anyhow::Result<()> {
-    if !dst.exists() {
-        fs::create_dir_all(dst)?;
-    }
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let src_path = entry.path();
-        let dst_path = dst.join(entry.file_name());
-        if ty.is_dir() {
-            copy_dir_recursive(&src_path, &dst_path)?;
-        } else {
-            fs::copy(&src_path, &dst_path)?;
-        }
-    }
-    Ok(())
-}
-
-fn get_results_dir(tool: &str, model: &str, scenario_name: &str) -> PathBuf {
-    let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
-    let dir_name = format!("{}-{}-{}-{}", timestamp, tool, model, scenario_name);
-    PathBuf::from("llm-tool-test-results").join(dir_name)
 }
 
 pub fn run_single_scenario(
@@ -408,7 +386,7 @@ pub fn run_single_scenario(
 
         // Write metrics.json
         let metrics_json = serde_json::to_string_pretty(&metrics)?;
-        fs::write(transcript_dir.join("metrics.json"), metrics_json)?;
+        std::fs::write(transcript_dir.join("metrics.json"), metrics_json)?;
 
         let transcript_path = transcript_dir.to_string_lossy().to_string();
 
@@ -471,7 +449,7 @@ pub fn run_single_scenario(
 
         // Create results directory and copy artifacts
         let results_dir = get_results_dir(tool, model, &s.name);
-        fs::create_dir_all(&results_dir)?;
+        std::fs::create_dir_all(&results_dir)?;
 
         // Copy transcript artifacts
         copy_dir_recursive(&transcript_dir, &results_dir)?;

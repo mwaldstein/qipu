@@ -1,5 +1,6 @@
-use crate::results::{
-    EfficiencyMetricsRecord, EvaluationMetricsRecord, QualityMetricsRecord, ResultRecord, ResultsDB,
+use crate::results::db::ResultsDB;
+use crate::results::types::{
+    EfficiencyMetricsRecord, EvaluationMetricsRecord, QualityMetricsRecord, ResultRecord,
 };
 use chrono::Utc;
 use std::collections::HashMap;

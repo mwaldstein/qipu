@@ -3,7 +3,6 @@
 //! Provides helper functions for generating run IDs, getting qipu
 //! version information, and estimating costs from token usage.
 
-use crate::pricing::get_model_pricing;
 use chrono::Utc;
 
 /// Generate a unique run ID based on current timestamp.

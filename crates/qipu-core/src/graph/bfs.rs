@@ -66,7 +66,8 @@ fn collect_neighbors(
         for source_id in source_ids {
             for edge in provider.get_outbound_edges(source_id) {
                 if filter_edge(&edge, opts) {
-                    neighbors.push((edge.to.clone(), edge));
+                    let to = edge.to.clone();
+                    neighbors.push((to, edge));
                 }
             }
         }
@@ -78,10 +79,12 @@ fn collect_neighbors(
                 if opts.semantic_inversion {
                     let virtual_edge = edge.invert(store.config());
                     if filter_edge(&virtual_edge, opts) {
-                        neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                        let to = virtual_edge.to.clone();
+                        neighbors.push((to, virtual_edge));
                     }
                 } else if filter_edge(&edge, opts) {
-                    neighbors.push((edge.from.clone(), edge));
+                    let from = edge.from.clone();
+                    neighbors.push((from, edge));
                 }
             }
         }
@@ -177,22 +180,23 @@ fn bfs_search(
                 continue;
             }
 
-            let canonical_neighbor = processed.canonical_neighbor.clone();
+            let canonical_neighbor = processed.canonical_neighbor;
             visited.insert(canonical_neighbor.clone());
             let link_type_cloned = edge.link_type.clone();
             let canonical_edge = Edge {
                 from: processed.canonical_from,
                 to: processed.canonical_to,
-                link_type: link_type_cloned,
+                link_type: link_type_cloned.clone(),
                 source: edge.source,
             };
             let original_id = if neighbor_id != canonical_neighbor {
-                Some(neighbor_id.clone())
+                Some(neighbor_id)
             } else {
                 None
             };
+            let canonical_neighbor_clone = canonical_neighbor.clone();
             predecessors.insert(
-                canonical_neighbor.clone(),
+                canonical_neighbor,
                 PredecessorInfo {
                     canonical_pred: current_id.clone(),
                     original_id,
@@ -200,9 +204,9 @@ fn bfs_search(
                 },
             );
 
-            let edge_cost = get_link_type_cost(edge.link_type.as_str(), store.config());
+            let edge_cost = get_link_type_cost(link_type_cloned.as_str(), store.config());
             let new_cost = accumulated_cost + edge_cost;
-            queue.push_back((canonical_neighbor, new_cost));
+            queue.push_back((canonical_neighbor_clone, new_cost));
         }
     }
 
@@ -291,8 +295,9 @@ fn dijkstra_search(
                 };
 
             if should_visit {
-                let canonical_neighbor = processed.canonical_neighbor.clone();
-                if !visited.contains(&canonical_neighbor) {
+                let canonical_neighbor = processed.canonical_neighbor;
+                let is_new = !visited.contains(&canonical_neighbor);
+                if is_new {
                     visited.insert(canonical_neighbor.clone());
                 }
 
@@ -305,7 +310,7 @@ fn dijkstra_search(
                     source: edge.source,
                 };
                 let original_id = if neighbor_id != canonical_neighbor {
-                    Some(neighbor_id.clone())
+                    Some(neighbor_id)
                 } else {
                     None
                 };

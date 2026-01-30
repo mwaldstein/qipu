@@ -152,7 +152,8 @@ pub fn bfs_traverse(
             for source_id in source_ids {
                 for edge in provider.get_outbound_edges(source_id) {
                     if filter_edge(&edge, opts) {
-                        neighbors.push((edge.to.clone(), edge));
+                        let to = edge.to.clone();
+                        neighbors.push((to, edge));
                     }
                 }
             }
@@ -166,12 +167,14 @@ pub fn bfs_traverse(
                         // Virtual Inversion
                         let virtual_edge = edge.invert(store.config());
                         if filter_edge(&virtual_edge, opts) {
-                            neighbors.push((virtual_edge.to.clone(), virtual_edge));
+                            let to = virtual_edge.to.clone();
+                            neighbors.push((to, virtual_edge));
                         }
                     } else {
                         // Raw backlink
                         if filter_edge(&edge, opts) {
-                            neighbors.push((edge.from.clone(), edge));
+                            let from = edge.from.clone();
+                            neighbors.push((from, edge));
                         }
                     }
                 }
@@ -244,7 +247,7 @@ pub fn bfs_traverse(
 
             // Track via if neighbor was canonicalized
             let via_for_link = if neighbor_id != canonical_neighbor {
-                Some(neighbor_id.clone())
+                Some(neighbor_id)
             } else {
                 None
             };
@@ -261,7 +264,8 @@ pub fn bfs_traverse(
             });
 
             // Process neighbor if not visited (use canonical ID)
-            if !visited.contains(&canonical_neighbor) {
+            let is_new = !visited.contains(&canonical_neighbor);
+            if is_new {
                 // Check max_nodes before adding
                 if let Some(max) = opts.max_nodes {
                     if visited.len() >= max {

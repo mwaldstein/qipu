@@ -52,7 +52,8 @@ impl<'a> SelectionState<'a> {
             }
         });
 
-        if self.seen_ids.insert(resolved_id.clone()) {
+        let is_new = self.seen_ids.insert(resolved_id.clone());
+        if is_new {
             let note =
                 note_map
                     .get(resolved_id.as_str())
@@ -67,7 +68,7 @@ impl<'a> SelectionState<'a> {
         }
 
         if let Some(v) = via_for_map {
-            self.via_map.entry(resolved_id.clone()).or_insert(v);
+            self.via_map.entry(resolved_id).or_insert(v);
         }
 
         Ok(())
@@ -97,14 +98,15 @@ pub fn get_moc_linked_ids(
         let edges = db.get_outbound_edges(&current_id)?;
 
         for edge in edges {
-            if visited.insert(edge.to.clone()) {
+            let to = edge.to.clone();
+            if visited.insert(to.clone()) {
                 let link_type = edge.link_type.clone();
-                result.push((edge.to.clone(), Some(link_type.clone())));
+                result.push((to.clone(), Some(link_type.clone())));
 
                 if transitive {
-                    if let Some(meta) = db.get_note_metadata(&edge.to)? {
+                    if let Some(meta) = db.get_note_metadata(&to)? {
                         if meta.note_type.is_moc() {
-                            queue.push_back((edge.to.clone(), Some(link_type)));
+                            queue.push_back((to, Some(link_type)));
                         }
                     }
                 }
@@ -283,15 +285,16 @@ fn collect_backlinks<'a>(
 
     for (backlink_id, source_id, link_type) in backlink_notes {
         let resolved_id = resolve_id(&backlink_id)?;
+        let via = format!("backlink:{}", source_id);
         state
             .via_map
             .entry(resolved_id.clone())
-            .or_insert_with(|| format!("backlink:{}", source_id));
+            .or_insert_with(|| via.clone());
         state.add_note(
             &backlink_id,
             resolved_id,
             note_map,
-            Some(format!("backlink:{}", source_id)),
+            Some(via),
             Some(link_type),
         )?;
     }
@@ -375,10 +378,10 @@ fn collect_related_notes<'a>(
             .entry(resolved_id.clone())
             .or_insert_with(|| format!("{}:{:.2}", method, score));
         state.add_note(
-            &related_id,
+            &related_id.clone(),
             resolved_id,
             note_map,
-            Some(related_id.clone()),
+            Some(related_id),
             None,
         )?;
     }

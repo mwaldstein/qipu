@@ -87,7 +87,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | Search uses additive boosts instead of multiplicative field weights | `src/lib/db/search.rs:112-132` |
 | `semantic-graph.md` | `show --links` ignores `--no-semantic-inversion` flag | `src/commands/show.rs:204-225` |
 | `compaction.md` | Link JSON missing `via` annotation (breadcrumb for compacted sources) | `src/commands/link/json.rs:7-86`, `src/commands/link/mod.rs:31-45` |
-| `provenance.md` | Bibliography ignores `source` field (singular), uses `sources[]` only | `src/commands/export/emit/bibliography.rs:35` |
+| `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
 | `operational-database.md` | Consistency check result ignored (no auto-repair) | `src/lib/db/mod.rs:96` |
 | `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
 | `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
@@ -116,7 +116,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `value-model.md` | Test coverage | Missing tests for compaction suggest + value; context `--min-value` edge cases; search sort-by-value defaults |
 | `export.md` | Test coverage | Missing tests for outline with typed/markdown links; PDF edge cases; BibTeX/CSL-JSON edge cases |
 | `compaction.md` | Test coverage | Missing `via` annotation tests for link commands; multi-level compaction chains |
-| `provenance.md` | Test coverage | Missing bibliography test for `source` field; notes with both `source` and `sources[]` |
+| `provenance.md` | Test coverage | ✅ DONE: Tests exist for `source` field; notes with both `source` and `sources[]` — see `tests/cli/export/bibliography.rs:325,359` |
 | `llm-user-validation.md` | Test coverage | Missing tests for transcript report; event logging; human review; CLI commands; LLM judge; link parsing |
 | `distribution.md` | Test coverage | No install script tests; release workflow tests; checksum verification; version consistency; cross-platform binary tests |
 

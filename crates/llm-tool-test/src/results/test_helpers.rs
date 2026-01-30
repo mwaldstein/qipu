@@ -9,6 +9,10 @@ use tempfile::TempDir;
 pub struct TestDb {
     /// TempDir field to keep the temporary directory alive.
     /// The directory is automatically cleaned up when TestDb is dropped.
+    ///
+    /// Note: This field is marked #[allow(dead_code)] because rustc considers it
+    /// unused (never read), but storing it is essential to prevent the TempDir
+    /// from being dropped prematurely.
     #[allow(dead_code)]
     temp_dir: TempDir,
     pub db: ResultsDB,

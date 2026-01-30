@@ -1,4 +1,5 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
+use std::fs;
 use std::process::Output;
 use tempfile::TempDir;
 
@@ -99,4 +100,21 @@ pub fn create_note_with_tags(dir: &TempDir, title: &str, tags: &[&str]) -> Strin
     }
     let output = qipu().current_dir(dir.path()).args(&args).output().unwrap();
     extract_id(&output)
+}
+
+/// Initialize a store in the given directory
+/// Runs `qipu init` and asserts success
+pub fn init_store(dir: &TempDir) {
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+}
+
+/// Setup a custom ontology by writing config to .qipu/config.toml
+/// The config_content should be a valid TOML string for the ontology configuration
+pub fn setup_custom_ontology(dir: &TempDir, config_content: &str) {
+    let config_path = dir.path().join(".qipu/config.toml");
+    fs::write(config_path, config_content).unwrap();
 }

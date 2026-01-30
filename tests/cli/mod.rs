@@ -31,6 +31,7 @@ mod store_discovery;
 pub mod support;
 mod sync;
 mod traversal;
+mod traversal_dump;
 mod value;
 mod value_sorting;
 mod wal;

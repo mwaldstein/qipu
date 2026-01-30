@@ -9,6 +9,7 @@ mod lifecycle;
 pub mod notes;
 pub mod paths;
 mod query;
+pub mod typed_paths;
 pub mod workspace;
 
 use std::fs;
@@ -20,7 +21,7 @@ use crate::error::{QipuError, Result};
 pub use config::InitOptions;
 use paths::{
     ATTACHMENTS_DIR, CONFIG_FILE, DEFAULT_STORE_DIR, MOCS_DIR, NOTES_DIR, TEMPLATES_DIR,
-    VISIBLE_STORE_DIR,
+    VISIBLE_STORE_DIR, WORKSPACES_DIR,
 };
 
 /// The qipu store

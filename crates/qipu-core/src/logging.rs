@@ -1,5 +1,25 @@
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
+/// Helper macro for logging elapsed time at debug level.
+///
+/// Usage:
+/// ```rust,ignore
+/// let start = Instant::now();
+/// // ... some work ...
+/// trace_time!(start, "operation_name");
+/// // Or with additional fields:
+/// trace_time!(start, "operation_name", note_id = note.id());
+/// ```
+#[macro_export]
+macro_rules! trace_time {
+    ($start:expr, $name:expr) => {
+        tracing::debug!(elapsed = ?$start.elapsed(), $name);
+    };
+    ($start:expr, $name:expr $(, $field:ident = $value:expr)*) => {
+        tracing::debug!(elapsed = ?$start.elapsed(), $($field = $value),*, $name);
+    };
+}
+
 /// Initialize structured logging based on CLI arguments
 pub fn init_tracing(
     verbose: bool,

@@ -17,6 +17,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
+use crate::commands::provenance::update_provenance_if_provided;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
@@ -75,47 +76,19 @@ pub fn execute(
         debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");
     }
 
-    // Add provenance fields if provided
-    let has_source = source.is_some();
-    let has_generated_by = generated_by.is_some();
-    if has_source
-        || author.is_some()
-        || has_generated_by
-        || prompt_hash.is_some()
-        || verified.is_some()
-    {
-        note.frontmatter.source = source;
+    let _ = update_provenance_if_provided(
+        store,
+        &mut note,
+        source,
+        author,
+        generated_by,
+        prompt_hash,
+        verified,
+        true,
+    )?;
 
-        // Per spec (specs/provenance.md): Web capture defaults
-        // When capturing a webpage (source is provided):
-        // - Set author to user's name (if manual) or "Qipu Clipper" (if automated)
-        // Default to "Qipu Clipper" when source is provided but author is not
-        note.frontmatter.author = if author.is_some() {
-            author
-        } else if has_source {
-            Some("Qipu Clipper".to_string())
-        } else {
-            None
-        };
-
-        note.frontmatter.generated_by = generated_by;
-        note.frontmatter.prompt_hash = prompt_hash;
-
-        // Per spec (specs/provenance.md): When an agent generates a note, set verified: false by default
-        note.frontmatter.verified = if verified.is_some() {
-            verified
-        } else if has_generated_by {
-            Some(false)
-        } else {
-            None
-        };
-
-        // Save the updated note
-        store.save_note(&mut note)?;
-
-        if cli.verbose {
-            debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
-        }
+    if cli.verbose {
+        debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
     }
 
     output_by_format_result!(cli.format,

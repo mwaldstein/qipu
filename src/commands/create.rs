@@ -14,6 +14,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands::format::{dispatch_format, FormatDispatcher};
+use crate::commands::provenance::update_provenance_if_provided;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
@@ -98,34 +99,19 @@ pub fn execute(
         debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");
     }
 
-    // Add provenance fields if provided
-    let has_generated_by = generated_by.is_some();
-    if source.is_some()
-        || author.is_some()
-        || has_generated_by
-        || prompt_hash.is_some()
-        || verified.is_some()
-    {
-        note.frontmatter.source = source;
-        note.frontmatter.author = author;
-        note.frontmatter.generated_by = generated_by;
-        note.frontmatter.prompt_hash = prompt_hash;
+    let _ = update_provenance_if_provided(
+        store,
+        &mut note,
+        source,
+        author,
+        generated_by,
+        prompt_hash,
+        verified,
+        false,
+    )?;
 
-        // Per spec (specs/provenance.md): When an agent generates a note, set verified: false by default
-        note.frontmatter.verified = if verified.is_some() {
-            verified
-        } else if has_generated_by {
-            Some(false)
-        } else {
-            None
-        };
-
-        // Save the updated note
-        store.save_note(&mut note)?;
-
-        if cli.verbose {
-            debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
-        }
+    if cli.verbose {
+        debug!(note_id = note.id(), elapsed = ?start.elapsed(), "update_provenance");
     }
 
     dispatch_format(cli, &CreateFormatter { note: &note, store })?;

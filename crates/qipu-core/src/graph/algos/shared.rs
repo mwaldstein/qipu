@@ -9,6 +9,24 @@ use crate::index::Edge;
 use crate::store::Store;
 use std::collections::{HashMap, HashSet};
 
+/// Set truncation state with a reason
+pub fn set_truncation(truncated: &mut bool, truncation_reason: &mut Option<String>, reason: &str) {
+    *truncated = true;
+    *truncation_reason = Some(reason.to_string());
+}
+
+/// Set truncation state only if not already set (preserves first reason)
+pub fn set_truncation_if_unset(
+    truncated: &mut bool,
+    truncation_reason: &mut Option<String>,
+    reason: &str,
+) {
+    *truncated = true;
+    if truncation_reason.is_none() {
+        *truncation_reason = Some(reason.to_string());
+    }
+}
+
 /// Check limits and return false if traversal should stop
 pub fn check_limits(
     visited_len: usize,
@@ -19,16 +37,14 @@ pub fn check_limits(
 ) -> bool {
     if let Some(max) = opts.max_nodes {
         if visited_len >= max {
-            *truncated = true;
-            *truncation_reason = Some("max_nodes".to_string());
+            set_truncation(truncated, truncation_reason, "max_nodes");
             return false;
         }
     }
 
     if let Some(max) = opts.max_edges {
         if links_len >= max {
-            *truncated = true;
-            *truncation_reason = Some("max_edges".to_string());
+            set_truncation(truncated, truncation_reason, "max_edges");
             return false;
         }
     }
@@ -164,8 +180,7 @@ pub fn prepare_neighbors(
 
     if let Some(max_fanout) = opts.max_fanout {
         if neighbors.len() > max_fanout {
-            *truncated = true;
-            *truncation_reason = Some("max_fanout".to_string());
+            set_truncation(truncated, truncation_reason, "max_fanout");
         }
         neighbors.into_iter().take(max_fanout).collect()
     } else {

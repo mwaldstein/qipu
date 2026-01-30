@@ -4,7 +4,7 @@ use crate::graph::algos::shared::{
     build_filtered_result, build_result, calculate_edge_cost, canonicalize_edge, canonicalize_node,
     collect_inbound_neighbors, collect_outbound_neighbors, get_source_ids,
     has_unexpanded_neighbors, neighbor_passes_filter, prepare_neighbors, root_passes_filter,
-    sort_results, NeighborContext,
+    set_truncation, set_truncation_if_unset, sort_results, NeighborContext,
 };
 use crate::graph::types::{
     HopCost, SpanningTreeEntry, TreeLink, TreeNote, TreeOptions, TreeResult,
@@ -74,8 +74,11 @@ fn process_neighbor(
     // Check max_edges again
     if let Some(max) = ctx.opts.max_edges {
         if state.links.len() >= max {
-            state.truncated = true;
-            state.truncation_reason = Some("max_edges".to_string());
+            set_truncation(
+                &mut state.truncated,
+                &mut state.truncation_reason,
+                "max_edges",
+            );
             return Ok(());
         }
     }
@@ -103,8 +106,11 @@ fn process_neighbor(
         // Check max_nodes
         if let Some(max) = ctx.opts.max_nodes {
             if state.visited.len() >= max {
-                state.truncated = true;
-                state.truncation_reason = Some("max_nodes".to_string());
+                set_truncation(
+                    &mut state.truncated,
+                    &mut state.truncation_reason,
+                    "max_nodes",
+                );
                 return Ok(());
             }
         }
@@ -193,10 +199,11 @@ pub fn bfs_traverse(
         if accumulated_cost.value() >= opts.max_hops.value() {
             let source_ids = get_source_ids(&current_id, equivalence_map);
             if has_unexpanded_neighbors(provider, &source_ids, opts) {
-                state.truncated = true;
-                if state.truncation_reason.is_none() {
-                    state.truncation_reason = Some("max_hops".to_string());
-                }
+                set_truncation_if_unset(
+                    &mut state.truncated,
+                    &mut state.truncation_reason,
+                    "max_hops",
+                );
             }
             continue;
         }

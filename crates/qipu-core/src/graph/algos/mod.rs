@@ -15,5 +15,5 @@ pub use shared::{
     build_filtered_result, build_result, calculate_edge_cost, canonicalize_edge, canonicalize_node,
     check_limits, collect_inbound_neighbors, collect_outbound_neighbors, get_source_ids,
     has_unexpanded_neighbors, neighbor_passes_filter, prepare_neighbors, root_passes_filter,
-    sort_results, NeighborContext,
+    set_truncation, set_truncation_if_unset, sort_results, NeighborContext,
 };

@@ -237,16 +237,6 @@ struct NeighborContext<'a> {
     compaction_ctx: Option<&'a CompactionContext>,
 }
 
-/// Context for processing a neighbor
-struct NeighborContext<'a> {
-    current_id: &'a str,
-    accumulated_cost: HopCost,
-    provider: &'a dyn GraphProvider,
-    store: &'a Store,
-    opts: &'a TreeOptions,
-    compaction_ctx: Option<&'a CompactionContext>,
-}
-
 /// Process a single neighbor, updating state
 fn process_neighbor(
     neighbor_id: String,

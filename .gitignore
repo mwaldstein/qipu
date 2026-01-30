@@ -28,3 +28,9 @@ llm-tool-test-results/
 
 
 .beads/export-state
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

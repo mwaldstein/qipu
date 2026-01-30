@@ -80,20 +80,33 @@ fn build_depth_tree_if_needed(
     Ok(tree)
 }
 
-/// Output compaction info in human-readable format
-fn output_human_format(
-    store: &Store,
-    ctx: &CompactionContext,
-    cli: &Cli,
-    digest_id: &str,
-    direct_compacts: &[String],
+/// Context for output formatting to reduce argument count
+struct OutputContext<'a> {
+    store: &'a Store,
+    ctx: &'a CompactionContext,
+    cli: &'a Cli,
+    digest_id: &'a str,
+    direct_compacts: &'a [String],
     compaction_pct: f64,
     truncated: bool,
     depth: u32,
-) -> Result<()> {
+}
+
+/// Output compaction info in human-readable format
+fn output_human_format(oc: &OutputContext<'_>) -> Result<()> {
+    let OutputContext {
+        store,
+        ctx,
+        cli,
+        digest_id,
+        direct_compacts,
+        compaction_pct,
+        truncated,
+        depth,
+    } = oc;
     println!("Digest: {}", digest_id);
     println!("Direct compaction count: {}", direct_compacts.len());
-    if truncated {
+    if *truncated {
         let total_count = ctx.get_compacts_count(digest_id);
         println!(
             "  (truncated: showing {} of {} notes)",
@@ -104,7 +117,7 @@ fn output_human_format(
     println!("Compaction: {:.1}%", compaction_pct);
     println!();
     println!("Compacted notes:");
-    for id in direct_compacts {
+    for id in *direct_compacts {
         if let Ok(note) = store.get_note(id) {
             println!("  - {} ({})", note.frontmatter.title, id);
         } else {
@@ -112,10 +125,10 @@ fn output_human_format(
         }
     }
 
-    if depth > 1 {
+    if *depth > 1 {
         println!();
         println!("Nested compaction (depth {}):", depth);
-        show_nested_compaction(store, ctx, digest_id, 1, depth)?;
+        show_nested_compaction(store, ctx, digest_id, 1, *depth)?;
     }
     Ok(())
 }
@@ -151,17 +164,30 @@ fn output_json_format(
     Ok(())
 }
 
-/// Output compaction info in records format
-fn output_records_format(
-    ctx: &CompactionContext,
-    cli: &Cli,
-    digest_id: &str,
-    direct_compacts: &[String],
+/// Context for records format with tree data
+struct RecordsOutputContext<'a> {
+    ctx: &'a CompactionContext,
+    cli: &'a Cli,
+    digest_id: &'a str,
+    direct_compacts: &'a [String],
     compaction_pct: f64,
     depth: u32,
-    depth_tree: &[CompactionTreeEntry],
+    depth_tree: &'a [CompactionTreeEntry],
     truncated: bool,
-) -> Result<()> {
+}
+
+/// Output compaction info in records format
+fn output_records_format(oc: &RecordsOutputContext<'_>) -> Result<()> {
+    let RecordsOutputContext {
+        ctx,
+        cli,
+        digest_id,
+        direct_compacts,
+        compaction_pct,
+        depth,
+        depth_tree,
+        truncated,
+    } = oc;
     println!(
         "H qipu=1 records=1 mode=compact.show digest={} count={} compaction={:.1}% depth={}",
         digest_id,
@@ -169,11 +195,11 @@ fn output_records_format(
         compaction_pct,
         depth
     );
-    for id in direct_compacts {
+    for id in *direct_compacts {
         println!("D compacted {}", id);
     }
 
-    if truncated {
+    if *truncated {
         let total_count = ctx.get_compacts_count(digest_id);
         println!(
             "D compacted_truncated max={} total={}",
@@ -182,8 +208,8 @@ fn output_records_format(
         );
     }
 
-    if depth > 1 {
-        for entry in depth_tree {
+    if *depth > 1 {
+        for entry in *depth_tree {
             println!(
                 "D compacted_tree from={} to={} depth={}",
                 entry.from, entry.to, entry.depth
@@ -235,16 +261,16 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
 
     match cli.format {
         qipu_core::format::OutputFormat::Human => {
-            output_human_format(
-                &store,
-                &ctx,
+            output_human_format(&OutputContext {
+                store: &store,
+                ctx: &ctx,
                 cli,
                 digest_id,
-                &direct_compacts,
+                direct_compacts: &direct_compacts,
                 compaction_pct,
                 truncated,
                 depth,
-            )?;
+            })?;
         }
         qipu_core::format::OutputFormat::Json => {
             output_json_format(
@@ -257,16 +283,16 @@ pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
             )?;
         }
         qipu_core::format::OutputFormat::Records => {
-            output_records_format(
-                &ctx,
+            output_records_format(&RecordsOutputContext {
+                ctx: &ctx,
                 cli,
                 digest_id,
-                &direct_compacts,
+                direct_compacts: &direct_compacts,
                 compaction_pct,
                 depth,
-                &depth_tree,
+                depth_tree: &depth_tree,
                 truncated,
-            )?;
+            })?;
         }
     }
 

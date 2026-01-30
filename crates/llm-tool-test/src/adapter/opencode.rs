@@ -6,30 +6,49 @@ use std::path::Path;
 
 pub struct OpenCodeAdapter;
 
-fn parse_token_usage_from_json(output: &str) -> Option<super::TokenUsage> {
-    let lines: Vec<&str> = output
+fn extract_json_lines(output: &str) -> Vec<&str> {
+    output
         .lines()
         .filter(|line| line.starts_with('{'))
-        .collect();
-    let mut total_input = 0;
-    let mut total_output = 0;
+        .collect()
+}
+
+fn is_step_finish_event(json: &Value) -> bool {
+    json.get("type") == Some(&Value::String("step_finish".to_string()))
+}
+
+fn extract_tokens_from_event(json: &Value) -> Option<(u64, u64)> {
+    let tokens = json.get("part").and_then(|p| p.get("tokens"))?;
+    let input = tokens.get("input").and_then(|v| v.as_u64()).unwrap_or(0);
+    let output = tokens.get("output").and_then(|v| v.as_u64()).unwrap_or(0);
+    let reasoning = tokens
+        .get("reasoning")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    Some((input + reasoning, output))
+}
+
+fn accumulate_token_usage(lines: &[&str]) -> (u64, u64) {
+    let mut total_input = 0u64;
+    let mut total_output = 0u64;
 
     for line in lines {
         if let Ok(json) = serde_json::from_str::<Value>(line) {
-            if json.get("type") == Some(&Value::String("step_finish".to_string())) {
-                if let Some(tokens) = json.get("part").and_then(|p| p.get("tokens")) {
-                    let input = tokens.get("input").and_then(|v| v.as_u64()).unwrap_or(0);
-                    let output = tokens.get("output").and_then(|v| v.as_u64()).unwrap_or(0);
-                    let reasoning = tokens
-                        .get("reasoning")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    total_input += input + reasoning;
+            if is_step_finish_event(&json) {
+                if let Some((input, output)) = extract_tokens_from_event(&json) {
+                    total_input += input;
                     total_output += output;
                 }
             }
         }
     }
+
+    (total_input, total_output)
+}
+
+fn parse_token_usage_from_json(output: &str) -> Option<super::TokenUsage> {
+    let lines = extract_json_lines(output);
+    let (total_input, total_output) = accumulate_token_usage(&lines);
 
     if total_input > 0 || total_output > 0 {
         Some(super::TokenUsage {

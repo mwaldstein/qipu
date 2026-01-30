@@ -48,13 +48,8 @@ fn create_note_with_stdin(env_root: &std::path::Path, content: &str) {
     );
 }
 
-#[test]
-fn test_command_doctor_transcript_gates() {
-    let (_dir, env_root) = setup_env();
-
-    create_note_with_stdin(&env_root, "This is a test note #test");
-
-    let command_scenario_pass = Scenario {
+fn create_test_scenario(gate: Gate) -> Scenario {
+    Scenario {
         name: "test".to_string(),
         description: "test".to_string(),
         template_folder: "test".to_string(),
@@ -62,9 +57,7 @@ fn test_command_doctor_transcript_gates() {
             prompt: "test".to_string(),
         },
         evaluation: Evaluation {
-            gates: vec![Gate::CommandSucceeds {
-                command: "list".to_string(),
-            }],
+            gates: vec![gate],
             judge: None,
         },
         tier: 0,
@@ -72,68 +65,73 @@ fn test_command_doctor_transcript_gates() {
         setup: None,
         tags: vec![],
         run: None,
-    };
-    let metrics = evaluate(&command_scenario_pass, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 1);
+    }
+}
 
-    let command_scenario_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::CommandSucceeds {
-                command: "nonexistent-command".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&command_scenario_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
-
-    create_note_with_stdin(&env_root, "Test note for doctor check");
-
-    let doctor_scenario = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::DoctorPasses],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&doctor_scenario, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 1);
-    assert!(metrics.details[0].passed);
-
-    let json = crate::eval_helpers::run_qipu_json(&["list"], &env_root).unwrap();
-    let first_note_path = json
-        .get(0)
+fn get_first_note_path(env_root: &std::path::Path) -> String {
+    let json = crate::eval_helpers::run_qipu_json(&["list"], env_root).unwrap();
+    json.get(0)
         .and_then(|v| v.get("path"))
         .and_then(|v| v.as_str())
-        .expect("No path found");
+        .expect("No path found")
+        .to_string()
+}
 
-    let note_path = env_root.join(first_note_path);
+#[test]
+fn test_command_succeeds_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::CommandSucceeds {
+        command: "list".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+}
+
+#[test]
+fn test_command_succeeds_gate_fail() {
+    let (_dir, env_root) = setup_env();
+
+    let scenario = create_test_scenario(Gate::CommandSucceeds {
+        command: "nonexistent-command".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+}
+
+#[test]
+fn test_doctor_passes_gate() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "Test note for doctor check");
+
+    let scenario = create_test_scenario(Gate::DoctorPasses);
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+    assert!(metrics.details[0].passed);
+}
+
+#[test]
+fn test_doctor_passes_gate_fail_after_delete() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "Test note for doctor check");
+
+    let scenario = create_test_scenario(Gate::DoctorPasses);
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+
+    let first_note_path = get_first_note_path(&env_root);
+    let note_path = env_root.join(&first_note_path);
     std::fs::remove_file(&note_path).expect("Failed to delete note file");
 
-    let metrics = evaluate(&doctor_scenario, &env_root, false).unwrap();
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 0);
     assert!(!metrics.details[0].passed);
+}
+
+#[test]
+fn test_no_transcript_errors_gate_pass() {
+    let (_dir, env_root) = setup_env();
 
     let artifacts_dir = env_root.join("artifacts");
     std::fs::create_dir_all(&artifacts_dir).unwrap();
@@ -145,27 +143,18 @@ fn test_command_doctor_transcript_gates() {
     )
     .unwrap();
 
-    let transcript_scenario = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::NoTranscriptErrors],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-
-    let metrics = evaluate(&transcript_scenario, &env_root, false).unwrap();
+    let scenario = create_test_scenario(Gate::NoTranscriptErrors);
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 1);
     assert!(metrics.details[0].passed);
+}
+
+#[test]
+fn test_no_transcript_errors_gate_fail_with_errors() {
+    let (_dir, env_root) = setup_env();
+
+    let artifacts_dir = env_root.join("artifacts");
+    std::fs::create_dir_all(&artifacts_dir).unwrap();
 
     let transcript_with_errors = "qipu create --title 'Test'\nError: invalid input\nExit code: 1\nqipu create --title 'Test 2'\nqp-abc123";
     std::fs::write(
@@ -174,13 +163,18 @@ fn test_command_doctor_transcript_gates() {
     )
     .unwrap();
 
-    let metrics = evaluate(&transcript_scenario, &env_root, false).unwrap();
+    let scenario = create_test_scenario(Gate::NoTranscriptErrors);
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 0);
     assert!(!metrics.details[0].passed);
+}
 
-    std::fs::remove_file(artifacts_dir.join("transcript.raw.txt")).unwrap();
+#[test]
+fn test_no_transcript_errors_gate_fail_no_file() {
+    let (_dir, env_root) = setup_env();
 
-    let metrics = evaluate(&transcript_scenario, &env_root, false).unwrap();
+    let scenario = create_test_scenario(Gate::NoTranscriptErrors);
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 0);
     assert!(!metrics.details[0].passed);
 }

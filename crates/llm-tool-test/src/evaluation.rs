@@ -241,13 +241,11 @@ pub struct GateResult {
     pub message: String,
 }
 
-pub fn evaluate(scenario: &Scenario, env_root: &Path, no_judge: bool) -> Result<EvaluationMetrics> {
-    println!("Evaluating results for scenario: {}", scenario.name);
-
+fn evaluate_gates(gates: &[Gate], env_root: &Path) -> (Vec<GateResult>, usize) {
     let mut details = Vec::new();
     let mut gates_passed = 0;
 
-    for gate in &scenario.evaluation.gates {
+    for gate in gates {
         let result = gate.evaluate(env_root);
 
         if result.passed {
@@ -259,22 +257,26 @@ pub fn evaluate(scenario: &Scenario, env_root: &Path, no_judge: bool) -> Result<
         details.push(result);
     }
 
-    let mut judge_score = None;
-    let mut judge_response = None;
+    (details, gates_passed)
+}
 
-    if let Some(judge_config) = &scenario.evaluation.judge {
-        if judge_config.enabled && !no_judge {
-            println!("Running LLM-as-judge evaluation...");
-            let rubric_path = env_root.join(&judge_config.rubric);
-            let _rubric = load_rubric(&rubric_path)
-                .with_context(|| format!("Failed to load rubric from {}", judge_config.rubric))?;
+fn run_judge_evaluation(
+    scenario: &Scenario,
+    env_root: &Path,
+) -> Result<(Option<f64>, Option<JudgeResponse>)> {
+    let judge_config = scenario.evaluation.judge.as_ref().unwrap();
 
-            let transcript_path = env_root.join("artifacts/transcript.raw.txt");
-            let store_path = env_root.join("artifacts/store_snapshot/export.json");
+    println!("Running LLM-as-judge evaluation...");
+    let rubric_path = env_root.join(&judge_config.rubric);
+    let _rubric = load_rubric(&rubric_path)
+        .with_context(|| format!("Failed to load rubric from {}", judge_config.rubric))?;
 
-            let runner = crate::session::SessionRunner::new();
-            let prompt = format!(
-                r#"Evaluate this LLM tool interaction.
+    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    let store_path = env_root.join("artifacts/store_snapshot/export.json");
+
+    let runner = crate::session::SessionRunner::new();
+    let prompt = format!(
+        r#"Evaluate this LLM tool interaction.
 
 Task: {}
 
@@ -297,64 +299,89 @@ Return evaluation as JSON with this structure:
 }}
 
 Provide JSON only, no additional text."#,
-                scenario.task.prompt,
-                transcript_path.display(),
-                store_path.display(),
-                rubric_path.display()
-            );
+        scenario.task.prompt,
+        transcript_path.display(),
+        store_path.display(),
+        rubric_path.display()
+    );
 
-            let (output, exit_code) = runner
-                .run_command("opencode", &["run", &prompt], env_root, 300)
-                .context("Judge execution failed")?;
+    let (output, exit_code) = runner
+        .run_command("opencode", &["run", &prompt], env_root, 300)
+        .context("Judge execution failed")?;
 
-            if exit_code != 0 {
-                anyhow::bail!("Judge exited with code {}: {}", exit_code, output);
-            }
-
-            let response: JudgeResponse = serde_json::from_str(&output)
-                .with_context(|| format!("Failed to parse judge response: {}", output))?;
-
-            println!(
-                "Judge score: {:.2} (confidence: {:.2})",
-                response.weighted_score, response.confidence
-            );
-            if !response.issues.is_empty() {
-                println!("Issues: {}", response.issues.join(", "));
-            }
-            if !response.highlights.is_empty() {
-                println!("Highlights: {}", response.highlights.join(", "));
-            }
-
-            judge_score = Some(response.weighted_score);
-            judge_response = Some(response);
-        }
+    if exit_code != 0 {
+        anyhow::bail!("Judge exited with code {}: {}", exit_code, output);
     }
 
-    let efficiency =
-        crate::eval_helpers::compute_efficiency_metrics(env_root).unwrap_or_else(|_| {
-            EfficiencyMetrics {
-                total_commands: 0,
-                unique_commands: 0,
-                error_count: 0,
-                retry_count: 0,
-                help_invocations: 0,
-                first_try_success_rate: 0.0,
-                iteration_ratio: 0.0,
-            }
-        });
-    let quality =
-        crate::eval_helpers::compute_quality_metrics(env_root).unwrap_or_else(|_| QualityMetrics {
-            avg_title_length: 0.0,
-            avg_body_length: 0.0,
-            avg_tags_per_note: 0.0,
-            notes_without_tags: 0,
-            links_per_note: 0.0,
-            orphan_notes: 0,
-            link_type_diversity: 0,
-            type_distribution: std::collections::HashMap::new(),
-            total_notes: 0,
-            total_links: 0,
-        });
+    let response: JudgeResponse = serde_json::from_str(&output)
+        .with_context(|| format!("Failed to parse judge response: {}", output))?;
+
+    println!(
+        "Judge score: {:.2} (confidence: {:.2})",
+        response.weighted_score, response.confidence
+    );
+    if !response.issues.is_empty() {
+        println!("Issues: {}", response.issues.join(", "));
+    }
+    if !response.highlights.is_empty() {
+        println!("Highlights: {}", response.highlights.join(", "));
+    }
+
+    Ok((Some(response.weighted_score), Some(response)))
+}
+
+fn maybe_run_judge(
+    scenario: &Scenario,
+    env_root: &Path,
+    no_judge: bool,
+) -> Result<(Option<f64>, Option<JudgeResponse>)> {
+    if let Some(judge_config) = &scenario.evaluation.judge {
+        if judge_config.enabled && !no_judge {
+            return run_judge_evaluation(scenario, env_root);
+        }
+    }
+    Ok((None, None))
+}
+
+fn compute_efficiency_or_default(env_root: &Path) -> EfficiencyMetrics {
+    crate::eval_helpers::compute_efficiency_metrics(env_root).unwrap_or_else(|_| {
+        EfficiencyMetrics {
+            total_commands: 0,
+            unique_commands: 0,
+            error_count: 0,
+            retry_count: 0,
+            help_invocations: 0,
+            first_try_success_rate: 0.0,
+            iteration_ratio: 0.0,
+        }
+    })
+}
+
+fn compute_quality_or_default(env_root: &Path) -> QualityMetrics {
+    crate::eval_helpers::compute_quality_metrics(env_root).unwrap_or_else(|_| QualityMetrics {
+        avg_title_length: 0.0,
+        avg_body_length: 0.0,
+        avg_tags_per_note: 0.0,
+        notes_without_tags: 0,
+        links_per_note: 0.0,
+        orphan_notes: 0,
+        link_type_diversity: 0,
+        type_distribution: std::collections::HashMap::new(),
+        total_notes: 0,
+        total_links: 0,
+    })
+}
+
+fn build_metrics(
+    scenario: &Scenario,
+    env_root: &Path,
+    details: Vec<GateResult>,
+    gates_passed: usize,
+    judge_score: Option<f64>,
+    judge_response: Option<JudgeResponse>,
+) -> EvaluationMetrics {
+    let efficiency = compute_efficiency_or_default(env_root);
+    let quality = compute_quality_or_default(env_root);
     let composite_score = crate::eval_helpers::compute_composite_score(
         judge_score,
         gates_passed,
@@ -366,7 +393,7 @@ Provide JSON only, no additional text."#,
     let note_count = crate::eval_helpers::count_notes(env_root).unwrap_or(0);
     let link_count = crate::eval_helpers::count_links(env_root).unwrap_or(0);
 
-    let metrics = EvaluationMetrics {
+    EvaluationMetrics {
         gates_passed,
         gates_total: scenario.evaluation.gates.len(),
         note_count,
@@ -377,7 +404,22 @@ Provide JSON only, no additional text."#,
         efficiency,
         quality,
         composite_score,
-    };
+    }
+}
+
+pub fn evaluate(scenario: &Scenario, env_root: &Path, no_judge: bool) -> Result<EvaluationMetrics> {
+    println!("Evaluating results for scenario: {}", scenario.name);
+
+    let (details, gates_passed) = evaluate_gates(&scenario.evaluation.gates, env_root);
+    let (judge_score, judge_response) = maybe_run_judge(scenario, env_root, no_judge)?;
+    let metrics = build_metrics(
+        scenario,
+        env_root,
+        details,
+        gates_passed,
+        judge_score,
+        judge_response,
+    );
 
     Ok(metrics)
 }

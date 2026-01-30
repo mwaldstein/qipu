@@ -13,6 +13,22 @@ pub struct Config {
     pub models: std::collections::HashMap<String, ModelPricingConfig>,
 }
 
+const DEFAULT_MODEL_CONFIGS: &[(&str, f64, f64)] = &[
+    ("claude-3-5-sonnet", 3.0, 15.0),
+    ("claude-3-5-haiku", 0.8, 4.0),
+    ("claude-3-opus", 15.0, 75.0),
+    ("claude-3", 3.0, 15.0),
+    ("claude", 3.0, 15.0),
+    ("gpt-4o", 2.5, 10.0),
+    ("gpt-4-turbo", 10.0, 30.0),
+    ("gpt-4", 30.0, 60.0),
+    ("gpt-3.5-turbo", 0.5, 1.5),
+    ("gpt-3.5", 0.5, 1.5),
+    ("smart", 3.0, 15.0),
+    ("rush", 0.8, 4.0),
+    ("free", 0.0, 0.0),
+];
+
 impl Config {
     pub fn load_or_default() -> Self {
         let config_path = Path::new("llm-tool-test-config.toml");
@@ -40,114 +56,24 @@ impl Config {
         Ok(config)
     }
 
-    pub fn with_defaults() -> Self {
+    fn build_default_models() -> std::collections::HashMap<String, ModelPricingConfig> {
         let mut models = std::collections::HashMap::new();
+        for (name, input_cost, output_cost) in DEFAULT_MODEL_CONFIGS {
+            models.insert(
+                name.to_string(),
+                ModelPricingConfig {
+                    input_cost_per_1k_tokens: *input_cost,
+                    output_cost_per_1k_tokens: *output_cost,
+                },
+            );
+        }
+        models
+    }
 
-        models.insert(
-            "claude-3-5-sonnet".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 3.0,
-                output_cost_per_1k_tokens: 15.0,
-            },
-        );
-
-        models.insert(
-            "claude-3-5-haiku".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 0.8,
-                output_cost_per_1k_tokens: 4.0,
-            },
-        );
-
-        models.insert(
-            "claude-3-opus".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 15.0,
-                output_cost_per_1k_tokens: 75.0,
-            },
-        );
-
-        models.insert(
-            "claude-3".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 3.0,
-                output_cost_per_1k_tokens: 15.0,
-            },
-        );
-
-        models.insert(
-            "claude".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 3.0,
-                output_cost_per_1k_tokens: 15.0,
-            },
-        );
-
-        models.insert(
-            "gpt-4o".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 2.5,
-                output_cost_per_1k_tokens: 10.0,
-            },
-        );
-
-        models.insert(
-            "gpt-4-turbo".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 10.0,
-                output_cost_per_1k_tokens: 30.0,
-            },
-        );
-
-        models.insert(
-            "gpt-4".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 30.0,
-                output_cost_per_1k_tokens: 60.0,
-            },
-        );
-
-        models.insert(
-            "gpt-3.5-turbo".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 0.5,
-                output_cost_per_1k_tokens: 1.5,
-            },
-        );
-
-        models.insert(
-            "gpt-3.5".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 0.5,
-                output_cost_per_1k_tokens: 1.5,
-            },
-        );
-
-        models.insert(
-            "smart".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 3.0,
-                output_cost_per_1k_tokens: 15.0,
-            },
-        );
-
-        models.insert(
-            "rush".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 0.8,
-                output_cost_per_1k_tokens: 4.0,
-            },
-        );
-
-        models.insert(
-            "free".to_string(),
-            ModelPricingConfig {
-                input_cost_per_1k_tokens: 0.0,
-                output_cost_per_1k_tokens: 0.0,
-            },
-        );
-
-        Config { models }
+    pub fn with_defaults() -> Self {
+        Config {
+            models: Self::build_default_models(),
+        }
     }
 
     pub fn get_model_pricing(&self, model: &str) -> Option<crate::pricing::ModelPricing> {

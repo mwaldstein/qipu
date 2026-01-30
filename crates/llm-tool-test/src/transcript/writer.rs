@@ -168,15 +168,16 @@ impl TranscriptWriter {
         Ok(())
     }
 
-    pub fn write_report(&self, report: &RunReport) -> anyhow::Result<()> {
-        let mut content = String::new();
+    fn write_report_header(&self, report: &RunReport, content: &mut String) {
         content.push_str(&format!("# Test Run Report\n\n"));
         content.push_str(&format!("## Scenario\n\n"));
         content.push_str(&format!("- **ID**: {}\n", report.scenario_id));
         content.push_str(&format!("- **Tool**: {}\n", report.tool));
         content.push_str(&format!("- **Model**: {}\n", report.model));
         content.push_str(&format!("- **Timestamp**: {}\n\n", report.timestamp));
+    }
 
+    fn write_execution_section(&self, report: &RunReport, content: &mut String) {
         content.push_str(&format!("## Execution\n\n"));
         content.push_str(&format!("- **Duration**: {:.2}s\n", report.duration_secs));
         content.push_str(&format!("- **Cost**: ${:.4}\n", report.cost_usd));
@@ -205,7 +206,9 @@ impl TranscriptWriter {
             ));
         }
         content.push_str(&format!("- **Outcome**: {}\n\n", report.outcome));
+    }
 
+    fn write_evaluation_section(&self, report: &RunReport, content: &mut String) {
         content.push_str(&format!("## Evaluation Metrics\n\n"));
         content.push_str(&format!(
             "- **Gates Passed**: {}/{}\n",
@@ -230,7 +233,9 @@ impl TranscriptWriter {
             }
             content.push_str("\n");
         }
+    }
 
+    fn write_efficiency_section(&self, report: &RunReport, content: &mut String) {
         content.push_str(&format!("## Efficiency\n\n"));
         content.push_str(&format!(
             "- **Total Commands**: {}\n",
@@ -252,7 +257,9 @@ impl TranscriptWriter {
             "- **Iteration Ratio**: {:.2}\n\n",
             report.efficiency.iteration_ratio
         ));
+    }
 
+    fn write_quality_section(&self, report: &RunReport, content: &mut String) {
         content.push_str(&format!("## Quality\n\n"));
         content.push_str(&format!(
             "- **Average Title Length**: {:.1}\n",
@@ -274,6 +281,15 @@ impl TranscriptWriter {
             "- **Orphan Notes**: {}\n",
             report.quality.orphan_notes
         ));
+    }
+
+    pub fn write_report(&self, report: &RunReport) -> anyhow::Result<()> {
+        let mut content = String::new();
+        self.write_report_header(report, &mut content);
+        self.write_execution_section(report, &mut content);
+        self.write_evaluation_section(report, &mut content);
+        self.write_efficiency_section(report, &mut content);
+        self.write_quality_section(report, &mut content);
 
         fs::write(self.base_dir.join("report.md"), content)?;
         Ok(())

@@ -48,11 +48,8 @@ fn create_note_with_stdin(env_root: &std::path::Path, content: &str) {
     );
 }
 
-#[test]
-fn test_min_notes_min_links_gates() {
-    let (_dir, env_root) = setup_env();
-
-    let scenario_fail = Scenario {
+fn create_test_scenario(gate: Gate) -> Scenario {
+    Scenario {
         name: "test".to_string(),
         description: "test".to_string(),
         template_folder: "test".to_string(),
@@ -60,7 +57,7 @@ fn test_min_notes_min_links_gates() {
             prompt: "test".to_string(),
         },
         evaluation: Evaluation {
-            gates: vec![Gate::MinNotes { count: 1 }],
+            gates: vec![gate],
             judge: None,
         },
         tier: 0,
@@ -68,175 +65,21 @@ fn test_min_notes_min_links_gates() {
         setup: None,
         tags: vec![],
         run: None,
-    };
-
-    let metrics = evaluate(&scenario_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
-    assert!(!metrics.details[0].passed);
-
-    create_note_with_stdin(&env_root, "This is a test note #test");
-
-    let metrics = evaluate(&scenario_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 1);
-    assert!(metrics.details[0].passed);
-
-    let scenario_fail_2 = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::MinNotes { count: 2 }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&scenario_fail_2, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
+    }
 }
 
-#[test]
-fn test_search_gates() {
-    let (_dir, env_root) = setup_env();
-
-    create_note_with_stdin(&env_root, "This is a test note #test");
-
-    let scenario_search = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::SearchHit {
-                query: "test".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&scenario_search, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 1);
-
-    let scenario_search_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::SearchHit {
-                query: "nonexistent".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&scenario_search_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
-}
-
-#[test]
-fn test_note_link_tag_content_gates() {
-    let (_dir, env_root) = setup_env();
-
-    create_note_with_stdin(&env_root, "This is a test note #test");
-
-    let json = crate::eval_helpers::run_qipu_json(&["list"], &env_root).unwrap();
-    let first_note_id = json
-        .get(0)
+fn get_first_note_id(env_root: &std::path::Path) -> String {
+    let json = crate::eval_helpers::run_qipu_json(&["list"], env_root).unwrap();
+    json.get(0)
         .and_then(|v| v.get("id"))
         .and_then(|v| v.as_str())
-        .expect("No notes found");
+        .expect("No notes found")
+        .to_string()
+}
 
-    let scenario_note_exists = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::NoteExists {
-                id: first_note_id.to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&scenario_note_exists, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 1);
-
-    let scenario_note_exists_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::NoteExists {
-                id: "qp-nonexistent".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&scenario_note_exists_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
-
-    let link_scenario_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::LinkExists {
-                from: first_note_id.to_string(),
-                to: first_note_id.to_string(),
-                link_type: "related".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&link_scenario_fail, &env_root, false).unwrap();
-    assert_eq!(metrics.gates_passed, 0);
-
-    create_note_with_stdin(&env_root, "Second note for link test");
-    let json = crate::eval_helpers::run_qipu_json(&["list"], &env_root).unwrap();
-    let second_note_id = json
-        .as_array()
+fn get_second_note_id(env_root: &std::path::Path, first_note_id: &str) -> String {
+    let json = crate::eval_helpers::run_qipu_json(&["list"], env_root).unwrap();
+    json.as_array()
         .and_then(|arr| {
             arr.iter().find_map(|v| {
                 let id = v.get("id").and_then(|v| v.as_str());
@@ -247,152 +90,199 @@ fn test_note_link_tag_content_gates() {
                 }
             })
         })
-        .expect("Second note not found");
+        .expect("Second note not found")
+        .to_string()
+}
 
+fn run_qipu_command(env_root: &std::path::Path, args: &[&str]) {
     let qipu = crate::eval_helpers::get_qipu_path();
     let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
     let output = std::process::Command::new(qipu_abs)
-        .args([
+        .args(args)
+        .current_dir(env_root)
+        .output()
+        .expect("Failed to run qipu command");
+    assert!(
+        output.status.success(),
+        "Command failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn test_min_notes_gate_fail() {
+    let (_dir, env_root) = setup_env();
+
+    let scenario = create_test_scenario(Gate::MinNotes { count: 1 });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+    assert!(!metrics.details[0].passed);
+}
+
+#[test]
+fn test_min_notes_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::MinNotes { count: 1 });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+    assert!(metrics.details[0].passed);
+}
+
+#[test]
+fn test_min_notes_gate_fail_with_one_note() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::MinNotes { count: 2 });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+}
+
+#[test]
+fn test_search_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::SearchHit {
+        query: "test".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+}
+
+#[test]
+fn test_search_gate_fail() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::SearchHit {
+        query: "nonexistent".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+}
+
+#[test]
+fn test_note_exists_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let note_id = get_first_note_id(&env_root);
+    let scenario = create_test_scenario(Gate::NoteExists { id: note_id });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 1);
+}
+
+#[test]
+fn test_note_exists_gate_fail() {
+    let (_dir, env_root) = setup_env();
+
+    let scenario = create_test_scenario(Gate::NoteExists {
+        id: "qp-nonexistent".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+}
+
+#[test]
+fn test_link_exists_gate_fail() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let note_id = get_first_note_id(&env_root);
+    let scenario = create_test_scenario(Gate::LinkExists {
+        from: note_id.clone(),
+        to: note_id,
+        link_type: "related".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
+    assert_eq!(metrics.gates_passed, 0);
+}
+
+#[test]
+fn test_link_exists_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "First note for link test");
+    create_note_with_stdin(&env_root, "Second note for link test");
+
+    let first_note_id = get_first_note_id(&env_root);
+    let second_note_id = get_second_note_id(&env_root, &first_note_id);
+
+    run_qipu_command(
+        &env_root,
+        &[
             "link",
             "add",
-            first_note_id,
-            second_note_id,
+            &first_note_id,
+            &second_note_id,
             "--type",
             "related",
-        ])
-        .current_dir(&env_root)
-        .output()
-        .expect("failed to run qipu link add");
-    assert!(
-        output.status.success(),
-        "Link add failed: {}",
-        String::from_utf8_lossy(&output.stderr)
+        ],
     );
 
-    let link_scenario_pass = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::LinkExists {
-                from: first_note_id.to_string(),
-                to: second_note_id.to_string(),
-                link_type: "related".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&link_scenario_pass, &env_root, false).unwrap();
+    let scenario = create_test_scenario(Gate::LinkExists {
+        from: first_note_id,
+        to: second_note_id,
+        link_type: "related".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 1);
+}
 
-    let tag_scenario_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::TagExists {
-                tag: "nonexistent".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&tag_scenario_fail, &env_root, false).unwrap();
+#[test]
+fn test_tag_exists_gate_fail() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let scenario = create_test_scenario(Gate::TagExists {
+        tag: "nonexistent".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 0);
+}
 
-    let qipu = crate::eval_helpers::get_qipu_path();
-    let qipu_abs = std::fs::canonicalize(&qipu).expect("qipu binary not found");
-    let output = std::process::Command::new(&qipu_abs)
-        .args(["create", "Important note", "--tag", "important"])
-        .current_dir(&env_root)
-        .output()
-        .expect("failed to run qipu create");
-    assert!(
-        output.status.success(),
-        "Create failed: {}",
-        String::from_utf8_lossy(&output.stderr)
+#[test]
+fn test_tag_exists_gate_pass() {
+    let (_dir, env_root) = setup_env();
+
+    run_qipu_command(
+        &env_root,
+        &["create", "Important note", "--tag", "important"],
     );
 
-    let tag_scenario_pass = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::TagExists {
-                tag: "important".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&tag_scenario_pass, &env_root, false).unwrap();
+    let scenario = create_test_scenario(Gate::TagExists {
+        tag: "important".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 1);
+}
 
-    let content_scenario_pass = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::ContentContains {
-                id: first_note_id.to_string(),
-                substring: "test note".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&content_scenario_pass, &env_root, false).unwrap();
+#[test]
+fn test_content_contains_gate_pass() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let note_id = get_first_note_id(&env_root);
+    let scenario = create_test_scenario(Gate::ContentContains {
+        id: note_id,
+        substring: "test note".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 1);
+}
 
-    let content_scenario_fail = Scenario {
-        name: "test".to_string(),
-        description: "test".to_string(),
-        template_folder: "test".to_string(),
-        task: Task {
-            prompt: "test".to_string(),
-        },
-        evaluation: Evaluation {
-            gates: vec![Gate::ContentContains {
-                id: first_note_id.to_string(),
-                substring: "nonexistent".to_string(),
-            }],
-            judge: None,
-        },
-        tier: 0,
-        tool_matrix: None,
-        setup: None,
-        tags: vec![],
-        run: None,
-    };
-    let metrics = evaluate(&content_scenario_fail, &env_root, false).unwrap();
+#[test]
+fn test_content_contains_gate_fail() {
+    let (_dir, env_root) = setup_env();
+    create_note_with_stdin(&env_root, "This is a test note #test");
+
+    let note_id = get_first_note_id(&env_root);
+    let scenario = create_test_scenario(Gate::ContentContains {
+        id: note_id,
+        substring: "nonexistent".to_string(),
+    });
+    let metrics = evaluate(&scenario, &env_root, false).unwrap();
     assert_eq!(metrics.gates_passed, 0);
 }

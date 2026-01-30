@@ -16,6 +16,8 @@ pub mod records;
 pub mod remove;
 pub mod tree;
 
+pub use records::LinkOutputContext;
+
 pub use qipu_core::graph::{Direction, TreeOptions};
 
 use qipu_core::error::Result;

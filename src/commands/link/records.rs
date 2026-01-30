@@ -9,35 +9,53 @@ use qipu_core::records::{escape_quotes, path_relative_to_cwd};
 use qipu_core::store::Store;
 use std::collections::HashMap;
 
+pub struct LinkOutputContext<'a> {
+    store: &'a Store,
+    index: &'a Index,
+    cli: &'a Cli,
+    compaction_ctx: Option<&'a CompactionContext>,
+    note_map: Option<&'a HashMap<&'a str, &'a Note>>,
+    max_chars: Option<usize>,
+    all_notes: &'a [Note],
+}
+
+impl<'a> LinkOutputContext<'a> {
+    pub fn new(
+        store: &'a Store,
+        index: &'a Index,
+        cli: &'a Cli,
+        compaction_ctx: Option<&'a CompactionContext>,
+        note_map: Option<&'a HashMap<&'a str, &'a Note>>,
+        max_chars: Option<usize>,
+        all_notes: &'a [Note],
+    ) -> Self {
+        Self {
+            store,
+            index,
+            cli,
+            compaction_ctx,
+            note_map,
+            max_chars,
+            all_notes,
+        }
+    }
+}
+
 /// Output in records format
-#[allow(clippy::too_many_arguments)]
 pub fn output_records(
     entries: &[LinkEntry],
-    store: &Store,
-    index: &Index,
+    ctx: &LinkOutputContext,
     display_id: &str,
     direction: Direction,
-    cli: &Cli,
-    compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&HashMap<&str, &Note>>,
-    max_chars: Option<usize>,
 ) {
     let mut lines = Vec::new();
 
-    append_note_metadata_lines(
-        &mut lines,
-        entries,
-        store,
-        index,
-        cli,
-        compaction_ctx,
-        note_map,
-    );
+    append_note_metadata_lines(&mut lines, entries, ctx);
 
     append_edge_lines(&mut lines, entries, display_id);
 
-    let header_base = build_header_base(store, display_id, direction);
-    output_with_truncation(&header_base, &lines, max_chars);
+    let header_base = build_header_base(ctx.store, display_id, direction);
+    output_with_truncation(&header_base, &lines, ctx.max_chars);
 }
 
 fn collect_unique_note_ids(entries: &[LinkEntry]) -> Vec<String> {
@@ -51,20 +69,15 @@ fn collect_unique_note_ids(entries: &[LinkEntry]) -> Vec<String> {
     unique_ids
 }
 
-#[allow(clippy::too_many_arguments)]
 fn append_note_metadata_lines(
     lines: &mut Vec<String>,
     entries: &[LinkEntry],
-    store: &Store,
-    index: &Index,
-    cli: &Cli,
-    compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&HashMap<&str, &Note>>,
+    ctx: &LinkOutputContext,
 ) {
     let unique_ids = collect_unique_note_ids(entries);
 
     for link_id in &unique_ids {
-        if let Some(meta) = index.get_metadata(link_id) {
+        if let Some(meta) = ctx.index.get_metadata(link_id) {
             let tags_csv = if meta.tags.is_empty() {
                 "-".to_string()
             } else {
@@ -72,14 +85,14 @@ fn append_note_metadata_lines(
             };
 
             let mut annotations = String::new();
-            if let Some(ctx) = compaction_ctx {
-                let compacts_count = ctx.get_compacts_count(link_id);
+            if let Some(compact_ctx) = ctx.compaction_ctx {
+                let compacts_count = compact_ctx.get_compacts_count(link_id);
                 if compacts_count > 0 {
                     annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                    if let Some(map) = note_map {
+                    if let Some(map) = ctx.note_map {
                         if let Some(note) = map.get(link_id.as_str()) {
-                            if let Some(pct) = ctx.get_compaction_pct(note, map) {
+                            if let Some(pct) = compact_ctx.get_compaction_pct(note, map) {
                                 annotations.push_str(&format!(" compaction={:.0}%", pct));
                             }
                         }
@@ -97,12 +110,12 @@ fn append_note_metadata_lines(
                 annotations
             ));
 
-            if let Ok(note) = store.get_note(link_id) {
+            if let Ok(note) = ctx.store.get_note(link_id) {
                 append_summary_line(lines, link_id, &note);
             }
 
-            if cli.with_compaction_ids {
-                append_compaction_lines(lines, link_id, cli, compaction_ctx);
+            if ctx.cli.with_compaction_ids {
+                append_compaction_lines(lines, link_id, ctx.cli, ctx.compaction_ctx);
             }
         }
     }
@@ -228,33 +241,17 @@ fn output_with_truncation(header_base: &str, lines: &[String], max_chars: Option
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn output_path_records(
-    result: &PathResult,
-    store: &Store,
-    opts: &TreeOptions,
-    cli: &Cli,
-    compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&HashMap<&str, &Note>>,
-    all_notes: &[Note],
-) {
+pub fn output_path_records(result: &PathResult, ctx: &LinkOutputContext, opts: &TreeOptions) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
 
     if result.found {
-        append_tree_notes(
-            &mut lines,
-            &result.notes,
-            store,
-            cli,
-            compaction_ctx,
-            note_map,
-            all_notes,
-        );
+        append_tree_notes(&mut lines, &result.notes, ctx);
         append_tree_links(&mut lines, &result.links);
     }
 
     let found_str = if result.found { "true" } else { "false" };
-    let store_path = path_relative_to_cwd(store.root());
+    let store_path = path_relative_to_cwd(ctx.store.root());
     let header_base = format!(
         "H qipu=1 records=1 store={} mode=link.path from={} to={} direction={} found={} length={} truncated=",
         store_path,
@@ -269,30 +266,14 @@ pub fn output_path_records(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn output_tree_records(
-    result: &TreeResult,
-    store: &Store,
-    opts: &TreeOptions,
-    cli: &Cli,
-    compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&HashMap<&str, &Note>>,
-    all_notes: &[Note],
-) {
+pub fn output_tree_records(result: &TreeResult, ctx: &LinkOutputContext, opts: &TreeOptions) {
     let budget = opts.max_chars;
     let mut lines = Vec::new();
 
-    append_tree_notes(
-        &mut lines,
-        &result.notes,
-        store,
-        cli,
-        compaction_ctx,
-        note_map,
-        all_notes,
-    );
+    append_tree_notes(&mut lines, &result.notes, ctx);
     append_tree_links(&mut lines, &result.links);
 
-    let store_path = path_relative_to_cwd(store.root());
+    let store_path = path_relative_to_cwd(ctx.store.root());
     let header_base = format!(
         "H qipu=1 records=1 store={} mode=link.tree root={} direction={} max_hops={} truncated=",
         store_path, result.root, result.direction, result.max_hops
@@ -302,15 +283,7 @@ pub fn output_tree_records(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn append_tree_notes(
-    lines: &mut Vec<String>,
-    notes: &[TreeNote],
-    store: &Store,
-    cli: &Cli,
-    compaction_ctx: Option<&CompactionContext>,
-    note_map: Option<&HashMap<&str, &Note>>,
-    all_notes: &[Note],
-) {
+fn append_tree_notes(lines: &mut Vec<String>, notes: &[TreeNote], ctx: &LinkOutputContext) {
     for note in notes {
         let tags_csv = if note.tags.is_empty() {
             "-".to_string()
@@ -319,14 +292,14 @@ fn append_tree_notes(
         };
 
         let mut annotations = String::new();
-        if let Some(ctx) = compaction_ctx {
-            let compacts_count = ctx.get_compacts_count(&note.id);
+        if let Some(compact_ctx) = ctx.compaction_ctx {
+            let compacts_count = compact_ctx.get_compacts_count(&note.id);
             if compacts_count > 0 {
                 annotations.push_str(&format!(" compacts={}", compacts_count));
 
-                if let Some(map) = note_map {
+                if let Some(map) = ctx.note_map {
                     if let Some(full_note) = map.get(note.id.as_str()) {
-                        if let Some(pct) = ctx.get_compaction_pct(full_note, map) {
+                        if let Some(pct) = compact_ctx.get_compaction_pct(full_note, map) {
                             annotations.push_str(&format!(" compaction={:.0}%", pct));
                         }
                     }
@@ -344,15 +317,15 @@ fn append_tree_notes(
             annotations
         ));
 
-        if cli.with_compaction_ids {
-            append_compaction_lines(lines, &note.id, cli, compaction_ctx);
+        if ctx.cli.with_compaction_ids {
+            append_compaction_lines(lines, &note.id, ctx.cli, ctx.compaction_ctx);
         }
 
-        if cli.expand_compaction {
-            append_compacted_notes(lines, &note.id, cli, compaction_ctx, all_notes);
+        if ctx.cli.expand_compaction {
+            append_compacted_notes(lines, &note.id, ctx.cli, ctx.compaction_ctx, ctx.all_notes);
         }
 
-        if let Ok(full_note) = store.get_note(&note.id) {
+        if let Ok(full_note) = ctx.store.get_note(&note.id) {
             append_summary_line(lines, &note.id, &full_note);
         }
     }

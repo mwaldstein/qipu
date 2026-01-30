@@ -26,7 +26,7 @@ use qipu_core::store::Store;
 
 use super::{
     human::output_tree_human, json::output_tree_json, records::output_tree_records,
-    resolve_note_id, TreeOptions,
+    resolve_note_id, LinkOutputContext, TreeOptions,
 };
 
 /// Execute the link tree command
@@ -84,15 +84,16 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, opts: TreeOptions) ->
             );
         }
         OutputFormat::Records => {
-            output_tree_records(
-                &result,
+            let ctx = LinkOutputContext::new(
                 store,
-                &opts,
+                &index,
                 cli,
                 bundle.ctx.as_ref(),
                 note_map.as_ref(),
+                opts.max_chars,
                 &all_notes,
             );
+            output_tree_records(&result, &ctx, &opts);
         }
     }
 

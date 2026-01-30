@@ -184,17 +184,16 @@ pub fn execute(
             );
         }
         OutputFormat::Records => {
-            records::output_records(
-                &entries,
+            let ctx = records::LinkOutputContext::new(
                 store,
                 &index,
-                &display_id,
-                direction,
                 cli,
                 compaction_ctx.as_ref(),
                 note_map.as_ref(),
                 max_chars,
+                &[],
             );
+            records::output_records(&entries, &ctx, &display_id, direction);
         }
     }
 

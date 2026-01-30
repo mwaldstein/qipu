@@ -25,10 +25,10 @@ pub fn find_by_2hop_neighborhood(
 
     let mut one_hop = std::collections::HashSet::new();
     for edge in outbound {
-        one_hop.insert(edge.to.clone());
+        one_hop.insert(edge.to.as_str());
     }
     for edge in inbound {
-        one_hop.insert(edge.from.clone());
+        one_hop.insert(edge.from.as_str());
     }
 
     for neighbor_id in &one_hop {
@@ -36,12 +36,12 @@ pub fn find_by_2hop_neighborhood(
         let inbound = index.get_inbound_edges(neighbor_id);
 
         for edge in outbound {
-            if edge.to != note_id && !one_hop.contains(&edge.to) {
+            if edge.to != note_id && !one_hop.contains(edge.to.as_str()) {
                 *neighbor_counts.entry(edge.to.clone()).or_insert(0) += 1;
             }
         }
         for edge in inbound {
-            if edge.from != note_id && !one_hop.contains(&edge.from) {
+            if edge.from != note_id && !one_hop.contains(edge.from.as_str()) {
                 *neighbor_counts.entry(edge.from.clone()).or_insert(0) += 1;
             }
         }

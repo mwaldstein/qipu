@@ -9,12 +9,6 @@ use crate::index::Edge;
 use crate::store::Store;
 use std::collections::{HashMap, HashSet};
 
-/// Trait for traversal state that supports limit checking
-trait TraversalState {
-    fn visited_count(&self) -> usize;
-    fn links_count(&self) -> usize;
-}
-
 /// Check limits and return false if traversal should stop
 pub fn check_limits(
     visited_len: usize,
@@ -121,9 +115,9 @@ pub fn collect_outbound_neighbors(
     let mut neighbors = Vec::new();
     for source_id in source_ids {
         for edge in provider.get_outbound_edges(source_id) {
-            if filter_edge(&edge, opts) {
+            if filter_edge(edge, opts) {
                 let to = edge.to.clone();
-                neighbors.push((to, edge));
+                neighbors.push((to, edge.clone()));
             }
         }
     }
@@ -146,9 +140,9 @@ pub fn collect_inbound_neighbors(
                     let to = virtual_edge.to.clone();
                     neighbors.push((to, virtual_edge));
                 }
-            } else if filter_edge(&edge, opts) {
+            } else if filter_edge(edge, opts) {
                 let from = edge.from.clone();
-                neighbors.push((from, edge));
+                neighbors.push((from, edge.clone()));
             }
         }
     }

@@ -134,7 +134,7 @@ fn process_neighbor(
             state.notes.push(TreeNote {
                 id: meta.id.clone(),
                 title: meta.title.clone(),
-                note_type: meta.note_type,
+                note_type: meta.note_type.clone(),
                 tags: meta.tags.clone(),
                 path: meta.path.clone(),
                 via: via_for_link,
@@ -176,7 +176,7 @@ pub fn bfs_traverse(
         state.notes.push(TreeNote {
             id: meta.id.clone(),
             title: meta.title.clone(),
-            note_type: meta.note_type,
+            note_type: meta.note_type.clone(),
             tags: meta.tags.clone(),
             path: meta.path.clone(),
             via: None,

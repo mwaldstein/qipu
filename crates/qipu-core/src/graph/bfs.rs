@@ -65,9 +65,9 @@ fn collect_neighbors(
     if opts.direction == Direction::Out || opts.direction == Direction::Both {
         for source_id in source_ids {
             for edge in provider.get_outbound_edges(source_id) {
-                if filter_edge(&edge, opts) {
+                if filter_edge(edge, opts) {
                     let to = edge.to.clone();
-                    neighbors.push((to, edge));
+                    neighbors.push((to, edge.clone()));
                 }
             }
         }
@@ -82,9 +82,9 @@ fn collect_neighbors(
                         let to = virtual_edge.to.clone();
                         neighbors.push((to, virtual_edge));
                     }
-                } else if filter_edge(&edge, opts) {
+                } else if filter_edge(edge, opts) {
                     let from = edge.from.clone();
-                    neighbors.push((from, edge));
+                    neighbors.push((from, edge.clone()));
                 }
             }
         }
@@ -392,7 +392,7 @@ fn reconstruct_path(
             provider.get_metadata(id).map(|meta| TreeNote {
                 id: meta.id.clone(),
                 title: meta.title.clone(),
-                note_type: meta.note_type,
+                note_type: meta.note_type.clone(),
                 tags: meta.tags.clone(),
                 path: meta.path.clone(),
                 via: via.clone(),

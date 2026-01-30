@@ -178,6 +178,7 @@ pub(super) mod dispatch_command {
             args.minimal,
             args.full,
             args.mcp,
+            args.use_prime_md,
             ctx.start,
         )
     }

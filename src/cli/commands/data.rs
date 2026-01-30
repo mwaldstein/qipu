@@ -245,4 +245,8 @@ pub struct PrimeArgs {
     /// Force minimal MCP output (~50 tokens)
     #[arg(long, conflicts_with = "full")]
     pub mcp: bool,
+
+    /// Use store-local PRIME.md override file if it exists
+    #[arg(long)]
+    pub use_prime_md: bool,
 }

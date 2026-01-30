@@ -104,6 +104,7 @@ pub(super) fn handle_index(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_prime(
     cli: &Cli,
     root: &Path,
@@ -111,13 +112,14 @@ pub(super) fn handle_prime(
     minimal: bool,
     full: bool,
     mcp: bool,
+    use_prime_md: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discover_store");
     }
-    commands::prime::execute(cli, &store, compact, minimal, full, mcp)?;
+    commands::prime::execute(cli, &store, compact, minimal, full, mcp, use_prime_md)?;
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");
     }

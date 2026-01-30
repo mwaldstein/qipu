@@ -36,7 +36,18 @@ pub fn execute(
     minimal: bool,
     full: bool,
     mcp: bool,
+    use_prime_md: bool,
 ) -> Result<()> {
+    // Check for store-local PRIME.md override
+    if use_prime_md {
+        let prime_md_path = store.root().join("PRIME.md");
+        if prime_md_path.exists() {
+            let content = std::fs::read_to_string(&prime_md_path)?;
+            print!("{}", content);
+            return Ok(());
+        }
+    }
+
     let config = store.config();
     let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
 

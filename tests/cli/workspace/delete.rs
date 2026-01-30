@@ -1,0 +1,121 @@
+use crate::cli::support::qipu;
+use predicates::prelude::*;
+use tempfile::tempdir;
+
+#[test]
+fn test_workspace_delete_removes_workspace() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "new", "test-workspace"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "delete", "test-workspace"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Deleted workspace"));
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("(primary)"))
+        .stdout(predicate::str::contains("test-workspace").not());
+}
+
+#[test]
+fn test_workspace_delete_nonexistent() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "delete", "nonexistent-workspace"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
+
+#[test]
+fn test_workspace_delete_with_unmerged_changes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "new", "test-workspace"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--workspace", "test-workspace", "create", "New Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "delete", "test-workspace"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unmerged"))
+        .stderr(predicate::str::contains("--force"));
+}
+
+#[test]
+fn test_workspace_delete_force_with_unmerged_changes() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "new", "test-workspace"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["--workspace", "test-workspace", "create", "New Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "delete", "--force", "test-workspace"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Deleted workspace"));
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("test-workspace").not());
+}

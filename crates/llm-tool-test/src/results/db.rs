@@ -53,3 +53,50 @@ impl ResultsDB {
         Ok(records.into_iter().find(|r| r.id == id))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::results::test_helpers::{create_test_record, TestDb};
+
+    #[test]
+    fn test_results_db_append_and_load_all() {
+        let test_db = TestDb::new();
+
+        let record1 = create_test_record("run-1");
+        let record2 = create_test_record("run-2");
+
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
+
+        let loaded = test_db.db.load_all().unwrap();
+        assert_eq!(loaded.len(), 2);
+        assert_eq!(loaded[0].id, "run-1");
+        assert_eq!(loaded[1].id, "run-2");
+    }
+
+    #[test]
+    fn test_results_db_load_empty() {
+        let test_db = TestDb::new();
+
+        let loaded = test_db.db.load_all().unwrap();
+        assert_eq!(loaded.len(), 0);
+    }
+
+    #[test]
+    fn test_results_db_load_by_id() {
+        let test_db = TestDb::new();
+
+        let record1 = create_test_record("run-1");
+        let record2 = create_test_record("run-2");
+
+        test_db.db.append(&record1).unwrap();
+        test_db.db.append(&record2).unwrap();
+
+        let loaded = test_db.db.load_by_id("run-1").unwrap();
+        assert!(loaded.is_some());
+        assert_eq!(loaded.unwrap().id, "run-1");
+
+        let not_found = test_db.db.load_by_id("run-3").unwrap();
+        assert!(not_found.is_none());
+    }
+}

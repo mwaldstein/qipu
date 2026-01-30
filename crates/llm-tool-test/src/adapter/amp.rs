@@ -9,18 +9,12 @@ use std::path::Path;
 pub struct AmpAdapter;
 
 impl ToolAdapter for AmpAdapter {
-    fn name(&self) -> &str {
-        "amp"
-    }
-
     fn is_available(&self) -> Result<super::ToolStatus, super::AdapterError> {
         let runner = SessionRunner::new();
         match runner.run_command("amp", &["--version"], Path::new("."), 10) {
-            Ok((output, _)) => {
-                let version = output.trim().to_string();
+            Ok(_) => {
                 Ok(super::ToolStatus {
                     available: true,
-                    version: Some(version),
                     authenticated: true, // amp doesn't require auth
                 })
             }
@@ -29,62 +23,6 @@ impl ToolAdapter for AmpAdapter {
                 e
             ))),
         }
-    }
-
-    fn execute_task(
-        &self,
-        context: &super::TaskContext,
-        work_dir: &Path,
-        transcript_dir: &Path,
-    ) -> Result<super::ExecutionResult, super::AdapterError> {
-        use std::time::Instant;
-
-        let start = Instant::now();
-        let runner = SessionRunner::new();
-
-        // Write the full prompt (system + task) to a file
-        let full_prompt = format!(
-            "{}\n\n---\n\n{}",
-            context.system_prompt, context.task_prompt
-        );
-        let prompt_path = work_dir.join("prompt.txt");
-        fs::write(&prompt_path, &full_prompt).map_err(|e| {
-            super::AdapterError::ExecutionFailed(format!("Failed to write prompt: {}", e))
-        })?;
-
-        let prompt_arg = format!("@{}", prompt_path.display());
-        let args = vec!["-x", &prompt_arg];
-
-        let timeout_secs = context.timeout.as_secs();
-        let (output, exit_code) = runner
-            .run_command("amp", &args, work_dir, timeout_secs)
-            .map_err(|e| {
-                super::AdapterError::ExecutionFailed(format!("amp execution failed: {}", e))
-            })?;
-
-        // Write transcript
-        let transcript_path = transcript_dir.join("transcript.raw.txt");
-        fs::write(&transcript_path, &output).map_err(|e| {
-            super::AdapterError::ExecutionFailed(format!("Failed to write transcript: {}", e))
-        })?;
-
-        let duration = start.elapsed();
-
-        Ok(super::ExecutionResult {
-            exit_code,
-            duration,
-            token_usage: None,
-            cost_estimate: None,
-        })
-    }
-
-    fn estimate_cost(&self, prompt_tokens: usize) -> Option<super::CostEstimate> {
-        // Estimate based on typical amp pricing (smart mode)
-        let input_cost = (prompt_tokens as f64) / 1_000_000.0 * 3.0; // $3/M tokens
-        let output_cost = (prompt_tokens as f64 * 0.5) / 1_000_000.0 * 15.0; // $15/M tokens, assume 0.5x output
-        Some(super::CostEstimate {
-            estimated_usd: input_cost + output_cost,
-        })
     }
 
     fn check_availability(&self) -> anyhow::Result<()> {

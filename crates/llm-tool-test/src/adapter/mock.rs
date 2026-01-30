@@ -89,42 +89,10 @@ impl MockAdapter {
 }
 
 impl ToolAdapter for MockAdapter {
-    fn name(&self) -> &str {
-        "mock"
-    }
-
     fn is_available(&self) -> Result<super::ToolStatus, super::AdapterError> {
         Ok(super::ToolStatus {
             available: true,
-            version: Some("1.0.0-mock".to_string()),
             authenticated: true,
-        })
-    }
-
-    fn execute_task(
-        &self,
-        _context: &super::TaskContext,
-        _work_dir: &Path,
-        _transcript_dir: &Path,
-    ) -> Result<super::ExecutionResult, super::AdapterError> {
-        use std::time::Instant;
-
-        let start = Instant::now();
-
-        let duration = start.elapsed();
-
-        Ok(super::ExecutionResult {
-            exit_code: 0,
-            duration,
-            token_usage: None,
-            cost_estimate: None,
-        })
-    }
-
-    fn estimate_cost(&self, prompt_tokens: usize) -> Option<super::CostEstimate> {
-        // Mock adapter has very low cost
-        Some(super::CostEstimate {
-            estimated_usd: (prompt_tokens as f64) * 0.000001,
         })
     }
 

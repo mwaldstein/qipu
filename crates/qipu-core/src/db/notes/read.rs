@@ -257,125 +257,21 @@ impl super::super::Database {
             )
             .map_err(|e| QipuError::Other(format!("failed to prepare query: {}", e)))?;
 
-        let note_opt = stmt.query_row(params![note_id], |row| {
-            let id: String = row.get(0)?;
-            let title: String = row.get(1)?;
-            let type_str: String = row.get(2)?;
-            let path: String = row.get(3)?;
-            let created: Option<String> = row.get(4)?;
-            let updated: Option<String> = row.get(5)?;
-            let body: String = row.get(6)?;
-            let value: Option<i64> = row.get(7)?;
-            let compacts_json: String = row.get(8)?;
-            let author: Option<String> = row.get(9)?;
-            let verified: Option<i64> = row.get(10)?;
-            let source: Option<String> = row.get(11)?;
-            let sources_json: String = row.get(12)?;
-            let generated_by: Option<String> = row.get(13)?;
-            let prompt_hash: Option<String> = row.get(14)?;
-            let custom_json: String = row.get(15)?;
+        let mut rows = stmt
+            .query(params![note_id])
+            .map_err(|e| QipuError::Other(format!("failed to execute query: {}", e)))?;
 
-            let note_type = parse_note_type_sqlite(&type_str)?;
-            let created_dt = parse_datetime(created);
-            let updated_dt = parse_datetime(updated);
-            let value_opt = parse_value(value);
-            let verified_opt = parse_verified(verified);
+        let row_opt = rows
+            .next()
+            .map_err(|e| QipuError::Other(format!("failed to read note row: {}", e)))?;
 
-            Ok((
-                id,
-                title,
-                note_type,
-                path,
-                created_dt,
-                updated_dt,
-                body,
-                value_opt,
-                compacts_json,
-                author,
-                verified_opt,
-                source,
-                sources_json,
-                generated_by,
-                prompt_hash,
-                custom_json,
-            ))
-        });
-
-        match note_opt {
-            Ok(raw) => self.build_note_from_query_result(raw),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(QipuError::Other(format!("failed to query note: {}", e))),
+        match row_opt {
+            Some(row) => {
+                let note = self.build_note_from_row(row)?;
+                Ok(Some(note))
+            }
+            None => Ok(None),
         }
-    }
-
-    fn build_note_from_query_result(
-        &self,
-        (
-            id,
-            title,
-            note_type,
-            path,
-            created,
-            updated,
-            body,
-            value,
-            compacts_json,
-            author,
-            verified,
-            source,
-            sources_json,
-            generated_by,
-            prompt_hash,
-            custom_json,
-        ): (
-            String,
-            String,
-            NoteType,
-            String,
-            Option<chrono::DateTime<Utc>>,
-            Option<chrono::DateTime<Utc>>,
-            String,
-            Option<u8>,
-            String,
-            Option<String>,
-            Option<bool>,
-            Option<String>,
-            String,
-            Option<String>,
-            Option<String>,
-            String,
-        ),
-    ) -> Result<Option<Note>> {
-        let tags = load_tags(&self.conn, &id)?;
-        let links = load_links(&self.conn, &id)?;
-        let compacts = load_compacts(&compacts_json);
-        let sources = load_sources(&sources_json);
-        let custom = load_custom(&custom_json);
-
-        let frontmatter = build_frontmatter(
-            id.clone(),
-            title,
-            note_type,
-            created,
-            updated,
-            tags,
-            sources,
-            links,
-            compacts,
-            source,
-            author,
-            generated_by,
-            prompt_hash,
-            verified,
-            value,
-            custom,
-        );
-
-        Ok(Some(Note {
-            frontmatter,
-            body,
-            path: Some(PathBuf::from(path)),
-        }))
     }
 
     pub fn list_note_ids(&self) -> Result<Vec<String>> {

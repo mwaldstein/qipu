@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use tempfile::TempDir;
 
 pub struct TestDb {
-    #[allow(dead_code)]
+    /// TempDir field to keep the temporary directory alive.
+    /// The directory is automatically cleaned up when TestDb is dropped.
     pub temp_dir: TempDir,
     pub db: ResultsDB,
 }

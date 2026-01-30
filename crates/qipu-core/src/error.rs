@@ -81,6 +81,43 @@ pub enum QipuError {
 }
 
 impl QipuError {
+    /// Create an error for a failed database operation
+    pub fn db_operation(operation: &str, error: impl std::fmt::Display) -> Self {
+        QipuError::Other(format!("failed to {}: {}", operation, error))
+    }
+
+    /// Create an error for a failed transaction operation
+    pub fn transaction(operation: &str, error: impl std::fmt::Display) -> Self {
+        QipuError::Other(format!("failed to {} transaction: {}", operation, error))
+    }
+
+    /// Create an error for a failed field extraction from database row
+    pub fn field_extraction(field: &str, error: impl std::fmt::Display) -> Self {
+        QipuError::Other(format!("failed to get {}: {}", field, error))
+    }
+
+    /// Create an error for a failed note operation
+    pub fn note_operation(note_id: &str, operation: &str, error: impl std::fmt::Display) -> Self {
+        QipuError::Other(format!(
+            "failed to {} note {}: {}",
+            operation, note_id, error
+        ))
+    }
+
+    /// Create an error for a failed IO operation with context
+    pub fn io_operation(
+        operation: &str,
+        path: impl std::fmt::Display,
+        error: impl std::fmt::Display,
+    ) -> Self {
+        QipuError::Other(format!("failed to {} {}: {}", operation, path, error))
+    }
+
+    /// Create an error for an invalid value or configuration
+    pub fn invalid_value(context: &str, value: impl std::fmt::Display) -> Self {
+        QipuError::Other(format!("invalid {}: {}", context, value))
+    }
+
     /// Get the appropriate exit code for this error
     pub fn exit_code(&self) -> ExitCode {
         match self {

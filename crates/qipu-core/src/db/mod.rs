@@ -27,9 +27,8 @@ use std::path::Path;
 #[macro_export]
 macro_rules! extract {
     ($row:expr, $idx:expr, $field:expr) => {
-        $row.get($idx).map_err(|e| {
-            $crate::error::QipuError::Other(format!("failed to get {}: {}", $field, e))
-        })
+        $row.get($idx)
+            .map_err(|e| $crate::error::QipuError::field_extraction($field, e))
     };
 }
 

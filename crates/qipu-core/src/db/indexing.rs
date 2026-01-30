@@ -166,16 +166,16 @@ impl super::Database {
         let tx = self
             .conn
             .unchecked_transaction()
-            .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
+            .map_err(|e| QipuError::transaction("start", e))?;
 
         tx.execute("DELETE FROM tags", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear tags: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear tags", e))?;
 
         tx.execute("DELETE FROM edges", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear edges: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear edges", e))?;
 
         tx.execute("DELETE FROM notes", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear notes: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear notes", e))?;
 
         for note in &notes {
             Self::insert_note_basic(&tx, note)?;
@@ -183,7 +183,7 @@ impl super::Database {
         }
 
         tx.commit()
-            .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;
+            .map_err(|e| QipuError::transaction("commit", e))?;
 
         Ok(())
     }
@@ -334,16 +334,16 @@ impl super::Database {
         let tx = self
             .conn
             .unchecked_transaction()
-            .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
+            .map_err(|e| QipuError::transaction("start", e))?;
 
         tx.execute("DELETE FROM tags", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear tags: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear tags", e))?;
 
         tx.execute("DELETE FROM edges", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear edges: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear edges", e))?;
 
         tx.execute("DELETE FROM notes", [])
-            .map_err(|e| QipuError::Other(format!("failed to clear notes: {}", e)))?;
+            .map_err(|e| QipuError::db_operation("clear notes", e))?;
 
         for note in &notes {
             Self::insert_note_basic(&tx, note)?;
@@ -351,7 +351,7 @@ impl super::Database {
         }
 
         tx.commit()
-            .map_err(|e| QipuError::Other(format!("failed to commit transaction: {}", e)))?;
+            .map_err(|e| QipuError::transaction("commit", e))?;
 
         tracing::info!(
             "Quick-indexed {} notes (MOCs + {} recent)",

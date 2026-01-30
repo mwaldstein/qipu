@@ -1,5 +1,4 @@
 use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_capture_auto_title_from_content() {

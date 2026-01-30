@@ -1,6 +1,5 @@
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
-use tempfile::tempdir;
 
 #[test]
 fn test_compact_suggest_prefers_low_value() {

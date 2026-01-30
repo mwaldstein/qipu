@@ -1,5 +1,4 @@
 use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
 
 #[test]
 fn test_context_records_with_body_and_sources() {

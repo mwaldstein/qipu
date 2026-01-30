@@ -1,7 +1,6 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id_from_bytes, qipu};
 use std::fs;
-use tempfile::tempdir;
 
 #[test]
 fn test_capture_with_provenance() {

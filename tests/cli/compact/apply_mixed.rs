@@ -1,7 +1,6 @@
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use std::io::Write;
-use tempfile::tempdir;
 
 #[test]
 fn test_compact_apply_mixed_sources() {

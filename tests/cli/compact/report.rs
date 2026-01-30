@@ -3,7 +3,6 @@ use predicates::prelude::*;
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use tempfile::tempdir;
 
 // ============================================================================
 // Compaction report tests

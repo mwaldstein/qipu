@@ -71,7 +71,7 @@ jobs:
             echo "ERROR: $file has $lines lines (>500)"
             violation_found=true
           fi
-        done < <(find src -name "*.rs" -print0)
+        done < <(find src crates -name "*.rs" -print0)
 
         if [ "$violation_found" = true ]; then
           echo ""

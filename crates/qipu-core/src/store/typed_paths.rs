@@ -5,9 +5,13 @@
 //!
 //! # Example
 //! ```
-//! let store = Store::discover(&root)?;
-//! let note_path: NotePath = store.note_path("my-note.md");
+//! # use qipu_core::store::{Store, typed_paths::{NotePath, StorePathBuilder}, InitOptions};
+//! # use std::path::PathBuf;
+//! # let dir = tempfile::tempdir().unwrap();
+//! let store = Store::init(dir.path(), InitOptions::default())?;
+//! let note_path: NotePath = store.path_for_note("my-note.md");
 //! let file_path: PathBuf = note_path.into();
+//! # Ok::<(), qipu_core::error::QipuError>(())
 //! ```
 
 use std::path::{Path, PathBuf};

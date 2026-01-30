@@ -6,7 +6,7 @@ use crate::note::Note;
 use crate::store::Store;
 use crate::text::tokenize_with_stemming;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Index builder - handles construction and updates
 pub struct IndexBuilder<'a> {
@@ -52,15 +52,17 @@ impl<'a> IndexBuilder<'a> {
     fn build_note_index(&mut self, notes: &[Note], use_stemming: bool) {
         for note in notes {
             let path = match &note.path {
-                Some(p) => p.clone(),
+                Some(p) => p,
                 None => continue,
             };
 
             let term_freqs = self.compute_term_frequencies(note, use_stemming);
-            self.update_term_statistics(note.id(), &term_freqs);
-            let meta = self.build_note_metadata(note, &path, &term_freqs);
+            self.update_term_statistics(note.id(), term_freqs);
+            let meta = self.build_note_metadata(note, path);
             self.update_tag_index(&meta);
-            self.index.metadata.insert(meta.id.clone(), meta);
+            self.index
+                .metadata
+                .insert(meta.id.as_str().to_owned(), meta);
         }
     }
 
@@ -84,9 +86,9 @@ impl<'a> IndexBuilder<'a> {
         term_freqs
     }
 
-    fn update_term_statistics(&mut self, note_id: &str, term_freqs: &HashMap<String, f64>) {
+    fn update_term_statistics(&mut self, note_id: &str, term_freqs: HashMap<String, f64>) {
         let word_count = term_freqs.values().map(|&f| f as usize).sum();
-        let unique_terms: HashSet<String> = term_freqs.keys().cloned().collect();
+        let unique_terms: Vec<String> = term_freqs.keys().map(|s| s.as_str().to_owned()).collect();
 
         self.index.total_docs += 1;
         self.index.total_len += word_count;
@@ -95,19 +97,18 @@ impl<'a> IndexBuilder<'a> {
             .insert(note_id.to_string(), word_count);
 
         for term in &unique_terms {
-            *self.index.term_df.entry(term.clone()).or_insert(0) += 1;
+            *self
+                .index
+                .term_df
+                .entry(term.as_str().to_owned())
+                .or_insert(0) += 1;
         }
         self.index
             .note_terms
-            .insert(note_id.to_string(), term_freqs.clone());
+            .insert(note_id.to_string(), term_freqs);
     }
 
-    fn build_note_metadata(
-        &self,
-        note: &Note,
-        path: &PathBuf,
-        _term_freqs: &HashMap<String, f64>,
-    ) -> NoteMetadata {
+    fn build_note_metadata(&self, note: &Note, path: &Path) -> NoteMetadata {
         NoteMetadata {
             id: note.id().to_string(),
             title: note.title().to_string(),
@@ -163,8 +164,7 @@ impl<'a> IndexBuilder<'a> {
         });
     }
 
-    #[allow(clippy::ptr_arg)]
-    fn relative_path(&self, path: &PathBuf) -> String {
+    fn relative_path(&self, path: &Path) -> String {
         path.strip_prefix(self.store.root())
             .unwrap_or(path)
             .to_string_lossy()

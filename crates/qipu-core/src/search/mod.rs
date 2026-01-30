@@ -5,6 +5,7 @@ use crate::index::SearchResult;
 
 use crate::store::Store;
 use std::collections::HashMap;
+use std::mem;
 
 /// Process search results with compaction resolution, filtering, and sorting
 #[tracing::instrument(skip(results, store, compaction_ctx, _compaction_note_map), fields(results_count = results.len(), exclude_mocs, sort = ?sort))]
@@ -31,17 +32,21 @@ pub fn process_search_results(
                 if let Ok(canonical_id) = canonical_id {
                     if canonical_id != result.id {
                         if let Ok(Some(digest_meta)) = store.db().get_note_metadata(&canonical_id) {
-                            result.via = Some(result.id.clone());
-                            result.id = canonical_id.clone();
-                            result.title = digest_meta.title.clone();
+                            result.via = Some(mem::replace(&mut result.id, canonical_id));
+                            result.title = digest_meta.title.as_str().to_owned();
                             result.note_type = digest_meta.note_type;
-                            result.tags = digest_meta.tags.clone();
-                            result.path = digest_meta.path.clone();
+                            result.tags = digest_meta
+                                .tags
+                                .iter()
+                                .map(|s| s.as_str().to_owned())
+                                .collect();
+                            result.path = digest_meta.path.as_str().to_owned();
                         }
                     }
 
+                    let key = result.id.clone();
                     canonical_results
-                        .entry(result.id.clone())
+                        .entry(key)
                         .and_modify(|existing| {
                             if result.relevance > existing.relevance {
                                 *existing = result.clone();

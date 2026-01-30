@@ -21,7 +21,7 @@ pub(crate) fn extract_links(
 
     // Extract typed links from frontmatter
     for link in &note.frontmatter.links {
-        let to_id = link.id.clone();
+        let to_id = link.id.as_str().to_owned();
         if !valid_ids.contains(&to_id) {
             unresolved.insert(to_id);
             continue;

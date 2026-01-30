@@ -39,14 +39,14 @@ pub fn execute(
     let source_store = if source_name == "." {
         Store::discover(&root)?
     } else {
-        let path = primary_store.root().join(WORKSPACES_DIR).join(source_name);
+        let path = primary_store.workspaces_dir().join(source_name);
         Store::open(&path)?
     };
 
     let target_store = if target_name == "." {
         Store::discover(&root)?
     } else {
-        let path = primary_store.root().join(WORKSPACES_DIR).join(target_name);
+        let path = primary_store.workspaces_dir().join(target_name);
         Store::open(&path)?
     };
 

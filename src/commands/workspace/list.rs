@@ -32,7 +32,7 @@ pub fn execute(cli: &Cli) -> Result<()> {
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discovered_primary");
     }
-    let workspaces_dir = primary_store.root().join(WORKSPACES_DIR);
+    let workspaces_dir = primary_store.workspaces_dir();
 
     let mut workspaces = Vec::new();
 

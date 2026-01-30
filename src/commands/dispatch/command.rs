@@ -23,7 +23,7 @@ pub fn discover_or_open_store(cli: &Cli, root: &PathBuf) -> Result<Store> {
     };
 
     if let Some(workspace_name) = &cli.workspace {
-        let workspace_path = base_store.root().join(WORKSPACES_DIR).join(workspace_name);
+        let workspace_path = base_store.workspaces_dir().join(workspace_name);
         Store::open(&workspace_path)
     } else {
         Ok(base_store)

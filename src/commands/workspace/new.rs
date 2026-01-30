@@ -31,7 +31,7 @@ pub fn execute(
     let root = resolve_root_path(cli.root.clone());
 
     let primary_store = Store::discover(&root)?;
-    let workspace_path = primary_store.root().join(WORKSPACES_DIR).join(name);
+    let workspace_path = primary_store.workspaces_dir().join(name);
 
     if workspace_path.exists() {
         return Err(qipu_core::error::QipuError::Other(format!(

@@ -256,6 +256,31 @@ impl Store {
         self.root.join(MOCS_DIR)
     }
 
+    /// Get the attachments directory
+    pub fn attachments_dir(&self) -> PathBuf {
+        self.root.join(ATTACHMENTS_DIR)
+    }
+
+    /// Get the templates directory
+    pub fn templates_dir(&self) -> PathBuf {
+        self.root.join(TEMPLATES_DIR)
+    }
+
+    /// Get the workspaces directory
+    pub fn workspaces_dir(&self) -> PathBuf {
+        self.root.join(WORKSPACES_DIR)
+    }
+
+    /// Get the config file path
+    pub fn config_path(&self) -> PathBuf {
+        self.root.join(CONFIG_FILE)
+    }
+
+    /// Get the database file path
+    pub fn db_path(&self) -> PathBuf {
+        self.root.join("qipu.db")
+    }
+
     /// Get the config
     pub fn config(&self) -> &StoreConfig {
         &self.config

@@ -70,7 +70,7 @@ pub fn execute(
 
     if apply_config {
         if !pack_data.config_content.is_empty() {
-            let config_path = store.root().join("config.toml");
+            let config_path = store.config_path();
             std::fs::write(&config_path, &pack_data.config_content)
                 .map_err(|e| QipuError::Other(format!("failed to write config.toml: {}", e)))?;
             tracing::info!("Applied config from pack to {}", config_path.display());

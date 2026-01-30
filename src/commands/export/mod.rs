@@ -370,7 +370,7 @@ fn copy_attachments(
         for cap in re.captures_iter(&note.body) {
             let filename = &cap[2];
             if seen_attachments.insert(filename.to_string()) {
-                let source_path = store.root().join("attachments").join(filename);
+                let source_path = store.attachments_dir().join(filename);
                 if source_path.exists() {
                     if !target_dir.exists() {
                         fs::create_dir_all(target_dir)?;

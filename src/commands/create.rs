@@ -15,7 +15,7 @@ use tracing::debug;
 use crate::cli::Cli;
 use crate::commands::format::{dispatch_format, FormatDispatcher};
 use crate::commands::helpers::resolve_editor;
-use crate::commands::provenance::update_provenance_if_provided;
+use crate::commands::provenance::{update_provenance_if_provided, ProvenanceUpdate};
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
@@ -103,11 +103,13 @@ pub fn execute(
     let _ = update_provenance_if_provided(
         store,
         &mut note,
-        source,
-        author,
-        generated_by,
-        prompt_hash,
-        verified,
+        ProvenanceUpdate {
+            source,
+            author,
+            generated_by,
+            prompt_hash,
+            verified,
+        },
         false,
     )?;
 

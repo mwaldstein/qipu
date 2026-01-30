@@ -19,6 +19,61 @@ use tracing::debug;
 
 type CustomFilter = Arc<dyn Fn(&HashMap<String, serde_yaml::Value>) -> bool>;
 
+/// Mutable state maintained during note selection
+struct SelectionState<'a> {
+    selected_notes: Vec<SelectedNote<'a>>,
+    seen_ids: HashSet<String>,
+    via_map: HashMap<String, String>,
+}
+
+impl<'a> SelectionState<'a> {
+    fn new() -> Self {
+        Self {
+            selected_notes: Vec::new(),
+            seen_ids: HashSet::new(),
+            via_map: HashMap::new(),
+        }
+    }
+
+    fn add_note(
+        &mut self,
+        _id: &str,
+        resolved_id: String,
+        note_map: &'a HashMap<&'a str, &'a Note>,
+        via: Option<String>,
+        link_type: Option<LinkType>,
+    ) -> Result<()> {
+        // Check if via should be stored in via_map (for backlink and related notes)
+        let via_for_map = via.as_ref().and_then(|v| {
+            if v.starts_with("backlink:") || (v.contains(':') && !v.starts_with("walk:")) {
+                Some(v.clone())
+            } else {
+                None
+            }
+        });
+
+        if self.seen_ids.insert(resolved_id.clone()) {
+            let note =
+                note_map
+                    .get(resolved_id.as_str())
+                    .ok_or_else(|| QipuError::NoteNotFound {
+                        id: resolved_id.clone(),
+                    })?;
+            self.selected_notes.push(SelectedNote {
+                note,
+                via,
+                link_type,
+            });
+        }
+
+        if let Some(v) = via_for_map {
+            self.via_map.entry(resolved_id.clone()).or_insert(v);
+        }
+
+        Ok(())
+    }
+}
+
 /// Get note IDs linked from a MOC (including the MOC itself) with their link types
 /// Returns (note_id, link_type) pairs. For the MOC itself, link_type is None.
 pub fn get_moc_linked_ids(
@@ -39,7 +94,6 @@ pub fn get_moc_linked_ids(
     result.push((moc_id.to_string(), None));
 
     while let Some((current_id, _)) = queue.pop_front() {
-        // Get outbound edges from current note
         let edges = db.get_outbound_edges(&current_id)?;
 
         for edge in edges {
@@ -47,7 +101,6 @@ pub fn get_moc_linked_ids(
                 let link_type = edge.link_type.clone();
                 result.push((edge.to.clone(), Some(link_type.clone())));
 
-                // If transitive and target is a MOC, add to queue for further traversal
                 if transitive {
                     if let Some(meta) = db.get_note_metadata(&edge.to)? {
                         if meta.note_type.is_moc() {
@@ -68,6 +121,312 @@ pub fn get_moc_linked_ids(
     Ok(result)
 }
 
+/// Collect notes from a graph walk starting at walk_id
+fn collect_from_walk<'a>(
+    state: &mut SelectionState<'a>,
+    cli: &Cli,
+    store: &'a Store,
+    options: &ContextOptions<'a>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    let Some(walk_id) = options.walk_id else {
+        return Ok(());
+    };
+
+    let walked_ids = walk::walk_for_context(
+        cli,
+        store,
+        walk_id,
+        options.walk_direction,
+        options.walk_max_hops,
+        options.walk_type,
+        options.walk_exclude_type,
+        options.walk_typed_only,
+        options.walk_inline_only,
+        options.walk_max_nodes,
+        options.walk_max_edges,
+        options.walk_max_fanout,
+        options.walk_min_value,
+        options.walk_ignore_value,
+    )?;
+
+    for id in &walked_ids {
+        let resolved_id = resolve_id(id)?;
+        state.add_note(
+            id,
+            resolved_id,
+            note_map,
+            Some(format!("walk:{}", walk_id)),
+            None,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Collect notes from explicit note IDs
+fn collect_from_note_ids<'a>(
+    state: &mut SelectionState<'a>,
+    options: &ContextOptions<'a>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    for id in options.note_ids {
+        let resolved_id = resolve_id(id)?;
+        state.add_note(id, resolved_id, note_map, None, None)?;
+    }
+    Ok(())
+}
+
+/// Collect notes that have a specific tag
+fn collect_from_tag<'a>(
+    state: &mut SelectionState<'a>,
+    store: &'a Store,
+    options: &ContextOptions<'a>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    let Some(tag_name) = options.tag else {
+        return Ok(());
+    };
+
+    let notes_with_tag = store.db().list_notes(None, Some(tag_name), None)?;
+    for note in &notes_with_tag {
+        let resolved_id = resolve_id(&note.id)?;
+        state.add_note(&note.id, resolved_id, note_map, None, None)?;
+    }
+
+    Ok(())
+}
+
+/// Collect notes linked from a MOC
+fn collect_from_moc<'a>(
+    state: &mut SelectionState<'a>,
+    store: &'a Store,
+    options: &ContextOptions<'a>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    let Some(moc) = options.moc_id else {
+        return Ok(());
+    };
+
+    let linked_ids = get_moc_linked_ids(store.db(), moc, options.transitive)?;
+    for (id, link_type) in linked_ids {
+        let resolved_id = resolve_id(&id)?;
+        state.add_note(&id, resolved_id, note_map, None, link_type)?;
+    }
+
+    Ok(())
+}
+
+/// Collect notes from a search query
+fn collect_from_query<'a>(
+    state: &mut SelectionState<'a>,
+    cli: &Cli,
+    store: &'a Store,
+    options: &ContextOptions<'a>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    let Some(q) = options.query else {
+        return Ok(());
+    };
+
+    let results = store
+        .db()
+        .search(q, None, None, None, None, 100, &store.config().search)?;
+
+    for result in results {
+        let resolved_id = resolve_id(&result.id)?;
+        let via_source = if !cli.no_resolve_compaction && resolved_id != result.id {
+            Some(result.id.clone())
+        } else {
+            None
+        };
+
+        if let Some(via_id) = via_source {
+            state.via_map.entry(resolved_id.clone()).or_insert(via_id);
+        }
+
+        state.add_note(&result.id, resolved_id, note_map, None, None)?;
+    }
+
+    Ok(())
+}
+
+/// Collect backlinks to currently selected notes
+fn collect_backlinks<'a>(
+    state: &mut SelectionState<'a>,
+    store: &'a Store,
+    options: &ContextOptions<'_>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    if !options.backlinks {
+        return Ok(());
+    }
+
+    let mut backlink_notes: Vec<(String, String, LinkType)> = Vec::new();
+
+    for selected_note in &state.selected_notes {
+        let note_id = selected_note.note.id();
+        let backlinks = store.db().get_backlinks(note_id)?;
+
+        for backlink in backlinks {
+            if !state.seen_ids.contains(&backlink.from) {
+                backlink_notes.push((backlink.from, note_id.to_string(), backlink.link_type));
+            }
+        }
+    }
+
+    for (backlink_id, source_id, link_type) in backlink_notes {
+        let resolved_id = resolve_id(&backlink_id)?;
+        state
+            .via_map
+            .entry(resolved_id.clone())
+            .or_insert_with(|| format!("backlink:{}", source_id));
+        state.add_note(
+            &backlink_id,
+            resolved_id,
+            note_map,
+            Some(format!("backlink:{}", source_id)),
+            Some(link_type),
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Collect related notes based on similarity
+fn collect_related_notes<'a>(
+    state: &mut SelectionState<'a>,
+    cli: &Cli,
+    store: &'a Store,
+    options: &ContextOptions<'_>,
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    let Some(threshold) = options.related_threshold else {
+        return Ok(());
+    };
+
+    let start = Instant::now();
+    let index = IndexBuilder::new(store).build()?;
+
+    if cli.verbose {
+        debug!(elapsed = ?start.elapsed(), "load_indexes");
+    }
+
+    let engine = SimilarityEngine::new(&index);
+
+    let mut linked_ids: HashSet<String> = HashSet::new();
+    for selected_note in &state.selected_notes {
+        let note_id = selected_note.note.id();
+        let outbound_edges = index.get_outbound_edges(note_id);
+        for edge in outbound_edges {
+            linked_ids.insert(edge.to.clone());
+        }
+        let inbound_edges = index.get_inbound_edges(note_id);
+        for edge in inbound_edges {
+            linked_ids.insert(edge.from.clone());
+        }
+    }
+
+    let mut related_notes: Vec<(String, f64, String)> = Vec::new();
+
+    for selected_note in &state.selected_notes {
+        let note_id = selected_note.note.id();
+
+        let similar = engine.find_similar(note_id, 100, threshold);
+        for sim in similar {
+            if !state.seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                related_notes.push((sim.id, sim.score, "similarity".to_string()));
+            }
+        }
+
+        let shared_tags = engine.find_by_shared_tags(note_id, 100);
+        for sim in shared_tags {
+            if !state.seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                related_notes.push((sim.id, sim.score, "shared-tags".to_string()));
+            }
+        }
+
+        let two_hop = engine.find_by_2hop_neighborhood(note_id, 100);
+        for sim in two_hop {
+            if !state.seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
+                related_notes.push((sim.id, sim.score, "2hop".to_string()));
+            }
+        }
+    }
+
+    related_notes.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.partial_cmp(&a.1).unwrap()));
+    related_notes.dedup_by(|a, b| a.0 == b.0);
+    related_notes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+    for (related_id, score, method) in related_notes {
+        if state.seen_ids.contains(&related_id) {
+            continue;
+        }
+        let resolved_id = resolve_id(&related_id)?;
+        state
+            .via_map
+            .entry(resolved_id.clone())
+            .or_insert_with(|| format!("{}:{:.2}", method, score));
+        state.add_note(
+            &related_id,
+            resolved_id,
+            note_map,
+            Some(related_id.clone()),
+            None,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Collect all notes when no specific criteria provided (with filters)
+fn collect_all_notes<'a>(
+    state: &mut SelectionState<'a>,
+    options: &ContextOptions<'_>,
+    all_notes: &'a [Note],
+    note_map: &'a HashMap<&'a str, &'a Note>,
+    resolve_id: &dyn Fn(&str) -> Result<String>,
+) -> Result<()> {
+    if !options.note_ids.is_empty()
+        || options.tag.is_some()
+        || options.moc_id.is_some()
+        || options.query.is_some()
+        || options.walk_id.is_some()
+    {
+        return Ok(());
+    }
+
+    if options.min_value.is_none() && options.custom_filter.is_empty() {
+        return Err(QipuError::UsageError(
+            "no selection criteria provided. Use --note, --tag, --moc, --query, --walk, --min-value, or --custom-filter"
+                .to_string(),
+        ));
+    }
+
+    for note in all_notes {
+        let resolved_id = resolve_id(note.id())?;
+        state.add_note(note.id(), resolved_id, note_map, None, None)?;
+    }
+
+    Ok(())
+}
+
+/// Apply via_map to selected notes that have entries
+fn apply_via_map(state: &mut SelectionState<'_>) {
+    for selected in &mut state.selected_notes {
+        if let Some(via) = state.via_map.get(selected.note.id()) {
+            selected.via = Some(via.clone());
+        }
+    }
+}
+
 /// Collect all selected notes based on selection criteria and expansion options
 pub fn collect_selected_notes<'a>(
     cli: &Cli,
@@ -77,9 +436,7 @@ pub fn collect_selected_notes<'a>(
     compaction_ctx: &'a CompactionContext,
     note_map: &'a HashMap<&'a str, &'a Note>,
 ) -> Result<(Vec<SelectedNote<'a>>, HashMap<String, String>)> {
-    let mut selected_notes: Vec<SelectedNote<'a>> = Vec::new();
-    let mut seen_ids: HashSet<String> = HashSet::new();
-    let mut via_map: HashMap<String, String> = HashMap::new();
+    let mut state = SelectionState::new();
 
     let resolve_id = |id: &str| -> Result<String> {
         if cli.no_resolve_compaction {
@@ -89,283 +446,21 @@ pub fn collect_selected_notes<'a>(
         }
     };
 
-    if let Some(walk_id) = options.walk_id {
-        let walked_ids = walk::walk_for_context(
-            cli,
-            store,
-            walk_id,
-            options.walk_direction,
-            options.walk_max_hops,
-            options.walk_type,
-            options.walk_exclude_type,
-            options.walk_typed_only,
-            options.walk_inline_only,
-            options.walk_max_nodes,
-            options.walk_max_edges,
-            options.walk_max_fanout,
-            options.walk_min_value,
-            options.walk_ignore_value,
-        )?;
+    // Primary selection sources
+    collect_from_walk(&mut state, cli, store, options, note_map, &resolve_id)?;
+    collect_from_note_ids(&mut state, options, note_map, &resolve_id)?;
+    collect_from_tag(&mut state, store, options, note_map, &resolve_id)?;
+    collect_from_moc(&mut state, store, options, note_map, &resolve_id)?;
+    collect_from_query(&mut state, cli, store, options, note_map, &resolve_id)?;
+    collect_all_notes(&mut state, options, all_notes, note_map, &resolve_id)?;
 
-        for id in &walked_ids {
-            let resolved_id = resolve_id(id)?;
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: Some(format!("walk:{}", walk_id)),
-                    link_type: None,
-                });
-            }
-        }
-    }
+    // Expansion sources (depend on primary selections)
+    collect_backlinks(&mut state, store, options, note_map, &resolve_id)?;
+    collect_related_notes(&mut state, cli, store, options, note_map, &resolve_id)?;
 
-    for id in options.note_ids {
-        let resolved_id = resolve_id(id)?;
-        if seen_ids.insert(resolved_id.clone()) {
-            let note =
-                note_map
-                    .get(resolved_id.as_str())
-                    .ok_or_else(|| QipuError::NoteNotFound {
-                        id: resolved_id.clone(),
-                    })?;
-            selected_notes.push(SelectedNote {
-                note,
-                via: None,
-                link_type: None,
-            });
-        }
-    }
+    apply_via_map(&mut state);
 
-    if let Some(tag_name) = options.tag {
-        let notes_with_tag = store.db().list_notes(None, Some(tag_name), None)?;
-        for note in &notes_with_tag {
-            let resolved_id = resolve_id(&note.id)?;
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: None,
-                    link_type: None,
-                });
-            }
-        }
-    }
-
-    if let Some(moc) = options.moc_id {
-        let linked_ids = get_moc_linked_ids(store.db(), moc, options.transitive)?;
-        for (id, link_type) in linked_ids {
-            let resolved_id = resolve_id(&id)?;
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: None,
-                    link_type,
-                });
-            }
-        }
-    }
-
-    if let Some(q) = options.query {
-        let results = store
-            .db()
-            .search(q, None, None, None, None, 100, &store.config().search)?;
-        for result in results {
-            let resolved_id = resolve_id(&result.id)?;
-            let via_source = if !cli.no_resolve_compaction && resolved_id != result.id {
-                Some(result.id.clone())
-            } else {
-                None
-            };
-
-            if let Some(via_id) = via_source {
-                via_map.entry(resolved_id.clone()).or_insert(via_id);
-            }
-
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: None,
-                    link_type: None,
-                });
-            }
-        }
-    }
-
-    if options.backlinks {
-        let mut backlink_notes: Vec<(String, String, LinkType)> = Vec::new();
-
-        for selected_note in &selected_notes {
-            let note_id = selected_note.note.id();
-            let backlinks = store.db().get_backlinks(note_id)?;
-
-            for backlink in backlinks {
-                if !seen_ids.contains(&backlink.from) {
-                    backlink_notes.push((backlink.from, note_id.to_string(), backlink.link_type));
-                }
-            }
-        }
-
-        for (backlink_id, source_id, link_type) in backlink_notes {
-            let resolved_id = resolve_id(&backlink_id)?;
-            via_map
-                .entry(resolved_id.clone())
-                .or_insert_with(|| format!("backlink:{}", source_id));
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: None,
-                    link_type: Some(link_type),
-                });
-            }
-        }
-    }
-
-    if let Some(threshold) = options.related_threshold {
-        let start = Instant::now();
-        let index = IndexBuilder::new(store).build()?;
-
-        if cli.verbose {
-            debug!(elapsed = ?start.elapsed(), "load_indexes");
-        }
-
-        let engine = SimilarityEngine::new(&index);
-
-        let mut linked_ids: HashSet<String> = HashSet::new();
-        for selected_note in &selected_notes {
-            let note_id = selected_note.note.id();
-            let outbound_edges = index.get_outbound_edges(note_id);
-            for edge in outbound_edges {
-                linked_ids.insert(edge.to.clone());
-            }
-            let inbound_edges = index.get_inbound_edges(note_id);
-            for edge in inbound_edges {
-                linked_ids.insert(edge.from.clone());
-            }
-        }
-
-        let mut related_notes: Vec<(String, f64, String)> = Vec::new();
-
-        for selected_note in &selected_notes {
-            let note_id = selected_note.note.id();
-
-            let similar = engine.find_similar(note_id, 100, threshold);
-            for sim in similar {
-                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
-                    related_notes.push((sim.id, sim.score, "similarity".to_string()));
-                }
-            }
-
-            let shared_tags = engine.find_by_shared_tags(note_id, 100);
-            for sim in shared_tags {
-                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
-                    related_notes.push((sim.id, sim.score, "shared-tags".to_string()));
-                }
-            }
-
-            let two_hop = engine.find_by_2hop_neighborhood(note_id, 100);
-            for sim in two_hop {
-                if !seen_ids.contains(&sim.id) && !linked_ids.contains(&sim.id) {
-                    related_notes.push((sim.id, sim.score, "2hop".to_string()));
-                }
-            }
-        }
-
-        related_notes.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.partial_cmp(&a.1).unwrap()));
-        related_notes.dedup_by(|a, b| a.0 == b.0);
-        related_notes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-
-        for (related_id, score, method) in related_notes {
-            if seen_ids.contains(&related_id) {
-                continue;
-            }
-            let resolved_id = resolve_id(&related_id)?;
-            via_map
-                .entry(resolved_id.clone())
-                .or_insert_with(|| format!("{}:{:.2}", method, score));
-            if seen_ids.insert(resolved_id.clone()) {
-                let note =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note,
-                    via: Some(related_id.clone()),
-                    link_type: None,
-                });
-            }
-        }
-    }
-
-    for selected in &mut selected_notes {
-        if let Some(via) = via_map.get(selected.note.id()) {
-            selected.via = Some(via.clone());
-        }
-    }
-
-    if options.note_ids.is_empty()
-        && options.tag.is_none()
-        && options.moc_id.is_none()
-        && options.query.is_none()
-        && options.walk_id.is_none()
-    {
-        if options.min_value.is_none() && options.custom_filter.is_empty() {
-            return Err(QipuError::UsageError(
-                "no selection criteria provided. Use --note, --tag, --moc, --query, --walk, --min-value, or --custom-filter"
-                    .to_string(),
-            ));
-        }
-
-        for note in all_notes {
-            let resolved_id = resolve_id(note.id())?;
-
-            if seen_ids.insert(resolved_id.clone()) {
-                let note_from_map =
-                    note_map
-                        .get(resolved_id.as_str())
-                        .ok_or_else(|| QipuError::NoteNotFound {
-                            id: resolved_id.clone(),
-                        })?;
-                selected_notes.push(SelectedNote {
-                    note: note_from_map,
-                    via: None,
-                    link_type: None,
-                });
-            }
-        }
-    }
-
-    Ok((selected_notes, via_map))
+    Ok((state.selected_notes, state.via_map))
 }
 
 /// Filter and sort selected notes based on min-value, custom filters, and sorting criteria

@@ -1,3 +1,7 @@
+//! LLM tool test runner
+//!
+//! Evaluates LLM tools against test scenarios with automatic judging.
+
 mod adapter;
 mod cli;
 mod commands;
@@ -29,6 +33,7 @@ use scenario::ToolConfig;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 
+/// Resolve a scenario path, checking fixtures directory if not absolute
 fn resolve_scenario_path(path: &str) -> PathBuf {
     let p = Path::new(path);
     if p.is_absolute() || p.exists() {
@@ -48,6 +53,7 @@ fn resolve_scenario_path(path: &str) -> PathBuf {
     }
 }
 
+/// Build a matrix of tool-model configurations from CLI args or scenario config
 pub fn build_tool_matrix(
     cli_tools: &Option<String>,
     cli_models: &Option<String>,

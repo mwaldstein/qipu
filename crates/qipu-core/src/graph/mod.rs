@@ -1,3 +1,10 @@
+//! Graph traversal and path-finding operations
+//!
+//! Provides graph algorithms for navigating the knowledge graph:
+//! - BFS traversal for tree generation
+//! - Dijkstra path-finding for weighted shortest paths
+//! - Graph provider trait for pluggable data sources
+
 pub mod algos;
 pub mod bfs;
 pub mod traversal;

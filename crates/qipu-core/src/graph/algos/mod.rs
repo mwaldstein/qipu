@@ -1,3 +1,10 @@
+//! Graph algorithm implementations
+//!
+//! Contains concrete implementations of graph algorithms:
+//! - `bfs`: Breadth-first search for tree traversal
+//! - `dijkstra`: Weighted shortest path finding
+//! - `shared`: Common utilities used by multiple algorithms
+
 pub mod bfs;
 pub mod dijkstra;
 pub mod shared;

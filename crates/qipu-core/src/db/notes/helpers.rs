@@ -1,3 +1,8 @@
+//! Database helper functions for loading note components
+//!
+//! Provides parsing and loading utilities for converting database
+//! rows into typed note components like tags, links, and frontmatter.
+
 use crate::error::{QipuError, Result};
 use crate::note::{NoteFrontmatter, NoteType, TypedLink};
 use chrono::Utc;
@@ -11,29 +16,35 @@ fn convert_qipu_error_to_sqlite(e: QipuError) -> rusqlite::Error {
     }
 }
 
+/// Parse a note type string for SQLite integration
 pub fn parse_note_type_sqlite(type_str: &str) -> std::result::Result<NoteType, rusqlite::Error> {
     NoteType::from_str(type_str).map_err(convert_qipu_error_to_sqlite)
 }
 
+/// Parse a note type string into a `NoteType`
 pub fn parse_note_type(type_str: &str) -> Result<NoteType> {
     NoteType::from_str(type_str)
         .map_err(|_| QipuError::Other(format!("invalid note type: {}", type_str)))
 }
 
+/// Parse an RFC3339 datetime string into a `DateTime<Utc>`
 pub fn parse_datetime(opt_string: Option<String>) -> Option<chrono::DateTime<Utc>> {
     opt_string
         .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
         .map(|dt| dt.with_timezone(&chrono::Utc))
 }
 
+/// Parse an optional i64 value into an optional u8
 pub fn parse_value(opt_value: Option<i64>) -> Option<u8> {
     opt_value.and_then(|v| u8::try_from(v).ok())
 }
 
+/// Parse an optional integer as a boolean (non-zero = true)
 pub fn parse_verified(opt_verified: Option<i64>) -> Option<bool> {
     opt_verified.map(|v| v != 0)
 }
 
+/// Load all tags for a given note from the database
 pub fn load_tags(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<String>> {
     let mut stmt = conn
         .prepare("SELECT tag FROM tags WHERE note_id = ?1")
@@ -57,6 +68,7 @@ pub fn load_tags(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<Strin
     Ok(tags)
 }
 
+/// Load all non-inline links for a given note from the database
 pub fn load_links(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<TypedLink>> {
     let mut stmt = conn
         .prepare(
@@ -88,18 +100,22 @@ pub fn load_links(conn: &rusqlite::Connection, note_id: &str) -> Result<Vec<Type
     Ok(links)
 }
 
+/// Parse a JSON string into a list of compacted note IDs
 pub fn load_compacts(json_str: &str) -> Vec<String> {
     serde_json::from_str(json_str).unwrap_or_default()
 }
 
+/// Parse a JSON string into a list of source references
 pub fn load_sources(json_str: &str) -> Vec<crate::note::Source> {
     serde_json::from_str(json_str).unwrap_or_default()
 }
 
+/// Parse a JSON string into a map of custom frontmatter fields
 pub fn load_custom(json_str: &str) -> std::collections::HashMap<String, serde_yaml::Value> {
     serde_json::from_str(json_str).unwrap_or_default()
 }
 
+/// Build a `NoteFrontmatter` from individual fields
 #[allow(clippy::too_many_arguments)]
 pub fn build_frontmatter(
     id: String,

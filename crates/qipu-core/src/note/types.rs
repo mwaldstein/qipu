@@ -1,3 +1,11 @@
+//! Note type definitions
+//!
+//! Defines the core types for notes and links in the knowledge graph:
+//! - `NoteType`: Classification of notes (fleeting, literature, permanent, moc)
+//! - `LinkType`: Semantic relationship types between notes
+//! - `TypedLink`: A link with its associated type
+//! - `Source`: External source references
+
 use crate::error::{QipuError, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;

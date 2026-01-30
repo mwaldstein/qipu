@@ -1,3 +1,8 @@
+//! Show command for displaying compaction relationships
+//!
+//! Displays which notes are compacted by a digest note,
+//! supporting multiple output formats and depth levels.
+
 use std::time::Instant;
 
 use tracing::debug;
@@ -9,6 +14,7 @@ use qipu_core::store::Store;
 
 use super::utils::{discover_compact_store, estimate_size};
 
+/// Output format when a digest note compacts no other notes
 fn handle_empty_compaction(cli: &Cli, digest_id: &str) -> Result<()> {
     match cli.format {
         qipu_core::format::OutputFormat::Human => {
@@ -32,6 +38,7 @@ fn handle_empty_compaction(cli: &Cli, digest_id: &str) -> Result<()> {
     Ok(())
 }
 
+/// Calculate compaction metrics (size reduction percentage)
 fn compute_compaction_metrics(
     store: &Store,
     digest_id: &str,
@@ -52,6 +59,7 @@ fn compute_compaction_metrics(
     })
 }
 
+/// Build depth tree if depth > 1, with optional node limit
 fn build_depth_tree_if_needed(
     store: &Store,
     ctx: &CompactionContext,
@@ -72,6 +80,7 @@ fn build_depth_tree_if_needed(
     Ok(tree)
 }
 
+/// Output compaction info in human-readable format
 fn output_human_format(
     store: &Store,
     ctx: &CompactionContext,
@@ -111,6 +120,7 @@ fn output_human_format(
     Ok(())
 }
 
+/// Output compaction info in JSON format
 fn output_json_format(
     direct_compacts: &[String],
     depth_tree: &[CompactionTreeEntry],
@@ -141,6 +151,7 @@ fn output_json_format(
     Ok(())
 }
 
+/// Output compaction info in records format
 fn output_records_format(
     ctx: &CompactionContext,
     cli: &Cli,
@@ -270,6 +281,7 @@ struct CompactionTreeEntry {
     depth: u32,
 }
 
+/// Recursively build the compaction tree structure
 fn build_compaction_tree(
     store: &Store,
     ctx: &CompactionContext,

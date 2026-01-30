@@ -10,13 +10,21 @@ use super::estimate_note_size;
 /// A compaction candidate cluster
 #[derive(Debug, Clone)]
 pub struct CompactionCandidate {
+    /// Note IDs in this cluster
     pub ids: Vec<String>,
+    /// Number of notes in the cluster
     pub node_count: usize,
+    /// Number of edges within the cluster
     pub internal_edges: usize,
+    /// Number of edges connecting to notes outside the cluster
     pub boundary_edges: usize,
+    /// Ratio of boundary edges to total edges (0.0 = fully isolated, 1.0 = fully connected externally)
     pub boundary_ratio: f64,
+    /// Cluster cohesion score (1.0 = all internal edges, 0.0 = all boundary edges)
     pub cohesion: f64,
+    /// Estimated total size in bytes of all notes in the cluster
     pub estimated_size: usize,
+    /// Overall candidate score (higher = better compaction candidate)
     pub score: f64,
 }
 

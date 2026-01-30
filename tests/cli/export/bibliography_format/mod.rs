@@ -1,4 +1,7 @@
 // Bibliography format test modules
 
-mod bibtex;
+mod basic;
 mod csl_json;
+mod formatting;
+mod multiple;
+mod urls;

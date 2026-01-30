@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use std::fs;
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_list_with_compaction() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -83,13 +78,7 @@ fn test_link_list_with_compaction() {
 
 #[test]
 fn test_link_list_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note without links
     let output = qipu()
@@ -118,13 +107,7 @@ fn test_link_list_empty() {
 
 #[test]
 fn test_link_list_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes and link them
     let output1 = qipu()
@@ -165,13 +148,7 @@ fn test_link_list_json_format() {
 
 #[test]
 fn test_link_list_direction_filter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes and link them
     let output1 = qipu()
@@ -227,13 +204,7 @@ fn test_link_list_direction_filter() {
 
 #[test]
 fn test_link_list_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes and link them
     let output1 = qipu()
@@ -275,13 +246,7 @@ fn test_link_list_records_format() {
 
 #[test]
 fn test_link_list_records_max_chars() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -336,13 +301,7 @@ fn test_link_list_records_max_chars() {
 
 #[test]
 fn test_link_list_records_format_s_prefix() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

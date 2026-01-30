@@ -5,12 +5,7 @@ use tempfile::tempdir;
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_outline_mode() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -70,12 +65,7 @@ fn test_export_pdf_outline_mode() {
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_with_anchor_links() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with links
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");

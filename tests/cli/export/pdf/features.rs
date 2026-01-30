@@ -5,12 +5,7 @@ use tempfile::tempdir;
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_with_attachments() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create attachment
     let attachment_dir = dir.path().join(".qipu/attachments");
@@ -66,12 +61,7 @@ fn test_export_pdf_with_attachments() {
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_empty_content() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with empty body
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
@@ -110,12 +100,7 @@ fn test_export_pdf_empty_content() {
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_special_characters() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with special characters
     let special_content = "# Note with Special Characters\n\n\

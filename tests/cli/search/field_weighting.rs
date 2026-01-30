@@ -1,17 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_search_field_weighting_impact() {
     // Test that field weights affect BM25 relevance scores
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note 1: unique term in title only
     qipu()
@@ -104,13 +98,7 @@ fn test_search_field_weighting_impact() {
 #[test]
 fn test_search_field_weighting_all_fields() {
     // Test that all fields (title, body, tags) are searched and weighted
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with term in title
     qipu()

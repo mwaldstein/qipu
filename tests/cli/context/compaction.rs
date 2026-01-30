@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
@@ -9,13 +10,7 @@ use tempfile::tempdir;
 fn test_context_expand_compaction_human_format() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create source notes
     qipu()
@@ -103,13 +98,7 @@ fn test_context_expand_compaction_human_format() {
 fn test_context_expand_compaction_json_format() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create source notes
     qipu()
@@ -219,13 +208,7 @@ fn test_context_expand_compaction_json_format() {
 fn test_context_expand_compaction_records_format() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create source notes
     qipu()
@@ -322,13 +305,7 @@ fn test_context_expand_compaction_records_format() {
 fn test_context_expand_compaction_with_depth() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create source notes
     qipu()

@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -6,13 +6,7 @@ use tempfile::tempdir;
 fn test_compact_show() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes to be compacted
     let note1_content = r#"---
@@ -149,13 +143,7 @@ Content from source note 2."#;
 fn test_compact_show_truncation() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create 5 notes to be compacted
     for i in 1..=5 {

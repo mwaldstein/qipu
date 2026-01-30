@@ -1,17 +1,11 @@
 //! Records format search and empty result tests
 
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]
 fn test_records_empty_result_set_search() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     qipu()

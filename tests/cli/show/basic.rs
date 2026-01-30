@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_show_note() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create and capture ID
     let output = qipu()
@@ -37,13 +32,7 @@ fn test_show_note() {
 
 #[test]
 fn test_show_nonexistent() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -55,13 +44,7 @@ fn test_show_nonexistent() {
 
 #[test]
 fn test_show_links_no_links() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let output = qipu()
@@ -84,13 +67,7 @@ fn test_show_links_no_links() {
 
 #[test]
 fn test_show_links_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes and link them
     let output1 = qipu()

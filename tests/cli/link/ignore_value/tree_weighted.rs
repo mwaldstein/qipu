@@ -5,13 +5,7 @@ use tempfile::tempdir;
 /// and that high-value notes are visited before low-value notes even if they're further away
 #[test]
 fn test_link_tree_weighted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_root = qipu()
         .current_dir(dir.path())

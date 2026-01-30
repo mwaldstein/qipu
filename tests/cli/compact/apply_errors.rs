@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_apply_no_sources_error() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let digest_content = r#"---
 id: qp-digest

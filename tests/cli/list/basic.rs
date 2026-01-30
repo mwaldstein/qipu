@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_list_empty_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -22,13 +16,7 @@ fn test_list_empty_store() {
 
 #[test]
 fn test_list_with_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

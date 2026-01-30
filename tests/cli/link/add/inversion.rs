@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_custom_link_inversion() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -67,13 +61,7 @@ description = "This note is recommended by another note"
 
 #[test]
 fn test_standard_type_part_of() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -121,13 +109,7 @@ fn test_standard_type_part_of() {
 
 #[test]
 fn test_standard_type_follows() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -175,13 +157,7 @@ fn test_standard_type_follows() {
 
 #[test]
 fn test_standard_type_contradicts() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -229,13 +205,7 @@ fn test_standard_type_contradicts() {
 
 #[test]
 fn test_standard_type_answers() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -283,13 +253,7 @@ fn test_standard_type_answers() {
 
 #[test]
 fn test_standard_type_refines() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -337,13 +301,7 @@ fn test_standard_type_refines() {
 
 #[test]
 fn test_standard_type_same_as() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -391,13 +349,7 @@ fn test_standard_type_same_as() {
 
 #[test]
 fn test_standard_type_alias_of() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

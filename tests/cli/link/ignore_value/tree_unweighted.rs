@@ -3,13 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_ignore_value_unweighted() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -105,13 +99,7 @@ fn test_link_tree_ignore_value_unweighted() {
 
 #[test]
 fn test_unweighted_alias_tree() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())

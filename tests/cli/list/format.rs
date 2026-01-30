@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_list_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -28,13 +22,7 @@ fn test_list_json_format() {
 
 #[test]
 fn test_list_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -60,13 +48,7 @@ fn test_list_records_format() {
 
 #[test]
 fn test_list_records_format_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -83,13 +65,7 @@ fn test_list_records_format_empty() {
 
 #[test]
 fn test_list_records_format_multiple_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -137,13 +113,7 @@ fn test_list_records_format_multiple_notes() {
 
 #[test]
 fn test_list_records_format_truncated_field() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

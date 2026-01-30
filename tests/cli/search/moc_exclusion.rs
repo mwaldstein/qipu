@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_search_exclude_mocs() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a MOC note
     qipu()
@@ -96,13 +91,7 @@ fn test_search_exclude_mocs() {
 
 #[test]
 fn test_search_exclude_mocs_no_results() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create only MOC notes
     qipu()
@@ -128,13 +117,7 @@ fn test_search_exclude_mocs_no_results() {
 
 #[test]
 fn test_search_exclude_mocs_with_filters() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create MOC with tag
     qipu()
@@ -198,13 +181,7 @@ fn test_search_exclude_mocs_with_filters() {
 
 #[test]
 fn test_search_exclude_mocs_with_min_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create MOC with high value
     let output = qipu()

@@ -1,16 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_outline_preserves_moc_order() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -39,12 +34,7 @@ fn test_export_outline_preserves_moc_order() {
 
 #[test]
 fn test_export_outline_anchors() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(
@@ -83,12 +73,7 @@ fn test_export_outline_anchors() {
 
 #[test]
 fn test_export_bundle_rewrites_links_to_anchors() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -122,12 +107,7 @@ fn test_export_bundle_rewrites_links_to_anchors() {
 
 #[test]
 fn test_export_bundle_preserves_moc_order() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -162,12 +142,7 @@ fn test_export_bundle_preserves_moc_order() {
 
 #[test]
 fn test_export_anchor_links_point_to_existing_anchors() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -261,12 +236,7 @@ fn test_export_anchor_links_point_to_existing_anchors() {
 
 #[test]
 fn test_export_outline_fallback_to_bundle_without_moc() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -291,12 +261,7 @@ fn test_export_outline_fallback_to_bundle_without_moc() {
 
 #[test]
 fn test_export_outline_with_typed_frontmatter_links() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
@@ -332,12 +297,7 @@ fn test_export_outline_with_typed_frontmatter_links() {
 
 #[test]
 fn test_export_outline_preserves_markdown_links() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(

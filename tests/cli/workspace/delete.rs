@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_workspace_delete_removes_workspace() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -36,13 +30,7 @@ fn test_workspace_delete_removes_workspace() {
 
 #[test]
 fn test_workspace_delete_nonexistent() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -54,13 +42,7 @@ fn test_workspace_delete_nonexistent() {
 
 #[test]
 fn test_workspace_delete_with_unmerged_changes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -85,13 +67,7 @@ fn test_workspace_delete_with_unmerged_changes() {
 
 #[test]
 fn test_workspace_delete_force_with_unmerged_changes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_create_with_provenance() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -43,13 +38,7 @@ fn test_create_with_provenance() {
 
 #[test]
 fn test_verify_command() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -78,13 +67,7 @@ fn test_verify_command() {
 
 #[test]
 fn test_context_prioritizes_verified() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create an unverified note first
     qipu()
@@ -125,13 +108,7 @@ fn test_context_prioritizes_verified() {
 
 #[test]
 fn test_llm_generated_defaults_verified_false() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with --generated-by but no --verified flag
     let output = qipu()
@@ -154,13 +131,7 @@ fn test_llm_generated_defaults_verified_false() {
 
 #[test]
 fn test_llm_generated_can_override_verified() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with --generated-by AND --verified=true (explicit override)
     let output = qipu()

@@ -1,15 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_max_hops_no_traversal() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a chain of linked notes: A -> B -> C
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -57,12 +52,7 @@ fn test_export_max_hops_no_traversal() {
 
 #[test]
 fn test_export_max_hops_one_hop() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a chain of linked notes: A -> B -> C
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -110,12 +100,7 @@ fn test_export_max_hops_one_hop() {
 
 #[test]
 fn test_export_max_hops_two_hops() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a chain of linked notes: A -> B -> C
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -163,12 +148,7 @@ fn test_export_max_hops_two_hops() {
 
 #[test]
 fn test_export_max_hops_with_tag_selection() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes: A (with tag1) -> B -> C
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -216,12 +196,7 @@ fn test_export_max_hops_with_tag_selection() {
 
 #[test]
 fn test_export_max_hops_bidirectional_traversal() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a network: A -> B, C -> B (B is in the middle)
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -269,12 +244,7 @@ fn test_export_max_hops_bidirectional_traversal() {
 
 #[test]
 fn test_export_max_hops_json_format() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a chain of linked notes: A -> B
     let note_a = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");

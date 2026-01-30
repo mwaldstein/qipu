@@ -1,15 +1,10 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]
 fn test_context_2hop_neighborhood_basic() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_output = qipu()
         .current_dir(dir.path())
@@ -106,13 +101,7 @@ fn test_context_2hop_neighborhood_basic() {
 
 #[test]
 fn test_context_2hop_excludes_1hop() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_output = qipu()
         .current_dir(dir.path())
@@ -236,13 +225,7 @@ fn test_context_2hop_excludes_1hop() {
 
 #[test]
 fn test_context_2hop_with_multiple_paths() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_output = qipu()
         .current_dir(dir.path())

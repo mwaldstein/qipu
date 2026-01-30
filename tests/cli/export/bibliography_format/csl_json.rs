@@ -5,12 +5,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_csl_json_format() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-source-note.md");
     fs::write(
@@ -51,12 +46,7 @@ fn test_export_bibliography_csl_json_format() {
 
 #[test]
 fn test_export_bibliography_csl_json_empty() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-sources.md");
     fs::write(
@@ -89,12 +79,7 @@ fn test_export_bibliography_csl_json_empty() {
 
 #[test]
 fn test_export_bibliography_csl_json_missing_title() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-title-csl.md");
     fs::write(
@@ -135,12 +120,7 @@ fn test_export_bibliography_csl_json_missing_title() {
 
 #[test]
 fn test_export_bibliography_csl_json_missing_accessed() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-accessed-csl.md");
     fs::write(
@@ -180,12 +160,7 @@ fn test_export_bibliography_csl_json_missing_accessed() {
 
 #[test]
 fn test_export_bibliography_csl_json_url_only() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-url-only-csl.md");
     fs::write(
@@ -225,12 +200,7 @@ fn test_export_bibliography_csl_json_url_only() {
 
 #[test]
 fn test_export_bibliography_csl_json_special_url_chars() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-special-chars-csl.md");
     fs::write(
@@ -270,12 +240,7 @@ fn test_export_bibliography_csl_json_special_url_chars() {
 
 #[test]
 fn test_export_bibliography_csl_json_unicode_url() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-unicode-csl.md");
     fs::write(

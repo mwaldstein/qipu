@@ -3,13 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_spanning_tree_ordering() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_root = qipu()
         .current_dir(dir.path())

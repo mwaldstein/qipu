@@ -1,16 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_link_mode_preserve() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with wiki links
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -56,12 +51,7 @@ fn test_export_link_mode_preserve() {
 
 #[test]
 fn test_export_link_mode_markdown_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with wiki links
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -106,12 +96,7 @@ fn test_export_link_mode_markdown_basic() {
 
 #[test]
 fn test_export_link_mode_markdown_with_labels() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with labeled wiki links
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -163,12 +148,7 @@ fn test_export_link_mode_markdown_with_labels() {
 
 #[test]
 fn test_export_link_mode_markdown_multiple_notes() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with cross-references
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -233,12 +213,7 @@ fn test_export_link_mode_markdown_multiple_notes() {
 
 #[test]
 fn test_export_link_mode_preserve_with_moc() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -285,12 +260,7 @@ fn test_export_link_mode_preserve_with_moc() {
 
 #[test]
 fn test_export_link_mode_markdown_with_moc() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");

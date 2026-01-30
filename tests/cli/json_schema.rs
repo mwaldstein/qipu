@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id_from_bytes, qipu};
 use tempfile::tempdir;
 
@@ -7,13 +8,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_create_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -47,13 +42,7 @@ fn test_create_json_has_required_fields() {
 
 #[test]
 fn test_create_json_with_provenance_has_all_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -91,13 +80,7 @@ fn test_create_json_with_provenance_has_all_fields() {
 
 #[test]
 fn test_capture_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -145,13 +128,7 @@ fn test_capture_json_has_required_fields() {
 
 #[test]
 fn test_show_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let create_output = qipu()
         .current_dir(dir.path())
@@ -201,13 +178,7 @@ fn test_show_json_has_required_fields() {
 
 #[test]
 fn test_show_json_custom_omitted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let create_output = qipu()
         .current_dir(dir.path())
@@ -246,13 +217,7 @@ fn test_show_json_custom_omitted_by_default() {
 
 #[test]
 fn test_show_json_custom_opt_in() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let create_output = qipu()
         .current_dir(dir.path())
@@ -292,13 +257,7 @@ fn test_show_json_custom_opt_in() {
 
 #[test]
 fn test_list_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -349,13 +308,7 @@ fn test_list_json_has_required_fields() {
 
 #[test]
 fn test_list_json_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -375,13 +328,7 @@ fn test_list_json_empty() {
 
 #[test]
 fn test_search_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -432,13 +379,7 @@ fn test_search_json_has_required_fields() {
 
 #[test]
 fn test_search_json_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -458,13 +399,7 @@ fn test_search_json_empty() {
 
 #[test]
 fn test_prime_json_has_required_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_wal_concurrent_read_after_write() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let id = extract_id_from_bytes(
         &qipu()
@@ -32,13 +27,7 @@ fn test_wal_concurrent_read_after_write() {
 
 #[test]
 fn test_wal_multiple_rapid_creates_then_list() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let ids = vec![
         extract_id_from_bytes(
@@ -90,13 +79,7 @@ fn test_wal_multiple_rapid_creates_then_list() {
 
 #[test]
 fn test_wal_write_then_immediate_search() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -114,13 +97,7 @@ fn test_wal_write_then_immediate_search() {
 
 #[test]
 fn test_wal_link_create_then_traverse() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let id1 = extract_id_from_bytes(
         &qipu()
@@ -159,13 +136,7 @@ fn test_wal_link_create_then_traverse() {
 
 #[test]
 fn test_wal_context_after_rapid_updates() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let id = extract_id_from_bytes(
         &qipu()
@@ -196,13 +167,7 @@ fn test_wal_context_after_rapid_updates() {
 
 #[test]
 fn test_wal_dump_after_multiple_writes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     for i in 0..5 {
         qipu()

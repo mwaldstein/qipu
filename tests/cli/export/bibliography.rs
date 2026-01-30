@@ -1,16 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with sources
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-source-note.md");
@@ -42,12 +37,7 @@ fn test_export_bibliography_basic() {
 
 #[test]
 fn test_export_bibliography_no_sources() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note without sources
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-sources.md");
@@ -77,12 +67,7 @@ fn test_export_bibliography_no_sources() {
 
 #[test]
 fn test_export_bibliography_multiple_notes() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes with sources
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
@@ -134,12 +119,7 @@ fn test_export_bibliography_multiple_notes() {
 
 #[test]
 fn test_export_bibliography_deterministic_ordering() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with multiple sources in non-alphabetical order
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-ordered.md");
@@ -190,12 +170,7 @@ fn test_export_bibliography_deterministic_ordering() {
 
 #[test]
 fn test_export_bibliography_source_format_variations() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with various source formats
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-formats.md");
@@ -241,12 +216,7 @@ fn test_export_bibliography_source_format_variations() {
 
 #[test]
 fn test_export_bibliography_with_tag_selection() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with the same tag
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-tagged.md");
@@ -288,12 +258,7 @@ fn test_export_bibliography_with_tag_selection() {
 
 #[test]
 fn test_export_bibliography_with_bib_alias() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with sources
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-source.md");
@@ -323,12 +288,7 @@ fn test_export_bibliography_with_bib_alias() {
 
 #[test]
 fn test_export_bibliography_singular_source_field() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with singular source field (as created by qipu capture --source)
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-singular-source.md");
@@ -357,12 +317,7 @@ fn test_export_bibliography_singular_source_field() {
 
 #[test]
 fn test_export_bibliography_both_source_fields() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with both singular source and sources array
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-both-sources.md");

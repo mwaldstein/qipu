@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_list_json_includes_compaction_annotations() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -74,13 +68,7 @@ fn test_link_list_json_includes_compaction_annotations() {
 
 #[test]
 fn test_link_tree_json_includes_compaction_annotations() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -143,13 +131,7 @@ fn test_link_tree_json_includes_compaction_annotations() {
 
 #[test]
 fn test_link_path_json_includes_compaction_annotations() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -212,13 +194,7 @@ fn test_link_path_json_includes_compaction_annotations() {
 
 #[test]
 fn test_link_json_compaction_truncation_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

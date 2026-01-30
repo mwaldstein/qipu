@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id_from_bytes, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_workspace_new_creates_workspace() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -23,13 +18,7 @@ fn test_workspace_new_creates_workspace() {
 
 #[test]
 fn test_workspace_new_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -47,13 +36,7 @@ fn test_workspace_new_empty() {
 
 #[test]
 fn test_workspace_new_temp() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -72,13 +55,7 @@ fn test_workspace_new_temp() {
 
 #[test]
 fn test_workspace_new_temp_adds_to_gitignore() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let gitignore_path = dir.path().join(".gitignore");
 
@@ -97,13 +74,7 @@ fn test_workspace_new_temp_adds_to_gitignore() {
 
 #[test]
 fn test_workspace_new_temp_creates_gitignore_if_not_exists() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -126,13 +97,7 @@ fn test_workspace_new_temp_creates_gitignore_if_not_exists() {
 
 #[test]
 fn test_workspace_new_temp_preserves_existing_gitignore_content() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let gitignore_path = dir.path().join(".gitignore");
     std::fs::write(&gitignore_path, "*.log\n*.tmp\n").unwrap();
@@ -160,13 +125,7 @@ fn test_workspace_new_temp_preserves_existing_gitignore_content() {
 
 #[test]
 fn test_workspace_new_temp_no_duplicate_gitignore_entry() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let gitignore_path = dir.path().join(".gitignore");
     std::fs::write(&gitignore_path, ".qipu/workspaces/temp-workspace/\n").unwrap();
@@ -190,13 +149,7 @@ fn test_workspace_new_temp_no_duplicate_gitignore_entry() {
 
 #[test]
 fn test_workspace_new_non_temp_no_gitignore_modification() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let gitignore_path = dir.path().join(".gitignore");
     std::fs::write(&gitignore_path, "*.log\n").unwrap();
@@ -217,13 +170,7 @@ fn test_workspace_new_non_temp_no_gitignore_modification() {
 
 #[test]
 fn test_workspace_new_non_temp_no_gitignore_created() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -240,13 +187,7 @@ fn test_workspace_new_non_temp_no_gitignore_created() {
 
 #[test]
 fn test_workspace_new_copy_primary() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -271,13 +212,7 @@ fn test_workspace_new_copy_primary() {
 
 #[test]
 fn test_workspace_new_from_tag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -314,13 +249,7 @@ fn test_workspace_new_from_tag() {
 
 #[test]
 fn test_workspace_new_from_note() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_id = qipu()
         .current_dir(dir.path())
@@ -355,13 +284,7 @@ fn test_workspace_new_from_note() {
 
 #[test]
 fn test_workspace_new_from_query() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -398,13 +321,7 @@ fn test_workspace_new_from_query() {
 
 #[test]
 fn test_workspace_new_already_exists() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

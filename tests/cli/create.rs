@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
@@ -9,14 +9,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_create_note() {
-    let dir = tempdir().unwrap();
-
-    // Init first
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note
     qipu()
@@ -29,13 +22,7 @@ fn test_create_note() {
 
 #[test]
 fn test_create_with_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -46,13 +33,7 @@ fn test_create_with_type() {
 
 #[test]
 fn test_create_with_tags() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -63,13 +44,7 @@ fn test_create_with_tags() {
 
 #[test]
 fn test_create_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -82,13 +57,7 @@ fn test_create_json_format() {
 
 #[test]
 fn test_create_prompt_hash_in_frontmatter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with --prompt-hash
     qipu()
@@ -121,13 +90,7 @@ fn test_create_prompt_hash_in_frontmatter() {
 
 #[test]
 fn test_create_json_with_provenance() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -170,13 +133,7 @@ fn test_create_json_with_provenance() {
 
 #[test]
 fn test_new_alias() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Test that 'new' works as an alias for 'create'
     qipu()
@@ -189,13 +146,7 @@ fn test_new_alias() {
 
 #[test]
 fn test_create_with_custom_id() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note with custom ID
     let output = qipu()
@@ -230,13 +181,7 @@ fn test_create_with_custom_id() {
 
 #[test]
 fn test_create_with_open_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Test that --open flag is accepted by setting EDITOR to a no-op command
     // This verifies the flag works without actually opening an editor
@@ -267,13 +212,7 @@ fn test_create_with_open_flag() {
 
 #[test]
 fn test_create_invalid_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create with invalid note type should fail
     qipu()

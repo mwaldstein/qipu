@@ -3,13 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_path_weighted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())

@@ -3,13 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_custom_link_cost_overrides_standard() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -105,13 +99,7 @@ cost = 2.0
 
 #[test]
 fn test_custom_link_cost_affects_pathfinding() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"

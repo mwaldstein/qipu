@@ -1,17 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_suggest() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a cluster of interconnected notes
     // Cluster 1: notes 1-3 (tightly connected)

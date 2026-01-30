@@ -4,12 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_bibtex_multiple_sources() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
     fs::write(

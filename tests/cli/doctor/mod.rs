@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 mod compaction_validation;
 mod ontology_validation;
 
@@ -11,13 +12,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_doctor_healthy_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a valid note
     qipu()
@@ -37,13 +32,7 @@ fn test_doctor_healthy_store() {
 
 #[test]
 fn test_doctor_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -64,13 +53,7 @@ fn test_doctor_json_format() {
 
 #[test]
 fn test_doctor_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -105,13 +88,7 @@ fn test_doctor_missing_store() {
 
 #[test]
 fn test_doctor_broken_link_detection() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes
     let output1 = qipu()
@@ -158,13 +135,7 @@ fn test_doctor_broken_link_detection() {
 
 #[test]
 fn test_doctor_fix_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Remove the config file to create a fixable issue
     std::fs::remove_file(dir.path().join(".qipu/config.toml")).unwrap();
@@ -203,13 +174,7 @@ fn test_doctor_fix_flag() {
 
 #[test]
 fn test_doctor_custom_metadata_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note without custom metadata
     qipu()
@@ -229,13 +194,7 @@ fn test_doctor_custom_metadata_empty() {
 
 #[test]
 fn test_doctor_custom_metadata_normal_size() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with small custom metadata
     let output = qipu()
@@ -266,13 +225,7 @@ fn test_doctor_custom_metadata_normal_size() {
 fn test_doctor_custom_metadata_large() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with very large custom metadata (>10KB)
     let note_content = r#"---
@@ -308,13 +261,7 @@ This is a note."#;
 fn test_doctor_custom_metadata_multiple_notes() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes with different custom metadata sizes
     let note1_content = r#"---

@@ -1,15 +1,10 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]
 fn test_search_sort_by_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -87,13 +82,7 @@ fn test_search_sort_by_value() {
 
 #[test]
 fn test_search_sort_by_value_with_defaults() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -147,13 +136,7 @@ fn test_search_sort_by_value_with_defaults() {
 
 #[test]
 fn test_search_sort_by_value_all_defaults() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -197,13 +180,7 @@ fn test_search_sort_by_value_all_defaults() {
 
 #[test]
 fn test_search_sort_by_value_same_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -268,13 +245,7 @@ fn test_search_sort_by_value_same_value() {
 
 #[test]
 fn test_search_sort_by_value_min_max() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -336,13 +307,7 @@ fn test_search_sort_by_value_min_max() {
 
 #[test]
 fn test_search_sort_by_value_with_min_max_and_defaults() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())

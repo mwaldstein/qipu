@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_status() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create source and digest notes
     let source_content = r#"---

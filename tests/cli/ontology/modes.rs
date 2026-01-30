@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use std::fs;
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_replacement_mode_rejects_standard_types() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -61,13 +56,7 @@ inverse = "inverse-link"
 
 #[test]
 fn test_extended_mode_allows_standard_and_custom_types() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"

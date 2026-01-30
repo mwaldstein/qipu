@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
@@ -7,13 +8,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_get_index_then_fetch_bodies_basic() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes
     let output1 = qipu()
@@ -81,13 +76,7 @@ fn test_get_index_then_fetch_bodies_basic() {
 
 #[test]
 fn test_get_index_then_fetch_bodies_multiple_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes
     let output1 = qipu()
@@ -167,13 +156,7 @@ fn test_get_index_then_fetch_bodies_multiple_notes() {
 
 #[test]
 fn test_index_excludes_bodies_context_includes_bodies() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with substantial content
     let output = qipu()
@@ -224,13 +207,7 @@ fn test_index_excludes_bodies_context_includes_bodies() {
 
 #[test]
 fn test_progressive_disclosure_with_link_tree() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create linked notes
     let output_root = qipu()
@@ -332,13 +309,7 @@ fn test_progressive_disclosure_with_link_tree() {
 
 #[test]
 fn test_get_index_then_fetch_with_summary_only() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with substantial content
     let output = qipu()

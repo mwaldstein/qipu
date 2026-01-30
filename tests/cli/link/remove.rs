@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use rusqlite::Connection;
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_remove() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -56,13 +51,7 @@ fn test_link_remove() {
 
 #[test]
 fn test_link_add_remove_updates_database() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

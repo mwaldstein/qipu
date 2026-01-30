@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 //! Records format body marker tests
 
 use crate::support::{extract_id, qipu};
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_records_body_markers() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let output = qipu()

@@ -1,17 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]
 fn test_context_records_with_body_and_sources() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with sources manually
     let note_content = r#"---
@@ -88,13 +82,7 @@ It has multiple paragraphs.
 fn test_context_deterministic_ordering_with_budget() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let notes_dir = dir.path().join(".qipu/notes");
     fs::create_dir_all(&notes_dir).unwrap();

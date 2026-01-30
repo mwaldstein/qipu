@@ -5,12 +5,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_bibtex_format() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-source-note.md");
     fs::write(
@@ -50,12 +45,7 @@ fn test_export_bibliography_bibtex_format() {
 
 #[test]
 fn test_export_bibliography_bibtex_empty() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-sources.md");
     fs::write(
@@ -88,12 +78,7 @@ fn test_export_bibliography_bibtex_empty() {
 
 #[test]
 fn test_export_bibliography_bibtex_missing_title() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-title.md");
     fs::write(
@@ -133,12 +118,7 @@ fn test_export_bibliography_bibtex_missing_title() {
 
 #[test]
 fn test_export_bibliography_bibtex_missing_accessed() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-no-accessed.md");
     fs::write(
@@ -178,12 +158,7 @@ fn test_export_bibliography_bibtex_missing_accessed() {
 
 #[test]
 fn test_export_bibliography_bibtex_url_only() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-url-only.md");
     fs::write(

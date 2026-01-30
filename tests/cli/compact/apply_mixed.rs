@@ -1,17 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use std::io::Write;
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_apply_mixed_sources() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     for i in 1..=5 {
         let note_content = format!(

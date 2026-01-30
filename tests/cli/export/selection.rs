@@ -1,16 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_tag_selection_deterministic_ordering() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with specific timestamps and IDs to test ordering
     // Note C: oldest created_at
@@ -58,12 +53,7 @@ fn test_export_tag_selection_deterministic_ordering() {
 
 #[test]
 fn test_export_tag_selection_with_same_created_at() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with same created_at to test ID-based tiebreaking
     let note_c_path = dir.path().join(".qipu/notes/qp-cccc-note-c.md");
@@ -106,12 +96,7 @@ fn test_export_tag_selection_with_same_created_at() {
 
 #[test]
 fn test_export_query_selection_deterministic_ordering() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with specific timestamps containing a search term
     let note_c_path = dir.path().join(".qipu/notes/qp-cccc-note-c.md");
@@ -159,12 +144,7 @@ fn test_export_query_selection_deterministic_ordering() {
 
 #[test]
 fn test_export_query_selection_with_missing_created_at() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with and without created_at to test sorting behavior
     // Notes with created_at should come first, then notes without (sorted by ID)
@@ -213,12 +193,7 @@ fn test_export_query_selection_with_missing_created_at() {
 
 #[test]
 fn test_export_moc_selection_preserves_moc_order() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with created_at that would sort differently
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");

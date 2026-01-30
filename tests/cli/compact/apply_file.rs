@@ -1,17 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use std::io::Write;
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_apply_notes_file() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-note1

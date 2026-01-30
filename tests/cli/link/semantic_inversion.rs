@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_link_list_semantic_inversion_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -59,13 +54,7 @@ fn test_link_list_semantic_inversion_default() {
 
 #[test]
 fn test_link_list_semantic_inversion_disabled() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -121,13 +110,7 @@ fn test_link_list_semantic_inversion_disabled() {
 
 #[test]
 fn test_link_list_semantic_inversion_type_filter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -185,13 +168,7 @@ fn test_link_list_semantic_inversion_type_filter() {
 
 #[test]
 fn test_link_list_semantic_inversion_type_filter_disabled() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -238,13 +215,7 @@ fn test_link_list_semantic_inversion_type_filter_disabled() {
 
 #[test]
 fn test_link_list_semantic_inversion_type_filter_original() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())

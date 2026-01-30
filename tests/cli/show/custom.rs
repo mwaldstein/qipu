@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_show_json_custom_omitted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let output = qipu()
@@ -43,13 +38,7 @@ fn test_show_json_custom_omitted_by_default() {
 
 #[test]
 fn test_show_json_custom_opt_in() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let output = qipu()
@@ -79,13 +68,7 @@ fn test_show_json_custom_opt_in() {
 
 #[test]
 fn test_show_records_custom_opt_in() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let output = qipu()

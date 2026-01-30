@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
@@ -8,13 +9,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_inbox_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -26,13 +21,7 @@ fn test_inbox_empty() {
 
 #[test]
 fn test_inbox_shows_fleeting() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -50,13 +39,7 @@ fn test_inbox_shows_fleeting() {
 
 #[test]
 fn test_inbox_excludes_permanent() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -74,13 +57,7 @@ fn test_inbox_excludes_permanent() {
 
 #[test]
 fn test_inbox_exclude_linked() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a MOC
     let moc_output = qipu()
@@ -141,13 +118,7 @@ fn test_inbox_exclude_linked() {
 
 #[test]
 fn test_inbox_json_format_includes_path() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

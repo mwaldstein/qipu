@@ -1,15 +1,9 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]
 fn test_search_records_format_truncated_field() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -37,13 +31,7 @@ fn test_search_records_format_truncated_field() {
 
 #[test]
 fn test_search_records_format_s_prefix() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

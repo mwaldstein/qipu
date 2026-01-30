@@ -5,13 +5,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_with_compaction() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -100,13 +94,7 @@ fn test_link_tree_with_compaction() {
 
 #[test]
 fn test_link_tree_single_node() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -132,13 +120,7 @@ fn test_link_tree_single_node() {
 
 #[test]
 fn test_link_tree_with_links() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

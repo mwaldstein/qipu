@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use std::fs;
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_create_with_custom_note_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -47,13 +42,7 @@ description = "A task item"
 
 #[test]
 fn test_link_with_custom_link_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -92,13 +81,7 @@ inverse = "required-by"
 
 #[test]
 fn test_invalid_note_type_error() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -114,13 +97,7 @@ fn test_invalid_note_type_error() {
 
 #[test]
 fn test_invalid_link_type_error() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_type_filter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -62,13 +56,7 @@ fn test_link_tree_type_filter() {
 
 #[test]
 fn test_link_tree_exclude_type_filter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_root = qipu()
         .current_dir(dir.path())
@@ -120,13 +108,7 @@ fn test_link_tree_exclude_type_filter() {
 
 #[test]
 fn test_link_tree_typed_only() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_child1 = qipu()
         .current_dir(dir.path())
@@ -173,13 +155,7 @@ fn test_link_tree_typed_only() {
 
 #[test]
 fn test_link_tree_inline_only() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_child1 = qipu()
         .current_dir(dir.path())

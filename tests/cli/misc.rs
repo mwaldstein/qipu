@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -207,13 +207,7 @@ fn test_missing_store_exit_code_3() {
 
 #[test]
 fn test_missing_required_arg_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Missing required argument (e.g., note ID for link tree)
     qipu()
@@ -226,13 +220,7 @@ fn test_missing_required_arg_json_format() {
 
 #[test]
 fn test_invalid_value_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Invalid value for a flag
     qipu()
@@ -265,13 +253,7 @@ fn test_quiet_flag() {
 
 #[test]
 fn test_verbose_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -287,13 +269,7 @@ fn test_verbose_flag() {
 
 #[test]
 fn test_invalid_since_date_exit_code_2() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -305,13 +281,7 @@ fn test_invalid_since_date_exit_code_2() {
 
 #[test]
 fn test_invalid_direction_exit_code_2() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note to link
     qipu()

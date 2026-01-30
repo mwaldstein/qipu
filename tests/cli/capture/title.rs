@@ -1,15 +1,9 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]
 fn test_capture_auto_title_from_content() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -27,13 +21,7 @@ fn test_capture_auto_title_from_content() {
 
 #[test]
 fn test_capture_auto_title_from_heading() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -51,13 +39,7 @@ fn test_capture_auto_title_from_heading() {
 
 #[test]
 fn test_capture_auto_title_empty_content() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())

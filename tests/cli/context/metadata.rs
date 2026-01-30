@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_context_custom_metadata_omitted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -56,13 +51,7 @@ fn test_context_custom_metadata_omitted_by_default() {
 
 #[test]
 fn test_context_custom_metadata_with_custom_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -110,13 +99,7 @@ fn test_context_custom_metadata_with_custom_flag() {
 
 #[test]
 fn test_context_json_custom_metadata() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -165,13 +148,7 @@ fn test_context_json_custom_metadata() {
 
 #[test]
 fn test_context_json_custom_metadata_omitted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -208,13 +185,7 @@ fn test_context_json_custom_metadata_omitted_by_default() {
 
 #[test]
 fn test_context_records_custom_metadata() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -257,13 +228,7 @@ fn test_context_records_custom_metadata() {
 
 #[test]
 fn test_context_records_custom_metadata_omitted_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -295,13 +260,7 @@ fn test_context_records_custom_metadata_omitted_by_default() {
 
 #[test]
 fn test_context_custom_metadata_empty_custom_block() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -327,13 +286,7 @@ fn test_context_custom_metadata_empty_custom_block() {
 
 #[test]
 fn test_context_custom_metadata_complex_types() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())

@@ -1,15 +1,10 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]
 fn test_custom_show_json_multiple_fields() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -53,13 +48,7 @@ fn test_custom_show_json_multiple_fields() {
 
 #[test]
 fn test_custom_show_json_empty() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -90,13 +79,7 @@ fn test_custom_show_json_empty() {
 
 #[test]
 fn test_custom_show_json_deterministic_ordering() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())

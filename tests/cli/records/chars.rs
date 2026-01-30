@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 //! Records format character handling tests
 
 use crate::support::{extract_id, qipu};
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_records_very_long_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with a long but realistic title (around 200 characters)
     let long_title = "This is a very long title that might be used in practice and should still be handled correctly by the records format without causing any issues with output or parsing for downstream tools that consume the data";
@@ -45,13 +40,7 @@ fn test_records_very_long_title() {
 
 #[test]
 fn test_records_very_long_tags() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with many tags (50 tags, each 20 chars)
     let tags: Vec<String> = (0..50).map(|i| format!("verylongtag{:020}", i)).collect();
@@ -92,13 +81,7 @@ fn test_records_very_long_tags() {
 
 #[test]
 fn test_records_newlines_in_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with newlines in title (via edit to bypass CLI validation)
     let output = qipu()
@@ -150,13 +133,7 @@ fn test_records_newlines_in_title() {
 
 #[test]
 fn test_records_backslashes_in_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with backslashes in title
     let title_with_backslashes = r"Path\to\file";
@@ -188,13 +165,7 @@ fn test_records_backslashes_in_title() {
 
 #[test]
 fn test_records_body_with_special_chars() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with special characters in title
     let title_with_special = "Note with \\special\\ &chars\\\"";
@@ -232,13 +203,7 @@ fn test_records_body_with_special_chars() {
 
 #[test]
 fn test_records_unicode_characters() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with unicode characters (emoji, chinese, arabic)
     let unicode_title = "Hello 世界 🌍 مرحبا";
@@ -287,13 +252,7 @@ fn test_records_unicode_characters() {
 
 #[test]
 fn test_records_special_chars_in_tags() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with special characters in tags
     let special_tags = [
@@ -337,13 +296,7 @@ fn test_records_special_chars_in_tags() {
 
 #[test]
 fn test_records_single_quote_in_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with single quotes in title
     let title_with_single_quotes = "Title with 'single quotes'";

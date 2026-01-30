@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_max_hops() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let mut ids = Vec::new();
     for i in 0..5 {
@@ -49,13 +43,7 @@ fn test_link_tree_max_hops() {
 
 #[test]
 fn test_link_tree_max_hops_reports_truncation() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let mut ids = Vec::new();
     for i in 0..5 {

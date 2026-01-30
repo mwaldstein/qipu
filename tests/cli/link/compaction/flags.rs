@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_no_resolve_compaction_flag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

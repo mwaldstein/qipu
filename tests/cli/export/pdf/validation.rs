@@ -6,12 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_pdf_requires_output_file() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
@@ -41,12 +36,7 @@ fn test_export_pdf_without_pandoc() {
         return;
     }
 
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");

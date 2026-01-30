@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -27,14 +27,7 @@ fn test_init_creates_store() {
 
 #[test]
 fn test_init_idempotent() {
-    let dir = tempdir().unwrap();
-
-    // First init
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Second init should also succeed (idempotent)
     qipu()

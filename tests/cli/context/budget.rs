@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -8,13 +8,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_context_max_chars() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes
     for i in 0..5 {
@@ -37,13 +31,7 @@ fn test_context_max_chars() {
 
 #[test]
 fn test_context_budget_exact() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes with known content
     for i in 0..10 {
@@ -148,13 +136,7 @@ fn test_context_budget_exact() {
 
 #[test]
 fn test_context_prefers_typed_links_over_related() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a root MOC note
     let root_output = qipu()
@@ -319,13 +301,7 @@ fn test_context_prefers_typed_links_over_related() {
 
 #[test]
 fn test_context_shows_excluded_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes
     let mut note_ids = Vec::new();

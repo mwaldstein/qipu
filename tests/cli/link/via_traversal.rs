@@ -1,14 +1,10 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]
 fn test_link_list_via_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())
@@ -50,12 +46,7 @@ fn test_link_list_via_basic() {
 
 #[test]
 fn test_link_list_via_compacted() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())
@@ -143,12 +134,7 @@ fn test_link_list_via_compacted() {
 
 #[test]
 fn test_link_list_via_records_format() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())

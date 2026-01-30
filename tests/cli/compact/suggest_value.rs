@@ -1,16 +1,10 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_compact_suggest_prefers_low_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Cluster 1: Low-value notes (strong compaction candidates)
     let note1_content = r#"---
@@ -158,13 +152,7 @@ This is high value note 3 content."#;
 
 #[test]
 fn test_compact_suggest_mixed_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Cluster with mixed values (some low, some high)
     let note1_content = r#"---
@@ -318,13 +306,7 @@ This is moderate value note 3 content."#;
 
 #[test]
 fn test_compact_suggest_no_value_uses_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Cluster 1: Notes without value (should default to 50)
     let note1_content = r#"---

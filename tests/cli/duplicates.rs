@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
@@ -6,13 +6,7 @@ use tempfile::tempdir;
 fn test_doctor_duplicates_threshold() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-note1
@@ -87,13 +81,7 @@ This is a completely different note about programming and coding."#;
 fn test_doctor_duplicates_ignores_stop_words() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-stop1
@@ -134,13 +122,7 @@ This note discusses knowledge management with information architecture. System h
 fn test_doctor_duplicates_stop_words_only_differences_not_detected() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-same1
@@ -179,13 +161,7 @@ the graph is with algorithms and for data of structures in computer on science"#
 fn test_doctor_duplicates_content_words_required_for_match() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-diff1
@@ -222,13 +198,7 @@ This is a note about relational databases and query optimization techniques for 
 fn test_doctor_duplicates_stop_word_list_coverage() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-rare1
@@ -267,13 +237,7 @@ a zettelkasten is the ontology and an epistemology with methodology or for in on
 fn test_doctor_duplicates_stop_words_in_title_and_body() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-field1
@@ -312,13 +276,7 @@ a is that this to was will"#;
 fn test_doctor_duplicates_field_weighting_with_stop_words() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1_content = r#"---
 id: qp-weight1

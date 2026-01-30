@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 //! Tests for wiki-link rewriting feature
 
 use tempfile::tempdir;

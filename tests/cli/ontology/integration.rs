@@ -1,3 +1,4 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use std::fs;
@@ -5,13 +6,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_prime_shows_custom_ontology() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -49,13 +44,7 @@ usage = "Note B depends on Note A"
 
 #[test]
 fn test_graph_types_backward_compatibility() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"

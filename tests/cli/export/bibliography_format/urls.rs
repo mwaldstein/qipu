@@ -4,12 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_bibtex_special_url_chars() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-special-chars.md");
     fs::write(
@@ -48,12 +43,7 @@ fn test_export_bibliography_bibtex_special_url_chars() {
 
 #[test]
 fn test_export_bibliography_bibtex_non_http_url() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-non-http.md");
     fs::write(
@@ -92,12 +82,7 @@ fn test_export_bibliography_bibtex_non_http_url() {
 
 #[test]
 fn test_export_bibliography_bibtex_unicode_url() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-unicode.md");
     fs::write(
@@ -136,12 +121,7 @@ fn test_export_bibliography_bibtex_unicode_url() {
 
 #[test]
 fn test_export_bibliography_bibtex_url_with_auth() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-url-auth.md");
     fs::write(

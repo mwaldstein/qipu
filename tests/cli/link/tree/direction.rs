@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_direction_out() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -63,13 +57,7 @@ fn test_link_tree_direction_out() {
 
 #[test]
 fn test_link_tree_direction_in() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -122,13 +110,7 @@ fn test_link_tree_direction_in() {
 
 #[test]
 fn test_link_tree_direction_both() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())

@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_expand_compaction_human_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes: note1 -> note2, and digest that compacts note2
     let output1 = qipu()
@@ -81,13 +76,7 @@ fn test_link_tree_expand_compaction_human_format() {
 
 #[test]
 fn test_link_tree_expand_compaction_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -159,13 +148,7 @@ fn test_link_tree_expand_compaction_json_format() {
 
 #[test]
 fn test_link_tree_expand_compaction_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -239,13 +222,7 @@ fn test_link_tree_expand_compaction_records_format() {
 
 #[test]
 fn test_link_path_expand_compaction_human_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -311,13 +288,7 @@ fn test_link_path_expand_compaction_human_format() {
 
 #[test]
 fn test_link_path_expand_compaction_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -390,13 +361,7 @@ fn test_link_path_expand_compaction_json_format() {
 
 #[test]
 fn test_link_path_expand_compaction_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

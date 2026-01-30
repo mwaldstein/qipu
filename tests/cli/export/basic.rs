@@ -1,16 +1,11 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_export_records_truncated_field() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
     fs::write(&note_path, "---\nid: qp-1111\ntitle: Test Note\n---\nBody").unwrap();
@@ -31,12 +26,7 @@ fn test_export_records_truncated_field() {
 
 #[test]
 fn test_export_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with known ID
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
@@ -53,12 +43,7 @@ fn test_export_basic() {
 
 #[test]
 fn test_export_with_attachments() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create an attachment
     let attachments_dir = dir.path().join(".qipu/attachments");

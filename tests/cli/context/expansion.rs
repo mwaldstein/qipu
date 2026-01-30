@@ -1,15 +1,10 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use tempfile::tempdir;
 
 #[test]
 fn test_context_related_expansion() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes with similar content
     // Note 1: "machine learning algorithms"
@@ -82,13 +77,7 @@ fn test_context_related_expansion() {
 
 #[test]
 fn test_context_backlinks() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes
     let note1_output = qipu()

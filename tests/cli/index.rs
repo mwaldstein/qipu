@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
@@ -9,13 +9,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_index_empty_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -27,13 +21,7 @@ fn test_index_empty_store() {
 
 #[test]
 fn test_index_with_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create notes
     qipu()
@@ -58,13 +46,7 @@ fn test_index_with_notes() {
 
 #[test]
 fn test_index_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -83,13 +65,7 @@ fn test_index_json_format() {
 
 #[test]
 fn test_index_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -109,13 +85,7 @@ fn test_index_records_format() {
 
 #[test]
 fn test_index_rebuild() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -143,13 +113,7 @@ fn test_index_rebuild() {
 fn test_index_extracts_relative_path_markdown_links() {
     use std::fs;
 
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note in notes/
     let result = qipu()
@@ -226,13 +190,7 @@ fn test_index_extracts_relative_path_markdown_links() {
 
 #[test]
 fn test_index_stemming_can_be_disabled() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Disable stemming in config
     let config_path = dir.path().join(".qipu/config.toml");
@@ -258,13 +216,7 @@ fn test_index_stemming_can_be_disabled() {
 
 #[test]
 fn test_index_stemming_enabled_by_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     qipu()
@@ -284,13 +236,7 @@ fn test_index_stemming_enabled_by_default() {
 
 #[test]
 fn test_index_incremental_repair_only_updates_changed_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes (they are automatically indexed)
     let result1 = qipu()

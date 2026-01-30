@@ -5,12 +5,7 @@ use tempfile::tempdir;
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note
     let note_path = dir.path().join(".qipu/notes/qp-1111-test-note.md");
@@ -55,12 +50,7 @@ fn test_export_pdf_basic() {
 #[test]
 #[ignore] // Requires pandoc to be installed
 fn test_export_pdf_bundle_mode() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create multiple notes
     let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");

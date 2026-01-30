@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_context_walk_semantic_inversion_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -65,13 +60,7 @@ fn test_context_walk_semantic_inversion_default() {
 
 #[test]
 fn test_context_walk_semantic_inversion_disabled() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_a = qipu()
         .current_dir(dir.path())
@@ -127,13 +116,7 @@ fn test_context_walk_semantic_inversion_disabled() {
 
 #[test]
 fn test_context_walk_min_value_filter_all_match() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -192,13 +175,7 @@ fn test_context_walk_min_value_filter_all_match() {
 
 #[test]
 fn test_context_walk_min_value_filter_some_match() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -277,13 +254,7 @@ fn test_context_walk_min_value_filter_some_match() {
 
 #[test]
 fn test_context_walk_min_value_filter_with_defaults() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -336,13 +307,7 @@ fn test_context_walk_min_value_filter_with_defaults() {
 
 #[test]
 fn test_context_walk_min_value_filter_excludes_root() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -401,13 +366,7 @@ fn test_context_walk_min_value_filter_excludes_root() {
 
 #[test]
 fn test_context_walk_ignore_value_unweighted() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

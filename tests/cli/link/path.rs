@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
 fn test_link_path_with_compaction() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output_start = qipu()
         .current_dir(dir.path())
@@ -89,12 +84,7 @@ fn test_link_path_with_compaction() {
 
 #[test]
 fn test_link_path_via_basic() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())
@@ -139,12 +129,7 @@ fn test_link_path_via_basic() {
 
 #[test]
 fn test_link_path_via_compacted_json() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())
@@ -211,12 +196,7 @@ fn test_link_path_via_compacted_json() {
 
 #[test]
 fn test_link_path_via_multi_hop() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note1 = qipu()
         .current_dir(dir.path())

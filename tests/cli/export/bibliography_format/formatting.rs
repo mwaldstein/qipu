@@ -4,12 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_export_bibliography_bibtex_special_chars_in_title() {
-    let dir = tempdir().unwrap();
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-aaaa-title-chars.md");
     fs::write(

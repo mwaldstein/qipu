@@ -1,16 +1,11 @@
+use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
 fn test_list_filter_by_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -35,13 +30,7 @@ fn test_list_filter_by_type() {
 
 #[test]
 fn test_list_filter_by_tag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -96,13 +85,7 @@ fn test_list_filter_by_tag() {
 
 #[test]
 fn test_list_filter_by_tag_no_matches() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -120,13 +103,7 @@ fn test_list_filter_by_tag_no_matches() {
 
 #[test]
 fn test_list_filter_by_since() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -157,13 +134,7 @@ fn test_list_filter_by_since() {
 
 #[test]
 fn test_list_filter_by_since_no_matches() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -183,13 +154,7 @@ fn test_list_filter_by_since_no_matches() {
 
 #[test]
 fn test_list_filter_by_since_exact_match() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let since_time = chrono::Utc::now().to_rfc3339();
 
@@ -209,13 +174,7 @@ fn test_list_filter_by_since_exact_match() {
 
 #[test]
 fn test_list_filter_by_custom_string() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -256,13 +215,7 @@ fn test_list_filter_by_custom_string() {
 
 #[test]
 fn test_list_filter_by_custom_number() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -303,13 +256,7 @@ fn test_list_filter_by_custom_number() {
 
 #[test]
 fn test_list_filter_by_custom_boolean() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -366,13 +313,7 @@ fn test_list_filter_by_custom_boolean() {
 
 #[test]
 fn test_list_filter_by_custom_with_tag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

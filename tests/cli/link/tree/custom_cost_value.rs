@@ -3,13 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_custom_link_cost_with_value_penalties() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"
@@ -112,13 +106,7 @@ cost = 0.5
 
 #[test]
 fn test_custom_link_cost_with_ignore_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let config_path = dir.path().join(".qipu/config.toml");
     let config_content = r#"

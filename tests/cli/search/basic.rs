@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
@@ -9,13 +9,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_search_empty_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -27,13 +21,7 @@ fn test_search_empty_store() {
 
 #[test]
 fn test_search_finds_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -51,13 +39,7 @@ fn test_search_finds_title() {
 
 #[test]
 fn test_search_by_tag() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -83,13 +65,7 @@ fn test_search_by_tag() {
 
 #[test]
 fn test_search_by_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -115,13 +91,7 @@ fn test_search_by_type() {
 
 #[test]
 fn test_search_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -142,13 +112,7 @@ fn test_search_json_format() {
 #[test]
 fn test_search_title_only_match() {
     // Regression test for title-only matches being correctly indexed
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note with a unique word in the title but NOT in the body
     qipu()
@@ -188,13 +152,7 @@ fn test_search_title_only_match() {
 #[test]
 fn test_search_recency_boost() {
     // Test that recently updated notes rank higher than older notes with similar content
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create two notes with identical content
     qipu()
@@ -311,13 +269,7 @@ fn test_search_recency_boost() {
 fn test_search_title_only_match_with_body_matches() {
     // Regression test: ensure title-only matches are found alongside body matches
     // when using SQLite FTS5 search
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create note 1: unique word ONLY in title
     qipu()
@@ -407,13 +359,7 @@ fn test_search_title_only_match_with_body_matches() {
 fn test_search_multi_word_and_semantics() {
     // Test that multi-word queries use AND semantics (terms can appear separately)
     // rather than phrase search (terms must appear together)
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Create a note where "rust" and "programming" appear separately (not as a phrase)
     qipu()

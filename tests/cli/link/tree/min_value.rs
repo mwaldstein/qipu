@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_tree_min_value_filter_all_match() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -61,13 +55,7 @@ fn test_link_tree_min_value_filter_all_match() {
 
 #[test]
 fn test_link_tree_min_value_filter_some_match() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -138,13 +126,7 @@ fn test_link_tree_min_value_filter_some_match() {
 
 #[test]
 fn test_link_tree_min_value_filter_with_defaults() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -189,13 +171,7 @@ fn test_link_tree_min_value_filter_with_defaults() {
 
 #[test]
 fn test_link_tree_min_value_filter_excludes_root() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

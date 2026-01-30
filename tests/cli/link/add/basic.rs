@@ -4,13 +4,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_link_add_and_list() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -68,13 +62,7 @@ fn test_link_add_and_list() {
 
 #[test]
 fn test_link_add_idempotent() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())
@@ -107,13 +95,7 @@ fn test_link_add_idempotent() {
 
 #[test]
 fn test_unknown_type_fallback_inversion() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output1 = qipu()
         .current_dir(dir.path())

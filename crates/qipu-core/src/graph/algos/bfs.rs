@@ -5,8 +5,390 @@ use crate::graph::types::{
     TreeLink, TreeNote, TreeOptions, TreeResult, DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
 };
 use crate::graph::GraphProvider;
+use crate::index::Edge;
 use crate::store::Store;
 use std::collections::{HashMap, HashSet, VecDeque};
+
+/// State tracked during BFS traversal
+struct BfsState {
+    visited: HashSet<String>,
+    queue: VecDeque<(String, HopCost)>,
+    notes: Vec<TreeNote>,
+    links: Vec<TreeLink>,
+    spanning_tree: Vec<SpanningTreeEntry>,
+    truncated: bool,
+    truncation_reason: Option<String>,
+}
+
+impl BfsState {
+    fn new() -> Self {
+        Self {
+            visited: HashSet::new(),
+            queue: VecDeque::new(),
+            notes: Vec::new(),
+            links: Vec::new(),
+            spanning_tree: Vec::new(),
+            truncated: false,
+            truncation_reason: None,
+        }
+    }
+
+    fn check_limits(&mut self, opts: &TreeOptions) -> bool {
+        if let Some(max) = opts.max_nodes {
+            if self.visited.len() >= max {
+                self.truncated = true;
+                self.truncation_reason = Some("max_nodes".to_string());
+                return false;
+            }
+        }
+
+        if let Some(max) = opts.max_edges {
+            if self.links.len() >= max {
+                self.truncated = true;
+                self.truncation_reason = Some("max_edges".to_string());
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+/// Check if root passes min_value filter
+fn root_passes_filter(provider: &dyn GraphProvider, root: &str, opts: &TreeOptions) -> bool {
+    if let Some(meta) = provider.get_metadata(root) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    }
+}
+
+/// Build empty result when root is filtered out
+fn build_filtered_result(root: &str, opts: &TreeOptions) -> TreeResult {
+    TreeResult {
+        root: root.to_string(),
+        direction: match opts.direction {
+            Direction::Out => DIRECTION_OUT.to_string(),
+            Direction::In => DIRECTION_IN.to_string(),
+            Direction::Both => DIRECTION_BOTH.to_string(),
+        },
+        max_hops: opts.max_hops.as_u32_for_display(),
+        truncated: false,
+        truncation_reason: Some("min_value filter excluded root".to_string()),
+        notes: vec![],
+        links: vec![],
+        spanning_tree: vec![],
+    }
+}
+
+/// Get source IDs considering equivalence map
+fn get_source_ids<'a>(
+    current_id: &'a str,
+    equivalence_map: Option<&'a HashMap<String, Vec<String>>>,
+) -> Vec<&'a str> {
+    match equivalence_map.and_then(|map| map.get(current_id)) {
+        Some(ids) if !ids.is_empty() => ids.iter().map(|s| s.as_str()).collect(),
+        _ => vec![current_id],
+    }
+}
+
+/// Check if there are unexpanded neighbors at max_hops
+fn has_unexpanded_neighbors(
+    provider: &dyn GraphProvider,
+    source_ids: &[&str],
+    opts: &TreeOptions,
+) -> bool {
+    let has_outbound = if opts.direction == Direction::Out || opts.direction == Direction::Both {
+        source_ids.iter().any(|id| {
+            provider
+                .get_outbound_edges(id)
+                .iter()
+                .any(|e| filter_edge(e, opts))
+        })
+    } else {
+        false
+    };
+
+    let has_inbound = if opts.direction == Direction::In || opts.direction == Direction::Both {
+        source_ids.iter().any(|id| {
+            provider
+                .get_inbound_edges(id)
+                .iter()
+                .any(|e| filter_edge(e, opts))
+        })
+    } else {
+        false
+    };
+
+    has_outbound || has_inbound
+}
+
+/// Collect all neighbors from outbound edges
+fn collect_outbound_neighbors(
+    provider: &dyn GraphProvider,
+    source_ids: &[&str],
+    opts: &TreeOptions,
+) -> Vec<(String, Edge)> {
+    let mut neighbors = Vec::new();
+    for source_id in source_ids {
+        for edge in provider.get_outbound_edges(source_id) {
+            if filter_edge(&edge, opts) {
+                let to = edge.to.clone();
+                neighbors.push((to, edge));
+            }
+        }
+    }
+    neighbors
+}
+
+/// Collect all neighbors from inbound edges (with optional semantic inversion)
+fn collect_inbound_neighbors(
+    provider: &dyn GraphProvider,
+    store: &Store,
+    source_ids: &[&str],
+    opts: &TreeOptions,
+) -> Vec<(String, Edge)> {
+    let mut neighbors = Vec::new();
+    for source_id in source_ids {
+        for edge in provider.get_inbound_edges(source_id) {
+            if opts.semantic_inversion {
+                let virtual_edge = edge.invert(store.config());
+                if filter_edge(&virtual_edge, opts) {
+                    let to = virtual_edge.to.clone();
+                    neighbors.push((to, virtual_edge));
+                }
+            } else if filter_edge(&edge, opts) {
+                let from = edge.from.clone();
+                neighbors.push((from, edge));
+            }
+        }
+    }
+    neighbors
+}
+
+/// Sort and apply max_fanout to neighbors
+fn prepare_neighbors(
+    mut neighbors: Vec<(String, Edge)>,
+    opts: &TreeOptions,
+    truncated: &mut bool,
+    truncation_reason: &mut Option<String>,
+) -> Vec<(String, Edge)> {
+    neighbors.sort_by(|a, b| {
+        a.1.link_type
+            .cmp(&b.1.link_type)
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    if let Some(max_fanout) = opts.max_fanout {
+        if neighbors.len() > max_fanout {
+            *truncated = true;
+            *truncation_reason = Some("max_fanout".to_string());
+        }
+        neighbors.into_iter().take(max_fanout).collect()
+    } else {
+        neighbors
+    }
+}
+
+/// Check if neighbor passes min_value filter
+fn neighbor_passes_filter(
+    provider: &dyn GraphProvider,
+    canonical_neighbor: &str,
+    visited: &HashSet<String>,
+    opts: &TreeOptions,
+) -> bool {
+    if visited.contains(canonical_neighbor) {
+        return true;
+    }
+    if let Some(meta) = provider.get_metadata(canonical_neighbor) {
+        let value = meta.value.unwrap_or(50);
+        opts.min_value.is_none_or(|min| value >= min)
+    } else {
+        false
+    }
+}
+
+/// Calculate edge cost based on options
+fn calculate_edge_cost(
+    edge: &Edge,
+    canonical_neighbor: &str,
+    provider: &dyn GraphProvider,
+    store: &Store,
+    opts: &TreeOptions,
+) -> HopCost {
+    if opts.ignore_value {
+        get_link_type_cost(edge.link_type.as_str(), store.config())
+    } else if let Some(meta) = provider.get_metadata(canonical_neighbor) {
+        let value = meta.value.unwrap_or(50);
+        get_edge_cost(edge.link_type.as_str(), value, store.config())
+    } else {
+        get_link_type_cost(edge.link_type.as_str(), store.config())
+    }
+}
+
+/// Context for processing a neighbor
+struct NeighborContext<'a> {
+    current_id: &'a str,
+    accumulated_cost: HopCost,
+    provider: &'a dyn GraphProvider,
+    store: &'a Store,
+    opts: &'a TreeOptions,
+    compaction_ctx: Option<&'a CompactionContext>,
+}
+
+/// Context for processing a neighbor
+struct NeighborContext<'a> {
+    current_id: &'a str,
+    accumulated_cost: HopCost,
+    provider: &'a dyn GraphProvider,
+    store: &'a Store,
+    opts: &'a TreeOptions,
+    compaction_ctx: Option<&'a CompactionContext>,
+}
+
+/// Process a single neighbor, updating state
+fn process_neighbor(
+    neighbor_id: String,
+    edge: Edge,
+    state: &mut BfsState,
+    ctx: &NeighborContext<'_>,
+) -> Result<()> {
+    // Canonicalize edge endpoints
+    let (canonical_from, canonical_to) = if let Some(compact_ctx) = ctx.compaction_ctx {
+        (compact_ctx.canon(&edge.from)?, compact_ctx.canon(&edge.to)?)
+    } else {
+        (edge.from.clone(), edge.to.clone())
+    };
+
+    // Skip self-loops
+    if canonical_from == canonical_to {
+        return Ok(());
+    }
+
+    // Canonicalize neighbor ID
+    let canonical_neighbor = if let Some(compact_ctx) = ctx.compaction_ctx {
+        compact_ctx.canon(&neighbor_id)?
+    } else {
+        neighbor_id.clone()
+    };
+
+    // Check filter
+    if !neighbor_passes_filter(ctx.provider, &canonical_neighbor, &state.visited, ctx.opts) {
+        return Ok(());
+    }
+
+    // Check max_edges again
+    if let Some(max) = ctx.opts.max_edges {
+        if state.links.len() >= max {
+            state.truncated = true;
+            state.truncation_reason = Some("max_edges".to_string());
+            return Ok(());
+        }
+    }
+
+    // Track via if canonicalized
+    let via_for_link = if neighbor_id != canonical_neighbor {
+        Some(neighbor_id)
+    } else {
+        None
+    };
+
+    // Add edge
+    let link_type_str = edge.link_type.to_string();
+    let source_str = edge.source.to_string();
+    state.links.push(TreeLink {
+        from: canonical_from,
+        to: canonical_to,
+        link_type: link_type_str.clone(),
+        source: source_str,
+        via: via_for_link.clone(),
+    });
+
+    // Process new neighbor
+    if !state.visited.contains(&canonical_neighbor) {
+        // Check max_nodes
+        if let Some(max) = ctx.opts.max_nodes {
+            if state.visited.len() >= max {
+                state.truncated = true;
+                state.truncation_reason = Some("max_nodes".to_string());
+                return Ok(());
+            }
+        }
+
+        state.visited.insert(canonical_neighbor.clone());
+
+        // Calculate cost
+        let edge_cost = calculate_edge_cost(
+            &edge,
+            &canonical_neighbor,
+            ctx.provider,
+            ctx.store,
+            ctx.opts,
+        );
+        let new_cost = ctx.accumulated_cost + edge_cost;
+
+        // Add to spanning tree
+        state.spanning_tree.push(SpanningTreeEntry {
+            from: ctx.current_id.to_string(),
+            to: canonical_neighbor.clone(),
+            hop: new_cost.as_u32_for_display(),
+            link_type: link_type_str,
+        });
+
+        // Add note metadata
+        if let Some(meta) = ctx.provider.get_metadata(&canonical_neighbor) {
+            state.notes.push(TreeNote {
+                id: meta.id.clone(),
+                title: meta.title.clone(),
+                note_type: meta.note_type,
+                tags: meta.tags.clone(),
+                path: meta.path.clone(),
+                via: via_for_link,
+            });
+        }
+
+        // Queue for expansion
+        state.queue.push_back((canonical_neighbor, new_cost));
+    }
+
+    Ok(())
+}
+
+/// Sort all result collections for determinism
+fn sort_results(state: &mut BfsState) {
+    state.notes.sort_by(|a, b| a.id.cmp(&b.id));
+    state.links.sort_by(|a, b| {
+        a.from
+            .cmp(&b.from)
+            .then_with(|| a.link_type.cmp(&b.link_type))
+            .then_with(|| a.to.cmp(&b.to))
+    });
+    state.spanning_tree.sort_by(|a, b| {
+        a.hop
+            .cmp(&b.hop)
+            .then_with(|| a.link_type.cmp(&b.link_type))
+            .then_with(|| a.to.cmp(&b.to))
+    });
+}
+
+/// Build final TreeResult from state
+fn build_result(root: &str, opts: &TreeOptions, state: BfsState) -> TreeResult {
+    TreeResult {
+        root: root.to_string(),
+        direction: match opts.direction {
+            Direction::Out => DIRECTION_OUT.to_string(),
+            Direction::In => DIRECTION_IN.to_string(),
+            Direction::Both => DIRECTION_BOTH.to_string(),
+        },
+        max_hops: opts.max_hops.as_u32_for_display(),
+        truncated: state.truncated,
+        truncation_reason: state.truncation_reason,
+        notes: state.notes,
+        links: state.links,
+        spanning_tree: state.spanning_tree,
+    }
+}
 
 /// Perform BFS traversal from a root node
 #[tracing::instrument(skip(provider, store, opts, compaction_ctx, equivalence_map), fields(root = %root, direction = ?opts.direction, max_hops = %opts.max_hops.value(), max_nodes, max_edges, max_fanout))]
@@ -18,48 +400,22 @@ pub fn bfs_traverse(
     compaction_ctx: Option<&CompactionContext>,
     equivalence_map: Option<&HashMap<String, Vec<String>>>,
 ) -> Result<TreeResult> {
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, HopCost)> = VecDeque::new();
-    let mut notes: Vec<TreeNote> = Vec::new();
-    let mut links: Vec<TreeLink> = Vec::new();
-    let mut spanning_tree: Vec<SpanningTreeEntry> = Vec::new();
-
-    let mut truncated = false;
-    let mut truncation_reason: Option<String> = None;
-
-    // Check min_value filter for root note before initializing
-    let root_passes_filter = if let Some(meta) = provider.get_metadata(root) {
-        let value = meta.value.unwrap_or(50);
-        opts.min_value.is_none_or(|min| value >= min)
-    } else {
-        false
-    };
-
-    if !root_passes_filter {
-        return Ok(TreeResult {
-            root: root.to_string(),
-            direction: match opts.direction {
-                Direction::Out => DIRECTION_OUT.to_string(),
-                Direction::In => DIRECTION_IN.to_string(),
-                Direction::Both => DIRECTION_BOTH.to_string(),
-            },
-            max_hops: opts.max_hops.as_u32_for_display(),
-            truncated: false,
-            truncation_reason: Some("min_value filter excluded root".to_string()),
-            notes: vec![],
-            links: vec![],
-            spanning_tree: vec![],
-        });
+    // Check root filter
+    if !root_passes_filter(provider, root, opts) {
+        return Ok(build_filtered_result(root, opts));
     }
 
-    // Initialize with root
+    // Initialize state
+    let mut state = BfsState::new();
     let root_owned = root.to_string();
-    queue.push_back((root_owned.clone(), HopCost::from(0)));
-    visited.insert(root_owned);
+    state
+        .queue
+        .push_back((root_owned.clone(), HopCost::from(0)));
+    state.visited.insert(root_owned);
 
     // Add root note
     if let Some(meta) = provider.get_metadata(root) {
-        notes.push(TreeNote {
+        state.notes.push(TreeNote {
             id: meta.id.clone(),
             title: meta.title.clone(),
             note_type: meta.note_type,
@@ -69,284 +425,58 @@ pub fn bfs_traverse(
         });
     }
 
-    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
-        // Check max_nodes limit
-        if let Some(max) = opts.max_nodes {
-            if visited.len() >= max {
-                truncated = true;
-                truncation_reason = Some("max_nodes".to_string());
-                break;
-            }
+    // Main BFS loop
+    while let Some((current_id, accumulated_cost)) = state.queue.pop_front() {
+        if !state.check_limits(opts) {
+            break;
         }
 
-        // Check max_edges limit
-        if let Some(max) = opts.max_edges {
-            if links.len() >= max {
-                truncated = true;
-                truncation_reason = Some("max_edges".to_string());
-                break;
-            }
-        }
-
-        // Don't expand beyond max_hops (use accumulated cost)
+        // Handle max_hops reached
         if accumulated_cost.value() >= opts.max_hops.value() {
-            // Check if there are any neighbors that would have been expanded
-            let source_ids: &[&str] = &match equivalence_map.and_then(|map| map.get(&current_id)) {
-                Some(ids) if !ids.is_empty() => {
-                    let mut v: Vec<&str> = Vec::with_capacity(ids.len());
-                    for id in ids {
-                        v.push(id.as_str());
-                    }
-                    v
-                }
-                _ => vec![current_id.as_str()],
-            };
-
-            let has_unexpanded_neighbors =
-                if opts.direction == Direction::Out || opts.direction == Direction::Both {
-                    source_ids.iter().any(|id| {
-                        provider
-                            .get_outbound_edges(id)
-                            .iter()
-                            .any(|e| filter_edge(e, opts))
-                    })
-                } else {
-                    false
-                } || if opts.direction == Direction::In || opts.direction == Direction::Both {
-                    source_ids.iter().any(|id| {
-                        provider
-                            .get_inbound_edges(id)
-                            .iter()
-                            .any(|e| filter_edge(e, opts))
-                    })
-                } else {
-                    false
-                };
-
-            if has_unexpanded_neighbors {
-                truncated = true;
-                if truncation_reason.is_none() {
-                    truncation_reason = Some("max_hops".to_string());
+            let source_ids = get_source_ids(&current_id, equivalence_map);
+            if has_unexpanded_neighbors(provider, &source_ids, opts) {
+                state.truncated = true;
+                if state.truncation_reason.is_none() {
+                    state.truncation_reason = Some("max_hops".to_string());
                 }
             }
-
             continue;
         }
 
-        // Get neighbors based on direction (gather edges from all compacted notes)
-        let source_ids: &[&str] = &match equivalence_map.and_then(|map| map.get(&current_id)) {
-            Some(ids) if !ids.is_empty() => {
-                let mut v: Vec<&str> = Vec::with_capacity(ids.len());
-                for id in ids {
-                    v.push(id.as_str());
-                }
-                v
-            }
-            _ => vec![current_id.as_str()],
-        };
+        // Collect neighbors
+        let source_ids = get_source_ids(&current_id, equivalence_map);
+        let mut neighbors = collect_outbound_neighbors(provider, &source_ids, opts);
+        neighbors.extend(collect_inbound_neighbors(
+            provider,
+            store,
+            &source_ids,
+            opts,
+        ));
 
-        let mut neighbors = Vec::new();
+        // Prepare and process neighbors
+        let neighbors = prepare_neighbors(
+            neighbors,
+            opts,
+            &mut state.truncated,
+            &mut state.truncation_reason,
+        );
 
-        // Outbound edges
-        if opts.direction == Direction::Out || opts.direction == Direction::Both {
-            for source_id in source_ids {
-                for edge in provider.get_outbound_edges(source_id) {
-                    if filter_edge(&edge, opts) {
-                        let to = edge.to.clone();
-                        neighbors.push((to, edge));
-                    }
-                }
-            }
-        }
-
-        // Inbound edges (Inversion point)
-        if opts.direction == Direction::In || opts.direction == Direction::Both {
-            for source_id in source_ids {
-                for edge in provider.get_inbound_edges(source_id) {
-                    if opts.semantic_inversion {
-                        // Virtual Inversion
-                        let virtual_edge = edge.invert(store.config());
-                        if filter_edge(&virtual_edge, opts) {
-                            let to = virtual_edge.to.clone();
-                            neighbors.push((to, virtual_edge));
-                        }
-                    } else {
-                        // Raw backlink
-                        if filter_edge(&edge, opts) {
-                            let from = edge.from.clone();
-                            neighbors.push((from, edge));
-                        }
-                    }
-                }
-            }
-        }
-
-        // Sort for determinism
-        neighbors.sort_by(|a, b| {
-            a.1.link_type
-                .cmp(&b.1.link_type)
-                .then_with(|| a.0.cmp(&b.0))
-        });
-
-        // Apply max_fanout
-        let neighbors: Vec<_> = if let Some(max_fanout) = opts.max_fanout {
-            if neighbors.len() > max_fanout {
-                truncated = true;
-                truncation_reason = Some("max_fanout".to_string());
-            }
-            neighbors.into_iter().take(max_fanout).collect()
-        } else {
-            neighbors
+        let neighbor_ctx = NeighborContext {
+            current_id: &current_id,
+            accumulated_cost,
+            provider,
+            store,
+            opts,
+            compaction_ctx,
         };
 
         for (neighbor_id, edge) in neighbors {
-            // Canonicalize edge endpoints if using compaction
-            let (canonical_from, canonical_to) = if let Some(ctx) = compaction_ctx {
-                (ctx.canon(&edge.from)?, ctx.canon(&edge.to)?)
-            } else {
-                (edge.from.clone(), edge.to.clone())
-            };
-
-            // Skip self-loops introduced by compaction contraction
-            if canonical_from == canonical_to {
-                continue;
-            }
-
-            // Canonicalize the neighbor ID
-            let canonical_neighbor = if let Some(ctx) = compaction_ctx {
-                ctx.canon(&neighbor_id)?
-            } else {
-                neighbor_id.clone()
-            };
-
-            // Check min_value filter before adding link or processing neighbor
-            let neighbor_passes_filter = if !visited.contains(&canonical_neighbor) {
-                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                    let value = meta.value.unwrap_or(50);
-                    opts.min_value.is_none_or(|min| value >= min)
-                } else {
-                    false
-                }
-            } else {
-                true // Already visited, include the link
-            };
-
-            // Skip neighbor if it doesn't pass min_value filter and hasn't been visited
-            if !neighbor_passes_filter {
-                continue;
-            }
-
-            // Check max_edges again before adding
-            if let Some(max) = opts.max_edges {
-                if links.len() >= max {
-                    truncated = true;
-                    truncation_reason = Some("max_edges".to_string());
-                    break;
-                }
-            }
-
-            // Track via if neighbor was canonicalized
-            let via_for_link = if neighbor_id != canonical_neighbor {
-                Some(neighbor_id)
-            } else {
-                None
-            };
-
-            // Add edge with canonical IDs and via annotation
-            let link_type_str = edge.link_type.to_string();
-            let source_str = edge.source.to_string();
-            links.push(TreeLink {
-                from: canonical_from,
-                to: canonical_to,
-                link_type: link_type_str.clone(),
-                source: source_str,
-                via: via_for_link.clone(),
-            });
-
-            // Process neighbor if not visited (use canonical ID)
-            let is_new = !visited.contains(&canonical_neighbor);
-            if is_new {
-                // Check max_nodes before adding
-                if let Some(max) = opts.max_nodes {
-                    if visited.len() >= max {
-                        truncated = true;
-                        truncation_reason = Some("max_nodes".to_string());
-                        break;
-                    }
-                }
-
-                visited.insert(canonical_neighbor.clone());
-
-                // Calculate new accumulated cost for this edge
-                let edge_cost = if opts.ignore_value {
-                    // Unweighted: all edges cost 1.0
-                    get_link_type_cost(edge.link_type.as_str(), store.config())
-                } else {
-                    // Weighted: use get_edge_cost with target note's value
-                    if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                        let value = meta.value.unwrap_or(50);
-                        get_edge_cost(edge.link_type.as_str(), value, store.config())
-                    } else {
-                        get_link_type_cost(edge.link_type.as_str(), store.config())
-                    }
-                };
-                let new_cost = accumulated_cost + edge_cost;
-
-                // Add to spanning tree (first discovery, use canonical IDs)
-                spanning_tree.push(SpanningTreeEntry {
-                    from: current_id.clone(),
-                    to: canonical_neighbor.clone(),
-                    hop: new_cost.as_u32_for_display(),
-                    link_type: link_type_str,
-                });
-
-                // Add note metadata (use canonical ID, track via if canonicalized)
-                if let Some(meta) = provider.get_metadata(&canonical_neighbor) {
-                    notes.push(TreeNote {
-                        id: meta.id.clone(),
-                        title: meta.title.clone(),
-                        note_type: meta.note_type,
-                        tags: meta.tags.clone(),
-                        path: meta.path.clone(),
-                        via: via_for_link,
-                    });
-                }
-
-                // Queue for further expansion (use canonical ID)
-                queue.push_back((canonical_neighbor, new_cost));
-            }
+            process_neighbor(neighbor_id, edge, &mut state, &neighbor_ctx)?;
         }
     }
 
-    // Sort for determinism
-    notes.sort_by(|a, b| a.id.cmp(&b.id));
-    links.sort_by(|a, b| {
-        a.from
-            .cmp(&b.from)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| a.to.cmp(&b.to))
-    });
-    spanning_tree.sort_by(|a, b| {
-        a.hop
-            .cmp(&b.hop)
-            .then_with(|| a.link_type.cmp(&b.link_type))
-            .then_with(|| a.to.cmp(&b.to))
-    });
-
-    Ok(TreeResult {
-        root: root.to_string(),
-        direction: match opts.direction {
-            Direction::Out => DIRECTION_OUT.to_string(),
-            Direction::In => DIRECTION_IN.to_string(),
-            Direction::Both => DIRECTION_BOTH.to_string(),
-        },
-        max_hops: opts.max_hops.as_u32_for_display(),
-        truncated,
-        truncation_reason,
-        notes,
-        links,
-        spanning_tree,
-    })
+    sort_results(&mut state);
+    Ok(build_result(root, opts, state))
 }
 
 #[cfg(test)]

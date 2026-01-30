@@ -1,7 +1,6 @@
-use crate::support::setup_test_dir;
 //! Records format character handling tests
 
-use crate::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu, setup_test_dir};
 use tempfile::tempdir;
 
 #[test]

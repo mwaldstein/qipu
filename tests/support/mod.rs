@@ -106,3 +106,15 @@ pub fn apply_compaction(dir: &TempDir, digest_id: &str, note_ids: &[&str]) {
 pub fn rebuild_index(dir: &TempDir) {
     run_assert_success(dir, &["index", "--rebuild"]);
 }
+
+/// Setup a test store using QIPU_STORE env var and return the directory
+/// Use when tests need to use env var instead of current_dir
+pub fn setup_test_store() -> TempDir {
+    let dir = TempDir::new().unwrap();
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", dir.path())
+        .assert()
+        .success();
+    dir
+}

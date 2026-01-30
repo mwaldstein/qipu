@@ -1,4 +1,4 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
 use std::process::Command;

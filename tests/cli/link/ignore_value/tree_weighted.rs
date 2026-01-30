@@ -1,4 +1,4 @@
-use crate::support::{extract_id, qipu};
+use crate::support::{extract_id, qipu, setup_test_dir};
 use tempfile::tempdir;
 
 /// Test that link tree uses weighted traversal by default (without --ignore-value)

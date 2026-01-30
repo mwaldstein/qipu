@@ -1,20 +1,13 @@
-use crate::support::{qipu, setup_test_dir};
-use tempfile::tempdir;
+use crate::support::{qipu, setup_test_store};
 
 #[test]
 fn test_dump_max_hops_limits_traversal_depth() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_store();
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note A")
         .arg("--id")
         .arg("note-a")
@@ -22,8 +15,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note B")
         .arg("--id")
         .arg("note-b")
@@ -31,8 +24,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note C")
         .arg("--id")
         .arg("note-c")
@@ -40,8 +33,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note D")
         .arg("--id")
         .arg("note-d")
@@ -49,8 +42,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-a")
         .arg("note-b")
@@ -60,8 +53,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-b")
         .arg("note-c")
@@ -71,8 +64,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-c")
         .arg("note-d")
@@ -82,8 +75,8 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu()
+        .arg("dump")
         .arg("--note")
         .arg("note-a")
         .arg("--output")
@@ -96,17 +89,11 @@ fn test_dump_max_hops_limits_traversal_depth() {
         .assert()
         .success();
 
-    let dir2 = tempdir().unwrap();
+    let dir2 = setup_test_store();
     let store2_path = dir2.path();
 
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu()
+        .arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
         .assert()
@@ -136,18 +123,12 @@ fn test_dump_max_hops_limits_traversal_depth() {
 
 #[test]
 fn test_dump_direction_filters_traversal() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_store();
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
 
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note A")
         .arg("--id")
         .arg("note-a")
@@ -155,8 +136,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note B")
         .arg("--id")
         .arg("note-b")
@@ -164,8 +145,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu()
+        .arg("create")
         .arg("Note C")
         .arg("--id")
         .arg("note-c")
@@ -173,8 +154,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-a")
         .arg("note-b")
@@ -184,8 +165,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-a")
         .arg("note-c")
@@ -195,8 +176,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu()
+        .arg("link")
         .arg("add")
         .arg("note-c")
         .arg("note-a")
@@ -206,8 +187,8 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu()
+        .arg("dump")
         .arg("--note")
         .arg("note-a")
         .arg("--output")
@@ -220,17 +201,11 @@ fn test_dump_direction_filters_traversal() {
         .assert()
         .success();
 
-    let dir2 = tempdir().unwrap();
+    let dir2 = setup_test_store();
     let store2_path = dir2.path();
 
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
-
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu()
+        .arg("load")
         .arg(&pack_file)
         .env("QIPU_STORE", store2_path)
         .assert()

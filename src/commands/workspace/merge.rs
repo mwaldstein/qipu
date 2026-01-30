@@ -109,7 +109,7 @@ pub fn execute(
                     "merge-links" => "merge-links",
                     "skip" => "skip",
                     "rename" => "rename",
-                    _ => unreachable!(),
+                    _ => unreachable!("strategy validated at line 19"),
                 };
                 if strategy != "rename" {
                     conflicts.push((id.clone(), action));
@@ -135,8 +135,7 @@ pub fn execute(
                         "skip" => {
                             // Intentionally do nothing - note is skipped
                         }
-                        "rename" => unreachable!(),
-                        _ => unreachable!(),
+                        _ => unreachable!("rename handled in strategy == 'rename' branch, unknown strategies rejected at line 19"),
                     }
                 }
             } else {

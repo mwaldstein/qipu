@@ -1,7 +1,6 @@
-use crate::support::qipu;
+use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use serde_json::Value;
-use tempfile::tempdir;
 
 // ============================================================================
 // Logging command tests
@@ -9,13 +8,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_log_level_debug_shows_debug_messages() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -27,13 +20,7 @@ fn test_log_level_debug_shows_debug_messages() {
 
 #[test]
 fn test_log_level_warn_hides_debug_messages() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -45,13 +32,7 @@ fn test_log_level_warn_hides_debug_messages() {
 
 #[test]
 fn test_verbose_shows_debug_messages() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -63,13 +44,7 @@ fn test_verbose_shows_debug_messages() {
 
 #[test]
 fn test_log_json_produces_valid_json() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -83,13 +58,7 @@ fn test_log_json_produces_valid_json() {
 
 #[test]
 fn test_qipu_log_env_overrides_cli_flags() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -102,13 +71,7 @@ fn test_qipu_log_env_overrides_cli_flags() {
 
 #[test]
 fn test_qipu_log_env_without_target() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -121,13 +84,7 @@ fn test_qipu_log_env_without_target() {
 
 #[test]
 fn test_invalid_log_level_rejected() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Invalid log level should be rejected
     qipu()
@@ -141,13 +98,7 @@ fn test_invalid_log_level_rejected() {
 
 #[test]
 fn test_valid_log_levels_accepted() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Test all valid log levels
     for level in ["error", "warn", "info", "debug", "trace"] {
@@ -161,13 +112,7 @@ fn test_valid_log_levels_accepted() {
 
 #[test]
 fn test_log_level_case_insensitive() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Case-insensitive log level should work
     qipu()
@@ -179,13 +124,7 @@ fn test_log_level_case_insensitive() {
 
 #[test]
 fn test_default_log_policy_is_warn() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Default (no flags) should show warnings but not debug messages
     qipu()
@@ -201,13 +140,7 @@ fn test_default_log_policy_is_warn() {
 
 #[test]
 fn test_log_level_trace_shows_debug_messages() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -219,13 +152,7 @@ fn test_log_level_trace_shows_debug_messages() {
 
 #[test]
 fn test_json_log_contains_level_field() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -249,13 +176,7 @@ fn test_json_log_contains_level_field() {
 
 #[test]
 fn test_json_log_level_values_are_valid() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let valid_levels = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 
@@ -286,13 +207,7 @@ fn test_json_log_level_values_are_valid() {
 
 #[test]
 fn test_error_field_present_in_json_logs() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-test123-invalid.md");
     std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
@@ -310,13 +225,7 @@ fn test_error_field_present_in_json_logs() {
 
 #[test]
 fn test_error_json_log_contains_error_field() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-test456-invalid.md");
     std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
@@ -349,13 +258,7 @@ fn test_error_json_log_contains_error_field() {
 
 #[test]
 fn test_error_log_level_is_warn() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-test789-invalid.md");
     std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();
@@ -387,13 +290,7 @@ fn test_error_log_level_is_warn() {
 
 #[test]
 fn test_error_log_contains_message_field() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let note_path = dir.path().join(".qipu/notes/qp-test000-invalid.md");
     std::fs::create_dir_all(note_path.parent().unwrap()).unwrap();

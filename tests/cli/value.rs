@@ -38,13 +38,7 @@ fn test_value_set_basic() {
 
 #[test]
 fn test_value_set_min_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -67,13 +61,7 @@ fn test_value_set_min_value() {
 
 #[test]
 fn test_value_set_max_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -96,13 +84,7 @@ fn test_value_set_max_value() {
 
 #[test]
 fn test_value_set_validation_over_100() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -127,13 +109,7 @@ fn test_value_set_validation_over_100() {
 
 #[test]
 fn test_value_set_updates_frontmatter() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -163,13 +139,7 @@ fn test_value_set_updates_frontmatter() {
 
 #[test]
 fn test_value_show_explicit_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -200,13 +170,7 @@ fn test_value_show_explicit_value() {
 
 #[test]
 fn test_value_show_default_value() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -232,13 +196,7 @@ fn test_value_show_default_value() {
 
 #[test]
 fn test_value_show_nonexistent_note() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Try to show value for nonexistent note
     qipu()
@@ -251,13 +209,7 @@ fn test_value_show_nonexistent_note() {
 
 #[test]
 fn test_value_set_nonexistent_note() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     // Try to set value for nonexistent note
     qipu()
@@ -270,13 +222,7 @@ fn test_value_set_nonexistent_note() {
 
 #[test]
 fn test_value_set_multiple_times() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -315,13 +261,7 @@ fn test_value_set_multiple_times() {
 
 #[test]
 fn test_value_set_json() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -351,13 +291,7 @@ fn test_value_set_json() {
 
 #[test]
 fn test_value_show_json_explicit() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -394,13 +328,7 @@ fn test_value_show_json_explicit() {
 
 #[test]
 fn test_value_show_json_default() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -431,13 +359,7 @@ fn test_value_show_json_default() {
 
 #[test]
 fn test_value_set_json_error_invalid() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -458,13 +380,7 @@ fn test_value_set_json_error_invalid() {
 
 #[test]
 fn test_value_show_json_nonexistent() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

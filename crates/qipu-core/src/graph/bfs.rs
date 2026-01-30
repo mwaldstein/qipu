@@ -66,8 +66,8 @@ fn collect_neighbors(
         for source_id in source_ids {
             for edge in provider.get_outbound_edges(source_id) {
                 if filter_edge(edge, opts) {
-                    let to = edge.to.clone();
-                    neighbors.push((to, edge.clone()));
+                    let edge_clone = edge.clone();
+                    neighbors.push((edge_clone.to.clone(), edge_clone));
                 }
             }
         }
@@ -79,12 +79,12 @@ fn collect_neighbors(
                 if opts.semantic_inversion {
                     let virtual_edge = edge.invert(store.config());
                     if filter_edge(&virtual_edge, opts) {
-                        let to = virtual_edge.to.clone();
-                        neighbors.push((to, virtual_edge));
+                        let target = virtual_edge.to.clone();
+                        neighbors.push((target, virtual_edge));
                     }
                 } else if filter_edge(edge, opts) {
-                    let from = edge.from.clone();
-                    neighbors.push((from, edge.clone()));
+                    let edge_clone = edge.clone();
+                    neighbors.push((edge_clone.from.clone(), edge_clone));
                 }
             }
         }
@@ -181,7 +181,6 @@ fn bfs_search(
             }
 
             let canonical_neighbor = processed.canonical_neighbor;
-            visited.insert(canonical_neighbor.clone());
             let link_type_cloned = edge.link_type.clone();
             let canonical_edge = Edge {
                 from: processed.canonical_from,
@@ -194,9 +193,9 @@ fn bfs_search(
             } else {
                 None
             };
-            let canonical_neighbor_clone = canonical_neighbor.clone();
+            visited.insert(canonical_neighbor.clone());
             predecessors.insert(
-                canonical_neighbor,
+                canonical_neighbor.clone(),
                 PredecessorInfo {
                     canonical_pred: current_id.clone(),
                     original_id,
@@ -206,7 +205,7 @@ fn bfs_search(
 
             let edge_cost = get_link_type_cost(link_type_cloned.as_str(), store.config());
             let new_cost = accumulated_cost + edge_cost;
-            queue.push_back((canonical_neighbor_clone, new_cost));
+            queue.push_back((canonical_neighbor, new_cost));
         }
     }
 
@@ -245,12 +244,12 @@ fn dijkstra_search(
     let mut heap: BinaryHeap<Reverse<HeapEntry>> = BinaryHeap::new();
 
     let from_owned = from.to_string();
+    visited.insert(from_owned.clone());
+    best_costs.insert(from_owned.clone(), HopCost::from(0));
     heap.push(Reverse(HeapEntry {
-        node_id: from_owned.clone(),
+        node_id: from_owned,
         accumulated_cost: HopCost::from(0),
     }));
-    visited.insert(from_owned.clone());
-    best_costs.insert(from_owned, HopCost::from(0));
 
     while let Some(Reverse(HeapEntry {
         node_id: current_id,

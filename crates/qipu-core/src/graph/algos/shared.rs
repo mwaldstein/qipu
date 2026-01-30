@@ -132,8 +132,8 @@ pub fn collect_outbound_neighbors(
     for source_id in source_ids {
         for edge in provider.get_outbound_edges(source_id) {
             if filter_edge(edge, opts) {
-                let to = edge.to.clone();
-                neighbors.push((to, edge.clone()));
+                let edge_clone = edge.clone();
+                neighbors.push((edge_clone.to.clone(), edge_clone));
             }
         }
     }
@@ -153,12 +153,12 @@ pub fn collect_inbound_neighbors(
             if opts.semantic_inversion {
                 let virtual_edge = edge.invert(store.config());
                 if filter_edge(&virtual_edge, opts) {
-                    let to = virtual_edge.to.clone();
-                    neighbors.push((to, virtual_edge));
+                    let target = virtual_edge.to.clone();
+                    neighbors.push((target, virtual_edge));
                 }
             } else if filter_edge(edge, opts) {
-                let from = edge.from.clone();
-                neighbors.push((from, edge.clone()));
+                let edge_clone = edge.clone();
+                neighbors.push((edge_clone.from.clone(), edge_clone));
             }
         }
     }

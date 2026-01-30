@@ -128,7 +128,7 @@ fn process_neighbor_dijkstra(
     state.links.push(TreeLink {
         from: canonical_from,
         to: canonical_to,
-        link_type: link_type_str.clone(),
+        link_type: link_type_str,
         source: source_str,
         via: via_for_link.clone(),
     });
@@ -164,7 +164,7 @@ fn process_neighbor_dijkstra(
             from: ctx.current_id.to_string(),
             to: canonical_neighbor.clone(),
             hop: new_cost.as_u32_for_display(),
-            link_type: link_type_str,
+            link_type: edge.link_type.to_string(),
         });
 
         // Add note metadata

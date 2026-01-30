@@ -4,13 +4,7 @@ import sys
 from pathlib import Path
 
 # Functions grandfathered in (already >100 lines when check was added)
-ALLOWED_FUNCTIONS = {
-    "commands/compact/report.rs:execute",
-    "commands/compact/show.rs:execute",
-    "commands/compact/suggest.rs:execute",
-    "commands/export/emit/bibliography.rs:export_bibtex",
-    "commands/load/deserialize.rs:looks_like_json",
-}
+ALLOWED_FUNCTIONS = set()
 
 def count_braces_outside_strings(line):
     """Count braces only outside string/char literals."""

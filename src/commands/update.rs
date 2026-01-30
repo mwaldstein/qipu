@@ -111,13 +111,11 @@ pub fn execute(
 
     // Add tags if provided
     if !tags.is_empty() {
-        let mut current_tags = note.frontmatter.tags.clone();
         for tag in tags {
-            if !current_tags.contains(tag) {
-                current_tags.push(tag.clone());
+            if !note.frontmatter.tags.contains(tag) {
+                note.frontmatter.tags.push(tag.clone());
             }
         }
-        note.frontmatter.tags = current_tags;
         modified = true;
     }
 

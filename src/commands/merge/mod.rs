@@ -51,9 +51,7 @@ fn print_merge_message(id1: &str, id2: &str, dry_run: bool) {
 
 fn merge_tags(note1: &Note, note2: &Note) -> Vec<String> {
     let mut tags: HashSet<String> = note2.frontmatter.tags.iter().cloned().collect();
-    for tag in &note1.frontmatter.tags {
-        tags.insert(tag.clone());
-    }
+    tags.extend(note1.frontmatter.tags.iter().cloned());
     let mut final_tags: Vec<String> = tags.into_iter().collect();
     final_tags.sort();
     final_tags

@@ -99,21 +99,22 @@ pub fn execute(
     }
 
     // Add provenance fields if provided
+    let has_generated_by = generated_by.is_some();
     if source.is_some()
         || author.is_some()
-        || generated_by.is_some()
+        || has_generated_by
         || prompt_hash.is_some()
         || verified.is_some()
     {
         note.frontmatter.source = source;
         note.frontmatter.author = author;
-        note.frontmatter.generated_by = generated_by.clone();
+        note.frontmatter.generated_by = generated_by;
         note.frontmatter.prompt_hash = prompt_hash;
 
         // Per spec (specs/provenance.md): When an agent generates a note, set verified: false by default
         note.frontmatter.verified = if verified.is_some() {
             verified
-        } else if generated_by.is_some() {
+        } else if has_generated_by {
             Some(false)
         } else {
             None

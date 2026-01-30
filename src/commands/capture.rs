@@ -76,13 +76,15 @@ pub fn execute(
     }
 
     // Add provenance fields if provided
-    if source.is_some()
+    let has_source = source.is_some();
+    let has_generated_by = generated_by.is_some();
+    if has_source
         || author.is_some()
-        || generated_by.is_some()
+        || has_generated_by
         || prompt_hash.is_some()
         || verified.is_some()
     {
-        note.frontmatter.source = source.clone();
+        note.frontmatter.source = source;
 
         // Per spec (specs/provenance.md): Web capture defaults
         // When capturing a webpage (source is provided):
@@ -90,19 +92,19 @@ pub fn execute(
         // Default to "Qipu Clipper" when source is provided but author is not
         note.frontmatter.author = if author.is_some() {
             author
-        } else if source.is_some() {
+        } else if has_source {
             Some("Qipu Clipper".to_string())
         } else {
             None
         };
 
-        note.frontmatter.generated_by = generated_by.clone();
+        note.frontmatter.generated_by = generated_by;
         note.frontmatter.prompt_hash = prompt_hash;
 
         // Per spec (specs/provenance.md): When an agent generates a note, set verified: false by default
         note.frontmatter.verified = if verified.is_some() {
             verified
-        } else if generated_by.is_some() {
+        } else if has_generated_by {
             Some(false)
         } else {
             None

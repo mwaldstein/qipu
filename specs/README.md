@@ -55,7 +55,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
 | `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Search uses additive boosts instead of multiplicative weights; wraps query in quotes |
 | `records-output.md` | ✅ | ⚠️ | ⚠️ | `via` annotation missing in link JSON; missing truncation/S-prefix tests |
-| `llm-context.md` | ✅ | ⚠️ | ⚠️ | Prime uses count-based limits (not character budget); `--max-tokens` flag out of scope |
+| `llm-context.md` | ✅ | ✅ | ⚠️ | Character budgeting implemented (4000-8000 chars); `--max-tokens` flag out of scope |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
 | `progressive-indexing.md` | ⚠️ | ❌ | New spec - not implemented |
 | `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
@@ -82,7 +82,6 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `llm-context.md` | Prime uses count-based limits (5 notes) not character budget (~4-8k characters) | `src/commands/prime.rs:16-20` |
 | `similarity-ranking.md` | Search wraps query in quotes (phrase search vs AND/OR semantics) | `src/lib/db/search.rs:47` |
 | `similarity-ranking.md` | Search uses additive boosts instead of multiplicative field weights | `src/lib/db/search.rs:112-132` |
 | `semantic-graph.md` | `show --links` ignores `--no-semantic-inversion` flag | `src/commands/show.rs:204-225` |

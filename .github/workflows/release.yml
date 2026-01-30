@@ -1,15 +1,19 @@
 name: Release
 
 # =============================================================================
-# WORKFLOW DISABLED - GitHub Actions is not enabled on this account
+# WORKFLOW READY - Trigger configuration fixed
 # =============================================================================
-# This workflow should not be re-enabled until GitHub Actions is properly
-# set up and configured for the account. Currently waiting on this external
-# dependency to be resolved before automated releases can function.
+# This workflow is now properly configured to trigger on v* tags.
+# Note: GitHub Actions must still be enabled on the repository for this
+# workflow to execute. The trigger configuration has been updated per
+# distribution.md spec requirements.
 # =============================================================================
 
 on:
-  workflow_dispatch: # Manual trigger only
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.1.0, v1.2.3, etc.
+  workflow_dispatch: # Manual trigger also allowed
 
 env:
   CARGO_TERM_COLOR: always

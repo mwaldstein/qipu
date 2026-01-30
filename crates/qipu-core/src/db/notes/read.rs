@@ -1,4 +1,5 @@
 use crate::error::{QipuError, Result};
+use crate::extract;
 use crate::index::types::NoteMetadata;
 use crate::note::{Note, NoteType};
 use chrono::Utc;
@@ -31,54 +32,22 @@ struct ExtractedNoteRow {
 
 fn extract_note_row(row: &rusqlite::Row) -> Result<ExtractedNoteRow> {
     Ok(ExtractedNoteRow {
-        id: row
-            .get(0)
-            .map_err(|e| QipuError::Other(format!("failed to get id: {}", e)))?,
-        title: row
-            .get(1)
-            .map_err(|e| QipuError::Other(format!("failed to get title: {}", e)))?,
-        type_str: row
-            .get(2)
-            .map_err(|e| QipuError::Other(format!("failed to get type: {}", e)))?,
-        path: row
-            .get(3)
-            .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?,
-        created: row
-            .get(4)
-            .map_err(|e| QipuError::Other(format!("failed to get created: {}", e)))?,
-        updated: row
-            .get(5)
-            .map_err(|e| QipuError::Other(format!("failed to get updated: {}", e)))?,
-        body: row
-            .get(6)
-            .map_err(|e| QipuError::Other(format!("failed to get body: {}", e)))?,
-        value: row
-            .get(7)
-            .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?,
-        compacts_json: row
-            .get(8)
-            .map_err(|e| QipuError::Other(format!("failed to get compacts: {}", e)))?,
-        author: row
-            .get(9)
-            .map_err(|e| QipuError::Other(format!("failed to get author: {}", e)))?,
-        verified: row
-            .get(10)
-            .map_err(|e| QipuError::Other(format!("failed to get verified: {}", e)))?,
-        source: row
-            .get(11)
-            .map_err(|e| QipuError::Other(format!("failed to get source: {}", e)))?,
-        sources_json: row
-            .get(12)
-            .map_err(|e| QipuError::Other(format!("failed to get sources: {}", e)))?,
-        generated_by: row
-            .get(13)
-            .map_err(|e| QipuError::Other(format!("failed to get generated_by: {}", e)))?,
-        prompt_hash: row
-            .get(14)
-            .map_err(|e| QipuError::Other(format!("failed to get prompt_hash: {}", e)))?,
-        custom_json: row
-            .get(15)
-            .map_err(|e| QipuError::Other(format!("failed to get custom_json: {}", e)))?,
+        id: extract!(row, 0, "id")?,
+        title: extract!(row, 1, "title")?,
+        type_str: extract!(row, 2, "type")?,
+        path: extract!(row, 3, "path")?,
+        created: extract!(row, 4, "created")?,
+        updated: extract!(row, 5, "updated")?,
+        body: extract!(row, 6, "body")?,
+        value: extract!(row, 7, "value")?,
+        compacts_json: extract!(row, 8, "compacts")?,
+        author: extract!(row, 9, "author")?,
+        verified: extract!(row, 10, "verified")?,
+        source: extract!(row, 11, "source")?,
+        sources_json: extract!(row, 12, "sources")?,
+        generated_by: extract!(row, 13, "generated_by")?,
+        prompt_hash: extract!(row, 14, "prompt_hash")?,
+        custom_json: extract!(row, 15, "custom_json")?,
     })
 }
 

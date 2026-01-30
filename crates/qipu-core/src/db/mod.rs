@@ -14,6 +14,26 @@ use crate::error::{QipuError, Result};
 use rusqlite::Connection;
 use std::path::Path;
 
+/// Extract a field from a SQLite row with automatic error context
+///
+/// # Arguments
+/// * `$row` - The rusqlite row reference
+/// * `$idx` - The column index (usize)
+/// * `$field` - The field name for error messages (&str)
+///
+/// # Example
+/// ```rust,ignore
+/// let id: String = extract!(row, 0, "id")?;
+/// ```
+#[macro_export]
+macro_rules! extract {
+    ($row:expr, $idx:expr, $field:expr) => {
+        $row.get($idx).map_err(|e| {
+            $crate::error::QipuError::Other(format!("failed to get {}: {}", $field, e))
+        })
+    };
+}
+
 pub use schema::create_schema;
 
 /// SQLite database for qipu

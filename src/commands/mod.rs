@@ -11,6 +11,7 @@ pub mod dump;
 pub mod edit;
 pub mod export;
 pub mod format;
+pub mod helpers;
 pub mod index;
 pub mod init;
 pub mod link;

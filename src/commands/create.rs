@@ -14,6 +14,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands::format::{dispatch_format, FormatDispatcher};
+use crate::commands::helpers::resolve_editor;
 use crate::commands::provenance::update_provenance_if_provided;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
@@ -135,11 +136,7 @@ pub fn execute(
 
 /// Open a file in the user's editor
 fn open_in_editor(path: &Path, editor_override: Option<&str>) -> Result<()> {
-    let editor = editor_override
-        .map(String::from)
-        .or_else(|| std::env::var("EDITOR").ok())
-        .or_else(|| std::env::var("VISUAL").ok())
-        .unwrap_or_else(|| "vi".to_string());
+    let editor = resolve_editor(editor_override).unwrap_or_else(|| "vi".to_string());
 
     Command::new(&editor).arg(path).status()?;
     Ok(())

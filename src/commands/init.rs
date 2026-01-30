@@ -7,7 +7,8 @@
 
 use std::path::Path;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::Result;
 use qipu_core::store::{InitOptions, Store};
 
@@ -40,28 +41,29 @@ pub fn execute(
         Store::init(root, options)?
     };
 
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "status": "ok",
                 "store": store.root().display().to_string(),
                 "message": "Store initialized"
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
+            Ok::<(), qipu_core::error::QipuError>(())
+        },
+        human => {
+            println!("Initialized qipu store at {}", store.root().display());
+            println!();
+            println!("Run `qipu prime` for workflow context.");
+        },
+        records => {
             // Header line per spec (specs/records-output.md)
             println!(
                 "H qipu=1 records=1 store={} mode=init status=ok",
                 store.root().display()
             );
         }
-        OutputFormat::Human => {
-            println!("Initialized qipu store at {}", store.root().display());
-            println!();
-            println!("Run `qipu prime` for workflow context.");
-        }
-    }
+    )?;
 
     Ok(())
 }

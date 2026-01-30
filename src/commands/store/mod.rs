@@ -1,7 +1,8 @@
 //! `qipu store` commands - manage qipu store
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
 use crate::commands::context::path_relative_to_cwd;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::Result;
 use qipu_core::store::Store;
 
@@ -20,8 +21,8 @@ pub fn execute_stats(cli: &Cli, store: &Store) -> Result<()> {
 
     let store_path = path_relative_to_cwd(store.root());
 
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "store": store_path,
                 "database": {
@@ -35,8 +36,9 @@ pub fn execute_stats(cli: &Cli, store: &Store) -> Result<()> {
                 "unresolved_links": unresolved_count,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Human => {
+            Ok::<(), qipu_core::error::QipuError>(())
+        },
+        human => {
             println!("Store: {}", store_path);
             println!();
             println!("Database:");
@@ -48,8 +50,8 @@ pub fn execute_stats(cli: &Cli, store: &Store) -> Result<()> {
             println!("  Tags: {}", tag_count);
             println!("  Links: {}", edge_count);
             println!("  Unresolved links: {}", unresolved_count);
-        }
-        OutputFormat::Records => {
+        },
+        records => {
             println!("H qipu=1 records=1 store={} mode=stats", store_path);
             println!(
                 "D database.path=\"{}/qipu.db\" database.size={} database.schema_version={}",
@@ -60,7 +62,7 @@ pub fn execute_stats(cli: &Cli, store: &Store) -> Result<()> {
                 note_count, tag_count, edge_count, unresolved_count
             );
         }
-    }
+    )?;
 
     Ok(())
 }

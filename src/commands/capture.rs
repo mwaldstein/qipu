@@ -15,7 +15,8 @@ use std::time::Instant;
 
 use tracing::debug;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
@@ -115,8 +116,8 @@ pub fn execute(
         }
     }
 
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "id": note.id(),
                 "title": note.title(),
@@ -132,11 +133,12 @@ pub fn execute(
                 "verified": note.frontmatter.verified,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Human => {
+            Ok::<(), qipu_core::error::QipuError>(())
+        },
+        human => {
             println!("{}", note.id());
-        }
-        OutputFormat::Records => {
+        },
+        records => {
             // Header line per spec (specs/records-output.md)
             println!(
                 "H qipu=1 records=1 store={} mode=capture",
@@ -153,7 +155,7 @@ pub fn execute(
                 tags_csv
             );
         }
-    }
+    )?;
 
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "execute_command");

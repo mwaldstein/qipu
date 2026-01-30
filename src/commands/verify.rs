@@ -3,7 +3,8 @@
 use std::fs;
 use std::path::Path;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
@@ -27,8 +28,8 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>)
     // Save the note
     store.save_note(&mut note)?;
 
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             println!(
                 "{}",
                 serde_json::json!({
@@ -37,8 +38,9 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>)
                     "previous": old_status,
                 })
             );
-        }
-        OutputFormat::Human => {
+            Ok::<(), qipu_core::error::QipuError>(())
+        },
+        human => {
             if !cli.quiet {
                 println!(
                     "Note {} verified: {} (was: {})",
@@ -47,8 +49,8 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>)
                     old_status
                 );
             }
-        }
-        OutputFormat::Records => {
+        },
+        records => {
             println!(
                 "H qipu=1 records=1 store={} mode=verify id={} verified={}",
                 store.root().display(),
@@ -56,7 +58,7 @@ pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>)
                 new_status
             );
         }
-    }
+    )?;
 
     Ok(())
 }

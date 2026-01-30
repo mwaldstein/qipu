@@ -64,7 +64,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `pack.md` | ✅ | ✅ | ✅ | Value/custom correctly preserved; merge-links restricted to newly loaded notes |
 | `workspaces.md` | ✅ | ✅ | ⚠️ | Rename strategy link rewriting untested; metadata location per-workspace (spec ambiguous) |
 | `structured-logging.md` | ✅ | ✅ | ⚠️ | Logs correctly route to stderr; missing TRACE tests; structured fields not validated |
-| `operational-database.md` | ✅ | ⚠️ | ✅ | Consistency check result ignored (no auto-repair); no corruption detection/rebuild |
+| `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
 | `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts work; release workflow disabled; SHA256SUMS format incorrect |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
@@ -88,7 +88,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `compaction.md` | ✅ FIXED: Link JSON correctly includes `via` annotation | Tests: `tests/cli/link/via_traversal.rs`, `tests/cli/link/path.rs` |
 | `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
 | `operational-database.md` | ✅ FIXED: Consistency check result now triggers incremental repair when auto_repair is enabled | `crates/qipu-core/src/db/mod.rs:138-141` |
-| `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
+| `operational-database.md` | ✅ FIXED: Corruption detection and auto-rebuild implemented with tests | `crates/qipu-core/src/db/mod.rs:46-91` |
 | `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
 | `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |
 | `distribution.md` | Release workflow disabled with incorrect triggers (not `v*` tags) | `.github/workflows/release.yml:3-13` |

@@ -94,10 +94,12 @@ fn parse_config_line(
         config_encoded_lines.push(line[4..].to_string());
     } else if line == "CFG-END" && !config_encoded_lines.is_empty() {
         let encoded = config_encoded_lines.join("");
-        if let Ok(decoded) = general_purpose::STANDARD.decode(&encoded) {
-            if let Ok(decoded_str) = String::from_utf8(decoded) {
-                *config_content = decoded_str;
-            }
+        if let Some(decoded_str) = general_purpose::STANDARD
+            .decode(&encoded)
+            .ok()
+            .and_then(|decoded| String::from_utf8(decoded).ok())
+        {
+            *config_content = decoded_str;
         }
         config_encoded_lines.clear();
     }

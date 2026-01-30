@@ -3,7 +3,7 @@ members = [".", "crates/llm-tool-test", "crates/qipu-core"]
 
 [package]
 name = "qipu"
-version = "0.2.89"
+version = "0.2.92"
 edition = "2021"
 description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
 authors = ["Qipu Contributors"]

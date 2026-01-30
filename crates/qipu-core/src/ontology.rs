@@ -9,11 +9,9 @@ use crate::config::{GraphConfig, OntologyConfig, OntologyMode};
 use crate::note::LinkType;
 
 /// Standard note types (built-in)
-#[allow(dead_code)]
 const STANDARD_NOTE_TYPES: &[&str] = &["fleeting", "literature", "permanent", "moc"];
 
 /// Standard link type inverses (built-in)
-#[allow(dead_code)]
 const STANDARD_LINK_INVERSES: &[(&str, &str)] = &[
     ("related", "related"),
     ("derived-from", "derived-to"),
@@ -37,7 +35,6 @@ const STANDARD_LINK_INVERSES: &[(&str, &str)] = &[
 
 /// Resolved ontology combining standard and custom types
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Ontology {
     /// All valid note types
     note_types: HashSet<String>,
@@ -47,7 +44,6 @@ pub struct Ontology {
     inverses: HashMap<String, String>,
 }
 
-#[allow(dead_code)]
 impl Ontology {
     /// Create an ontology from configuration, resolving based on mode
     pub fn from_config(config: &OntologyConfig) -> Self {

@@ -7,7 +7,6 @@ mod rebuild;
 mod repair;
 mod schema;
 mod search;
-mod traverse;
 mod validate;
 
 use crate::error::{QipuError, Result};

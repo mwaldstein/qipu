@@ -25,12 +25,12 @@ pub enum IndexLevel {
     /// Skips body and FTS5 indexing
     Basic = 1,
     /// Level 2: Full-text index (includes body content and FTS5)
-    #[allow(dead_code)]
+    #[cfg(test)]
     Full = 2,
 }
 
 impl IndexLevel {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn from_i32(v: i32) -> Self {
         match v {
             1 => IndexLevel::Basic,
@@ -188,26 +188,6 @@ impl super::Database {
         Ok(())
     }
 
-    /// Get index level for a note
-    #[allow(dead_code)]
-    pub fn get_note_index_level(&self, note_id: &str) -> Result<Option<IndexLevel>> {
-        match self.conn.query_row(
-            "SELECT index_level FROM notes WHERE id = ?1",
-            params![note_id],
-            |row| {
-                let level: i32 = row.get(0)?;
-                Ok(IndexLevel::from_i32(level))
-            },
-        ) {
-            Ok(level) => Ok(Some(level)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(QipuError::Other(format!(
-                "failed to query index level: {}",
-                e
-            ))),
-        }
-    }
-
     /// Count notes at basic index level
     pub fn count_basic_indexed(&self) -> Result<i64> {
         self.conn
@@ -228,58 +208,6 @@ impl super::Database {
                 |row| row.get(0),
             )
             .map_err(|e| QipuError::Other(format!("failed to count full indexed notes: {}", e)))
-    }
-
-    /// Upgrade notes from basic to full-text index level
-    #[allow(dead_code)]
-    pub fn upgrade_to_full_text(&self, note_ids: &[String]) -> Result<usize> {
-        let mut upgraded = 0;
-
-        for note_id in note_ids {
-            if let Some(note) = self.get_note(note_id)? {
-                let tx = self
-                    .conn
-                    .unchecked_transaction()
-                    .map_err(|e| QipuError::Other(format!("failed to start transaction: {}", e)))?;
-
-                // Update FTS5 with full body
-                let rowid: i64 = tx
-                    .query_row(
-                        "SELECT rowid FROM notes WHERE id = ?1",
-                        params![note_id],
-                        |row| row.get(0),
-                    )
-                    .map_err(|e| QipuError::Other(format!("failed to get rowid: {}", e)))?;
-
-                tx.execute(
-                    "UPDATE notes_fts SET body = ?1 WHERE rowid = ?2",
-                    params![&note.body, rowid],
-                )
-                .map_err(|e| {
-                    QipuError::Other(format!("failed to update FTS5 for note {}: {}", note_id, e))
-                })?;
-
-                // Update index_level
-                tx.execute(
-                    "UPDATE notes SET index_level = 2 WHERE id = ?1",
-                    params![note_id],
-                )
-                .map_err(|e| {
-                    QipuError::Other(format!(
-                        "failed to update index_level for note {}: {}",
-                        note_id, e
-                    ))
-                })?;
-
-                tx.commit().map_err(|e| {
-                    QipuError::Other(format!("failed to commit transaction: {}", e))
-                })?;
-
-                upgraded += 1;
-            }
-        }
-
-        Ok(upgraded)
     }
 
     /// Perform adaptive indexing based on note count and strategy
@@ -437,7 +365,6 @@ impl super::Database {
 
 /// Result of adaptive indexing operation
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct IndexingResult {
     /// Number of notes indexed
     pub notes_indexed: usize,

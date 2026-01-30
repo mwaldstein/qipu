@@ -218,11 +218,7 @@ fn output_inbox_notes(
                 inbox_notes.len()
             );
             for note in inbox_notes {
-                let tags_csv = if note.frontmatter.tags.is_empty() {
-                    "-".to_string()
-                } else {
-                    note.frontmatter.tags.join(",")
-                };
+                let tags_csv = note.frontmatter.format_tags();
                 println!(
                     "N {} {} \"{}\" tags={}",
                     note.id(),

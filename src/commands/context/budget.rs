@@ -74,11 +74,7 @@ pub fn estimate_note_size(note: &Note, with_body: bool) -> usize {
     size += note.note_type().to_string().len() + 15;
 
     // Tags
-    if !note.frontmatter.tags.is_empty() {
-        size += note.frontmatter.tags.join(",").len() + 20; // "tags=..." overhead
-    } else {
-        size += 10; // "tags=-"
-    }
+    size += note.frontmatter.format_tags().len() + 20; // "tags=..." overhead
 
     // Sources - account for markdown/JSON/records formatting
     for source in &note.frontmatter.sources {

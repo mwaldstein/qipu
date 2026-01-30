@@ -36,11 +36,7 @@ fn output_note_record(
     note_map: &HashMap<&str, &qipu_core::note::Note>,
     show_custom: bool,
 ) {
-    let tags_csv = if note.frontmatter.tags.is_empty() {
-        "-".to_string()
-    } else {
-        note.frontmatter.tags.join(",")
-    };
+    let tags_csv = note.frontmatter.format_tags();
 
     let annotations = build_compaction_annotations(note.id(), compaction_ctx, note_map);
 

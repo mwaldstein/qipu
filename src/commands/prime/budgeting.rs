@@ -23,11 +23,11 @@ fn estimate_char_count(notes: &[&qipu_core::note::Note], format: OutputFormat) -
             .sum(),
         OutputFormat::Human => notes
             .iter()
-            .map(|n| n.id().len() + n.title().len() + n.frontmatter.tags.join(", ").len() + 10)
+            .map(|n| n.id().len() + n.title().len() + n.frontmatter.format_tags().len() + 10)
             .sum(),
         OutputFormat::Records => notes
             .iter()
-            .map(|n| n.id().len() + n.title().len() + n.frontmatter.tags.join(",").len() + 20)
+            .map(|n| n.id().len() + n.title().len() + n.frontmatter.format_tags().len() + 20)
             .sum(),
     }
 }
@@ -149,12 +149,12 @@ fn estimate_single_note_char_count(
         }
         OutputFormat::Records => {
             if is_moc {
-                note.id().len() + note.title().len() + note.frontmatter.tags.join(",").len() + 15
+                note.id().len() + note.title().len() + note.frontmatter.format_tags().len() + 15
             } else {
                 note.id().len()
                     + note.title().len()
                     + note.note_type().to_string().len()
-                    + note.frontmatter.tags.join(",").len()
+                    + note.frontmatter.format_tags().len()
                     + 20
             }
         }

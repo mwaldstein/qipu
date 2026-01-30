@@ -88,11 +88,7 @@ pub fn output_records(
 
     for selected in notes {
         let note = selected.note;
-        let tags_csv = if note.frontmatter.tags.is_empty() {
-            "-".to_string()
-        } else {
-            note.frontmatter.tags.join(",")
-        };
+        let tags_csv = note.frontmatter.format_tags();
 
         let path_str = note
             .path
@@ -193,11 +189,7 @@ pub fn output_records(
                 )
             {
                 for compacted_note in compacted_notes {
-                    let compacted_tags_csv = if compacted_note.frontmatter.tags.is_empty() {
-                        "-".to_string()
-                    } else {
-                        compacted_note.frontmatter.tags.join(",")
-                    };
+                    let compacted_tags_csv = compacted_note.frontmatter.format_tags();
 
                     let compacted_path_str = compacted_note
                         .path

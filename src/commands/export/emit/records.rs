@@ -87,11 +87,7 @@ fn export_note_record(
     compaction_ctx: &CompactionContext,
     note_map: &std::collections::HashMap<&str, &Note>,
 ) {
-    let tags_csv = if note.frontmatter.tags.is_empty() {
-        "-".to_string()
-    } else {
-        note.frontmatter.tags.join(",")
-    };
+    let tags_csv = note.frontmatter.format_tags();
 
     let mut annotations = String::new();
     let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);

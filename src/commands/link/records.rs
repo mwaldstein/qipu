@@ -376,11 +376,7 @@ fn append_compacted_notes(
                 all_notes,
             ) {
                 for compacted_note in compacted_notes {
-                    let compacted_tags_csv = if compacted_note.frontmatter.tags.is_empty() {
-                        "-".to_string()
-                    } else {
-                        compacted_note.frontmatter.tags.join(",")
-                    };
+                    let compacted_tags_csv = compacted_note.frontmatter.format_tags();
 
                     let compacted_path_str = compacted_note
                         .path

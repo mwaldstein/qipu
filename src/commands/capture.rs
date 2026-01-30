@@ -144,11 +144,7 @@ pub fn execute(
             );
 
             // Records format: N <id> <type> "<title>" tags=<csv>
-            let tags_csv = if note.frontmatter.tags.is_empty() {
-                "-".to_string()
-            } else {
-                note.frontmatter.tags.join(",")
-            };
+            let tags_csv = note.frontmatter.format_tags();
             println!(
                 "N {} {} \"{}\" tags={}",
                 note.id(),

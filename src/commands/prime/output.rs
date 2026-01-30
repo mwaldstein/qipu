@@ -302,23 +302,18 @@ pub fn output_records(
     );
 
     for moc in mocs {
-        let tags_csv = moc.frontmatter.tags.join(",");
-        println!(
-            "M {} \"{}\" tags={}",
-            moc.id(),
-            moc.title(),
-            if tags_csv.is_empty() { "-" } else { &tags_csv }
-        );
+        let tags_csv = moc.frontmatter.format_tags();
+        println!("M {} \"{}\" tags={}", moc.id(), moc.title(), tags_csv);
     }
 
     for note in recent_notes {
-        let tags_csv = note.frontmatter.tags.join(",");
+        let tags_csv = note.frontmatter.format_tags();
         println!(
             "N {} {} \"{}\" tags={}",
             note.id(),
             note.note_type(),
             escape_quotes(note.title()),
-            if tags_csv.is_empty() { "-" } else { &tags_csv }
+            tags_csv
         );
     }
 }

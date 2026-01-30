@@ -54,11 +54,7 @@ impl<'a> FormatDispatcher for CreateFormatter<'a> {
             self.store.root().display()
         );
 
-        let tags_csv = if self.note.frontmatter.tags.is_empty() {
-            "-".to_string()
-        } else {
-            self.note.frontmatter.tags.join(",")
-        };
+        let tags_csv = self.note.frontmatter.format_tags();
         println!(
             "N {} {} \"{}\" tags={}",
             self.note.id(),

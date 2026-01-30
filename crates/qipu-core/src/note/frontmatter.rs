@@ -97,4 +97,13 @@ impl NoteFrontmatter {
     pub fn get_type(&self) -> NoteType {
         self.note_type.clone().unwrap_or_default()
     }
+
+    /// Format tags as comma-separated values, using "-" for empty tags
+    pub fn format_tags(&self) -> String {
+        if self.tags.is_empty() {
+            "-".to_string()
+        } else {
+            self.tags.join(",")
+        }
+    }
 }

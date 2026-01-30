@@ -46,11 +46,7 @@ pub fn serialize_pack_records(
 
     // Notes section
     for note in notes {
-        let tags_csv = if note.frontmatter.tags.is_empty() {
-            "-".to_string()
-        } else {
-            note.frontmatter.tags.join(",")
-        };
+        let tags_csv = note.frontmatter.format_tags();
 
         // Note metadata line
         output.push_str(&format!(

@@ -12,6 +12,44 @@ ALLOWED_FUNCTIONS = {
     "commands/load/deserialize.rs:looks_like_json",
 }
 
+def count_braces_outside_strings(line):
+    """Count braces only outside string/char literals."""
+    count_open = 0
+    count_close = 0
+    in_string = False
+    in_char = False
+    escape_next = False
+    
+    for i, ch in enumerate(line):
+        if escape_next:
+            escape_next = False
+            continue
+        
+        if ch == '\\':
+            escape_next = True
+            continue
+        
+        if in_string:
+            if ch == '"':
+                in_string = False
+            continue
+        
+        if in_char:
+            if ch == "'":
+                in_char = False
+            continue
+        
+        if ch == '"':
+            in_string = True
+        elif ch == "'":
+            in_char = True
+        elif ch == '{':
+            count_open += 1
+        elif ch == '}':
+            count_close += 1
+    
+    return count_open, count_close
+
 def find_large_functions(src_dir, max_lines=100):
     violations = []
     
@@ -36,8 +74,7 @@ def find_large_functions(src_dir, max_lines=100):
                 for i in range(fn_start - 1, len(lines)):
                     fn_lines = i - fn_start + 1
                     
-                    open_braces = lines[i].count('{')
-                    close_braces = lines[i].count('}')
+                    open_braces, close_braces = count_braces_outside_strings(lines[i])
                     brace_level += open_braces - close_braces
                     
                     if brace_level == 0 and i > fn_start - 1:

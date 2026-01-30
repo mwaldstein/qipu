@@ -1,16 +1,9 @@
-use crate::cli::support::qipu;
+use crate::cli::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_prime_empty_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -30,13 +23,7 @@ fn test_prime_empty_store() {
 
 #[test]
 fn test_prime_with_mocs() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -62,13 +49,7 @@ fn test_prime_with_mocs() {
 
 #[test]
 fn test_prime_with_recent_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -94,7 +75,7 @@ fn test_prime_with_recent_notes() {
 
 #[test]
 fn test_prime_missing_store() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
     let nonexistent_store = dir.path().join("nonexistent-store");
 
     qipu()
@@ -108,13 +89,7 @@ fn test_prime_missing_store() {
 
 #[test]
 fn test_prime_invalid_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -126,26 +101,14 @@ fn test_prime_invalid_format() {
 
 #[test]
 fn test_prime_success_exit_code_empty_store() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu().current_dir(dir.path()).arg("prime").assert().code(0);
 }
 
 #[test]
 fn test_prime_success_exit_code_with_mocs() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -158,13 +121,7 @@ fn test_prime_success_exit_code_with_mocs() {
 
 #[test]
 fn test_prime_success_exit_code_with_notes() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -177,13 +134,7 @@ fn test_prime_success_exit_code_with_notes() {
 
 #[test]
 fn test_prime_success_exit_code_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -194,13 +145,7 @@ fn test_prime_success_exit_code_json_format() {
 
 #[test]
 fn test_prime_success_exit_code_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

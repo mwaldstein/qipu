@@ -1,37 +1,13 @@
-use crate::cli::support::{extract_id, qipu};
+use crate::cli::support::{create_note, qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_context_walk_basic() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let root_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Root Note"])
-        .output()
-        .unwrap();
-    let root_id = extract_id(&root_output);
-
-    let child_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note"])
-        .output()
-        .unwrap();
-    let child_id = extract_id(&child_output);
-
-    let grandchild_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Grandchild Note"])
-        .output()
-        .unwrap();
-    let grandchild_id = extract_id(&grandchild_output);
+    let root_id = create_note(&dir, "Root Note");
+    let child_id = create_note(&dir, "Child Note");
+    let grandchild_id = create_note(&dir, "Grandchild Note");
 
     qipu()
         .current_dir(dir.path())
@@ -72,34 +48,11 @@ fn test_context_walk_basic() {
 
 #[test]
 fn test_context_walk_max_hops() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let root_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Root Note"])
-        .output()
-        .unwrap();
-    let root_id = extract_id(&root_output);
-
-    let child_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note"])
-        .output()
-        .unwrap();
-    let child_id = extract_id(&child_output);
-
-    let grandchild_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Grandchild Note"])
-        .output()
-        .unwrap();
-    let grandchild_id = extract_id(&grandchild_output);
+    let root_id = create_note(&dir, "Root Note");
+    let child_id = create_note(&dir, "Child Note");
+    let grandchild_id = create_note(&dir, "Grandchild Note");
 
     qipu()
         .current_dir(dir.path())
@@ -140,27 +93,10 @@ fn test_context_walk_max_hops() {
 
 #[test]
 fn test_context_walk_direction() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let root_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Root Note"])
-        .output()
-        .unwrap();
-    let root_id = extract_id(&root_output);
-
-    let child_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note"])
-        .output()
-        .unwrap();
-    let child_id = extract_id(&child_output);
+    let root_id = create_note(&dir, "Root Note");
+    let child_id = create_note(&dir, "Child Note");
 
     qipu()
         .current_dir(dir.path())
@@ -203,34 +139,11 @@ fn test_context_walk_direction() {
 
 #[test]
 fn test_context_walk_with_type_filter() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let root_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Root Note"])
-        .output()
-        .unwrap();
-    let root_id = extract_id(&root_output);
-
-    let child1_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note 1"])
-        .output()
-        .unwrap();
-    let child1_id = extract_id(&child1_output);
-
-    let child2_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note 2"])
-        .output()
-        .unwrap();
-    let child2_id = extract_id(&child2_output);
+    let root_id = create_note(&dir, "Root Note");
+    let child1_id = create_note(&dir, "Child Note 1");
+    let child2_id = create_note(&dir, "Child Note 2");
 
     qipu()
         .current_dir(dir.path())
@@ -271,27 +184,10 @@ fn test_context_walk_with_type_filter() {
 
 #[test]
 fn test_context_walk_json_format() {
-    let dir = tempdir().unwrap();
+    let dir = setup_test_dir();
 
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
-
-    let root_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Root Note"])
-        .output()
-        .unwrap();
-    let root_id = extract_id(&root_output);
-
-    let child_output = qipu()
-        .current_dir(dir.path())
-        .args(["create", "Child Note"])
-        .output()
-        .unwrap();
-    let child_id = extract_id(&child_output);
+    let root_id = create_note(&dir, "Root Note");
+    let child_id = create_note(&dir, "Child Note");
 
     qipu()
         .current_dir(dir.path())

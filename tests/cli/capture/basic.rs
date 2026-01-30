@@ -1,16 +1,9 @@
-use crate::cli::support::{extract_id_from_bytes, qipu};
+use crate::cli::support::{extract_id_from_bytes, qipu, setup_test_dir};
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 #[test]
 fn test_capture_basic() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -23,13 +16,7 @@ fn test_capture_basic() {
 
 #[test]
 fn test_capture_with_title() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -42,13 +29,7 @@ fn test_capture_with_title() {
 
 #[test]
 fn test_capture_with_type() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -60,13 +41,7 @@ fn test_capture_with_type() {
 
 #[test]
 fn test_capture_with_tags() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -78,13 +53,7 @@ fn test_capture_with_tags() {
 
 #[test]
 fn test_capture_json_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -99,13 +68,7 @@ fn test_capture_json_format() {
 
 #[test]
 fn test_capture_records_format() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())
@@ -119,13 +82,7 @@ fn test_capture_records_format() {
 
 #[test]
 fn test_capture_default_type_fleeting() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let output = qipu()
         .current_dir(dir.path())
@@ -143,13 +100,7 @@ fn test_capture_default_type_fleeting() {
 
 #[test]
 fn test_capture_content_preservation() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     let content = "Line 1\nLine 2\n\nLine 4 with spacing";
     let output = qipu()
@@ -181,13 +132,7 @@ fn test_capture_content_preservation() {
 
 #[test]
 fn test_capture_empty_content() {
-    let dir = tempdir().unwrap();
-
-    qipu()
-        .current_dir(dir.path())
-        .arg("init")
-        .assert()
-        .success();
+    let dir = setup_test_dir();
 
     qipu()
         .current_dir(dir.path())

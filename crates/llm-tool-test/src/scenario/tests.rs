@@ -33,7 +33,7 @@ evaluation:
 tool_matrix:
   - tool: opencode
     models: [claude-sonnet-4-20250514, gpt-4o]
-  - tool: amp
+  - tool: claude-code
     models: [default]
 "#;
     let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
@@ -44,7 +44,7 @@ tool_matrix:
     assert_eq!(matrix.len(), 2);
     assert_eq!(matrix[0].tool, "opencode");
     assert_eq!(matrix[0].models, vec!["claude-sonnet-4-20250514", "gpt-4o"]);
-    assert_eq!(matrix[1].tool, "amp");
+    assert_eq!(matrix[1].tool, "claude-code");
     assert_eq!(matrix[1].models, vec!["default"]);
 }
 
@@ -63,7 +63,7 @@ evaluation:
 tool_matrix:
   - tool: opencode
     models: []
-  - tool: amp
+  - tool: claude-code
 "#;
     let scenario: Scenario = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(scenario.name, "test");
@@ -73,7 +73,7 @@ tool_matrix:
     assert_eq!(matrix.len(), 2);
     assert_eq!(matrix[0].tool, "opencode");
     assert!(matrix[0].models.is_empty());
-    assert_eq!(matrix[1].tool, "amp");
+    assert_eq!(matrix[1].tool, "claude-code");
     assert!(matrix[1].models.is_empty());
 }
 

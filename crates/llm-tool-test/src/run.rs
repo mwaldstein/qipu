@@ -1,8 +1,7 @@
 pub mod utils;
 
 use crate::adapter::{
-    amp::AmpAdapter, claude_code::ClaudeCodeAdapter, mock::MockAdapter, opencode::OpenCodeAdapter,
-    ToolAdapter,
+    claude_code::ClaudeCodeAdapter, mock::MockAdapter, opencode::OpenCodeAdapter, ToolAdapter,
 };
 use crate::output;
 use crate::results::{
@@ -187,7 +186,6 @@ pub fn run_single_scenario(
     }
 
     let adapter: Box<dyn ToolAdapter> = match tool {
-        "amp" => Box::new(AmpAdapter),
         "claude-code" => Box::new(ClaudeCodeAdapter),
         "mock" => Box::new(MockAdapter),
         "opencode" => Box::new(OpenCodeAdapter),

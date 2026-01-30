@@ -9,7 +9,7 @@ fn test_write_report_basic() {
 
     let report = RunReport {
         scenario_id: "test_scenario".to_string(),
-        tool: "amp".to_string(),
+        tool: "claude-code".to_string(),
         model: "claude-3-5-sonnet".to_string(),
         timestamp: "2025-01-27T12:00:00Z".to_string(),
         duration_secs: 45.3,
@@ -48,7 +48,7 @@ fn test_write_report_basic() {
     let content = fs::read_to_string(&report_path).unwrap();
     assert!(content.contains("# Test Run Report"));
     assert!(content.contains("test_scenario"));
-    assert!(content.contains("amp"));
+    assert!(content.contains("claude-code"));
     assert!(content.contains("claude-3-5-sonnet"));
     assert!(content.contains("45.30s"));
     assert!(content.contains("$0.0234"));
@@ -121,7 +121,7 @@ fn test_write_evaluation_without_judge_score() {
 
     let evaluation = EvaluationReport {
         scenario_id: "test_scenario".to_string(),
-        tool: "amp".to_string(),
+        tool: "claude-code".to_string(),
         model: "claude-3-5-sonnet".to_string(),
         outcome: "Pass".to_string(),
         judge_score_1_to_5: None,

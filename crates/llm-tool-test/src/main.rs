@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn test_build_tool_matrix_cli_both() {
         let result = build_tool_matrix(
-            &Some("opencode,amp".to_string()),
+            &Some("opencode,claude-code".to_string()),
             &Some("gpt-4o,claude-sonnet".to_string()),
             "opencode",
             &None,
@@ -215,14 +215,14 @@ mod tests {
         assert_eq!(result.len(), 4);
         assert_matrix_contains(&result, "opencode", "gpt-4o");
         assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
+        assert_matrix_contains(&result, "claude-code", "gpt-4o");
+        assert_matrix_contains(&result, "claude-code", "claude-sonnet");
     }
 
     #[test]
     fn test_build_tool_matrix_cli_whitespace_handling() {
         let result = build_tool_matrix(
-            &Some(" opencode , amp ".to_string()),
+            &Some(" opencode , claude-code ".to_string()),
             &Some(" gpt-4o , claude-sonnet ".to_string()),
             "opencode",
             &None,
@@ -232,8 +232,8 @@ mod tests {
         assert_eq!(result.len(), 4);
         assert_matrix_contains(&result, "opencode", "gpt-4o");
         assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
+        assert_matrix_contains(&result, "claude-code", "gpt-4o");
+        assert_matrix_contains(&result, "claude-code", "claude-sonnet");
     }
 
     #[test]
@@ -244,7 +244,7 @@ mod tests {
                 models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
             },
             ToolConfig {
-                tool: "amp".to_string(),
+                tool: "claude-code".to_string(),
                 models: vec!["default".to_string()],
             },
         ];
@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(result.len(), 3);
         assert_matrix_contains(&result, "opencode", "gpt-4o");
         assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "default");
+        assert_matrix_contains(&result, "claude-code", "default");
     }
 
     #[test]
@@ -265,7 +265,7 @@ mod tests {
                 models: vec![],
             },
             ToolConfig {
-                tool: "amp".to_string(),
+                tool: "claude-code".to_string(),
                 models: vec![],
             },
         ];
@@ -274,7 +274,7 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         assert_matrix_contains(&result, "opencode", "default");
-        assert_matrix_contains(&result, "amp", "default");
+        assert_matrix_contains(&result, "claude-code", "default");
     }
 
     #[test]
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn test_build_tool_matrix_cli_tools_only() {
         let result = build_tool_matrix(
-            &Some("opencode,amp".to_string()),
+            &Some("opencode,claude-code".to_string()),
             &None,
             "opencode",
             &None,
@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn test_build_tool_matrix_single_tool_empty_strings() {
         let result = build_tool_matrix(
-            &Some("opencode,,amp".to_string()),
+            &Some("opencode,,claude-code".to_string()),
             &Some("gpt-4o,,claude-sonnet".to_string()),
             "opencode",
             &None,
@@ -357,8 +357,8 @@ mod tests {
         assert_matrix_contains(&result, "", "gpt-4o");
         assert_matrix_contains(&result, "", "");
         assert_matrix_contains(&result, "", "claude-sonnet");
-        assert_matrix_contains(&result, "amp", "gpt-4o");
-        assert_matrix_contains(&result, "amp", "");
-        assert_matrix_contains(&result, "amp", "claude-sonnet");
+        assert_matrix_contains(&result, "claude-code", "gpt-4o");
+        assert_matrix_contains(&result, "claude-code", "");
+        assert_matrix_contains(&result, "claude-code", "claude-sonnet");
     }
 }

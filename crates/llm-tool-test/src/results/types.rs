@@ -240,7 +240,7 @@ mod tests {
         let prompt = "Create a test note";
         let prime_output = "";
         let tool1 = "opencode";
-        let tool2 = "amp";
+        let tool2 = "claude-code";
         let model = "gpt-4o";
         let qipu_version = "abc123";
 

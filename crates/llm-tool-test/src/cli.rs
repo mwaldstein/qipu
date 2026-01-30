@@ -27,7 +27,7 @@ pub enum Commands {
         #[arg(long, default_value = "0")]
         tier: usize,
 
-        /// Tool to test (e.g., amp, claude-code, opencode)
+        /// Tool to test (e.g., claude-code, opencode)
         #[arg(long, default_value = "opencode")]
         tool: String,
 
@@ -35,7 +35,7 @@ pub enum Commands {
         #[arg(long)]
         model: Option<String>,
 
-        /// Multiple tools for matrix run (comma-separated, e.g., opencode,amp)
+        /// Multiple tools for matrix run (comma-separated, e.g., opencode,claude-code)
         #[arg(long)]
         tools: Option<String>,
 

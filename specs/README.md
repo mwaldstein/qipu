@@ -87,7 +87,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `semantic-graph.md` | ✅ FIXED: `show --links` correctly respects `--no-semantic-inversion` flag | Tests: `tests/cli/show/semantic_inversion.rs` |
 | `compaction.md` | ✅ FIXED: Link JSON correctly includes `via` annotation | Tests: `tests/cli/link/via_traversal.rs`, `tests/cli/link/path.rs` |
 | `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
-| `operational-database.md` | Consistency check result ignored (no auto-repair) | `src/lib/db/mod.rs:96` |
+| `operational-database.md` | ✅ FIXED: Consistency check result now triggers incremental repair when auto_repair is enabled | `crates/qipu-core/src/db/mod.rs:138-141` |
 | `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
 | `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
 | `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |

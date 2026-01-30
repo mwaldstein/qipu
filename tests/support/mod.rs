@@ -48,3 +48,61 @@ pub fn create_note(dir: &TempDir, title: &str) -> String {
         .unwrap();
     extract_id(&output)
 }
+
+/// Create a note with tags and return its ID
+pub fn create_note_with_tags(dir: &TempDir, title: &str, tags: &[&str]) -> String {
+    let mut args = vec!["create", title];
+    for tag in tags {
+        args.push("--tag");
+        args.push(tag);
+    }
+    let output = qipu().current_dir(dir.path()).args(&args).output().unwrap();
+    extract_id(&output)
+}
+
+/// Run qipu command and return stdout as String
+pub fn run_and_get_stdout(dir: &TempDir, args: &[&str]) -> String {
+    let output = qipu().current_dir(dir.path()).args(args).output().unwrap();
+    String::from_utf8_lossy(&output.stdout).to_string()
+}
+
+/// Run qipu command and assert success
+pub fn run_assert_success(dir: &TempDir, args: &[&str]) {
+    qipu().current_dir(dir.path()).args(args).assert().success();
+}
+
+/// Add text content to a note file by ID
+pub fn append_to_note(dir: &TempDir, note_id: &str, content: &str) {
+    let notes_dir = dir.path().join(".qipu").join("notes");
+    for entry in std::fs::read_dir(&notes_dir).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with(note_id) {
+            let mut file_content = std::fs::read_to_string(entry.path()).unwrap();
+            file_content.push_str(content);
+            std::fs::write(entry.path(), file_content).unwrap();
+            return;
+        }
+    }
+    panic!("Note with ID {} not found", note_id);
+}
+
+/// Create a link between two notes
+pub fn create_link(dir: &TempDir, from_id: &str, to_id: &str, link_type: &str) {
+    run_assert_success(dir, &["link", "add", from_id, to_id, "--type", link_type]);
+}
+
+/// Apply compaction to combine notes into a digest
+pub fn apply_compaction(dir: &TempDir, digest_id: &str, note_ids: &[&str]) {
+    let mut args = vec!["compact", "apply", digest_id];
+    for id in note_ids {
+        args.push("--note");
+        args.push(id);
+    }
+    run_assert_success(dir, &args);
+}
+
+/// Rebuild index to sync database with file changes
+pub fn rebuild_index(dir: &TempDir) {
+    run_assert_success(dir, &["index", "--rebuild"]);
+}

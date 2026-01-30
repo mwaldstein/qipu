@@ -11,7 +11,8 @@ use std::path::Path;
 
 use tracing::debug;
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::note::Note;
 use qipu_core::store::Store;
@@ -174,23 +175,24 @@ pub fn execute(
 
     if !modified {
         // No changes to apply
-        match cli.format {
-            OutputFormat::Json => {
+        output_by_format_result!(cli.format,
+            json => {
                 let output = serde_json::json!({
                     "id": note_id,
                     "message": "no changes to apply"
                 });
                 println!("{}", serde_json::to_string_pretty(&output)?);
-            }
-            OutputFormat::Human => {
+                Ok::<(), QipuError>(())
+            },
+            human => {
                 if !cli.quiet {
                     println!("No changes to apply");
                 }
-            }
-            OutputFormat::Records => {
+            },
+            records => {
                 println!("N id=\"{}\" status=unchanged", note_id);
             }
-        }
+        )?;
         return Ok(());
     }
 
@@ -202,8 +204,8 @@ pub fn execute(
     }
 
     // Output the updated note info
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "id": note_id,
                 "title": note.title(),
@@ -219,11 +221,12 @@ pub fn execute(
                 "verified": note.frontmatter.verified,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Human => {
+            Ok::<(), QipuError>(())
+        },
+        human => {
             println!("{}", note_id);
-        }
-        OutputFormat::Records => {
+        },
+        records => {
             use qipu_core::records::escape_quotes;
 
             println!(
@@ -240,7 +243,5 @@ pub fn execute(
                 tags_csv
             );
         }
-    }
-
-    Ok(())
+    )
 }

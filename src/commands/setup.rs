@@ -3,10 +3,12 @@
 //! Provides instructions for integrating qipu with common agent tools.
 //! At minimum, supports the AGENTS.md standard (cross-tool compatible).
 
-use crate::cli::{Cli, OutputFormat};
+use crate::cli::Cli;
 use crate::commands::format::{
-    print_json_status, print_records_data, print_records_header, wrap_records_body,
+    output_by_format_result, print_json_status, print_records_data, print_records_header,
+    wrap_records_body,
 };
+use crate::output_by_format;
 use qipu_core::error::QipuError;
 use std::path::PathBuf;
 
@@ -187,41 +189,37 @@ pub fn execute(
 
 /// Execute the onboard command - display minimal AGENTS.md snippet
 pub fn execute_onboard(cli: &Cli) -> Result<(), QipuError> {
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "snippet": ONBOARD_SNIPPET,
                 "instruction": "Add this snippet to AGENTS.md for qipu integration"
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
+        },
+        human => {
+            print!("{}", ONBOARD_SNIPPET);
+        },
+        records => {
             print_records_header("onboard", &[]);
             wrap_records_body("snippet", ONBOARD_SNIPPET);
         }
-        OutputFormat::Human => {
-            print!("{}", ONBOARD_SNIPPET);
-        }
-    }
+    );
     Ok(())
 }
 
 /// List available integrations
 fn execute_list(cli: &Cli) -> Result<(), QipuError> {
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format!(cli.format,
+        json => {
             let integrations = vec![serde_json::json!({
                 "name": "agents-md",
                 "description": "AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)",
                 "status": "available"
             })];
             println!("{}", serde_json::to_string_pretty(&integrations)?);
-        }
-        OutputFormat::Records => {
-            println!("H qipu=1 records=1 mode=setup.list integrations=1");
-            println!("D integration name=agents-md description=\"AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)\" status=available");
-        }
-        OutputFormat::Human => {
+        },
+        human => {
             println!("Available integrations:");
             println!();
             println!("  agents-md");
@@ -231,29 +229,33 @@ fn execute_list(cli: &Cli) -> Result<(), QipuError> {
             println!("    Usage: qipu setup agents-md");
             println!();
             println!("Run `qipu setup <integration>` to install.");
+        },
+        records => {
+            println!("H qipu=1 records=1 mode=setup.list integrations=1");
+            println!("D integration name=agents-md description=\"AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)\" status=available");
         }
-    }
+    );
     Ok(())
 }
 
 /// Print integration instructions to stdout
 fn execute_print(cli: &Cli) -> Result<(), QipuError> {
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "integration": "agents-md",
                 "content": AGENTS_MD_CONTENT
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
+        },
+        human => {
+            print!("{}", AGENTS_MD_CONTENT);
+        },
+        records => {
             print_records_header("setup.print", &[("integration", "agents-md")]);
             wrap_records_body("agents-md", AGENTS_MD_CONTENT);
         }
-        OutputFormat::Human => {
-            print!("{}", AGENTS_MD_CONTENT);
-        }
-    }
+    );
     Ok(())
 }
 
@@ -263,20 +265,15 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
 
     let agents_md_path = get_agents_md_path(cli);
     if agents_md_path.exists() {
-        return match cli.format {
-            OutputFormat::Json => {
+        return output_by_format!(cli.format,
+            json => {
                 print_json_status(
                     "exists",
                     Some("AGENTS.md already exists. Use --print to see the recommended content, or manually update the file."),
                     &[("path", serde_json::json!("AGENTS.md"))],
                 )
-            }
-            OutputFormat::Records => {
-                print_records_header("setup.install", &[("integration", "agents-md"), ("status", "exists")]);
-                print_records_data("message", "AGENTS.md already exists. Use --print to see recommended content.");
-                Ok(())
-            }
-            OutputFormat::Human => {
+            },
+            human => {
                 println!("AGENTS.md already exists in the current directory.");
                 println!();
                 println!("To see the recommended qipu integration content, run:");
@@ -284,36 +281,39 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
                 println!();
                 println!("Then manually add or update the qipu section in your AGENTS.md file.");
                 Ok(())
+            },
+            records => {
+                print_records_header("setup.install", &[("integration", "agents-md"), ("status", "exists")]);
+                print_records_data("message", "AGENTS.md already exists. Use --print to see recommended content.");
+                Ok(())
             }
-        };
+        );
     }
 
     std::fs::write(agents_md_path, AGENTS_MD_CONTENT)?;
 
-    match cli.format {
-        OutputFormat::Json => print_json_status(
+    output_by_format_result!(cli.format,
+        json => print_json_status(
             "installed",
             Some("AGENTS.md created successfully"),
             &[("path", serde_json::json!("AGENTS.md"))],
-        )?,
-        OutputFormat::Records => {
-            print_records_header(
-                "setup.install",
-                &[("integration", "agents-md"), ("status", "installed")],
-            );
-            print_records_data("path", "AGENTS.md");
-        }
-        OutputFormat::Human => {
+        ),
+        human => {
             println!("✓ Created AGENTS.md");
             println!();
             println!("Integration complete! Agent tools that support AGENTS.md will automatically");
             println!("load these instructions when working in this directory.");
             println!();
             println!("Try running: qipu prime");
+        },
+        records => {
+            print_records_header(
+                "setup.install",
+                &[("integration", "agents-md"), ("status", "installed")],
+            );
+            print_records_data("path", "AGENTS.md");
         }
-    }
-
-    Ok(())
+    )
 }
 
 /// Check if integration is installed
@@ -323,16 +323,27 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     let agents_md_path = get_agents_md_path(cli);
     let exists = agents_md_path.exists();
 
-    match cli.format {
-        OutputFormat::Json => {
+    output_by_format_result!(cli.format,
+        json => {
             let output = serde_json::json!({
                 "integration": "agents-md",
                 "installed": exists,
                 "path": if exists { Some(agents_md_path.display().to_string()) } else { None }
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
-        }
-        OutputFormat::Records => {
+            Ok(())
+        },
+        human => {
+            if exists {
+                println!("✓ AGENTS.md integration is installed");
+                println!("  Path: AGENTS.md");
+            } else {
+                println!("✗ AGENTS.md integration is not installed");
+                println!();
+                println!("Run `qipu setup agents-md` to install.");
+            }
+        },
+        records => {
             let status = if exists { "installed" } else { "not-installed" };
             print_records_header(
                 "setup.check",
@@ -342,19 +353,7 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
                 print_records_data("path", "AGENTS.md");
             }
         }
-        OutputFormat::Human => {
-            if exists {
-                println!("✓ AGENTS.md integration is installed");
-                println!("  Path: AGENTS.md");
-            } else {
-                println!("✗ AGENTS.md integration is not installed");
-                println!();
-                println!("Run `qipu setup agents-md` to install.");
-            }
-        }
-    }
-
-    Ok(())
+    )
 }
 
 /// Remove integration
@@ -364,43 +363,39 @@ fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     let agents_md_path = get_agents_md_path(cli);
 
     if !agents_md_path.exists() {
-        return match cli.format {
-            OutputFormat::Json => {
+        return output_by_format!(cli.format,
+            json => {
                 print_json_status("not-found", Some("AGENTS.md does not exist"), &[])
-            }
-            OutputFormat::Records => {
+            },
+            human => {
+                println!("AGENTS.md does not exist (nothing to remove).");
+                Ok(())
+            },
+            records => {
                 print_records_header(
                     "setup.remove",
                     &[("integration", "agents-md"), ("status", "not-found")],
                 );
                 Ok(())
             }
-            OutputFormat::Human => {
-                println!("AGENTS.md does not exist (nothing to remove).");
-                Ok(())
-            }
-        };
+        );
     }
 
     // Remove AGENTS.md
     std::fs::remove_file(agents_md_path)?;
 
-    match cli.format {
-        OutputFormat::Json => {
-            print_json_status("removed", Some("AGENTS.md removed successfully"), &[])?
-        }
-        OutputFormat::Records => {
+    output_by_format_result!(cli.format,
+        json => print_json_status("removed", Some("AGENTS.md removed successfully"), &[]),
+        human => {
+            println!("✓ Removed AGENTS.md");
+        },
+        records => {
             print_records_header(
                 "setup.remove",
                 &[("integration", "agents-md"), ("status", "removed")],
             );
         }
-        OutputFormat::Human => {
-            println!("✓ Removed AGENTS.md");
-        }
-    }
-
-    Ok(())
+    )
 }
 
 #[cfg(test)]

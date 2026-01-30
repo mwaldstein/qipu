@@ -7,6 +7,7 @@
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::doctor;
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::Result;
 use qipu_core::index::IndexBuilder;
 use qipu_core::store::Store;
@@ -90,19 +91,8 @@ pub fn execute(
     // Output based on format - but only if doctor wasn't run or we're in human mode
     // In JSON/Records mode, doctor will output its own structured result
     if !validate || cli.format == OutputFormat::Human {
-        match cli.format {
-            OutputFormat::Human => {
-                if !cli.quiet {
-                    println!("Indexed {} notes", notes_indexed);
-                    if validate {
-                        println!("Store validated: {} errors, {} warnings", errors, warnings);
-                        if fixed > 0 {
-                            println!("Fixed {} issues", fixed);
-                        }
-                    }
-                }
-            }
-            OutputFormat::Json => {
+        output_by_format_result!(cli.format,
+            json => {
                 let output = serde_json::json!({
                     "status": "ok",
                     "notes_indexed": notes_indexed,
@@ -119,8 +109,20 @@ pub fn execute(
                     },
                 });
                 println!("{}", serde_json::to_string_pretty(&output)?);
-            }
-            OutputFormat::Records => {
+                Ok::<(), qipu_core::error::QipuError>(())
+            },
+            human => {
+                if !cli.quiet {
+                    println!("Indexed {} notes", notes_indexed);
+                    if validate {
+                        println!("Store validated: {} errors, {} warnings", errors, warnings);
+                        if fixed > 0 {
+                            println!("Fixed {} issues", fixed);
+                        }
+                    }
+                }
+            },
+            records => {
                 // Header line per spec (specs/records-output.md)
                 let mut header = format!(
                     "H qipu=1 records=1 store={} mode=sync notes={} tags={} edges={}",
@@ -137,7 +139,7 @@ pub fn execute(
                 }
                 println!("{}", header);
             }
-        }
+        )?;
     }
 
     Ok(())

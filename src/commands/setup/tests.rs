@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::OutputFormat;
 use std::fs;
 use tempfile::TempDir;
 

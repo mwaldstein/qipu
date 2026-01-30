@@ -5,8 +5,9 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::cli::{
-    Cli, CustomCommands, OntologyCommands, OutputFormat, StoreCommands, TagsCommands, ValueCommands,
+    Cli, CustomCommands, OntologyCommands, StoreCommands, TagsCommands, ValueCommands,
 };
+use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
 use tracing::debug;
 
@@ -92,21 +93,22 @@ pub(super) fn handle_value(
 
             store.save_note(&mut note)?;
 
-            match cli.format {
-                OutputFormat::Json => {
+            output_by_format_result!(cli.format,
+                json => {
                     let output = serde_json::json!({
                         "id": note_id,
                         "value": score
                     });
                     println!("{}", serde_json::to_string_pretty(&output)?);
-                }
-                OutputFormat::Human => {
+                    Ok::<(), QipuError>(())
+                },
+                human => {
                     println!("{}: {}", note_id, score);
-                }
-                OutputFormat::Records => {
+                },
+                records => {
                     println!("T id=\"{}\" value={}", note_id, score);
                 }
-            }
+            )?;
 
             debug!(elapsed = ?start.elapsed(), "value_set");
             Ok(())
@@ -124,29 +126,30 @@ pub(super) fn handle_value(
             let value = note.frontmatter.value.unwrap_or(50);
             let is_default = note.frontmatter.value.is_none();
 
-            match cli.format {
-                OutputFormat::Json => {
+            output_by_format_result!(cli.format,
+                json => {
                     let output = serde_json::json!({
                         "id": note_id,
                         "value": value,
                         "default": is_default
                     });
                     println!("{}", serde_json::to_string_pretty(&output)?);
-                }
-                OutputFormat::Human => {
+                    Ok::<(), QipuError>(())
+                },
+                human => {
                     if is_default {
                         println!("{}: {} (default)", note_id, value);
                     } else {
                         println!("{}: {}", note_id, value);
                     }
-                }
-                OutputFormat::Records => {
+                },
+                records => {
                     println!(
                         "T id=\"{}\" value={} default={}",
                         note_id, value, is_default
                     );
                 }
-            }
+            )?;
 
             debug!(elapsed = ?start.elapsed(), "value_show");
             Ok(())
@@ -166,8 +169,8 @@ pub(super) fn handle_tags(
         TagsCommands::List {} => {
             let frequencies = store.get_tag_frequencies()?;
 
-            match cli.format {
-                OutputFormat::Json => {
+            output_by_format_result!(cli.format,
+                json => {
                     let output: Vec<_> = frequencies
                         .iter()
                         .map(|(tag, count)| {
@@ -178,8 +181,9 @@ pub(super) fn handle_tags(
                         })
                         .collect();
                     println!("{}", serde_json::to_string_pretty(&output)?);
-                }
-                OutputFormat::Human => {
+                    Ok::<(), QipuError>(())
+                },
+                human => {
                     if frequencies.is_empty() {
                         if !cli.quiet {
                             println!("No tags found");
@@ -189,8 +193,8 @@ pub(super) fn handle_tags(
                             println!("{}: {}", tag, count);
                         }
                     }
-                }
-                OutputFormat::Records => {
+                },
+                records => {
                     if frequencies.is_empty() {
                         if !cli.quiet {
                             println!("No tags found");
@@ -201,7 +205,7 @@ pub(super) fn handle_tags(
                         }
                     }
                 }
-            }
+            )?;
 
             debug!(elapsed = ?start.elapsed(), "tags_list");
             Ok(())

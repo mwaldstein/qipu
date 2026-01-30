@@ -42,25 +42,25 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-24*
+*Last audited: 2026-01-30*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
-| `cli-tool.md` | ✅ | ✅ | ⚠️ | Missing performance tests for --help/--version, list, search |
+| `cli-tool.md` | ✅ | ✅ | ✅ | All tests implemented including performance tests |
 | `knowledge-model.md` | ✅ | ✅ | ✅ | All note types, IDs, tags, typed links working; unknown types rejected (not coerced) |
 | `storage-format.md` | ✅ | ✅ | ✅ | All features implemented with path traversal protection |
-| `cli-interface.md` | ✅ | ⚠️ | ⚠️ | Exit code issue actually correct |
-| `indexing-search.md` | ✅ | ✅ | ⚠️ | Field weights correct (2.0/1.5/1.0); search wraps query in quotes (phrase search) |
-| `semantic-graph.md` | ✅ | ⚠️ | ⚠️ | `show --links` ignores `--no-semantic-inversion` flag; inversion tests sparse |
+| `cli-interface.md` | ✅ | ✅ | ✅ | Exit codes correct per spec |
+| `indexing-search.md` | ✅ | ✅ | ✅ | Field weights correct (2.0/1.5/1.0); AND semantics working |
+| `semantic-graph.md` | ✅ | ✅ | ✅ | `show --links` correctly handles `--no-semantic-inversion`; tests complete |
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
-| `similarity-ranking.md` | ✅ | ⚠️ | ⚠️ | Search uses additive boosts instead of multiplicative weights; wraps query in quotes |
-| `records-output.md` | ✅ | ⚠️ | ⚠️ | `via` annotation missing in link JSON; missing truncation/S-prefix tests |
+| `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
+| `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
 | `llm-context.md` | ✅ | ✅ | ⚠️ | Character budgeting implemented (4000-8000 chars); `--max-tokens` flag out of scope |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
 | `progressive-indexing.md` | ⚠️ | ❌ | New spec - not implemented |
-| `provenance.md` | ✅ | ⚠️ | ⚠️ | Bibliography ignores `source` (singular), uses `sources[]` only; `source` vs `sources[]` ambiguous |
+| `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
-| `compaction.md` | ✅ | ⚠️ | ✅ | Link JSON missing `via` annotation; truncation markers ARE present |
+| `compaction.md` | ✅ | ✅ | ✅ | Link JSON includes `via` annotation; truncation markers ARE present |
 | `pack.md` | ✅ | ✅ | ✅ | Value/custom correctly preserved; merge-links restricted to newly loaded notes |
 | `workspaces.md` | ✅ | ✅ | ⚠️ | Rename strategy link rewriting untested; metadata location per-workspace (spec ambiguous) |
 | `structured-logging.md` | ✅ | ✅ | ⚠️ | Logs correctly route to stderr; missing TRACE tests; structured fields not validated |
@@ -82,10 +82,10 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `similarity-ranking.md` | Search wraps query in quotes (phrase search vs AND/OR semantics) | `src/lib/db/search.rs:47` |
-| `similarity-ranking.md` | Search uses additive boosts instead of multiplicative field weights | `src/lib/db/search.rs:112-132` |
-| `semantic-graph.md` | `show --links` ignores `--no-semantic-inversion` flag | `src/commands/show.rs:204-225` |
-| `compaction.md` | Link JSON missing `via` annotation (breadcrumb for compacted sources) | `src/commands/link/json.rs:7-86`, `src/commands/link/mod.rs:31-45` |
+| `similarity-ranking.md` | ✅ FIXED: Search correctly uses AND semantics (unquoted query) | Test: `tests/cli/search/basic.rs:407` |
+| `similarity-ranking.md` | ✅ FIXED: Search correctly uses multiplicative field weights via BM25 | `crates/qipu-core/src/index/weights.rs` |
+| `semantic-graph.md` | ✅ FIXED: `show --links` correctly respects `--no-semantic-inversion` flag | Tests: `tests/cli/show/semantic_inversion.rs` |
+| `compaction.md` | ✅ FIXED: Link JSON correctly includes `via` annotation | Tests: `tests/cli/link/via_traversal.rs`, `tests/cli/link/path.rs` |
 | `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
 | `operational-database.md` | Consistency check result ignored (no auto-repair) | `src/lib/db/mod.rs:96` |
 | `operational-database.md` | No corruption detection and auto-rebuild | `src/lib/db/mod.rs:50-99` |
@@ -98,7 +98,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | Test coverage | Missing tests for duplicate `--format` detection; no performance tests |
+| `cli-tool.md` | ✅ FIXED: Test coverage complete | Tests: `tests/cli/misc.rs` (duplicate format), `tests/performance_tests.rs` |
 | `storage-format.md` | Test coverage | Missing security tests for discovery boundary with parent store; malicious attachment paths |
 | `cli-interface.md` | Test coverage | Missing tests asserting JSON schema compliance (required fields present) |
 | `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case; no direct 2-hop neighborhood CLI tests |

@@ -1,5 +1,6 @@
 use crate::Cli;
-use qipu_core::error::{QipuError, Result};
+use qipu_core::bail_usage;
+use qipu_core::error::Result;
 use qipu_core::store::Store;
 use std::collections::HashMap;
 use std::path::Path;
@@ -18,10 +19,10 @@ pub fn execute(
     let start = Instant::now();
 
     if !matches!(strategy, "overwrite" | "merge-links" | "skip" | "rename") {
-        return Err(QipuError::UsageError(format!(
+        bail_usage!(format!(
             "unknown merge strategy: '{}' (expected: overwrite, merge-links, skip, or rename)",
             strategy
-        )));
+        ));
     }
 
     if cli.verbose {

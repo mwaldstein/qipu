@@ -16,6 +16,8 @@ use std::path::Path;
 
 use crate::cli::{Cli, OutputFormat};
 use loader::{load_attachments, load_links, load_notes};
+use qipu_core::bail_invalid;
+use qipu_core::bail_unsupported;
 use qipu_core::config::STORE_FORMAT_VERSION;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
@@ -58,21 +60,17 @@ pub fn execute(
     };
 
     if pack_data.header.version != "1.0" {
-        return Err(QipuError::unsupported(
-            "pack version",
-            &pack_data.header.version,
-            "1.0",
-        ));
+        bail_unsupported!("pack version", &pack_data.header.version, "1.0");
     }
 
     if pack_data.header.store_version > STORE_FORMAT_VERSION {
-        return Err(QipuError::invalid_value(
+        bail_invalid!(
             &format!("pack store version {}", pack_data.header.store_version),
             format!(
                 "higher than store version {} - please upgrade qipu",
                 STORE_FORMAT_VERSION
-            ),
-        ));
+            )
+        );
     }
 
     if apply_config {

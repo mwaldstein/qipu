@@ -5,6 +5,7 @@
 //! - Existence: `key` (present), `!key` (absent)
 //! - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
 
+use qipu_core::bail_invalid;
 use qipu_core::error::{QipuError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -91,16 +92,16 @@ pub fn parse_custom_filter_expression(
     let value = value.to_string();
 
     if key.is_empty() {
-        return Err(QipuError::invalid_value(
+        bail_invalid!(
             &format!("custom filter expression '{}'", expr),
-            "missing key",
-        ));
+            "missing key"
+        );
     }
     if value.is_empty() {
-        return Err(QipuError::invalid_value(
+        bail_invalid!(
             &format!("custom filter expression '{}'", expr),
-            "missing value",
-        ));
+            "missing value"
+        );
     }
 
     let target_value: f64 = value.parse().map_err(|_| {

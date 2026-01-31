@@ -14,6 +14,7 @@ use std::fs::File;
 use std::io::Write;
 
 use crate::cli::{Cli, OutputFormat};
+use qipu_core::bail_usage;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::index::IndexBuilder;
@@ -199,9 +200,7 @@ fn write_output(
         }
     } else {
         if pdf {
-            return Err(QipuError::UsageError(
-                "--pdf requires --output (PDF cannot be written to stdout)".to_string(),
-            ));
+            bail_usage!("--pdf requires --output (PDF cannot be written to stdout)");
         }
         print!("{}", output_content);
     }

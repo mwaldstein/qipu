@@ -8,6 +8,7 @@ use crate::cli::{
     ValueCommands, WorkspaceCommands,
 };
 use crate::commands::format::output_by_format_result;
+use qipu_core::bail_usage;
 use qipu_core::error::{QipuError, Result};
 
 use super::command::discover_or_open_store;
@@ -83,9 +84,7 @@ pub(super) fn handle_value(
     match command {
         ValueCommands::Set { id_or_path, score } => {
             if *score > 100 {
-                return Err(QipuError::UsageError(
-                    "Value score must be between 0 and 100".to_string(),
-                ));
+                bail_usage!("Value score must be between 0 and 100");
             }
 
             let mut note = store.load_note_by_id_or_path(id_or_path)?;

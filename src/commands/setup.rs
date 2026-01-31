@@ -9,6 +9,7 @@ use crate::commands::format::{
     wrap_records_body,
 };
 use crate::output_by_format;
+use qipu_core::bail_usage;
 use qipu_core::error::QipuError;
 use std::path::PathBuf;
 
@@ -37,10 +38,10 @@ fn get_agents_md_path(cli: &Cli) -> PathBuf {
 fn validate_tool_name(tool: &str) -> Result<&str, QipuError> {
     let normalized = tool.to_lowercase().replace('_', "-");
     if normalized != "agents-md" {
-        return Err(QipuError::UsageError(format!(
+        bail_usage!(format!(
             "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
             tool
-        )));
+        ));
     }
     Ok(tool)
 }

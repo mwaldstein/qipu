@@ -1,4 +1,5 @@
 use crate::error::{QipuError, Result};
+use crate::map_db_err;
 use crate::note::Note;
 use rusqlite::{params, Connection};
 
@@ -166,13 +167,13 @@ impl super::Database {
             .map_err(|e| QipuError::transaction("start", e))?;
 
         tx.execute("DELETE FROM tags", [])
-            .map_err(|e| QipuError::db_operation("clear tags", e))?;
+            .map_err(|e| map_db_err!("clear tags", e))?;
 
         tx.execute("DELETE FROM edges", [])
-            .map_err(|e| QipuError::db_operation("clear edges", e))?;
+            .map_err(|e| map_db_err!("clear edges", e))?;
 
         tx.execute("DELETE FROM notes", [])
-            .map_err(|e| QipuError::db_operation("clear notes", e))?;
+            .map_err(|e| map_db_err!("clear notes", e))?;
 
         for note in &notes {
             Self::insert_note_basic(&tx, note)?;
@@ -334,13 +335,13 @@ impl super::Database {
             .map_err(|e| QipuError::transaction("start", e))?;
 
         tx.execute("DELETE FROM tags", [])
-            .map_err(|e| QipuError::db_operation("clear tags", e))?;
+            .map_err(|e| map_db_err!("clear tags", e))?;
 
         tx.execute("DELETE FROM edges", [])
-            .map_err(|e| QipuError::db_operation("clear edges", e))?;
+            .map_err(|e| map_db_err!("clear edges", e))?;
 
         tx.execute("DELETE FROM notes", [])
-            .map_err(|e| QipuError::db_operation("clear notes", e))?;
+            .map_err(|e| map_db_err!("clear notes", e))?;
 
         for note in &notes {
             Self::insert_note_basic(&tx, note)?;

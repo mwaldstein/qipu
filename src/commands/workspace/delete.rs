@@ -1,4 +1,5 @@
 use crate::Cli;
+use qipu_core::bail_usage;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
@@ -22,9 +23,7 @@ pub fn execute(cli: &Cli, root: &Path, name: &str, force: bool) -> Result<()> {
                 for change in changes {
                     tracing::warn!("  - {}", change);
                 }
-                return Err(qipu_core::error::QipuError::UsageError(
-                    "Use --force to delete anyway".to_string(),
-                ));
+                bail_usage!("Use --force to delete anyway");
             }
         }
     }

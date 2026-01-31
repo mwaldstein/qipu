@@ -1,3 +1,4 @@
+use qipu_core::bail_invalid;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::note::{Note, Source};
 use serde_json::json;
@@ -205,12 +206,12 @@ fn parse_date_string(date_str: &str) -> Result<Vec<i32>> {
         if let Ok(num) = part.parse::<i32>() {
             date_parts.push(num);
         } else {
-            return Err(QipuError::invalid_value("date format", date_str));
+            bail_invalid!("date format", date_str);
         }
     }
 
     if date_parts.is_empty() || date_parts.len() > 3 {
-        return Err(QipuError::invalid_value("date format", date_str));
+        bail_invalid!("date format", date_str);
     }
 
     Ok(date_parts)

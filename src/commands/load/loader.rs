@@ -4,6 +4,7 @@ use base64::{engine::general_purpose, Engine as _};
 
 use super::model::{PackAttachment, PackLink, PackNote};
 use super::LoadStrategy;
+use qipu_core::bail_invalid;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::note::{Note, NoteFrontmatter, NoteType, Source};
 use qipu_core::store::Store;
@@ -276,10 +277,10 @@ pub fn load_attachments(
         })?;
 
         if !canonical_safe_path.starts_with(&canonical_attachments_dir) {
-            return Err(QipuError::invalid_value(
+            bail_invalid!(
                 &format!("attachment name '{}'", pack_attachment.name),
-                "would write outside attachments directory",
-            ));
+                "would write outside attachments directory"
+            );
         }
 
         std::fs::write(&safe_attachment_path, data)

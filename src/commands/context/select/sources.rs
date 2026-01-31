@@ -2,7 +2,8 @@ use super::state::SelectionState;
 use crate::cli::Cli;
 use crate::commands::context::types::ContextOptions;
 use crate::commands::context::walk;
-use qipu_core::error::{QipuError, Result};
+use qipu_core::bail_usage;
+use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
 use std::collections::HashMap;
@@ -139,10 +140,9 @@ pub fn collect_all_notes<'a>(
     }
 
     if options.selection.min_value.is_none() && options.selection.custom_filter.is_empty() {
-        return Err(QipuError::UsageError(
+        bail_usage!(
             "no selection criteria provided. Use --note, --tag, --moc, --query, --walk, --min-value, or --custom-filter"
-                .to_string(),
-        ));
+        );
     }
 
     for note in all_notes {

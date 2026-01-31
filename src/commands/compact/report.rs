@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::time::Instant;
 
+use qipu_core::bail_invalid;
 use qipu_core::compaction::CompactionContext;
-use qipu_core::error::QipuError;
 use qipu_core::error::Result;
 use qipu_core::format::OutputFormat;
 use qipu_core::index::Index;
@@ -61,10 +61,7 @@ fn build_report_context(cli: &Cli, root: &Path, digest_id: &str) -> Result<Repor
         .unwrap_or_default();
 
     if direct_compacts.is_empty() {
-        return Err(QipuError::invalid_value(
-            &format!("note {}", digest_id),
-            "does not compact any notes",
-        ));
+        bail_invalid!(&format!("note {}", digest_id), "does not compact any notes");
     }
 
     let digest_note = store.get_note(digest_id)?;

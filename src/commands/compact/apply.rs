@@ -6,6 +6,7 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
+use qipu_core::bail_usage;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::store::Store;
@@ -73,9 +74,7 @@ pub fn execute(
     }
 
     if source_ids.is_empty() {
-        return Err(qipu_core::error::QipuError::UsageError(
-            "no source note IDs provided (use --note, --from-stdin, or --notes-file)".to_string(),
-        ));
+        bail_usage!("no source note IDs provided (use --note, --from-stdin, or --notes-file)");
     }
 
     // Load the digest note

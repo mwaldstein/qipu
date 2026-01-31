@@ -4,6 +4,7 @@
 //! a starting note and bundles all traversed notes.
 
 use crate::cli::Cli;
+use qipu_core::bail_unsupported;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::graph::{Direction, HopCost, TreeOptions};
@@ -68,13 +69,7 @@ pub fn walk_for_context(
         "out" => Direction::Out,
         "in" => Direction::In,
         "both" => Direction::Both,
-        _ => {
-            return Err(QipuError::unsupported(
-                "direction",
-                walk_direction,
-                "out, in, both",
-            ))
-        }
+        _ => bail_unsupported!("direction", walk_direction, "out, in, both"),
     };
 
     // Build tree options

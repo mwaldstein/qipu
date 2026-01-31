@@ -1,4 +1,5 @@
 use crate::error::{QipuError, Result};
+use crate::map_db_err;
 use crate::note::Note;
 use crate::store::paths::{MOCS_DIR, NOTES_DIR};
 use std::path::Path;
@@ -71,13 +72,13 @@ impl Database {
             .map_err(|e| QipuError::transaction("start", e))?;
 
         tx.execute("DELETE FROM tags", [])
-            .map_err(|e| QipuError::db_operation("clear tags", e))?;
+            .map_err(|e| map_db_err!("clear tags", e))?;
 
         tx.execute("DELETE FROM edges", [])
-            .map_err(|e| QipuError::db_operation("clear edges", e))?;
+            .map_err(|e| map_db_err!("clear edges", e))?;
 
         tx.execute("DELETE FROM notes", [])
-            .map_err(|e| QipuError::db_operation("clear notes", e))?;
+            .map_err(|e| map_db_err!("clear notes", e))?;
 
         let total_notes = notes.len();
         let batch_size = 1000;

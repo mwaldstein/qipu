@@ -1,7 +1,8 @@
 use crate::error::{QipuError, Result};
 use crate::map_db_err;
 use crate::note::Note;
-use rusqlite::{params, Connection};
+
+use super::notes::insert_helper::{insert_note_with_options, InsertOptions};
 
 /// Indexing strategy for auto-indexing
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,91 +43,8 @@ impl IndexLevel {
 
 impl super::Database {
     /// Insert note at basic index level (metadata only, no body/FTS5)
-    pub fn insert_note_basic(conn: &Connection, note: &Note) -> Result<()> {
-        let path_str = note
-            .path
-            .as_ref()
-            .and_then(|p| p.to_str())
-            .ok_or_else(|| QipuError::Other(format!("invalid path for note {}", note.id())))?;
-
-        let created_str = note.frontmatter.created.map(|d| d.to_rfc3339());
-        let updated_str = note.frontmatter.updated.map(|d| d.to_rfc3339());
-        let mtime = note
-            .path
-            .as_ref()
-            .and_then(|p| std::fs::metadata(p).ok())
-            .and_then(|m| m.modified().ok())
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| d.as_nanos() as i64)
-            .unwrap_or(0);
-
-        let compacts_json = note.frontmatter.to_compacts_json();
-        let sources_json = note.frontmatter.to_sources_json();
-        let verified_int = note.frontmatter.verified.map(|b| if b { 1 } else { 0 });
-        let custom_json = note.frontmatter.to_custom_json();
-
-        conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts, author, verified, source, sources, generated_by, prompt_hash, custom_json, index_level)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
-            params![
-                note.id(),
-                note.title(),
-                note.note_type().to_string(),
-                path_str,
-                created_str,
-                updated_str,
-                &note.body,
-                mtime,
-                note.frontmatter.value.or(Some(50)),
-                compacts_json,
-                note.frontmatter.author.as_ref(),
-                verified_int,
-                note.frontmatter.source.as_ref(),
-                sources_json,
-                note.frontmatter.generated_by.as_ref(),
-                note.frontmatter.prompt_hash.as_ref(),
-                custom_json,
-                IndexLevel::Basic as i32,
-            ],
-        )
-        .map_err(|e| QipuError::Other(format!("failed to insert note {}: {}", note.id(), e)))?;
-
-        let rowid: i64 = conn.last_insert_rowid();
-
-        // Skip FTS5 indexing for basic level
-        conn.execute(
-            "INSERT OR REPLACE INTO notes_fts(rowid, title, body, tags) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                rowid,
-                note.title(),
-                "", // Empty body for basic index
-                note.frontmatter.tags.join(" "),
-            ],
-        )
-        .map_err(|e| {
-            QipuError::Other(format!(
-                "failed to insert note {} into FTS: {}",
-                note.id(),
-                e
-            ))
-        })?;
-
-        for tag in &note.frontmatter.tags {
-            conn.execute(
-                "INSERT OR REPLACE INTO tags (note_id, tag) VALUES (?1, ?2)",
-                params![note.id(), tag],
-            )
-            .map_err(|e| {
-                QipuError::Other(format!(
-                    "failed to insert tag '{}' for note {}: {}",
-                    tag,
-                    note.id(),
-                    e
-                ))
-            })?;
-        }
-
-        Ok(())
+    pub fn insert_note_basic(conn: &rusqlite::Connection, note: &Note) -> Result<()> {
+        insert_note_with_options(conn, note, InsertOptions::Basic)
     }
 
     /// Rebuild database at basic index level (metadata only)

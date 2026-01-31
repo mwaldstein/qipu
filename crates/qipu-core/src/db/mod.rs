@@ -1,6 +1,7 @@
 //! SQLite database module for qipu
 
 mod edges;
+mod edges_insert_helper;
 pub mod indexing;
 mod notes;
 mod rebuild;

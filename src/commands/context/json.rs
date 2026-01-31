@@ -81,7 +81,7 @@ fn build_ontology_json(store: &qipu_core::store::Store) -> serde_json::Value {
         .collect();
 
     serde_json::json!({
-        "mode": format_mode(config.ontology.mode),
+        "mode": config.ontology.mode,
         "note_types": note_type_objs,
         "link_types": link_type_objs,
     })
@@ -171,14 +171,6 @@ fn build_json_output(params: &ContextOutputParams) -> serde_json::Value {
     }
 
     output
-}
-
-fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
-    match mode {
-        qipu_core::config::OntologyMode::Default => "default",
-        qipu_core::config::OntologyMode::Extended => "extended",
-        qipu_core::config::OntologyMode::Replacement => "replacement",
-    }
 }
 
 fn build_sources_json(sources: &[qipu_core::note::Source]) -> Vec<serde_json::Value> {

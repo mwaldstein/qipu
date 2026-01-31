@@ -9,14 +9,6 @@ use qipu_core::ontology::Ontology;
 pub use human::{build_base_human, output_human};
 pub use records::{build_base_records, output_records};
 
-pub fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
-    match mode {
-        qipu_core::config::OntologyMode::Default => "default",
-        qipu_core::config::OntologyMode::Extended => "extended",
-        qipu_core::config::OntologyMode::Replacement => "replacement",
-    }
-}
-
 pub fn primer_description(is_empty: bool) -> &'static str {
     if is_empty {
         "Welcome to qipu! Your knowledge store is empty. Start by capturing your first insights with `qipu capture` or `qipu create`. Qipu is a Zettelkasten-inspired knowledge management system for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs)."
@@ -94,7 +86,7 @@ pub fn output_json(
     let mut output = build_base_json(store_path, is_empty);
 
     output["ontology"] = serde_json::json!({
-        "mode": format_mode(config.mode),
+        "mode": config.mode,
         "note_types": note_type_objs,
         "link_types": link_type_objs,
     });

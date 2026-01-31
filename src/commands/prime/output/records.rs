@@ -29,10 +29,7 @@ pub fn output_records(
         store_path, mocs_count, notes_count, store_status
     );
 
-    println!(
-        "O mode={}",
-        crate::commands::prime::output::format_mode(config.mode)
-    );
+    println!("O mode={}", config.mode);
 
     print_note_type_records(ontology, config);
     print_link_type_records(ontology, config);

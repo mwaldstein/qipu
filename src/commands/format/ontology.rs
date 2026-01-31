@@ -59,7 +59,7 @@ pub fn print_ontology_human(
     let config = store.config();
     let mode = config.ontology.mode;
 
-    println!("Ontology mode: {}", format_mode(mode));
+    println!("Ontology mode: {}", mode);
     println!();
 
     if note_types.is_empty() {
@@ -113,7 +113,7 @@ pub fn print_ontology_records(
         "H qipu=1 records=1 store={} mode=ontology.show",
         store.root().display()
     );
-    println!("O mode={}", format_mode(mode).to_lowercase());
+    println!("O mode={}", mode);
 
     for nt in note_types {
         if let Some(config) = config.ontology.note_types.get(nt) {
@@ -141,13 +141,5 @@ pub fn print_ontology_records(
         } else {
             println!("L link_type=\"{}\" inverse=\"{}\"", lt, inverse);
         }
-    }
-}
-
-fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
-    match mode {
-        qipu_core::config::OntologyMode::Default => "default",
-        qipu_core::config::OntologyMode::Extended => "extended",
-        qipu_core::config::OntologyMode::Replacement => "replacement",
     }
 }

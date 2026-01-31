@@ -148,6 +148,16 @@ pub enum OntologyMode {
     Replacement,
 }
 
+impl std::fmt::Display for OntologyMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OntologyMode::Default => write!(f, "default"),
+            OntologyMode::Extended => write!(f, "extended"),
+            OntologyMode::Replacement => write!(f, "replacement"),
+        }
+    }
+}
+
 /// Custom ontology configuration
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct OntologyConfig {

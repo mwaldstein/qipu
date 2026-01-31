@@ -9,10 +9,7 @@ fn build_ontology_header(store: &qipu_core::store::Store) -> Vec<String> {
     let mut lines = Vec::new();
     let config_store = store.config();
     let ontology = Ontology::from_config_with_graph(&config_store.ontology, &config_store.graph);
-    lines.push(format!(
-        "O mode={}",
-        format_mode(config_store.ontology.mode)
-    ));
+    lines.push(format!("O mode={}", config_store.ontology.mode));
 
     let note_types = ontology.note_types();
     let link_types = ontology.link_types();
@@ -345,13 +342,5 @@ pub fn output_records(params: RecordsParams) {
 
     if params.cli.verbose {
         debug!(elapsed = ?start.elapsed(), "output_records_complete");
-    }
-}
-
-fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
-    match mode {
-        qipu_core::config::OntologyMode::Default => "default",
-        qipu_core::config::OntologyMode::Extended => "extended",
-        qipu_core::config::OntologyMode::Replacement => "replacement",
     }
 }

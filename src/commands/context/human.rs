@@ -35,7 +35,7 @@ fn build_ontology_section(store: &qipu_core::store::Store) -> String {
     let config = store.config();
     let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
     output.push_str("\n## Ontology\n\n");
-    output.push_str(&format!("Mode: {}\n\n", format_mode(config.ontology.mode)));
+    output.push_str(&format!("Mode: {}\n\n", config.ontology.mode));
 
     let note_types = ontology.note_types();
     let link_types = ontology.link_types();
@@ -290,12 +290,4 @@ fn build_human_output(params: &HumanOutputParams) -> String {
     }
 
     output
-}
-
-fn format_mode(mode: qipu_core::config::OntologyMode) -> &'static str {
-    match mode {
-        qipu_core::config::OntologyMode::Default => "default",
-        qipu_core::config::OntologyMode::Extended => "extended",
-        qipu_core::config::OntologyMode::Replacement => "replacement",
-    }
 }

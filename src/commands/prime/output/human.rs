@@ -34,10 +34,7 @@ pub fn output_human(
 
     println!("## Ontology");
     println!();
-    println!(
-        "Mode: {}",
-        crate::commands::prime::output::format_mode(config.mode)
-    );
+    println!("Mode: {}", config.mode);
     println!();
 
     print_note_types(ontology, config);

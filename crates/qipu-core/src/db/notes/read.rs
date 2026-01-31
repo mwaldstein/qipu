@@ -107,7 +107,6 @@ impl super::super::Database {
         }
     }
 
-    #[allow(clippy::unnecessary_unwrap)]
     pub fn list_notes(
         &self,
         type_filter: Option<NoteType>,
@@ -124,13 +123,13 @@ impl super::super::Database {
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
         let mut has_where = false;
 
-        if type_filter.is_some() {
+        if let Some(filter) = type_filter {
             sql.push_str(" WHERE n.type = ?");
-            params.push(Box::new(type_filter.unwrap().to_string()));
+            params.push(Box::new(filter.to_string()));
             has_where = true;
         }
 
-        if tag_filter.is_some() {
+        if let Some(filter) = tag_filter {
             if has_where {
                 sql.push_str(" AND");
             } else {
@@ -138,17 +137,17 @@ impl super::super::Database {
                 has_where = true;
             }
             sql.push_str(" EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = ?)");
-            params.push(Box::new(tag_filter.unwrap().to_string()));
+            params.push(Box::new(filter.to_string()));
         }
 
-        if since.is_some() {
+        if let Some(dt) = since {
             if has_where {
                 sql.push_str(" AND");
             } else {
                 sql.push_str(" WHERE");
             }
             sql.push_str(" n.created >= ?");
-            params.push(Box::new(since.unwrap().to_rfc3339()));
+            params.push(Box::new(dt.to_rfc3339()));
         }
 
         sql.push_str(" ORDER BY n.created DESC, n.id");

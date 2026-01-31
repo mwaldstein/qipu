@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 #[derive(Debug, PartialEq)]
 pub struct ModelPricing {
     pub input_cost_per_1k_tokens: f64,
     pub output_cost_per_1k_tokens: f64,
 }
 
+#[allow(dead_code)]
 pub fn get_model_pricing(model: &str) -> Option<ModelPricing> {
     crate::config::Config::load_or_default().get_model_pricing(model)
 }

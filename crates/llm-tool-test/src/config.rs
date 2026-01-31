@@ -13,6 +13,7 @@ pub struct Config {
     pub models: std::collections::HashMap<String, ModelPricingConfig>,
 }
 
+#[allow(dead_code)]
 const DEFAULT_MODEL_CONFIGS: &[(&str, f64, f64)] = &[
     ("claude-3-5-sonnet", 3.0, 15.0),
     ("claude-3-5-haiku", 0.8, 4.0),

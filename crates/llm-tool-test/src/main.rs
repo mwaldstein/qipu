@@ -31,27 +31,6 @@ use cli::Commands;
 use results::{Cache, ResultsDB};
 use scenario::ToolConfig;
 use std::iter::Iterator;
-use std::path::{Path, PathBuf};
-
-/// Resolve a scenario path, checking fixtures directory if not absolute
-fn resolve_scenario_path(path: &str) -> PathBuf {
-    let p = Path::new(path);
-    if p.is_absolute() || p.exists() {
-        p.to_path_buf()
-    } else {
-        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
-            PathBuf::from("crates/llm-tool-test/fixtures")
-        } else {
-            PathBuf::from("fixtures")
-        };
-        let fixture_path = fixtures_dir.join(path);
-        if fixture_path.exists() {
-            fixture_path
-        } else {
-            fixtures_dir.join(format!("{}.yaml", path))
-        }
-    }
-}
 
 /// Build a matrix of tool-model configurations from CLI args or scenario config
 pub fn build_tool_matrix(

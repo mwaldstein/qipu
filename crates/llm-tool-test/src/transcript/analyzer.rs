@@ -1,11 +1,10 @@
-#![allow(dead_code)]
-
 use crate::transcript::types::{CommandEvent, EfficiencyMetrics};
 use regex::Regex;
 
 pub struct TranscriptAnalyzer;
 
 impl TranscriptAnalyzer {
+    #[allow(dead_code)]
     pub fn analyze(transcript: &str) -> EfficiencyMetrics {
         Self::analyze_with_events(transcript, None)
     }

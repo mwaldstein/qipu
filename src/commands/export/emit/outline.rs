@@ -1,35 +1,26 @@
 use super::bundle::export_bundle;
 use super::links::{build_link_maps, rewrite_links};
 use super::markdown_utils::add_compaction_metadata;
-use crate::cli::Cli;
-use crate::commands::export::ExportOptions;
+use super::ExportContext;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
-use qipu_core::index::Index;
 use qipu_core::note::Note;
-use qipu_core::store::Store;
 use std::collections::{HashMap, HashSet};
 
-#[allow(clippy::too_many_arguments)]
-pub fn export_outline(
-    notes: &[Note],
-    store: &Store,
-    _index: &Index,
-    options: &ExportOptions,
-    cli: &Cli,
-    compaction_ctx: &CompactionContext,
-    resolve_compaction: bool,
-    all_notes: &[Note],
-) -> Result<String> {
+pub fn export_outline(ctx: &ExportContext) -> Result<String> {
+    export_outline_impl(ctx, !ctx.cli.no_resolve_compaction)
+}
+
+fn export_outline_impl(ctx: &ExportContext, resolve_compaction: bool) -> Result<String> {
     // If no MOC provided, fall back to bundle mode with warning
-    let Some(moc_id) = options.moc_id else {
-        if cli.verbose && !cli.quiet {
+    let Some(moc_id) = ctx.options.moc_id else {
+        if ctx.cli.verbose && !ctx.cli.quiet {
             tracing::info!("outline mode requires --moc flag, falling back to bundle mode");
         }
-        return export_bundle(notes, store, options, cli, compaction_ctx, all_notes);
+        return export_bundle(ctx);
     };
 
-    let moc = store.get_note(moc_id)?;
+    let moc = ctx.store.get_note(moc_id)?;
     let mut output = String::new();
 
     // Title from MOC
@@ -39,16 +30,16 @@ pub fn export_outline(
     output.push_str(&moc.body);
     output.push_str("\n\n");
 
-    let (body_map, anchor_map) = build_link_maps(notes);
+    let (body_map, anchor_map) = build_link_maps(ctx.notes);
 
     // Export notes in MOC link order
-    let ordered_ids = extract_moc_ordered_ids(&moc, resolve_compaction, compaction_ctx);
+    let ordered_ids = extract_moc_ordered_ids(&moc, resolve_compaction, ctx.compaction_ctx);
 
     // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
-    let compaction_note_map = CompactionContext::build_note_map(all_notes);
+    let compaction_note_map = CompactionContext::build_note_map(ctx.all_notes);
 
     // Create a lookup for fast note access
-    let note_map: HashMap<_, _> = notes.iter().map(|n| (n.id(), n)).collect();
+    let note_map: HashMap<_, _> = ctx.notes.iter().map(|n| (n.id(), n)).collect();
 
     let mut seen_ids = HashSet::new();
 
@@ -59,7 +50,7 @@ pub fn export_outline(
         if let Some(note) = note_map.get(target_id.as_str()) {
             output.push_str("\n---\n\n");
             // Add anchor if using anchor mode
-            if options.link_mode == super::super::LinkMode::Anchors {
+            if ctx.options.link_mode == super::super::LinkMode::Anchors {
                 output.push_str(&format!(
                     "<a id=\"note-{}\"></a>\n## {} ({})\n\n",
                     note.id(),
@@ -79,9 +70,15 @@ pub fn export_outline(
             }
 
             // Compaction annotations for digest notes
-            add_compaction_metadata(&mut output, note, cli, compaction_ctx, &compaction_note_map);
+            add_compaction_metadata(
+                &mut output,
+                note,
+                ctx.cli,
+                ctx.compaction_ctx,
+                &compaction_note_map,
+            );
 
-            let body = rewrite_links(&note.body, options.link_mode, &body_map, &anchor_map);
+            let body = rewrite_links(&note.body, ctx.options.link_mode, &body_map, &anchor_map);
             output.push_str(&body);
             output.push('\n');
         }

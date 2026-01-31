@@ -1,35 +1,26 @@
 use super::links::{build_link_maps, rewrite_links};
 use super::markdown_utils::add_compaction_metadata;
-use crate::cli::Cli;
-use crate::commands::export::ExportOptions;
+use super::ExportContext;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
-use qipu_core::store::Store;
 
-pub fn export_bundle(
-    notes: &[Note],
-    _store: &Store,
-    options: &ExportOptions,
-    cli: &Cli,
-    compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
-) -> Result<String> {
+pub fn export_bundle(ctx: &ExportContext) -> Result<String> {
     let mut output = String::new();
-    let (body_map, anchor_map) = build_link_maps(notes);
+    let (body_map, anchor_map) = build_link_maps(ctx.notes);
 
     // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
-    let note_map = CompactionContext::build_note_map(all_notes);
+    let note_map = CompactionContext::build_note_map(ctx.all_notes);
 
     output.push_str("# Exported Notes\n\n");
 
-    for (i, note) in notes.iter().enumerate() {
+    for (i, note) in ctx.notes.iter().enumerate() {
         if i > 0 {
             output.push_str("\n---\n\n");
         }
 
         // Note header with anchor if using anchor mode
-        if options.link_mode == super::LinkMode::Anchors {
+        if ctx.options.link_mode == super::LinkMode::Anchors {
             output.push_str(&format!(
                 "<a id=\"note-{}\"></a>\n## Note: {} ({})\n\n",
                 note.id(),
@@ -55,13 +46,13 @@ pub fn export_bundle(
         }
 
         // Compaction annotations for digest notes
-        add_compaction_metadata(&mut output, note, cli, compaction_ctx, &note_map);
+        add_compaction_metadata(&mut output, note, ctx.cli, ctx.compaction_ctx, &note_map);
 
         // Sources
         add_sources(&mut output, note);
 
         // Body content
-        let body = rewrite_links(&note.body, options.link_mode, &body_map, &anchor_map);
+        let body = rewrite_links(&note.body, ctx.options.link_mode, &body_map, &anchor_map);
         output.push_str(&body);
         output.push('\n');
     }

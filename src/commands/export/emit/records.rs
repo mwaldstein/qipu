@@ -1,27 +1,18 @@
-use super::ExportMode;
+use super::{ExportContext, ExportMode};
 use crate::cli::Cli;
-use crate::commands::export::ExportOptions;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::note::{Note, Source};
 use qipu_core::records::escape_quotes;
-use qipu_core::store::Store;
 
-pub fn export_records(
-    notes: &[Note],
-    store: &Store,
-    options: &ExportOptions,
-    cli: &Cli,
-    compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
-) -> Result<String> {
+pub fn export_records(ctx: &ExportContext) -> Result<String> {
     // Build note map for efficient lookups (avoid O(n²) when calculating compaction pct)
-    let note_map = CompactionContext::build_note_map(all_notes);
+    let note_map = CompactionContext::build_note_map(ctx.all_notes);
 
     let mut output = String::new();
 
     // Header line
-    let mode_str = match options.mode {
+    let mode_str = match ctx.options.mode {
         ExportMode::Bundle => "export.bundle",
         ExportMode::Outline => "export.outline",
         ExportMode::Bibliography => "export.bibliography",
@@ -29,18 +20,18 @@ pub fn export_records(
 
     output.push_str(&format!(
         "H qipu=1 records=1 store={} mode={} notes={} truncated=false\n",
-        store.root().display(),
+        ctx.store.root().display(),
         mode_str,
-        notes.len()
+        ctx.notes.len()
     ));
 
-    if options.mode == ExportMode::Bibliography {
-        export_bibliography_records(&mut output, notes);
+    if ctx.options.mode == ExportMode::Bibliography {
+        export_bibliography_records(&mut output, ctx.notes);
         return Ok(output);
     }
 
-    for note in notes {
-        export_note_record(&mut output, note, cli, compaction_ctx, &note_map);
+    for note in ctx.notes {
+        export_note_record(&mut output, note, ctx.cli, ctx.compaction_ctx, &note_map);
     }
 
     Ok(output)

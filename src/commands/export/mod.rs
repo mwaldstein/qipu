@@ -130,46 +130,28 @@ fn generate_output(
     compaction_ctx: &CompactionContext,
     all_notes: &[qipu_core::note::Note],
 ) -> Result<String> {
+    let ctx = emit::ExportContext {
+        notes: selected_notes,
+        store,
+        options,
+        cli,
+        compaction_ctx,
+        all_notes,
+    };
+
     match cli.format {
         OutputFormat::Human => match options.mode {
-            ExportMode::Bundle => emit::export_bundle(
-                selected_notes,
-                store,
-                options,
-                cli,
-                compaction_ctx,
-                all_notes,
-            ),
-            ExportMode::Outline => emit::export_outline(
-                selected_notes,
-                store,
-                index,
-                options,
-                cli,
-                compaction_ctx,
-                !cli.no_resolve_compaction,
-                all_notes,
-            ),
+            ExportMode::Bundle => emit::export_bundle(&ctx),
+            ExportMode::Outline => {
+                let _ = index;
+                emit::export_outline(&ctx)
+            }
             ExportMode::Bibliography => {
                 emit::export_bibliography(selected_notes, options.bib_format)
             }
         },
-        OutputFormat::Json => emit::export_json(
-            selected_notes,
-            store,
-            options,
-            cli,
-            compaction_ctx,
-            all_notes,
-        ),
-        OutputFormat::Records => emit::export_records(
-            selected_notes,
-            store,
-            options,
-            cli,
-            compaction_ctx,
-            all_notes,
-        ),
+        OutputFormat::Json => emit::export_json(&ctx),
+        OutputFormat::Records => emit::export_records(&ctx),
     }
 }
 

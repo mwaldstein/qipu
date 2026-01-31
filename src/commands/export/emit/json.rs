@@ -1,4 +1,4 @@
-use super::ExportMode;
+use super::{ExportContext, ExportMode};
 use crate::cli::Cli;
 use crate::commands::export::ExportOptions;
 use qipu_core::compaction::CompactionContext;
@@ -6,29 +6,22 @@ use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
 
-pub fn export_json(
-    notes: &[Note],
-    store: &Store,
-    options: &ExportOptions,
-    cli: &Cli,
-    compaction_ctx: &CompactionContext,
-    all_notes: &[Note],
-) -> Result<String> {
-    let mode_str = match options.mode {
+pub fn export_json(ctx: &ExportContext) -> Result<String> {
+    let mode_str = match ctx.options.mode {
         ExportMode::Bundle => "bundle",
         ExportMode::Outline => "outline",
         ExportMode::Bibliography => "bibliography",
     };
 
-    let output = match options.mode {
-        ExportMode::Bibliography => export_bibliography_json(notes, store, mode_str),
+    let output = match ctx.options.mode {
+        ExportMode::Bibliography => export_bibliography_json(ctx.notes, ctx.store, mode_str),
         _ => export_notes_json(
-            notes,
-            store,
-            options,
-            cli,
-            compaction_ctx,
-            all_notes,
+            ctx.notes,
+            ctx.store,
+            ctx.options,
+            ctx.cli,
+            ctx.compaction_ctx,
+            ctx.all_notes,
             mode_str,
         ),
     };

@@ -1,3 +1,5 @@
+//! Tests for compaction apply command with stdin input
+
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use tempfile::tempdir;

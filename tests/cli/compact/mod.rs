@@ -1,3 +1,8 @@
+//! Tests for qipu compaction command
+//!
+//! Compaction allows merging multiple source notes into a digest note.
+//! Tests cover annotation display, apply commands, reporting, and suggestions.
+
 mod annotations;
 mod apply_errors;
 mod apply_file;

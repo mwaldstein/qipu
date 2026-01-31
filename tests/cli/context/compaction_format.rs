@@ -1,3 +1,5 @@
+//! Tests for context command format variations
+//! Tests for context command compaction expansion formats
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 

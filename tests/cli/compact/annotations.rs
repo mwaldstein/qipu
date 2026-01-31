@@ -1,3 +1,8 @@
+//! Tests for compaction annotations in list, show, context, export, and search
+//!
+//! Tests verify that compacted notes display correctly with compacts count,
+//! compaction percentage, and that source notes are hidden in appropriate outputs.
+
 use crate::support::{
     append_to_note, apply_compaction, create_link, create_note_with_tags, rebuild_index,
     run_and_get_stdout, setup_test_dir,

@@ -1,3 +1,5 @@
+//! Tests for compaction apply command error handling
+
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 

@@ -1,3 +1,4 @@
+//! Tests for context command module for organizing tests
 // Context command test modules
 
 mod basic;

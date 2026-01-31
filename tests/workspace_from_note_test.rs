@@ -1,3 +1,8 @@
+//! Tests for workspace create with --from-note option
+//!
+//! Tests verify that workspace creation from a note includes notes
+//! within the specified hop distance (default: 3 hops).
+
 mod common;
 
 use std::path::Path;

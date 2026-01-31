@@ -1,3 +1,4 @@
+//! Tests for context command custom filtering
 use crate::support::{qipu, setup_test_dir};
 
 #[test]

@@ -1,3 +1,4 @@
+//! Tests for pack/dump/load functionality
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use tempfile::tempdir;
 

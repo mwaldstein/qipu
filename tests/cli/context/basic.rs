@@ -1,3 +1,4 @@
+//! Tests for context command with body and sources
 use crate::support::{qipu, setup_test_dir};
 
 #[test]

@@ -1,3 +1,4 @@
+//! Tests for pack/dump/load functionality
 mod full_store;
 mod moc;
 mod notes;

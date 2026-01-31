@@ -1,3 +1,4 @@
+//! Tests for context command budget and truncation
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 

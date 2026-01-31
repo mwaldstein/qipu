@@ -1,3 +1,4 @@
+//! Tests for link command
 mod add;
 mod compaction;
 mod ignore_value;

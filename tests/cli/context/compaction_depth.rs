@@ -1,3 +1,5 @@
+//! Tests for context command compaction depth
+//! Tests for context command compaction depth control
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 

@@ -1,3 +1,5 @@
+//! Tests for compaction suggest command
+
 use crate::support::{qipu, setup_test_dir};
 use tempfile::tempdir;
 

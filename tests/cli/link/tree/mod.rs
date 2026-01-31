@@ -1,3 +1,4 @@
+//! Tests for link command
 mod basic;
 mod custom_cost_cost_modification;
 mod custom_cost_override;

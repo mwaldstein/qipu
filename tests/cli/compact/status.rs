@@ -1,3 +1,5 @@
+//! Tests for compaction status command
+
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
 

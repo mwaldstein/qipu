@@ -1,3 +1,4 @@
+//! Tests for pack/dump/load functionality
 mod attachments;
 mod basic;
 mod metadata;

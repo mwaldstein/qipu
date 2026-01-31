@@ -1,3 +1,5 @@
+//! Tests for compaction apply command with mixed input (stdin + file)
+
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
 use std::io::Write;

@@ -1,3 +1,4 @@
+//! Tests for context command basic walk behavior
 use crate::support::{create_note, qipu, setup_test_dir};
 use predicates::prelude::*;
 

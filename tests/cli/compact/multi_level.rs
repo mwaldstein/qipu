@@ -1,3 +1,5 @@
+//! Tests for multi-level compaction hierarchies
+
 use crate::support::{run_and_get_stdout, run_assert_success, setup_test_dir};
 use std::fs;
 

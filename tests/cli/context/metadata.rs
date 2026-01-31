@@ -1,3 +1,4 @@
+//! Tests for context command metadata display
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 use std::fs;

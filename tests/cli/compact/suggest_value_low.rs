@@ -1,3 +1,5 @@
+//! Tests for compaction suggest command with low value thresholds
+
 use crate::support::{qipu, setup_test_dir};
 use std::fs;
 

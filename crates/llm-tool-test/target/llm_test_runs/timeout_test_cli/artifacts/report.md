@@ -5,11 +5,11 @@
 - **ID**: timeout_test_cli
 - **Tool**: mock
 - **Model**: mock
-- **Timestamp**: 2026-01-30T15:21:52.128984086+00:00
+- **Timestamp**: 2026-01-31T01:48:14.376799197+00:00
 
 ## Execution
 
-- **Duration**: 0.19s
+- **Duration**: 0.00s
 - **Cost**: $0.0000
 - **Outcome**: Pass
 
@@ -18,7 +18,7 @@
 - **Gates Passed**: 1/1
 - **Notes Created**: 1
 - **Links Created**: 0
-- **Composite Score**: 0.40
+- **Composite Score**: 0.30
 
 ### Gate Details
 
@@ -26,11 +26,11 @@
 
 ## Efficiency
 
-- **Total Commands**: 4
-- **Unique Commands**: 4
+- **Total Commands**: 0
+- **Unique Commands**: 0
 - **Error Count**: 0
-- **First Try Success Rate**: 100.0%
-- **Iteration Ratio**: 1.00
+- **First Try Success Rate**: 0.0%
+- **Iteration Ratio**: 0.00
 
 ## Quality
 

@@ -1,3 +1,5 @@
+//! Value subcommands for managing note value scores
+
 use clap::Subcommand;
 
 /// Value subcommands

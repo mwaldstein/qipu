@@ -1,3 +1,5 @@
+//! Custom metadata subcommands for managing note extensions
+
 use clap::Subcommand;
 
 /// Custom metadata subcommands

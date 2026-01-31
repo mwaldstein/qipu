@@ -1,3 +1,5 @@
+//! Tags subcommands for tag management
+
 use clap::Subcommand;
 
 /// Tags subcommands

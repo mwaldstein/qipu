@@ -1,3 +1,5 @@
+//! Store subcommands for database operations
+
 use clap::Subcommand;
 
 /// Store subcommands

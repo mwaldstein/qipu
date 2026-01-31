@@ -1,3 +1,5 @@
+//! Link subcommands for managing relationships between notes
+
 use super::parse::parse_link_type;
 use clap::Subcommand;
 use qipu_core::note::LinkType;

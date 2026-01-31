@@ -1,3 +1,5 @@
+//! Ontology subcommands for type system management
+
 use clap::Subcommand;
 
 /// Ontology subcommands

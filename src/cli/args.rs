@@ -1,3 +1,7 @@
+//! Common argument types for CLI commands
+//!
+//! Provides shared argument structures used across multiple commands.
+
 use super::parse::parse_note_type;
 use clap::Args;
 use qipu_core::note::NoteType;

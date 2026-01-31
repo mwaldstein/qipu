@@ -30,6 +30,170 @@ pub fn output_human(params: HumanOutputParams) {
     }
 }
 
+fn build_ontology_section(store: &qipu_core::store::Store) -> String {
+    let mut output = String::new();
+    let config = store.config();
+    let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
+    output.push_str("\n## Ontology\n\n");
+    output.push_str(&format!("Mode: {}\n\n", format_mode(config.ontology.mode)));
+
+    let note_types = ontology.note_types();
+    let link_types = ontology.link_types();
+
+    output.push_str("### Note Types\n");
+    for nt in &note_types {
+        let type_config = config.ontology.note_types.get(nt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            output.push_str(&format!("  {} - {}\n", nt, desc));
+        } else {
+            output.push_str(&format!("  {}\n", nt));
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            output.push_str(&format!("    Usage: {}\n", usage));
+        }
+    }
+    output.push('\n');
+
+    output.push_str("### Link Types\n");
+    for lt in &link_types {
+        let inverse = ontology.get_inverse(lt);
+        let type_config = config.ontology.link_types.get(lt);
+        if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
+            output.push_str(&format!("  {} -> {} ({})\n", lt, inverse, desc));
+        } else {
+            output.push_str(&format!("  {} -> {}\n", lt, inverse));
+        }
+        if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
+            output.push_str(&format!("    Usage: {}\n", usage));
+        }
+    }
+    output.push('\n');
+
+    output
+}
+
+fn add_sources_to_header(header: &mut String, sources: &[qipu_core::note::Source]) {
+    header.push_str("Sources:\n");
+    for source in sources {
+        if let Some(title) = &source.title {
+            header.push_str(&format!("- {} ({})\n", title, source.url));
+        } else {
+            header.push_str(&format!("- {}\n", source.url));
+        }
+    }
+}
+
+fn add_custom_fields_to_header(
+    header: &mut String,
+    custom: &std::collections::HashMap<String, serde_yaml::Value>,
+) {
+    header.push_str("Custom:\n");
+    for (key, value) in custom {
+        let value_str = serde_yaml::to_string(value)
+            .unwrap_or_else(|_| "null".to_string())
+            .trim()
+            .to_string();
+        header.push_str(&format!("  {}: {}\n", key, value_str));
+    }
+}
+
+fn build_compacted_notes_section(compacted_notes: &[&qipu_core::note::Note]) -> String {
+    let mut content = String::new();
+    content.push_str("### Compacted Notes:\n\n");
+    for compacted_note in compacted_notes {
+        content.push_str(&format!(
+            "#### {} ({})\n",
+            compacted_note.title(),
+            compacted_note.id()
+        ));
+        content.push_str(&format!("Type: {}\n", compacted_note.note_type()));
+        if !compacted_note.frontmatter.tags.is_empty() {
+            content.push_str(&format!(
+                "Tags: {}\n",
+                compacted_note.frontmatter.tags.join(", ")
+            ));
+        }
+        content.push('\n');
+        content.push_str(compacted_note.body.trim());
+        content.push_str("\n\n");
+    }
+    content
+}
+
+fn build_note_header(
+    selected: &super::types::SelectedNote,
+    compacts_count: usize,
+    include_custom: bool,
+    cli: &crate::cli::Cli,
+    compaction_ctx: &qipu_core::compaction::CompactionContext,
+    note_map: &std::collections::HashMap<&str, &qipu_core::note::Note>,
+) -> String {
+    let mut header = String::new();
+    header.push_str(&format!(
+        "## Note: {} ({})\n",
+        selected.note.title(),
+        selected.note.id()
+    ));
+
+    if let Some(path) = &selected.note.path {
+        header.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
+    }
+    header.push_str(&format!("Type: {}\n", selected.note.note_type()));
+
+    if !selected.note.frontmatter.tags.is_empty() {
+        header.push_str(&format!(
+            "Tags: {}\n",
+            selected.note.frontmatter.tags.join(", ")
+        ));
+    }
+
+    let mut compaction_parts = Vec::new();
+    if let Some(via) = &selected.via {
+        compaction_parts.push(format!("via={}", via));
+    }
+    if compacts_count > 0 {
+        compaction_parts.push(format!("compacts={}", compacts_count));
+
+        if let Some(pct) = compaction_ctx.get_compaction_pct(selected.note, note_map) {
+            compaction_parts.push(format!("compaction={:.0}%", pct));
+        }
+    }
+    if !compaction_parts.is_empty() {
+        header.push_str(&format!("Compaction: {}\n", compaction_parts.join(" ")));
+    }
+
+    if cli.with_compaction_ids && compacts_count > 0 {
+        let depth = cli.compaction_depth.unwrap_or(1);
+        if let Some((ids, id_truncated)) = compaction_ctx.get_compacted_ids(
+            &selected.note.frontmatter.id,
+            depth,
+            cli.compaction_max_nodes,
+        ) {
+            let ids_str = ids.join(", ");
+            let suffix = if id_truncated {
+                let max = cli.compaction_max_nodes.unwrap_or(ids.len());
+                format!(" (truncated, showing {} of {})", max, compacts_count)
+            } else {
+                String::new()
+            };
+            header.push_str(&format!("Compacted: {}{}\n", ids_str, suffix));
+        }
+    }
+
+    if !selected.note.frontmatter.sources.is_empty() {
+        add_sources_to_header(&mut header, &selected.note.frontmatter.sources);
+    }
+
+    if include_custom && !selected.note.frontmatter.custom.is_empty() {
+        add_custom_fields_to_header(&mut header, &selected.note.frontmatter.custom);
+    }
+
+    header.push('\n');
+    header.push_str("---\n");
+
+    header
+}
+
 fn build_human_output(params: &HumanOutputParams) -> String {
     let mut output = String::new();
 
@@ -38,42 +202,7 @@ fn build_human_output(params: &HumanOutputParams) -> String {
     let mut used_chars = output.len();
 
     if params.include_ontology {
-        let config = params.store.config();
-        let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
-        output.push_str("\n## Ontology\n\n");
-        output.push_str(&format!("Mode: {}\n\n", format_mode(config.ontology.mode)));
-
-        let note_types = ontology.note_types();
-        let link_types = ontology.link_types();
-
-        output.push_str("### Note Types\n");
-        for nt in &note_types {
-            let type_config = config.ontology.note_types.get(nt);
-            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
-                output.push_str(&format!("  {} - {}\n", nt, desc));
-            } else {
-                output.push_str(&format!("  {}\n", nt));
-            }
-            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
-                output.push_str(&format!("    Usage: {}\n", usage));
-            }
-        }
-        output.push('\n');
-
-        output.push_str("### Link Types\n");
-        for lt in &link_types {
-            let inverse = ontology.get_inverse(lt);
-            let type_config = config.ontology.link_types.get(lt);
-            if let Some(desc) = type_config.and_then(|c| c.description.as_deref()) {
-                output.push_str(&format!("  {} -> {} ({})\n", lt, inverse, desc));
-            } else {
-                output.push_str(&format!("  {} -> {}\n", lt, inverse));
-            }
-            if let Some(usage) = type_config.and_then(|c| c.usage.as_deref()) {
-                output.push_str(&format!("    Usage: {}\n", usage));
-            }
-        }
-        output.push('\n');
+        output.push_str(&build_ontology_section(params.store));
     }
 
     if params.truncated {
@@ -95,65 +224,25 @@ fn build_human_output(params: &HumanOutputParams) -> String {
             }
         }
 
-        let mut note_header = String::new();
-        note_header.push_str(&format!(
-            "## Note: {} ({})\n",
-            selected.note.title(),
-            selected.note.id()
-        ));
-
-        if let Some(path) = &selected.note.path {
-            note_header.push_str(&format!("Path: {}\n", path_relative_to_cwd(path)));
-        }
-        note_header.push_str(&format!("Type: {}\n", selected.note.note_type()));
-
-        if !selected.note.frontmatter.tags.is_empty() {
-            note_header.push_str(&format!(
-                "Tags: {}\n",
-                selected.note.frontmatter.tags.join(", ")
-            ));
-        }
-
-        let mut compaction_parts = Vec::new();
-        if let Some(via) = &selected.via {
-            compaction_parts.push(format!("via={}", via));
-        }
         let compacts_count = params
             .compaction_ctx
             .get_compacts_count(&selected.note.frontmatter.id);
-        if compacts_count > 0 {
-            compaction_parts.push(format!("compacts={}", compacts_count));
 
-            if let Some(pct) = params
-                .compaction_ctx
-                .get_compaction_pct(selected.note, params.note_map)
-            {
-                compaction_parts.push(format!("compaction={:.0}%", pct));
-            }
-        }
-        if !compaction_parts.is_empty() {
-            note_header.push_str(&format!("Compaction: {}\n", compaction_parts.join(" ")));
-        }
+        let note_header = build_note_header(
+            selected,
+            compacts_count,
+            params.include_custom,
+            params.cli,
+            params.compaction_ctx,
+            params.note_map,
+        );
 
-        if params.cli.with_compaction_ids && compacts_count > 0 {
-            let depth = params.cli.compaction_depth.unwrap_or(1);
-            if let Some((ids, id_truncated)) = params.compaction_ctx.get_compacted_ids(
-                &selected.note.frontmatter.id,
-                depth,
-                params.cli.compaction_max_nodes,
-            ) {
-                let ids_str = ids.join(", ");
-                let suffix = if id_truncated {
-                    let max = params.cli.compaction_max_nodes.unwrap_or(ids.len());
-                    format!(" (truncated, showing {} of {})", max, compacts_count)
-                } else {
-                    String::new()
-                };
-                note_header.push_str(&format!("Compacted: {}{}\n", ids_str, suffix));
-            }
-        }
+        let content = if params.with_body {
+            selected.note.body.trim().to_string()
+        } else {
+            selected.note.summary().trim().to_string()
+        };
 
-        // Expanded compaction: include full compacted note content
         let mut expanded_notes_content = String::new();
         if params.cli.expand_compaction && compacts_count > 0 {
             let depth = params.cli.compaction_depth.unwrap_or(1);
@@ -165,62 +254,13 @@ fn build_human_output(params: &HumanOutputParams) -> String {
                     params.all_notes,
                 )
             {
-                expanded_notes_content.push_str("### Compacted Notes:\n\n");
-                for compacted_note in compacted_notes {
-                    expanded_notes_content.push_str(&format!(
-                        "#### {} ({})\n",
-                        compacted_note.title(),
-                        compacted_note.id()
-                    ));
-                    expanded_notes_content
-                        .push_str(&format!("Type: {}\n", compacted_note.note_type()));
-                    if !compacted_note.frontmatter.tags.is_empty() {
-                        expanded_notes_content.push_str(&format!(
-                            "Tags: {}\n",
-                            compacted_note.frontmatter.tags.join(", ")
-                        ));
-                    }
-                    expanded_notes_content.push('\n');
-                    expanded_notes_content.push_str(compacted_note.body.trim());
-                    expanded_notes_content.push_str("\n\n");
-                }
+                expanded_notes_content = build_compacted_notes_section(&compacted_notes);
             }
         }
-
-        if !selected.note.frontmatter.sources.is_empty() {
-            note_header.push_str("Sources:\n");
-            for source in &selected.note.frontmatter.sources {
-                if let Some(title) = &source.title {
-                    note_header.push_str(&format!("- {} ({})\n", title, source.url));
-                } else {
-                    note_header.push_str(&format!("- {}\n", source.url));
-                }
-            }
-        }
-
-        if params.include_custom && !selected.note.frontmatter.custom.is_empty() {
-            note_header.push_str("Custom:\n");
-            for (key, value) in &selected.note.frontmatter.custom {
-                let value_str = serde_yaml::to_string(value)
-                    .unwrap_or_else(|_| "null".to_string())
-                    .trim()
-                    .to_string();
-                note_header.push_str(&format!("  {}: {}\n", key, value_str));
-            }
-        }
-
-        note_header.push('\n');
-        note_header.push_str("---\n");
-
-        let content = if params.with_body {
-            selected.note.body.trim().to_string()
-        } else {
-            selected.note.summary().trim().to_string()
-        };
 
         let separator_len = "\n---\n\n".len();
 
-        if let Some(budget) = params.max_chars {
+        let should_output = if let Some(budget) = params.max_chars {
             let header_len = note_header.len();
             let potential_total = used_chars
                 + header_len
@@ -228,10 +268,12 @@ fn build_human_output(params: &HumanOutputParams) -> String {
                 + expanded_notes_content.len()
                 + separator_len;
 
-            if potential_total > budget {
-                break;
-            }
+            potential_total <= budget
+        } else {
+            true
+        };
 
+        if should_output {
             output.push_str(&note_header);
             output.push_str(&content);
             output.push('\n');
@@ -243,16 +285,7 @@ fn build_human_output(params: &HumanOutputParams) -> String {
             output.push('\n');
             used_chars = output.len();
         } else {
-            output.push_str(&note_header);
-            output.push_str(&content);
-            output.push('\n');
-            if !expanded_notes_content.is_empty() {
-                output.push('\n');
-                output.push_str(&expanded_notes_content);
-            }
-            output.push_str("---\n");
-            output.push('\n');
-            used_chars = output.len();
+            break;
         }
     }
 

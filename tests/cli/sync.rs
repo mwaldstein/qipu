@@ -169,5 +169,5 @@ fn test_sync_push_fails_no_remote() {
         .args(["sync", "--push"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Failed to push"));
+        .stderr(predicate::str::contains("failed to push"));
 }

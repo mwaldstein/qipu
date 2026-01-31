@@ -67,9 +67,9 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
     // Write output to file or stdout
     if let Some(output_path) = options.output {
         let mut file = File::create(output_path)
-            .map_err(|e| QipuError::Other(format!("failed to create pack file: {}", e)))?;
+            .map_err(|e| QipuError::io_operation("create", "pack file", e))?;
         file.write_all(pack_content.as_bytes())
-            .map_err(|e| QipuError::Other(format!("failed to write to pack file: {}", e)))?;
+            .map_err(|e| QipuError::io_operation("write to", "pack file", e))?;
 
         if cli.verbose && !cli.quiet {
             tracing::info!(

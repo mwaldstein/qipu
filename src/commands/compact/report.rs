@@ -61,10 +61,10 @@ fn build_report_context(cli: &Cli, root: &Path, digest_id: &str) -> Result<Repor
         .unwrap_or_default();
 
     if direct_compacts.is_empty() {
-        return Err(QipuError::Other(format!(
-            "Note {} does not compact any notes",
-            digest_id
-        )));
+        return Err(QipuError::invalid_value(
+            &format!("note {}", digest_id),
+            "does not compact any notes",
+        ));
     }
 
     let digest_note = store.get_note(digest_id)?;

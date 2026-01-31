@@ -36,10 +36,11 @@ impl ExportMode {
             "bundle" => Ok(ExportMode::Bundle),
             "outline" => Ok(ExportMode::Outline),
             "bibliography" | "bib" => Ok(ExportMode::Bibliography),
-            _ => Err(QipuError::Other(format!(
-                "invalid export mode '{}'. Valid modes: bundle, outline, bibliography",
-                s
-            ))),
+            _ => Err(QipuError::unsupported(
+                "export mode",
+                s,
+                "bundle, outline, bibliography",
+            )),
         }
     }
 }
@@ -61,10 +62,11 @@ impl LinkMode {
             "preserve" => Ok(LinkMode::Preserve),
             "markdown" => Ok(LinkMode::Markdown),
             "anchors" | "anchor" => Ok(LinkMode::Anchors),
-            _ => Err(QipuError::Other(format!(
-                "invalid link mode '{}'. Valid modes: preserve, markdown, anchors",
-                s
-            ))),
+            _ => Err(QipuError::unsupported(
+                "link mode",
+                s,
+                "preserve, markdown, anchors",
+            )),
         }
     }
 }
@@ -182,9 +184,9 @@ fn write_output(
             convert_to_pdf(output_content, output_path, cli)?;
         } else {
             let mut file = File::create(output_path)
-                .map_err(|e| QipuError::Other(format!("failed to create output file: {}", e)))?;
+                .map_err(|e| QipuError::io_operation("create", "output file", e))?;
             file.write_all(output_content.as_bytes())
-                .map_err(|e| QipuError::Other(format!("failed to write to output file: {}", e)))?;
+                .map_err(|e| QipuError::io_operation("write to", "output file", e))?;
         }
 
         if cli.verbose && !cli.quiet {
@@ -197,7 +199,7 @@ fn write_output(
         }
     } else {
         if pdf {
-            return Err(QipuError::Other(
+            return Err(QipuError::UsageError(
                 "--pdf requires --output (PDF cannot be written to stdout)".to_string(),
             ));
         }
@@ -324,26 +326,35 @@ fn convert_to_pdf(content: &str, output_path: &std::path::Path, cli: &Cli) -> Re
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| QipuError::Other(format!("failed to spawn pandoc: {}", e)))?;
+        .map_err(|e| QipuError::FailedOperation {
+            operation: "spawn pandoc".to_string(),
+            reason: e.to_string(),
+        })?;
 
     // Write markdown content to pandoc's stdin
     if let Some(mut stdin) = child.stdin.take() {
         stdin
             .write_all(content.as_bytes())
-            .map_err(|e| QipuError::Other(format!("failed to write to pandoc stdin: {}", e)))?;
+            .map_err(|e| QipuError::FailedOperation {
+                operation: "write to pandoc stdin".to_string(),
+                reason: e.to_string(),
+            })?;
     }
 
     // Wait for pandoc to finish
     let output = child
         .wait_with_output()
-        .map_err(|e| QipuError::Other(format!("failed to wait for pandoc: {}", e)))?;
+        .map_err(|e| QipuError::FailedOperation {
+            operation: "wait for pandoc".to_string(),
+            reason: e.to_string(),
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "pandoc conversion failed: {}",
-            stderr
-        )));
+        return Err(QipuError::FailedOperation {
+            operation: "pandoc conversion".to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -360,8 +371,11 @@ fn copy_attachments(
     use std::fs;
 
     // Pattern for ../attachments/filename.ext
-    let re = Regex::new(r"(\.\./attachments/([^)\s\n]+))")
-        .map_err(|e| QipuError::Other(format!("failed to compile regex: {}", e)))?;
+    let re =
+        Regex::new(r"(\.\./attachments/([^)\s\n]+))").map_err(|e| QipuError::FailedOperation {
+            operation: "compile regex".to_string(),
+            reason: e.to_string(),
+        })?;
 
     let mut copied_count = 0;
     let mut seen_attachments = std::collections::HashSet::new();

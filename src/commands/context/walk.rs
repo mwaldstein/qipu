@@ -69,10 +69,11 @@ pub fn walk_for_context(
         "in" => Direction::In,
         "both" => Direction::Both,
         _ => {
-            return Err(QipuError::Other(format!(
-                "invalid direction '{}': expected one of: out, in, both",
-                walk_direction
-            )))
+            return Err(QipuError::unsupported(
+                "direction",
+                walk_direction,
+                "out, in, both",
+            ))
         }
     };
 

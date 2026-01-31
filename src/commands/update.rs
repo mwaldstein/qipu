@@ -159,7 +159,10 @@ pub fn execute(
         let mut body = String::new();
         std::io::stdin()
             .read_to_string(&mut body)
-            .map_err(|e| QipuError::Other(format!("failed to read from stdin: {}", e)))?;
+            .map_err(|e| QipuError::FailedOperation {
+                operation: "read from stdin".to_string(),
+                reason: e.to_string(),
+            })?;
         note.body = body;
         modified = true;
     }

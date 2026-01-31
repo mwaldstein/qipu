@@ -19,7 +19,7 @@ pub fn serialize_pack_records(
     let config_path = store.root().join("config.toml");
     let config_content = if config_path.exists() {
         std::fs::read_to_string(&config_path)
-            .map_err(|e| QipuError::Other(format!("failed to read config.toml: {}", e)))?
+            .map_err(|e| QipuError::io_operation("read", "config.toml", e))?
     } else {
         String::new()
     };

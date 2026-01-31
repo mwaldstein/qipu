@@ -61,7 +61,7 @@ pub fn execute(
     let note_path = note
         .path
         .clone()
-        .ok_or_else(|| QipuError::Other("note has no path".to_string()))?;
+        .ok_or_else(|| QipuError::invalid_value("note", "has no path"))?;
 
     // Get the editor to use
     let editor = resolve_editor(editor_override).ok_or_else(|| {
@@ -79,13 +79,14 @@ pub fn execute(
     let status = Command::new(&editor)
         .arg(&note_path)
         .status()
-        .map_err(|e| QipuError::Other(format!("failed to open editor '{}': {}", editor, e)))?;
+        .map_err(|e| QipuError::io_operation("open editor", &editor, e))?;
 
     if !status.success() {
-        return Err(QipuError::Other(format!(
-            "editor '{}' exited with non-zero status: {:?}",
-            editor, status
-        )));
+        return Err(QipuError::FailedOperationWithTarget {
+            operation: "open editor".to_string(),
+            target: editor.to_string(),
+            reason: format!("exited with non-zero status: {:?}", status),
+        });
     }
 
     // Reload the note from disk to get the edited content

@@ -39,7 +39,7 @@ impl FromStr for IdScheme {
             "hash" => Ok(IdScheme::Hash),
             "ulid" => Ok(IdScheme::Ulid),
             "timestamp" => Ok(IdScheme::Timestamp),
-            other => Err(QipuError::Other(format!("unknown ID scheme: {}", other))),
+            other => Err(QipuError::invalid_value("ID scheme", other)),
         }
     }
 }

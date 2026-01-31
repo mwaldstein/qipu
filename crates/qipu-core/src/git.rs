@@ -47,10 +47,10 @@ pub fn current_branch(repo_path: &Path) -> Result<String> {
 
         // If both fail, return the original error
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to get current branch: {}",
-            stderr
-        )));
+        return Err(QipuError::FailedOperation {
+            operation: "get current branch".to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -82,10 +82,11 @@ pub fn create_orphan_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to create branch '{}': {}",
-            branch_name, stderr
-        )));
+        return Err(QipuError::FailedOperationWithTarget {
+            operation: "create branch".to_string(),
+            target: branch_name.to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -129,10 +130,11 @@ pub fn checkout_branch(repo_path: &Path, branch_name: &str) -> Result<()> {
             }
         }
 
-        return Err(QipuError::Other(format!(
-            "Failed to checkout branch '{}': {}",
-            branch_name, stderr
-        )));
+        return Err(QipuError::FailedOperationWithTarget {
+            operation: "checkout branch".to_string(),
+            target: branch_name.to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -171,10 +173,11 @@ pub fn add(repo_path: &Path, path_spec: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to add files '{}': {}",
-            path_spec, stderr
-        )));
+        return Err(QipuError::FailedOperationWithTarget {
+            operation: "add files".to_string(),
+            target: path_spec.to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -192,10 +195,10 @@ pub fn commit(repo_path: &Path, message: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to commit changes: {}",
-            stderr
-        )));
+        return Err(QipuError::FailedOperation {
+            operation: "commit changes".to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -213,10 +216,11 @@ pub fn push(repo_path: &Path, remote: &str, branch: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to push to '{}/{}': {}",
-            remote, branch, stderr
-        )));
+        return Err(QipuError::FailedOperationWithTarget {
+            operation: "push to".to_string(),
+            target: format!("{}/{}", remote, branch),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(())
@@ -233,10 +237,10 @@ pub fn has_changes(repo_path: &Path) -> Result<bool> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(QipuError::Other(format!(
-            "Failed to check git status: {}",
-            stderr
-        )));
+        return Err(QipuError::FailedOperation {
+            operation: "check git status".to_string(),
+            reason: stderr.to_string(),
+        });
     }
 
     Ok(!output.stdout.is_empty())

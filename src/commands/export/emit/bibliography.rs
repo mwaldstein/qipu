@@ -19,10 +19,11 @@ impl BibFormat {
             "markdown" | "md" => Ok(BibFormat::Markdown),
             "bibtex" | "bib" => Ok(BibFormat::BibTeX),
             "csl" | "csl-json" | "json" => Ok(BibFormat::CslJson),
-            _ => Err(QipuError::Other(format!(
-                "invalid bibliography format '{}'. Valid formats: markdown, bibtex, csl-json",
-                s
-            ))),
+            _ => Err(QipuError::unsupported(
+                "bibliography format",
+                s,
+                "markdown, bibtex, csl-json",
+            )),
         }
     }
 }
@@ -204,18 +205,12 @@ fn parse_date_string(date_str: &str) -> Result<Vec<i32>> {
         if let Ok(num) = part.parse::<i32>() {
             date_parts.push(num);
         } else {
-            return Err(QipuError::Other(format!(
-                "Invalid date format: {}",
-                date_str
-            )));
+            return Err(QipuError::invalid_value("date format", date_str));
         }
     }
 
     if date_parts.is_empty() || date_parts.len() > 3 {
-        return Err(QipuError::Other(format!(
-            "Invalid date format: {}",
-            date_str
-        )));
+        return Err(QipuError::invalid_value("date format", date_str));
     }
 
     Ok(date_parts)

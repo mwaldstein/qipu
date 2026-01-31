@@ -18,8 +18,10 @@ pub fn looks_like_json(content: &str) -> bool {
 }
 
 pub fn parse_json_pack(content: &str) -> Result<PackData> {
-    serde_json::from_str(content)
-        .map_err(|e| QipuError::Other(format!("failed to parse JSON pack: {}", e)))
+    serde_json::from_str(content).map_err(|e| QipuError::FailedOperation {
+        operation: "parse JSON pack".to_string(),
+        reason: e.to_string(),
+    })
 }
 
 fn finalize_note_content(
@@ -34,11 +36,17 @@ fn finalize_note_content(
 
     let content = if *note_content_is_base64 {
         let encoded = note_content_lines.join("");
-        let decoded = general_purpose::STANDARD
-            .decode(encoded)
-            .map_err(|e| QipuError::Other(format!("failed to decode note content: {}", e)))?;
-        String::from_utf8(decoded)
-            .map_err(|e| QipuError::Other(format!("failed to decode note content: {}", e)))?
+        let decoded =
+            general_purpose::STANDARD
+                .decode(encoded)
+                .map_err(|e| QipuError::FailedOperation {
+                    operation: "decode note content".to_string(),
+                    reason: e.to_string(),
+                })?;
+        String::from_utf8(decoded).map_err(|e| QipuError::FailedOperation {
+            operation: "decode note content".to_string(),
+            reason: e.to_string(),
+        })?
     } else {
         note_content_lines.join("\n")
     };
@@ -121,8 +129,7 @@ pub fn parse_records_pack(content: &str) -> Result<PackData> {
         attachments.push(attachment);
     }
 
-    let header =
-        header.ok_or_else(|| QipuError::Other("missing header in pack file".to_string()))?;
+    let header = header.ok_or_else(|| QipuError::invalid_value("pack file", "missing header"))?;
 
     Ok(PackData {
         header,

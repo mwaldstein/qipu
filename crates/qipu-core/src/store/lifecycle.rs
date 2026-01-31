@@ -24,10 +24,7 @@ impl Store {
     ) -> Result<Note> {
         let id = if let Some(id) = id {
             if self.note_exists(id) {
-                return Err(QipuError::Other(format!(
-                    "note with id '{}' already exists",
-                    id
-                )));
+                return Err(QipuError::already_exists("note", id));
             }
             NoteId::new_unchecked(id.to_string())
         } else {
@@ -82,10 +79,7 @@ impl Store {
         let existing_ids = self.existing_ids()?;
         let id = if let Some(id) = id {
             if existing_ids.contains(id) {
-                return Err(QipuError::Other(format!(
-                    "note with id '{}' already exists",
-                    id
-                )));
+                return Err(QipuError::already_exists("note", id));
             }
             NoteId::new_unchecked(id.to_string())
         } else {
@@ -153,7 +147,7 @@ impl Store {
         let path = note
             .path
             .as_ref()
-            .ok_or_else(|| QipuError::Other("cannot save note without path".to_string()))?;
+            .ok_or_else(|| QipuError::invalid_value("note", "cannot save without path"))?;
 
         // Auto-populate the updated timestamp
         note.frontmatter.updated = Some(chrono::Utc::now());
@@ -230,15 +224,10 @@ impl Store {
         let path = note
             .path
             .as_ref()
-            .ok_or_else(|| QipuError::Other("note has no path".to_string()))?;
+            .ok_or_else(|| QipuError::invalid_value("note", "has no path"))?;
 
-        fs::remove_file(path).map_err(|e| {
-            QipuError::Other(format!(
-                "failed to delete note file {}: {}",
-                path.display(),
-                e
-            ))
-        })?;
+        fs::remove_file(path)
+            .map_err(|e| QipuError::io_operation("delete note file", path.display(), e))?;
 
         self.db.delete_note(note_id)?;
 

@@ -31,10 +31,11 @@ fn parse_strategy(s: &str) -> Result<LoadStrategy> {
         "skip" => Ok(LoadStrategy::Skip),
         "overwrite" => Ok(LoadStrategy::Overwrite),
         "merge-links" => Ok(LoadStrategy::MergeLinks),
-        _ => Err(QipuError::Other(format!(
-            "invalid strategy: {} (valid: skip, overwrite, merge-links)",
-            s
-        ))),
+        _ => Err(QipuError::unsupported(
+            "strategy",
+            s,
+            "skip, overwrite, merge-links",
+        )),
     }
 }
 
@@ -48,7 +49,7 @@ pub fn execute(
     let strategy = parse_strategy(strategy)?;
 
     let pack_content = std::fs::read_to_string(pack_file)
-        .map_err(|e| QipuError::Other(format!("failed to read pack file: {}", e)))?;
+        .map_err(|e| QipuError::io_operation("read", "pack file", e))?;
 
     let pack_data = if deserialize::looks_like_json(&pack_content) {
         deserialize::parse_json_pack(&pack_content)?
@@ -57,24 +58,28 @@ pub fn execute(
     };
 
     if pack_data.header.version != "1.0" {
-        return Err(QipuError::Other(format!(
-            "unsupported pack version: {} (supported: 1.0)",
-            pack_data.header.version
-        )));
+        return Err(QipuError::unsupported(
+            "pack version",
+            &pack_data.header.version,
+            "1.0",
+        ));
     }
 
     if pack_data.header.store_version > STORE_FORMAT_VERSION {
-        return Err(QipuError::Other(format!(
-            "pack store version {} is higher than store version {} - please upgrade qipu",
-            pack_data.header.store_version, STORE_FORMAT_VERSION
-        )));
+        return Err(QipuError::invalid_value(
+            &format!("pack store version {}", pack_data.header.store_version),
+            format!(
+                "higher than store version {} - please upgrade qipu",
+                STORE_FORMAT_VERSION
+            ),
+        ));
     }
 
     if apply_config {
         if !pack_data.config_content.is_empty() {
             let config_path = store.config_path();
             std::fs::write(&config_path, &pack_data.config_content)
-                .map_err(|e| QipuError::Other(format!("failed to write config.toml: {}", e)))?;
+                .map_err(|e| QipuError::io_operation("write", "config.toml", e))?;
             tracing::info!("Applied config from pack to {}", config_path.display());
         } else {
             tracing::warn!("Pack contains no config to apply");

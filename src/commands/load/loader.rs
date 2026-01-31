@@ -16,7 +16,7 @@ fn write_note_preserving_updated(
     let path = note
         .path
         .as_ref()
-        .ok_or_else(|| QipuError::Other("cannot save note without path".to_string()))?;
+        .ok_or_else(|| QipuError::invalid_value("note", "cannot save without path"))?;
     let new_content = note.to_markdown()?;
 
     let should_write = if path.exists() {
@@ -50,10 +50,7 @@ pub fn load_notes(
 
     for pack_note in pack_notes {
         let note_type = pack_note.note_type.parse::<NoteType>().map_err(|e| {
-            QipuError::Other(format!(
-                "invalid note type '{}': {}",
-                pack_note.note_type, e
-            ))
+            QipuError::invalid_value(&format!("note type '{}'", pack_note.note_type), e)
         })?;
 
         let sources = pack_note
@@ -143,11 +140,7 @@ pub fn load_notes(
                     if let Some(path) = &note.path {
                         if path.exists() {
                             std::fs::remove_file(path).map_err(|e| {
-                                QipuError::Other(format!(
-                                    "failed to delete existing file {}: {}",
-                                    path.display(),
-                                    e
-                                ))
+                                QipuError::io_operation("delete existing file", path.display(), e)
                             })?;
                         }
                     }
@@ -217,7 +210,7 @@ pub fn load_links(
                     if !link_exists {
                         if let Some(ref type_str) = pack_link.link_type {
                             let link_type = type_str.parse().map_err(|e| {
-                                QipuError::Other(format!("invalid link type '{}': {}", type_str, e))
+                                QipuError::invalid_value(&format!("link type '{}'", type_str), e)
                             })?;
 
                             source_note
@@ -249,24 +242,29 @@ pub fn load_attachments(
 
     let attachments_dir = store.root().join("attachments");
     std::fs::create_dir_all(&attachments_dir)
-        .map_err(|e| QipuError::Other(format!("failed to create attachments directory: {}", e)))?;
+        .map_err(|e| QipuError::io_operation("create", "attachments directory", e))?;
 
     for pack_attachment in pack_attachments {
         let data = general_purpose::STANDARD
             .decode(&pack_attachment.data)
-            .map_err(|e| QipuError::Other(format!("failed to decode attachment data: {}", e)))?;
+            .map_err(|e| QipuError::FailedOperation {
+                operation: "decode attachment data".to_string(),
+                reason: e.to_string(),
+            })?;
 
-        let canonical_attachments_dir = std::fs::canonicalize(&attachments_dir).map_err(|e| {
-            QipuError::Other(format!("failed to resolve attachments directory: {}", e))
-        })?;
+        let canonical_attachments_dir =
+            std::fs::canonicalize(&attachments_dir).map_err(|e| QipuError::FailedOperation {
+                operation: "resolve attachments directory".to_string(),
+                reason: e.to_string(),
+            })?;
 
         let file_name = std::path::Path::new(&pack_attachment.name)
             .file_name()
             .ok_or_else(|| {
-                QipuError::Other(format!(
-                    "invalid attachment name '{}': no filename component",
-                    pack_attachment.name
-                ))
+                QipuError::invalid_value(
+                    &format!("attachment name '{}'", pack_attachment.name),
+                    "no filename component",
+                )
             })?;
         let safe_attachment_path = canonical_attachments_dir.join(file_name);
 
@@ -278,18 +276,14 @@ pub fn load_attachments(
         })?;
 
         if !canonical_safe_path.starts_with(&canonical_attachments_dir) {
-            return Err(QipuError::Other(format!(
-                "attachment name '{}' would write outside attachments directory",
-                pack_attachment.name
-            )));
+            return Err(QipuError::invalid_value(
+                &format!("attachment name '{}'", pack_attachment.name),
+                "would write outside attachments directory",
+            ));
         }
 
-        std::fs::write(&safe_attachment_path, data).map_err(|e| {
-            QipuError::Other(format!(
-                "failed to write attachment '{}': {}",
-                pack_attachment.name, e
-            ))
-        })?;
+        std::fs::write(&safe_attachment_path, data)
+            .map_err(|e| QipuError::io_operation("write attachment", &pack_attachment.name, e))?;
 
         loaded_count += 1;
     }

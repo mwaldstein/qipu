@@ -33,10 +33,10 @@ pub fn execute(
     let workspace_path = primary_store.workspaces_dir().join(name);
 
     if workspace_path.exists() {
-        return Err(qipu_core::error::QipuError::Other(format!(
-            "workspace '{}' already exists",
-            name
-        )));
+        return Err(qipu_core::error::QipuError::already_exists(
+            "workspace",
+            name,
+        ));
     }
 
     // Initialize the new store

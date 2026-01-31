@@ -179,8 +179,11 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
     }
 
     // 2. Extract wiki links: [[id]] or [[id|label]]
-    let wiki_link_re = Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
-        .map_err(|e| QipuError::Other(format!("failed to compile wiki link regex: {}", e)))?;
+    let wiki_link_re =
+        Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| QipuError::FailedOperation {
+            operation: "compile wiki link regex".to_string(),
+            reason: e.to_string(),
+        })?;
 
     for cap in wiki_link_re.captures_iter(&moc.body) {
         let to_id = cap[1].trim().to_string();
@@ -197,8 +200,11 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
     }
 
     // 3. Extract markdown links: [text](qp-xxxx) or [text](./qp-xxxx-slug.md)
-    let md_link_re = Regex::new(r"\[([^\]]*)\]\(([^)]+)\)")
-        .map_err(|e| QipuError::Other(format!("failed to compile markdown link regex: {}", e)))?;
+    let md_link_re =
+        Regex::new(r"\[([^\]]*)\]\(([^)]+)\)").map_err(|e| QipuError::FailedOperation {
+            operation: "compile markdown link regex".to_string(),
+            reason: e.to_string(),
+        })?;
 
     for cap in md_link_re.captures_iter(&moc.body) {
         let target = cap[2].trim();

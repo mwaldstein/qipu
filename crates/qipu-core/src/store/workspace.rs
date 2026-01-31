@@ -20,9 +20,7 @@ struct WorkspaceMetadataFile {
 impl WorkspaceMetadata {
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)?;
-        let file: WorkspaceMetadataFile = toml::from_str(&content).map_err(|e| {
-            crate::error::QipuError::Other(format!("failed to parse workspace.toml: {}", e))
-        })?;
+        let file: WorkspaceMetadataFile = toml::from_str(&content)?;
         Ok(file.workspace)
     }
 
@@ -31,7 +29,10 @@ impl WorkspaceMetadata {
             workspace: self.clone(),
         };
         let content = toml::to_string_pretty(&file).map_err(|e| {
-            crate::error::QipuError::Other(format!("failed to serialize workspace.toml: {}", e))
+            crate::error::QipuError::FailedOperation {
+                operation: "serialize workspace.toml".to_string(),
+                reason: e.to_string(),
+            }
         })?;
         fs::write(path, content)?;
         Ok(())

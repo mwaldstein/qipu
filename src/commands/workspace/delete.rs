@@ -10,10 +10,7 @@ pub fn execute(cli: &Cli, root: &Path, name: &str, force: bool) -> Result<()> {
     let workspace_path = primary_store.workspaces_dir().join(name);
 
     if !workspace_path.exists() {
-        return Err(qipu_core::error::QipuError::Other(format!(
-            "workspace '{}' not found",
-            name
-        )));
+        return Err(qipu_core::error::QipuError::not_found("workspace", name));
     }
 
     if !force {
@@ -25,7 +22,7 @@ pub fn execute(cli: &Cli, root: &Path, name: &str, force: bool) -> Result<()> {
                 for change in changes {
                     tracing::warn!("  - {}", change);
                 }
-                return Err(qipu_core::error::QipuError::Other(
+                return Err(qipu_core::error::QipuError::UsageError(
                     "Use --force to delete anyway".to_string(),
                 ));
             }
@@ -68,10 +65,8 @@ fn is_modified(n1: &Note, n2: &Note) -> Result<bool> {
     }
 
     // 2. Compare frontmatter (excluding 'updated' field)
-    let mut v1 = serde_json::to_value(&n1.frontmatter)
-        .map_err(|e| qipu_core::error::QipuError::Other(e.to_string()))?;
-    let mut v2 = serde_json::to_value(&n2.frontmatter)
-        .map_err(|e| qipu_core::error::QipuError::Other(e.to_string()))?;
+    let mut v1 = serde_json::to_value(&n1.frontmatter)?;
+    let mut v2 = serde_json::to_value(&n2.frontmatter)?;
 
     if let Some(obj) = v1.as_object_mut() {
         obj.remove("updated");

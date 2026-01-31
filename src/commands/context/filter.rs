@@ -91,23 +91,23 @@ pub fn parse_custom_filter_expression(
     let value = value.to_string();
 
     if key.is_empty() {
-        return Err(QipuError::Other(format!(
-            "custom filter expression '{}' is missing key",
-            expr
-        )));
+        return Err(QipuError::invalid_value(
+            &format!("custom filter expression '{}'", expr),
+            "missing key",
+        ));
     }
     if value.is_empty() {
-        return Err(QipuError::Other(format!(
-            "custom filter expression '{}' is missing value",
-            expr
-        )));
+        return Err(QipuError::invalid_value(
+            &format!("custom filter expression '{}'", expr),
+            "missing value",
+        ));
     }
 
     let target_value: f64 = value.parse().map_err(|_| {
-        QipuError::Other(format!(
-            "custom filter expression '{}' has invalid numeric value '{}'",
-            expr, value
-        ))
+        QipuError::invalid_value(
+            &format!("custom filter expression '{}'", expr),
+            format!("invalid numeric value '{}'", value),
+        )
     })?;
 
     let compare_fn = match op {

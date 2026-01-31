@@ -11,17 +11,17 @@ impl CompactionContext {
     /// Returns a list of error messages (empty if valid)
     pub fn validate(&self, notes: &[Note]) -> Vec<String> {
         let mut errors = Vec::new();
-        let note_ids: HashSet<String> = notes.iter().map(|n| n.frontmatter.id.clone()).collect();
+        let note_ids: HashSet<&str> = notes.iter().map(|n| n.frontmatter.id.as_str()).collect();
 
         // Check for unresolved IDs
         for (source_id, digest_id) in &self.compactors {
-            if !note_ids.contains(source_id) {
+            if !note_ids.contains(source_id.as_str()) {
                 errors.push(format!(
                     "compaction references unknown source note: {}",
                     source_id
                 ));
             }
-            if !note_ids.contains(digest_id) {
+            if !note_ids.contains(digest_id.as_str()) {
                 errors.push(format!(
                     "compaction references unknown digest note: {}",
                     digest_id

@@ -9,6 +9,7 @@ use chrono::Utc;
 use serde_json;
 
 use super::events::{NoteCountBucket, TelemetryEvent, WorkspaceCountBucket};
+use crate::config::GlobalConfig;
 
 const MAX_EVENTS: usize = 1000;
 const MAX_RETENTION_DAYS: i64 = 7;
@@ -17,6 +18,22 @@ const MAX_RETENTION_DAYS: i64 = 7;
 pub struct TelemetryConfig {
     pub enabled: bool,
     pub events_dir: PathBuf,
+}
+
+impl TelemetryConfig {
+    pub fn determine_enabled() -> bool {
+        if std::env::var("QIPU_NO_TELEMETRY").is_ok() {
+            return false;
+        }
+
+        if let Ok(global_config) = GlobalConfig::load() {
+            if let Some(enabled) = global_config.get_telemetry_enabled() {
+                return enabled;
+            }
+        }
+
+        false
+    }
 }
 
 impl Default for TelemetryConfig {
@@ -28,7 +45,7 @@ impl Default for TelemetryConfig {
         fs::create_dir_all(&events_dir).ok();
 
         Self {
-            enabled: std::env::var("QIPU_NO_TELEMETRY").is_err(),
+            enabled: Self::determine_enabled(),
             events_dir,
         }
     }

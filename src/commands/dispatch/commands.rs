@@ -301,46 +301,12 @@ pub(super) mod dispatch_command {
         command: &crate::cli::telemetry::TelemetryCommands,
     ) -> Result<()> {
         use crate::cli::telemetry::TelemetryCommands;
-        use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig, PRIVACY_MANIFEST};
-        use serde_json;
-        use std::sync::Arc;
+        use crate::commands::telemetry;
 
         match command {
-            TelemetryCommands::Show => {
-                let config = TelemetryConfig::default();
-                let collector = Arc::new(TelemetryCollector::new(config));
-
-                let events = collector.get_pending_events();
-
-                println!(
-                    "Telemetry status: {}",
-                    if collector.is_enabled() {
-                        "enabled"
-                    } else {
-                        "disabled"
-                    }
-                );
-                println!();
-                println!("Pending events ({}):", events.len());
-
-                if events.is_empty() {
-                    println!("(no pending events)");
-                } else {
-                    for event in events {
-                        let json = serde_json::to_string_pretty(&event).map_err(|e| {
-                            qipu_core::error::QipuError::Other(format!(
-                                "serialization error: {}",
-                                e
-                            ))
-                        })?;
-                        println!("{}", json);
-                    }
-                }
-            }
-            TelemetryCommands::Manifest => {
-                println!("{}", PRIVACY_MANIFEST);
-            }
+            TelemetryCommands::Enable => telemetry::handle_enable(),
+            TelemetryCommands::Disable => telemetry::handle_disable(),
+            TelemetryCommands::Status => telemetry::handle_status(),
         }
-        Ok(())
     }
 }

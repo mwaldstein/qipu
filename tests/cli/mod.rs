@@ -32,6 +32,7 @@ mod store;
 mod store_discovery;
 
 mod sync;
+mod telemetry;
 mod traversal;
 mod traversal_dump;
 mod update;

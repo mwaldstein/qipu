@@ -2,6 +2,7 @@
 //!
 //! Configuration is stored in `.qipu/config.toml` per spec (specs/storage-format.md).
 
+pub mod global;
 pub mod types;
 
 use std::fs;
@@ -10,6 +11,7 @@ use std::path::Path;
 use crate::error::{QipuError, Result};
 use crate::ontology::Ontology;
 
+pub use global::GlobalConfig;
 pub use types::{
     AutoIndexConfig, GraphConfig, LinkTypeConfig, NoteTypeConfig, OntologyConfig, OntologyMode,
     SearchConfig, StoreConfig, STORE_FORMAT_VERSION,

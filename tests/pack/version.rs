@@ -111,7 +111,7 @@ fn test_pack_store_version_too_high() {
         .assert()
         .failure()
         .stderr(predicate::str::contains(
-            "pack store version 999 is higher than store version 1",
+            "invalid pack store version 999: higher than store version 1",
         ))
         .stderr(predicate::str::contains("please upgrade qipu"));
 }

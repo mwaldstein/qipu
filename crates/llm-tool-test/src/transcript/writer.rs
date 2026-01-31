@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::transcript::redact::redact_sensitive;
 use crate::transcript::types::{EvaluationReport, RunMetadata, RunReport};
 use serde_json::json;
@@ -33,26 +31,7 @@ impl TranscriptWriter {
         Ok(())
     }
 
-    pub fn log_tool_call(&self, tool: &str, command: &str) -> anyhow::Result<()> {
-        let event = json!({
-            "ts": Self::timestamp(),
-            "event": "tool_call",
-            "tool": tool,
-            "command": command,
-        });
-        self.append_event(&event)
-    }
-
-    pub fn log_tool_result(&self, output: &str, exit_code: i32) -> anyhow::Result<()> {
-        let event = json!({
-            "ts": Self::timestamp(),
-            "event": "tool_result",
-            "output": output,
-            "exit_code": exit_code,
-        });
-        self.append_event(&event)
-    }
-
+    #[allow(dead_code)]
     pub fn log_spawn(&self, command: &str, args: &[String]) -> anyhow::Result<()> {
         let event = json!({
             "ts": Self::timestamp(),
@@ -63,6 +42,7 @@ impl TranscriptWriter {
         self.append_event(&event)
     }
 
+    #[allow(dead_code)]
     pub fn log_output(&self, text: &str) -> anyhow::Result<()> {
         let event = json!({
             "ts": Self::timestamp(),
@@ -72,6 +52,7 @@ impl TranscriptWriter {
         self.append_event(&event)
     }
 
+    #[allow(dead_code)]
     pub fn log_complete(&self, exit_code: i32, duration_secs: f64) -> anyhow::Result<()> {
         let event = json!({
             "ts": Self::timestamp(),
@@ -82,6 +63,7 @@ impl TranscriptWriter {
         self.append_event(&event)
     }
 
+    #[allow(dead_code)]
     fn timestamp() -> f64 {
         use std::time::{SystemTime, UNIX_EPOCH};
         SystemTime::now()
@@ -90,6 +72,7 @@ impl TranscriptWriter {
             .as_secs_f64()
     }
 
+    #[allow(dead_code)]
     pub fn read_events(&self) -> anyhow::Result<Vec<serde_json::Value>> {
         let path = self.base_dir.join("events.jsonl");
         if !path.exists() {

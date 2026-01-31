@@ -26,22 +26,34 @@ impl SessionRunner {
         cwd: &Path,
         timeout_secs: u64,
     ) -> anyhow::Result<(String, i32)> {
-        // Try PTY first, fall back to piped stdout/stderr if PTY unavailable
-        match self.run_command_pty(cmd, args, cwd, timeout_secs) {
-            Ok(result) => Ok(result),
-            Err(e) => {
-                tracing::debug!("PTY unavailable, falling back to pipes: {}", e);
-                self.run_command_piped(cmd, args, cwd, timeout_secs)
-            }
-        }
+        self.run_command_with_env(cmd, args, cwd, timeout_secs, &[])
     }
 
-    fn run_command_pty(
+    pub fn run_command_with_env(
         &self,
         cmd: &str,
         args: &[&str],
         cwd: &Path,
         timeout_secs: u64,
+        env_vars: &[(String, String)],
+    ) -> anyhow::Result<(String, i32)> {
+        // Try PTY first, fall back to piped stdout/stderr if PTY unavailable
+        match self.run_command_pty_with_env(cmd, args, cwd, timeout_secs, env_vars) {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                tracing::debug!("PTY unavailable, falling back to pipes: {}", e);
+                self.run_command_piped_with_env(cmd, args, cwd, timeout_secs, env_vars)
+            }
+        }
+    }
+
+    fn run_command_pty_with_env(
+        &self,
+        cmd: &str,
+        args: &[&str],
+        cwd: &Path,
+        timeout_secs: u64,
+        env_vars: &[(String, String)],
     ) -> anyhow::Result<(String, i32)> {
         let pair = self.pty_system.openpty(PtySize {
             rows: 24,
@@ -53,6 +65,9 @@ impl SessionRunner {
         let mut cmd_builder = CommandBuilder::new(cmd);
         cmd_builder.args(args);
         cmd_builder.cwd(cwd);
+        for (key, value) in env_vars {
+            cmd_builder.env(key, value);
+        }
 
         let child = pair.slave.spawn_command(cmd_builder)?;
         let mut reader = pair.master.try_clone_reader()?;
@@ -121,16 +136,21 @@ impl SessionRunner {
         Ok((String::from_utf8_lossy(&output).to_string(), exit_code))
     }
 
-    fn run_command_piped(
+    fn run_command_piped_with_env(
         &self,
         cmd: &str,
         args: &[&str],
         cwd: &Path,
         timeout_secs: u64,
+        env_vars: &[(String, String)],
     ) -> anyhow::Result<(String, i32)> {
         use std::process::{Command, Stdio};
 
-        let mut child = Command::new(cmd)
+        let mut command = Command::new(cmd);
+        for (key, value) in env_vars {
+            command.env(key, value);
+        }
+        let mut child = command
             .args(args)
             .current_dir(cwd)
             .stdout(Stdio::piped())

@@ -102,7 +102,18 @@ impl ToolAdapter for OpenCodeAdapter {
         }
         args.push(&scenario.task.prompt);
 
-        let (output, exit_code) = runner.run_command("opencode", &args, cwd, timeout_secs)?;
+        // Isolate opencode from global AGENTS.md by using a temp XDG_CONFIG_HOME
+        // This ensures test results aren't skewed by global prompts/rules/tools
+        // while still allowing authentication to work
+        let xdg_config_dir = cwd.join(".opencode_config");
+        std::fs::create_dir_all(&xdg_config_dir).ok(); // Create if doesn't exist, ignore errors
+        let env_vars: Vec<(String, String)> = vec![(
+            "XDG_CONFIG_HOME".to_string(),
+            xdg_config_dir.to_string_lossy().to_string(),
+        )];
+
+        let (output, exit_code) =
+            runner.run_command_with_env("opencode", &args, cwd, timeout_secs, &env_vars)?;
         let token_usage = parse_token_usage_from_json(&output);
 
         Ok((output, exit_code, None, token_usage))

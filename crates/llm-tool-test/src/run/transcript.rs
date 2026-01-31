@@ -3,7 +3,6 @@ use crate::fixture::TestEnv;
 use crate::results::CacheKey;
 use crate::scenario::Scenario;
 use crate::transcript::{RunMetadata, TranscriptWriter};
-use std::path::PathBuf;
 
 pub fn write_transcript_files(
     writer: &TranscriptWriter,
@@ -23,14 +22,7 @@ pub fn write_transcript_files(
     setup_commands: Vec<(String, bool, String)>,
     env: &TestEnv,
 ) -> anyhow::Result<()> {
-    writer.write_raw(output)?;
-    writer.append_event(&serde_json::json!({
-        "type": "execution",
-        "tool": tool,
-        "output": output,
-        "exit_code": exit_code,
-        "cost_usd": cost
-    }))?;
+    // Note: transcript.raw.txt and execution event are already written in run_evaluation_flow
 
     writer.create_store_snapshot(&env.root)?;
 
@@ -148,27 +140,4 @@ pub fn write_transcript_files(
     writer.write_evaluation(&evaluation)?;
 
     Ok(())
-}
-
-pub fn save_artifacts(
-    transcript_dir: &PathBuf,
-    env: &TestEnv,
-    tool: &str,
-    model: &str,
-    scenario_name: &str,
-) -> anyhow::Result<PathBuf> {
-    use crate::run::utils::copy_dir_recursive;
-    use crate::run::utils::get_results_dir;
-
-    let results_dir = get_results_dir(tool, model, scenario_name);
-    std::fs::create_dir_all(&results_dir)?;
-
-    copy_dir_recursive(transcript_dir, &results_dir)?;
-
-    let fixture_dir = results_dir.join("fixture");
-    copy_dir_recursive(&env.root, &fixture_dir)?;
-
-    println!("\nArtifacts written to: {}", results_dir.display());
-
-    Ok(results_dir)
 }

@@ -1,3 +1,4 @@
+use crate::config::Config;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -33,6 +34,10 @@ pub fn copy_dir_recursive_with_exclusions(
 
 pub fn get_results_dir(tool: &str, model: &str, scenario_name: &str) -> PathBuf {
     let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
-    let dir_name = format!("{}-{}-{}-{}", timestamp, tool, model, scenario_name);
-    PathBuf::from("llm-tool-test-results").join(dir_name)
+    // Sanitize model name to avoid creating subdirectories from path separators
+    let safe_model = model.replace(['/', '\\'], "_");
+    let dir_name = format!("{}-{}-{}-{}", timestamp, tool, safe_model, scenario_name);
+    let config = Config::load_or_default();
+    let base_path = config.get_results_path();
+    PathBuf::from(base_path).join(dir_name)
 }

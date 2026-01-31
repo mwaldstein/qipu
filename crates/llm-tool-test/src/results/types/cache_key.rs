@@ -79,13 +79,15 @@ impl CacheKey {
     ///
     /// A string combining all hash and identifier components
     pub fn as_string(&self) -> String {
+        // Sanitize model name to avoid path separator issues in filenames
+        let safe_model = self.model.replace(['/', '\\'], "_");
         format!(
             "{}_{}_{}_{}_{}_{}",
             self.scenario_hash,
             self.prompt_hash,
             self.prime_output_hash,
             self.tool,
-            self.model,
+            safe_model,
             self.qipu_version
         )
     }

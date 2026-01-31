@@ -235,12 +235,12 @@ fn run_judge_evaluation(
     let judge_config = scenario.evaluation.judge.as_ref().unwrap();
 
     println!("Running LLM-as-judge evaluation...");
-    let rubric_path = env_root.join(&judge_config.rubric);
+    let rubric_path = crate::utils::resolve_fixtures_path(&judge_config.rubric);
     let _rubric = load_rubric(&rubric_path)
-        .with_context(|| format!("Failed to load rubric from {}", judge_config.rubric))?;
+        .with_context(|| format!("Failed to load rubric from {}", rubric_path.display()))?;
 
-    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
-    let store_path = env_root.join("artifacts/store_snapshot/export.json");
+    let transcript_path = env_root.join("transcript.raw.txt");
+    let store_path = env_root.join("store_snapshot/export.json");
 
     let runner = crate::session::SessionRunner::new();
     let prompt = format!(

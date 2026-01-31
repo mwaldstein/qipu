@@ -159,7 +159,7 @@ pub fn doctor_passes(env_root: &Path) -> Result<bool> {
 
 /// Checks if the transcript has no errors.
 pub fn no_transcript_errors(env_root: &Path) -> Result<bool> {
-    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    let transcript_path = env_root.join("transcript.raw.txt");
     let content = std::fs::read_to_string(&transcript_path)
         .context("Failed to read transcript file (missing or unreadable)")?;
     let metrics = crate::transcript::TranscriptAnalyzer::analyze_with_exit_codes(&content);
@@ -168,7 +168,7 @@ pub fn no_transcript_errors(env_root: &Path) -> Result<bool> {
 
 /// Computes efficiency metrics from the transcript.
 pub fn compute_efficiency_metrics(env_root: &Path) -> Result<crate::transcript::EfficiencyMetrics> {
-    let transcript_path = env_root.join("artifacts/transcript.raw.txt");
+    let transcript_path = env_root.join("transcript.raw.txt");
     let content = std::fs::read_to_string(&transcript_path)
         .context("Failed to read transcript file for efficiency metrics")?;
     Ok(crate::transcript::TranscriptAnalyzer::analyze_with_exit_codes(&content))

@@ -1,9 +1,9 @@
 # LLM Tool Testing Guide
 
-This guide explains how to use the `llm-tool-test` harness to validate LLM coding tools (Amp, OpenCode, etc.) against Qipu.
+This guide explains how to use the `llm-tool-test` harness to validate LLM coding tools (e.g., OpenCode) against Qipu.
 
 Status: Draft  
-Last updated: 2026-01-19
+Last updated: 2026-01-31
 
 ## Philosophy
 
@@ -52,16 +52,18 @@ This enables regression testing and cross-tool/model comparison.
 # Build the harness
 cargo build -p llm-tool-test
 
-# Run a scenario (dry run first)
-cargo run -p llm-tool-test -- run \
-  --scenario crates/llm-tool-test/fixtures/qipu/scenarios/capture_basic.yaml \
-  --tool amp \
-  --dry-run
+# List available scenarios (no env var needed)
+llm-tool-test scenarios
 
-# Run for real
-cargo run -p llm-tool-test -- run \
-  --scenario crates/llm-tool-test/fixtures/qipu/scenarios/capture_basic.yaml \
-  --tool amp
+# Run all scenarios (requires LLM_TOOL_TEST_ENABLED=1)
+export LLM_TOOL_TEST_ENABLED=1
+llm-tool-test run --all --tool opencode --model mock
+
+# Run a specific scenario with dry run
+llm-tool-test run \
+  --scenario llm-test-fixtures/capture_basic.yaml \
+  --tool opencode \
+  --dry-run
 ```
 
 ## Prerequisites
@@ -83,17 +85,39 @@ The harness checks that the specified tool is available before running:
  export LLM_TOOL_TEST_API_KEY="sk-..."
  ```
 
-### Model Pricing Configuration
+### Configuration
 
- Cost tracking uses model pricing data. Customize pricing by creating a `llm-tool-test-config.toml` in your working directory:
+Create a `llm-tool-test-config.toml` in your workspace root:
 
- ```bash
- cp crates/llm-tool-test/llm-tool-test-config.example.toml llm-tool-test-config.toml
- ```
+```bash
+cp crates/llm-tool-test/llm-tool-test-config.example.toml llm-tool-test-config.toml
+```
 
- Edit the file to update pricing for your specific models. If no config file is present, default pricing values are used.
+**Configuration options:**
+
+```toml
+# Path to test fixtures (default: "llm-test-fixtures")
+fixtures_path = "llm-test-fixtures"
+
+# Path for test results (default: "llm-tool-test-results")
+results_path = "llm-tool-test-results"
+
+[models.claude-3-5-sonnet]
+input_cost_per_1k_tokens = 3.0
+output_cost_per_1k_tokens = 15.0
+```
 
 ## Commands
+
+### `scenarios` - List available scenarios
+
+```bash
+llm-tool-test scenarios [OPTIONS]
+
+Options:
+      --tags <TAGS>    Filter scenarios by tags
+      --tier <TIER>    Filter scenarios by tier [default: 0]
+```
 
 ### `run` - Execute a scenario
 
@@ -101,36 +125,32 @@ The harness checks that the specified tool is available before running:
 llm-tool-test run [OPTIONS]
 
 Options:
-  -s, --scenario <PATH>     Path to scenario YAML file
-      --tool <TOOL>         Tool to test: amp, opencode [default: opencode]
-      --dry-run             Parse and validate without executing
-      --no-cache            Bypass result cache
-      --judge-model <MODEL> Override judge model [default: gpt-4o-mini]
-      --max-usd <USD>       Cost limit (not yet implemented)
+  -s, --scenario <SCENARIO>   Path to scenario YAML file or name
+      --all                   Run all scenarios
+      --tags <TAGS>           Filter scenarios by tags
+      --tier <TIER>           Filter scenarios by tier [default: 0]
+      --tool <TOOL>           Tool to test [default: opencode]
+      --model <MODEL>         Model to use
+      --tools <TOOLS>         Multiple tools for matrix run (comma-separated)
+      --models <MODELS>       Multiple models for matrix run (comma-separated)
+      --dry-run               Parse and validate without executing
+      --no-cache              Disable caching
+      --judge-model <MODEL>   Judge model for evaluation
+      --no-judge              Disable LLM-as-judge evaluation
+      --timeout-secs <SECS>   Maximum execution time [default: 300]
+      --max-usd <USD>         Maximum budget in USD for this session
 ```
 
-### `list` - Show recent runs
+### `show` - Display scenario details
 
 ```bash
-llm-tool-test list
-```
-
-### `show` - Display run details
-
-```bash
-llm-tool-test show <RUN_ID>
-```
-
-### `compare` - Compare two runs
-
-```bash
-llm-tool-test compare <RUN_ID_1> <RUN_ID_2>
+llm-tool-test show <NAME>
 ```
 
 ### `clean` - Clear cache
 
 ```bash
-llm-tool-test clean
+llm-tool-test clean [--older-than <DURATION>]
 ```
 
 ## Scenarios
@@ -166,11 +186,13 @@ evaluation:
 | `evaluation.gates` | Yes | List of pass/fail gates |
 | `evaluation.judge` | No | LLM-as-judge configuration |
 
-### Available Fixtures
+### Fixtures Location
 
-Fixtures are in `crates/llm-tool-test/fixtures/`:
+Test fixtures and scenarios are in `llm-test-fixtures/` at your workspace root:
 
-- **qipu**: Empty store with AGENTS.md context file
+- **templates/qipu/**: Test environment templates (AGENTS.md, README.md)
+- **rubrics/**: Evaluation rubrics for LLM-as-judge scoring
+- **\*.yaml**: Scenario definitions
 
 ### Gate Types
 
@@ -216,18 +238,28 @@ Weights must sum to 1.0.
 
 ## Results
 
-Results are stored in `target/llm_test_runs/`:
+Results are stored in `llm-tool-test-results/` (configurable via `results_path` in config):
 
 ```
-target/llm_test_runs/
-├── results/
-│   └── results.jsonl      # Append-only run log
-├── cache/
-│   └── <cache_key>        # Cached results by scenario+tool+version
-└── <scenario_name>/
-    └── artifacts/
-        └── transcript.raw.txt
+llm-tool-test-results/
+├── cache/                    # Test result cache files
+├── results.jsonl            # Append-only results database
+└── <timestamp>-<tool>-<model>-<scenario>/
+    ├── artifacts/
+    │   ├── events.jsonl      # Event log
+    │   ├── run.json          # Run metadata
+    │   ├── store_snapshot/   # Store export after test
+    │   └── transcript.raw.txt # Full command transcript
+    ├── fixture/              # Template files used for test
+    ├── evaluation.md         # Human-readable evaluation
+    ├── metrics.json          # Detailed metrics
+    └── report.md             # Test run report
 ```
+
+**File locations:**
+- **Raw data** (`transcript.raw.txt`, `events.jsonl`, `run.json`) stays in `artifacts/`
+- **Analysis** (`evaluation.md`, `report.md`, `metrics.json`) is at the scenario root for easy access
+- **Cache** and **database** are at the `llm-tool-test-results/` root
 
 ### Caching
 
@@ -241,12 +273,12 @@ Use `--no-cache` to force re-execution.
 
 ## Writing New Scenarios
 
-1. Create a scenario YAML in `fixtures/<fixture>/scenarios/`:
+1. Create a scenario YAML in `llm-test-fixtures/`:
 
 ```yaml
 name: my_scenario
 description: "Test description"
-fixture: qipu
+template_folder: qipu
 task:
   prompt: |
     Create two notes about related topics and link them together.
@@ -259,7 +291,7 @@ evaluation:
       count: 1
 ```
 
-2. Optionally create a rubric in `fixtures/<fixture>/rubrics/`:
+2. Optionally create a rubric in `llm-test-fixtures/rubrics/`:
 
 ```yaml
 criteria:
@@ -274,8 +306,8 @@ output:
 3. Test with dry-run first:
 
 ```bash
-cargo run -p llm-tool-test -- run \
-  --scenario crates/llm-tool-test/fixtures/qipu/scenarios/my_scenario.yaml \
+llm-tool-test run \
+  --scenario llm-test-fixtures/my_scenario.yaml \
   --dry-run
 ```
 
@@ -330,10 +362,10 @@ amp --version
 
 ### "Fixture not found" error
 
-Check the fixture path exists:
+Check the fixtures directory exists at the configured path (default: `llm-test-fixtures/`):
 
 ```bash
-ls crates/llm-tool-test/fixtures/
+ls llm-test-fixtures/
 ```
 
 ### Judge evaluation fails

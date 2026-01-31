@@ -40,7 +40,7 @@ pub struct ResultsDB {
 impl ResultsDB {
     /// Create a new results database in the specified base directory.
     ///
-    /// Results will be stored in a `results/results.jsonl` file.
+    /// Results will be stored in a `results.jsonl` file directly in the base directory.
     ///
     /// # Arguments
     ///
@@ -50,10 +50,9 @@ impl ResultsDB {
     ///
     /// A new `ResultsDB` instance
     pub fn new(base_dir: &Path) -> Self {
-        let results_dir = base_dir.join("results");
-        std::fs::create_dir_all(&results_dir).ok();
+        std::fs::create_dir_all(&base_dir).ok();
         Self {
-            results_path: results_dir.join("results.jsonl"),
+            results_path: base_dir.join("results.jsonl"),
         }
     }
 

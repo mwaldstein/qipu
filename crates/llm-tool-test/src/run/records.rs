@@ -1,5 +1,4 @@
 use crate::evaluation::EvaluationMetrics;
-use crate::fixture::TestEnv;
 use crate::output;
 use crate::results::{Cache, CacheKey, EvaluationMetricsRecord, ResultRecord, ResultsDB};
 use crate::scenario::Scenario;
@@ -140,25 +139,17 @@ pub fn finalize_execution(
     cache: &Cache,
     cache_key: &CacheKey,
     record: &ResultRecord,
-    transcript_dir: &PathBuf,
-    env: &TestEnv,
-    tool: &str,
-    model: &str,
-    scenario_name: &str,
+    results_dir: &PathBuf,
     setup_success: bool,
 ) -> anyhow::Result<ResultRecord> {
-    use crate::run::transcript::save_artifacts;
-
     results_db.append(record)?;
     cache.put(cache_key, record)?;
-
-    let results_dir = save_artifacts(transcript_dir, env, tool, model, scenario_name)?;
 
     let metrics_json = serde_json::to_string_pretty(&record.metrics)?;
     std::fs::write(results_dir.join("metrics.json"), metrics_json)?;
 
     println!("\nRun completed: {}", record.id);
-    println!("Transcript written to: {}", record.transcript_path);
+    println!("Artifacts written to: {}", results_dir.display());
 
     if !setup_success {
         println!("\nWarning: Setup commands failed. Results may be invalid.");

@@ -2,6 +2,7 @@ use crate::adapter::{TokenUsage, ToolAdapter};
 use crate::evaluation::EvaluationMetrics;
 use crate::fixture::TestEnv;
 use crate::scenario::Scenario;
+use crate::transcript::TranscriptWriter;
 
 pub fn execute_tool(
     adapter: &Box<dyn ToolAdapter>,
@@ -39,6 +40,8 @@ pub fn create_adapter_and_check(tool: &str) -> anyhow::Result<Box<dyn ToolAdapte
     Ok(adapter)
 }
 
+use std::path::Path;
+
 pub fn run_evaluation_flow(
     adapter: &Box<dyn ToolAdapter>,
     s: &Scenario,
@@ -47,6 +50,8 @@ pub fn run_evaluation_flow(
     model: &str,
     effective_timeout: u64,
     no_judge: bool,
+    writer: &TranscriptWriter,
+    transcript_dir: &Path,
 ) -> anyhow::Result<(
     String,
     i32,
@@ -59,8 +64,18 @@ pub fn run_evaluation_flow(
         execute_tool(adapter, s, env, tool, model, effective_timeout)?;
     let duration = std::time::Instant::now().elapsed();
 
+    // Write transcript immediately after execution so evaluation can read it
+    writer.write_raw(&output)?;
+    writer.append_event(&serde_json::json!({
+        "type": "execution",
+        "tool": tool,
+        "output": &output,
+        "exit_code": exit_code,
+        "cost_usd": cost
+    }))?;
+
     println!("Running evaluation...");
-    let metrics = crate::evaluation::evaluate(s, &env.root, no_judge)?;
+    let metrics = crate::evaluation::evaluate(s, transcript_dir, no_judge)?;
     println!("Evaluation metrics: {:?}", metrics);
 
     Ok((output, exit_code, cost, token_usage, duration, metrics))

@@ -7,14 +7,21 @@ use std::path::PathBuf;
 
 pub struct TranscriptWriter {
     pub base_dir: PathBuf,
+    pub results_dir: PathBuf,
 }
 
 impl TranscriptWriter {
-    pub fn new(base_dir: PathBuf) -> anyhow::Result<Self> {
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir)?;
+    pub fn new(artifacts_dir: PathBuf, results_dir: PathBuf) -> anyhow::Result<Self> {
+        if !artifacts_dir.exists() {
+            fs::create_dir_all(&artifacts_dir)?;
         }
-        Ok(Self { base_dir })
+        if !results_dir.exists() {
+            fs::create_dir_all(&results_dir)?;
+        }
+        Ok(Self {
+            base_dir: artifacts_dir,
+            results_dir,
+        })
     }
 
     pub fn write_raw(&self, content: &str) -> anyhow::Result<()> {
@@ -274,7 +281,7 @@ impl TranscriptWriter {
         self.write_efficiency_section(report, &mut content);
         self.write_quality_section(report, &mut content);
 
-        fs::write(self.base_dir.join("report.md"), content)?;
+        fs::write(self.results_dir.join("report.md"), content)?;
         Ok(())
     }
 
@@ -332,7 +339,7 @@ impl TranscriptWriter {
         content.push_str("- [Fixture](../fixture/)\n");
         content.push_str("- [Store Snapshot](store_snapshot/export.json)\n");
 
-        fs::write(self.base_dir.join("evaluation.md"), content)?;
+        fs::write(self.results_dir.join("evaluation.md"), content)?;
         Ok(())
     }
 }

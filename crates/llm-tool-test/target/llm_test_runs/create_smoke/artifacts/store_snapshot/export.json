@@ -1,8 +1,0 @@
-H pack=1 version=1.0 store_version=1 created=2026-01-26T00:00:12.113134814+00:00 store=/home/micah/dev/qipu/crates/llm-tool-test/target/llm_test_runs/create_smoke/.qipu notes=2 links=0 attachments=0
-N qp-bae5 fleeting "Mock Note 1" tags=- created=2026-01-26T00:00:10.494337201+00:00 updated=-
-C IyMgU3VtbWFyeQoKPCEtLSBPbmUtc2VudGVuY2Ugc3VtbWFyeSBvZiB0aGlzIHRob3VnaHQgLS0+CgojIyBOb3RlcwoKPCEtLSBRdWljayBjYXB0dXJlIC0gcmVmaW5lIGxhdGVyIC0tPgo=
-C-END
-N qp-30f8 fleeting "Search Result - Test Note" tags=- created=2026-01-26T00:00:11.332772620+00:00 updated=-
-C IyMgU3VtbWFyeQoKPCEtLSBPbmUtc2VudGVuY2Ugc3VtbWFyeSBvZiB0aGlzIHRob3VnaHQgLS0+CgojIyBOb3RlcwoKPCEtLSBRdWljayBjYXB0dXJlIC0gcmVmaW5lIGxhdGVyIC0tPgo=
-C-END
-END

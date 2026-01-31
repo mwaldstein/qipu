@@ -5,7 +5,7 @@ use std::fs;
 #[test]
 fn test_write_report_basic() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let report = RunReport {
         scenario_id: "test_scenario".to_string(),
@@ -58,7 +58,7 @@ fn test_write_report_basic() {
 #[test]
 fn test_write_evaluation_basic() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let evaluation = EvaluationReport {
         scenario_id: "test_scenario".to_string(),
@@ -117,7 +117,7 @@ fn test_write_evaluation_basic() {
 #[test]
 fn test_write_evaluation_without_judge_score() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let evaluation = EvaluationReport {
         scenario_id: "test_scenario".to_string(),

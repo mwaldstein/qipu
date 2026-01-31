@@ -107,15 +107,8 @@ fn test_doctor_passes_gate_fail_after_delete() {
 fn test_no_transcript_errors_gate_pass() {
     let (_dir, env_root) = setup_env();
 
-    let artifacts_dir = env_root.join("artifacts");
-    std::fs::create_dir_all(&artifacts_dir).unwrap();
-
     let transcript_no_errors = "qipu create --title 'Test'\nqp-abc123\nqipu list\n...";
-    std::fs::write(
-        artifacts_dir.join("transcript.raw.txt"),
-        transcript_no_errors,
-    )
-    .unwrap();
+    std::fs::write(env_root.join("transcript.raw.txt"), transcript_no_errors).unwrap();
 
     let scenario = create_test_scenario(Gate::NoTranscriptErrors);
     let metrics = evaluate(&scenario, &env_root, false).unwrap();
@@ -127,15 +120,8 @@ fn test_no_transcript_errors_gate_pass() {
 fn test_no_transcript_errors_gate_fail_with_errors() {
     let (_dir, env_root) = setup_env();
 
-    let artifacts_dir = env_root.join("artifacts");
-    std::fs::create_dir_all(&artifacts_dir).unwrap();
-
     let transcript_with_errors = "qipu create --title 'Test'\nError: invalid input\nExit code: 1\nqipu create --title 'Test 2'\nqp-abc123";
-    std::fs::write(
-        artifacts_dir.join("transcript.raw.txt"),
-        transcript_with_errors,
-    )
-    .unwrap();
+    std::fs::write(env_root.join("transcript.raw.txt"), transcript_with_errors).unwrap();
 
     let scenario = create_test_scenario(Gate::NoTranscriptErrors);
     let metrics = evaluate(&scenario, &env_root, false).unwrap();

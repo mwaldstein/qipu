@@ -36,7 +36,10 @@ pub fn run_single_scenario(
 
     let qipu_version = crate::results::get_qipu_version()?;
 
-    let (env, scenario_yaml, prompt) = setup_scenario_env(s)?;
+    let results_dir = crate::run::utils::get_results_dir(tool, model, &s.name);
+    std::fs::create_dir_all(&results_dir)?;
+
+    let (env, scenario_yaml, prompt) = setup_scenario_env(s, &results_dir)?;
     let prime_output = env.get_prime_output();
     let cache_key = compute_cache_key(
         &scenario_yaml,
@@ -62,10 +65,19 @@ pub fn run_single_scenario(
     let adapter = create_adapter_and_check(tool)?;
 
     let (transcript_dir, writer, setup_success, setup_commands) =
-        prepare_writer_and_setup(&env, &s, effective_timeout)?;
+        prepare_writer_and_setup(&results_dir, &env, &s, effective_timeout)?;
 
-    let (output, exit_code, cost, token_usage, duration, metrics) =
-        run_evaluation_flow(&adapter, s, &env, tool, model, effective_timeout, no_judge)?;
+    let (output, exit_code, cost, token_usage, duration, metrics) = run_evaluation_flow(
+        &adapter,
+        s,
+        &env,
+        tool,
+        model,
+        effective_timeout,
+        no_judge,
+        &writer,
+        &transcript_dir,
+    )?;
 
     let outcome = determine_outcome(&metrics);
 
@@ -107,11 +119,7 @@ pub fn run_single_scenario(
         cache,
         &cache_key,
         &record,
-        &transcript_dir,
-        &env,
-        tool,
-        model,
-        &s.name,
+        &results_dir,
         setup_success,
     )
 }

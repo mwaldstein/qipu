@@ -32,7 +32,6 @@ tests/transcripts/
 # LLM tool test results
 llm-tool-test-results/
 
-
 .beads/export-state
 
 # Python cache files

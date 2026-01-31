@@ -1,7 +1,7 @@
 use crate::run::utils::copy_dir_recursive;
 use crate::utils::resolve_fixtures_path;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 pub struct TestEnv {
@@ -9,10 +9,7 @@ pub struct TestEnv {
 }
 
 impl TestEnv {
-    pub fn new(scenario_name: &str) -> anyhow::Result<Self> {
-        // Use a timestamp or unique ID to avoid conflicts if running in parallel,
-        // but for now, deterministic path is fine for debugging.
-        let root = Path::new("target/llm_test_runs").join(scenario_name);
+    pub fn new(root: PathBuf) -> anyhow::Result<Self> {
         if root.exists() {
             fs::remove_dir_all(&root)?;
         }

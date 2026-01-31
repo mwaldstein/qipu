@@ -1,1 +1,0 @@
-{"cost_usd":0.0,"exit_code":0,"output":"qipu init\nInitialized qipu store at /home/micah/dev/qipu/crates/llm-tool-test/target/llm_test_runs/create_smoke/.qipu\r\nqipu create 'Mock Note 1'\nqp-bae5\r\n\nqipu create 'Search Result - Test Note'\nqp-30f8\r\n","tool":"mock","type":"execution"}

@@ -83,19 +83,13 @@ pub fn build_tool_matrix(
 }
 
 fn main() -> anyhow::Result<()> {
-    if std::env::var("LLM_TOOL_TEST_ENABLED").as_deref() != Ok("1") {
-        anyhow::bail!(
-            "LLM tool test runs require LLM_TOOL_TEST_ENABLED=1 to be set as a safety measure.\n\
-             This prevents accidental expensive LLM API calls.\n\
-             \n\
-             To run tests, set:\n\
-             export LLM_TOOL_TEST_ENABLED=1"
-        );
-    }
-
     let cli = Cli::parse();
 
-    let base_dir = std::path::PathBuf::from("target/llm_test_runs");
+    // Use the configured results path for cache and database
+    let config = crate::config::Config::load_or_default();
+    let base_dir = std::path::PathBuf::from(config.get_results_path());
+    // Ensure the base directory exists
+    std::fs::create_dir_all(&base_dir).ok();
     let results_db = ResultsDB::new(&base_dir);
     let cache = Cache::new(&base_dir);
 
@@ -116,6 +110,17 @@ fn main() -> anyhow::Result<()> {
             timeout_secs,
             max_usd,
         } => {
+            // Safety check: only run tests when explicitly enabled
+            if std::env::var("LLM_TOOL_TEST_ENABLED").as_deref() != Ok("1") {
+                anyhow::bail!(
+                    "LLM tool test runs require LLM_TOOL_TEST_ENABLED=1 to be set as a safety measure.\n\
+                     This prevents accidental expensive LLM API calls.\n\
+                     \n\
+                     To run tests, set:\n\
+                     export LLM_TOOL_TEST_ENABLED=1"
+                );
+            }
+
             // Get session budget: CLI flag takes precedence over env var
             let session_budget = max_usd.or_else(|| {
                 std::env::var("LLM_TOOL_TEST_BUDGET_USD")

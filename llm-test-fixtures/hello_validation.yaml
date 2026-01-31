@@ -1,0 +1,21 @@
+name: hello_validation
+description: "Basic tool validation - verifies LLM tool communication without qipu operations"
+template_folder: hello
+tier: 0
+tags: [validation, smoke]
+tool_matrix:
+  - tool: opencode
+    models:
+      - zai-coding-plan/glm-4.7-flash
+task:
+  prompt: |
+    Hello! Please respond with exactly this message:
+    
+    "Hello, I am <YOUR_NAME> and I received your message. <CODE>Complete</CODE>"
+    
+    Replace <YOUR_NAME> with your tool name (e.g., opencode, claude-code, etc.)
+evaluation:
+  gates:
+    - type: no_transcript_errors
+run:
+  timeout_secs: 60

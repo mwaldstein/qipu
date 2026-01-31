@@ -79,7 +79,7 @@ fn test_scenarios_command_no_fixtures() {
 fn test_scenarios_command_with_fixtures() {
     let dir = tempdir().unwrap();
 
-    let fixtures_dir = dir.path().join("fixtures");
+    let fixtures_dir = dir.path().join("llm-test-fixtures");
     fs::create_dir_all(&fixtures_dir).unwrap();
 
     let scenario_content = r#"
@@ -112,7 +112,7 @@ evaluation:
 fn test_scenarios_command_with_tags_filter() {
     let dir = tempdir().unwrap();
 
-    let fixtures_dir = dir.path().join("fixtures");
+    let fixtures_dir = dir.path().join("llm-test-fixtures");
     fs::create_dir_all(&fixtures_dir).unwrap();
 
     let scenario1_content = r#"

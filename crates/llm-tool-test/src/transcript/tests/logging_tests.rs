@@ -4,7 +4,7 @@ use std::fs;
 #[test]
 fn test_log_spawn_basic() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let result = writer.log_spawn("qipu", &["init".to_string()]);
     assert!(result.is_ok());
@@ -24,7 +24,7 @@ fn test_log_spawn_basic() {
 #[test]
 fn test_log_spawn_with_multiple_args() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let args = vec![
         "--title".to_string(),
@@ -51,7 +51,7 @@ fn test_log_spawn_with_multiple_args() {
 #[test]
 fn test_log_spawn_empty_args() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_spawn("qipu", &[]).unwrap();
 
@@ -68,7 +68,7 @@ fn test_log_spawn_empty_args() {
 #[test]
 fn test_log_spawn_creates_events_file() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_spawn("test", &["arg1".to_string()]).unwrap();
 
@@ -87,7 +87,7 @@ fn test_log_spawn_creates_events_file() {
 #[test]
 fn test_log_output_basic() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let result = writer.log_output("Some output text\n");
     assert!(result.is_ok());
@@ -104,7 +104,7 @@ fn test_log_output_basic() {
 #[test]
 fn test_log_output_multiline() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let text = "Line 1\nLine 2\nLine 3\n";
     writer.log_output(text).unwrap();
@@ -119,7 +119,7 @@ fn test_log_output_multiline() {
 #[test]
 fn test_log_output_empty() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_output("").unwrap();
 
@@ -134,7 +134,7 @@ fn test_log_output_empty() {
 #[test]
 fn test_log_output_with_special_chars() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let text = "Output with special chars: \t\n\r\"'\\";
     writer.log_output(text).unwrap();
@@ -150,7 +150,7 @@ fn test_log_output_with_special_chars() {
 #[test]
 fn test_log_complete_basic() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     let result = writer.log_complete(0, 45.5);
     assert!(result.is_ok());
@@ -168,7 +168,7 @@ fn test_log_complete_basic() {
 #[test]
 fn test_log_complete_nonzero_exit() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_complete(1, 30.0).unwrap();
 
@@ -183,7 +183,7 @@ fn test_log_complete_nonzero_exit() {
 #[test]
 fn test_log_complete_negative_exit() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_complete(-1, 0.5).unwrap();
 
@@ -197,7 +197,7 @@ fn test_log_complete_negative_exit() {
 #[test]
 fn test_log_complete_fractional_duration() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_complete(0, 123.456).unwrap();
 
@@ -212,7 +212,7 @@ fn test_log_complete_fractional_duration() {
 #[test]
 fn test_log_multiple_events() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_spawn("qipu", &["init".to_string()]).unwrap();
     writer.log_output("Initializing store...\n").unwrap();
@@ -229,7 +229,7 @@ fn test_log_multiple_events() {
 #[test]
 fn test_log_events_append() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_spawn("cmd1", &[]).unwrap();
     writer.log_output("output1").unwrap();
@@ -249,7 +249,7 @@ fn test_log_events_append() {
 #[test]
 fn test_log_spawn_timestamp_increasing() {
     let dir = tempfile::tempdir().unwrap();
-    let writer = TranscriptWriter::new(dir.path().to_path_buf()).unwrap();
+    let writer = TranscriptWriter::new(dir.path().to_path_buf(), dir.path().to_path_buf()).unwrap();
 
     writer.log_spawn("cmd1", &[]).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(10));

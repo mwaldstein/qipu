@@ -1,15 +1,16 @@
 use crate::fixture::TestEnv;
 use crate::scenario::{Scenario, Setup};
 use crate::transcript::TranscriptWriter;
+use crate::utils::resolve_fixtures_path;
 use std::path::PathBuf;
 
-pub fn setup_scenario_env(s: &Scenario) -> anyhow::Result<(TestEnv, String, String)> {
-    let fixtures_path = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
-        "crates/llm-tool-test/fixtures"
-    } else {
-        "fixtures"
-    };
-    let scenario_path = format!("{}/{}.yaml", fixtures_path, s.name);
+pub fn setup_scenario_env(
+    s: &Scenario,
+    results_dir: &PathBuf,
+) -> anyhow::Result<(TestEnv, String, String)> {
+    let fixtures_path = resolve_fixtures_path("");
+    let fixtures_path_str = fixtures_path.to_str().unwrap_or("llm-test-fixtures");
+    let scenario_path = format!("{}/{}.yaml", fixtures_path_str, s.name);
     let scenario_yaml = std::fs::read_to_string(&scenario_path)?;
     let prompt = s.task.prompt.clone();
 
@@ -17,7 +18,8 @@ pub fn setup_scenario_env(s: &Scenario) -> anyhow::Result<(TestEnv, String, Stri
         "Setting up environment for template folder: {}",
         s.template_folder
     );
-    let env = TestEnv::new(&s.name)?;
+    let env_root = results_dir.join("fixture");
+    let env = TestEnv::new(env_root)?;
     env.setup_fixture(&s.template_folder)?;
     println!("Environment created at: {:?}", env.root);
 
@@ -65,13 +67,14 @@ pub fn execute_setup_commands(
 }
 
 pub fn prepare_writer_and_setup(
+    results_dir: &PathBuf,
     env: &TestEnv,
     s: &Scenario,
     effective_timeout: u64,
 ) -> anyhow::Result<(PathBuf, TranscriptWriter, bool, Vec<(String, bool, String)>)> {
-    let transcript_dir = env.root.join("artifacts");
-    std::fs::create_dir_all(&transcript_dir)?;
-    let writer = TranscriptWriter::new(transcript_dir.clone())?;
+    let artifacts_dir = results_dir.join("artifacts");
+    std::fs::create_dir_all(&artifacts_dir)?;
+    let writer = TranscriptWriter::new(artifacts_dir.clone(), results_dir.clone())?;
 
     let (setup_success, setup_commands) = if let Some(setup) = &s.setup {
         execute_setup_commands(setup, env, &writer, effective_timeout)?
@@ -79,5 +82,5 @@ pub fn prepare_writer_and_setup(
         (true, vec![])
     };
 
-    Ok((transcript_dir, writer, setup_success, setup_commands))
+    Ok((artifacts_dir, writer, setup_success, setup_commands))
 }

@@ -11,6 +11,10 @@ pub struct ModelPricingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     pub models: std::collections::HashMap<String, ModelPricingConfig>,
+    #[serde(default)]
+    pub fixtures_path: Option<String>,
+    #[serde(default)]
+    pub results_path: Option<String>,
 }
 
 #[allow(dead_code)]
@@ -74,7 +78,19 @@ impl Config {
     pub fn with_defaults() -> Self {
         Config {
             models: Self::build_default_models(),
+            fixtures_path: None,
+            results_path: None,
         }
+    }
+
+    pub fn get_fixtures_path(&self) -> &str {
+        self.fixtures_path.as_deref().unwrap_or("llm-test-fixtures")
+    }
+
+    pub fn get_results_path(&self) -> &str {
+        self.results_path
+            .as_deref()
+            .unwrap_or("llm-tool-test-results")
     }
 
     pub fn get_model_pricing(&self, model: &str) -> Option<crate::pricing::ModelPricing> {

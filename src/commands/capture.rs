@@ -29,12 +29,12 @@ pub fn execute(
     cli: &Cli,
     store: &Store,
     title: Option<&str>,
-    note_type: Option<NoteType>,
+    note_type: Option<&NoteType>,
     tags: &[String],
-    source: Option<String>,
-    author: Option<String>,
-    generated_by: Option<String>,
-    prompt_hash: Option<String>,
+    source: Option<&str>,
+    author: Option<&str>,
+    generated_by: Option<&str>,
+    prompt_hash: Option<&str>,
     verified: Option<bool>,
     id: Option<&str>,
 ) -> Result<()> {
@@ -62,7 +62,9 @@ pub fn execute(
     }
 
     // Default type is fleeting for captures (per spec open question)
-    let note_type = note_type.or(Some(NoteType::from(NoteType::FLEETING)));
+    let note_type = note_type
+        .cloned()
+        .or(Some(NoteType::from(NoteType::FLEETING)));
 
     // Validate note type against active ontology
     if let Some(ref nt) = note_type {

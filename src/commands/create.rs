@@ -73,14 +73,14 @@ pub fn execute(
     cli: &Cli,
     store: &Store,
     title: &str,
-    note_type: Option<NoteType>,
+    note_type: Option<&NoteType>,
     tags: &[String],
     open: bool,
-    id: Option<String>,
-    source: Option<String>,
-    author: Option<String>,
-    generated_by: Option<String>,
-    prompt_hash: Option<String>,
+    id: Option<&str>,
+    source: Option<&str>,
+    author: Option<&str>,
+    generated_by: Option<&str>,
+    prompt_hash: Option<&str>,
     verified: Option<bool>,
 ) -> Result<()> {
     let start = Instant::now();
@@ -90,11 +90,11 @@ pub fn execute(
     }
 
     // Validate note type against active ontology
-    if let Some(ref nt) = note_type {
+    if let Some(nt) = note_type {
         store.config().validate_note_type(nt.as_str())?;
     }
 
-    let mut note = store.create_note(title, note_type, tags, id.as_deref())?;
+    let mut note = store.create_note(title, note_type.cloned(), tags, id)?;
 
     if cli.verbose {
         debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");

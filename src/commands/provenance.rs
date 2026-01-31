@@ -5,11 +5,11 @@ use qipu_core::note::Note;
 use qipu_core::store::Store;
 
 /// Optional provenance fields for note updates
-pub struct ProvenanceUpdate {
-    pub source: Option<String>,
-    pub author: Option<String>,
-    pub generated_by: Option<String>,
-    pub prompt_hash: Option<String>,
+pub struct ProvenanceUpdate<'a> {
+    pub source: Option<&'a str>,
+    pub author: Option<&'a str>,
+    pub generated_by: Option<&'a str>,
+    pub prompt_hash: Option<&'a str>,
     pub verified: Option<bool>,
 }
 
@@ -26,10 +26,10 @@ pub struct ProvenanceUpdate {
 ///
 /// # Returns
 /// `Ok(true)` if any provenance fields were updated and saved, `Ok(false)` otherwise
-pub fn update_provenance_if_provided(
+pub fn update_provenance_if_provided<'a>(
     store: &Store,
     note: &mut Note,
-    update: ProvenanceUpdate,
+    update: ProvenanceUpdate<'a>,
     is_capture: bool,
 ) -> Result<bool> {
     let has_source = update.source.is_some();
@@ -45,18 +45,18 @@ pub fn update_provenance_if_provided(
         return Ok(false);
     }
 
-    note.frontmatter.source = update.source;
+    note.frontmatter.source = update.source.map(|s| s.to_string());
 
     note.frontmatter.author = if update.author.is_some() {
-        update.author
+        update.author.map(|s| s.to_string())
     } else if is_capture && has_source {
         Some("Qipu Clipper".to_string())
     } else {
         None
     };
 
-    note.frontmatter.generated_by = update.generated_by;
-    note.frontmatter.prompt_hash = update.prompt_hash;
+    note.frontmatter.generated_by = update.generated_by.map(|s| s.to_string());
+    note.frontmatter.prompt_hash = update.prompt_hash.map(|s| s.to_string());
 
     note.frontmatter.verified = if update.verified.is_some() {
         update.verified

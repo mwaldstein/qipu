@@ -27,14 +27,14 @@ pub(super) fn handle_create(
         cli,
         &store,
         &args.title,
-        args.r#type.clone(),
+        args.r#type.as_ref(),
         &args.tag,
         args.open,
-        args.id.clone(),
-        args.source.clone(),
-        args.author.clone(),
-        args.generated_by.clone(),
-        args.prompt_hash.clone(),
+        args.id.as_deref(),
+        args.source.as_deref(),
+        args.author.as_deref(),
+        args.generated_by.as_deref(),
+        args.prompt_hash.as_deref(),
         args.verified,
     )?;
     trace_command!(cli, start, "execute_command");
@@ -215,34 +215,34 @@ fn output_inbox_notes(
     Ok(())
 }
 
-pub struct CaptureOptions {
-    pub title: Option<String>,
-    pub note_type: Option<qipu_core::note::NoteType>,
-    pub tags: Vec<String>,
-    pub source: Option<String>,
-    pub author: Option<String>,
-    pub generated_by: Option<String>,
-    pub prompt_hash: Option<String>,
+pub struct CaptureOptions<'a> {
+    pub title: Option<&'a str>,
+    pub note_type: Option<&'a qipu_core::note::NoteType>,
+    pub tags: &'a [String],
+    pub source: Option<&'a str>,
+    pub author: Option<&'a str>,
+    pub generated_by: Option<&'a str>,
+    pub prompt_hash: Option<&'a str>,
     pub verified: Option<bool>,
-    pub id: Option<String>,
+    pub id: Option<&'a str>,
     pub start: Instant,
 }
 
-pub(super) fn handle_capture(cli: &Cli, root: &Path, opts: CaptureOptions) -> Result<()> {
+pub(super) fn handle_capture<'a>(cli: &Cli, root: &Path, opts: CaptureOptions<'a>) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     trace_command!(cli, opts.start, "discover_store");
     commands::capture::execute(
         cli,
         &store,
-        opts.title.as_deref(),
+        opts.title,
         opts.note_type,
-        &opts.tags,
+        opts.tags,
         opts.source,
         opts.author,
         opts.generated_by,
         opts.prompt_hash,
         opts.verified,
-        opts.id.as_deref(),
+        opts.id,
     )?;
     trace_command!(cli, opts.start, "execute_command");
     Ok(())
@@ -258,15 +258,15 @@ pub(super) fn execute_capture_from_args(
         cli,
         root,
         CaptureOptions {
-            title: args.title.clone(),
-            note_type: args.r#type.clone(),
-            tags: args.tag.clone(),
-            source: args.source.clone(),
-            author: args.author.clone(),
-            generated_by: args.generated_by.clone(),
-            prompt_hash: args.prompt_hash.clone(),
+            title: args.title.as_deref(),
+            note_type: args.r#type.as_ref(),
+            tags: &args.tag,
+            source: args.source.as_deref(),
+            author: args.author.as_deref(),
+            generated_by: args.generated_by.as_deref(),
+            prompt_hash: args.prompt_hash.as_deref(),
             verified: args.verified,
-            id: args.id.clone(),
+            id: args.id.as_deref(),
             start,
         },
     )
@@ -283,7 +283,7 @@ pub(super) fn execute_update_from_args(
         root,
         &args.id_or_path,
         args.title.as_deref(),
-        args.r#type.clone(),
+        args.r#type.as_ref(),
         &args.tag,
         &args.remove_tag,
         args.value,
@@ -374,7 +374,7 @@ pub(super) fn handle_update(
     root: &Path,
     id_or_path: &str,
     title: Option<&str>,
-    note_type: Option<qipu_core::note::NoteType>,
+    note_type: Option<&qipu_core::note::NoteType>,
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,

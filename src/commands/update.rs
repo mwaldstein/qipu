@@ -80,7 +80,7 @@ pub fn execute(
     store: &Store,
     id_or_path: &str,
     title: Option<&str>,
-    note_type: Option<qipu_core::note::NoteType>,
+    note_type: Option<&qipu_core::note::NoteType>,
     tags: &[String],
     remove_tags: &[String],
     value: Option<u8>,
@@ -120,11 +120,11 @@ pub fn execute(
 
     // Update type if provided
     if let Some(new_type) = note_type {
-        note.frontmatter.note_type = Some(new_type.clone());
+        note.frontmatter.note_type = Some((*new_type).clone());
         modified = true;
 
         if let Some(path) = &note.path {
-            note.path = Some(move_note_to_type_directory(path, &new_type, store)?);
+            note.path = Some(move_note_to_type_directory(path, new_type, store)?);
         }
     }
 

@@ -34,7 +34,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`value-model.md`](value-model.md) | Ranking | Note importance/quality scores and weighted traversal |
 | [`distribution.md`](distribution.md) | Distribution | Installation methods and release automation |
 | [`custom-metadata.md`](custom-metadata.md) | Metadata | Application-specific metadata in frontmatter |
-| [`telemetry.md`](telemetry.md) | Telemetry | DRAFT - usage analytics (not implemented) |
+| [`telemetry.md`](telemetry.md) | Telemetry | Approved - local collection ready, endpoint pending |
 
 ## Status Tracking
 
@@ -68,7 +68,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
 | `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts work; release workflow disabled; SHA256SUMS format incorrect |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
-| `telemetry.md` | DRAFT | ❌ | ❌ | Explicitly marked "DO NOT IMPLEMENT" |
+| `telemetry.md` | ✅ | ❌ | ❌ | Approved; remote endpoint pending |
 
 ## Legend
 

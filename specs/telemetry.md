@@ -1,8 +1,6 @@
-# Telemetry (DRAFT)
+# Telemetry
 
-> **WARNING: DRAFT STATUS**
-> This specification is currently in DRAFT status. DO NOT IMPLEMENT until finalized.
-> The design below is for discussion purposes only.
+> **Implementation Status**: Approved for implementation. Remote endpoint not yet available - implement local collection and stub transmission layer.
 
 ## Overview
 

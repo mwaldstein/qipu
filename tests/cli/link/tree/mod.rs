@@ -4,6 +4,7 @@ mod custom_cost_override;
 mod custom_cost_value;
 mod cycles;
 mod direction;
+mod expand_compaction;
 mod format;
 mod min_value;
 mod semantic_inversion;

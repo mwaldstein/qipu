@@ -1,9 +1,9 @@
 mod add;
 mod compaction;
-mod expand_compaction;
 mod ignore_value;
 mod list;
 mod path;
+mod path_expand_compaction;
 mod remove;
 mod semantic_inversion;
 mod tree;

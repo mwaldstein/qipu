@@ -1,3 +1,8 @@
+//! Index command integration tests
+//!
+//! Tests for note indexing including incremental updates, rebuild,
+//! link extraction, and stemming configuration.
+
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;

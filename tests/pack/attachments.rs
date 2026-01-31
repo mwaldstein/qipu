@@ -1,3 +1,8 @@
+//! Pack/unpack attachment handling tests
+//!
+//! Tests for packing and unpacking attachments with notes, including
+//! multi-attachment scenarios and --no-attachments flag behavior.
+
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use std::fs;

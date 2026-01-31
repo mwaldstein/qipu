@@ -1,3 +1,8 @@
+//! Progressive disclosure workflow tests
+//!
+//! Tests for prime (index-only) and context (full body) commands,
+//! demonstrating efficient loading of note metadata without full content.
+
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
 

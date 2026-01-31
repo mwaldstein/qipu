@@ -1,3 +1,8 @@
+//! Pack/unpack basic functionality tests
+//!
+//! Tests for packing and unpacking notes using JSON and Records formats,
+//! including preservation of typed links and metadata.
+
 #[path = "../common.rs"]
 mod common;
 

@@ -1,3 +1,8 @@
+//! Init command integration tests
+//!
+//! Tests for store initialization including stealth mode, git branch workflow,
+//! and cache migration behavior.
+
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use tempfile::tempdir;

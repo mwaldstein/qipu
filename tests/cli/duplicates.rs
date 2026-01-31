@@ -1,3 +1,8 @@
+//! Duplicate detection tests
+//!
+//! Tests for the doctor command's --duplicates flag, including
+//! threshold configuration, stop word filtering, and field weighting.
+
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 

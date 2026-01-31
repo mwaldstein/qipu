@@ -5,13 +5,13 @@
 //! - <200ms for list with ~1k notes
 //! - <1s for search over ~10k notes
 
-mod common;
+mod support;
 
 use predicates::prelude::*;
 use std::time::Instant;
 use tempfile::tempdir;
 
-use common::{create_test_store_with_notes, qipu};
+use crate::support::{create_test_store_with_notes, qipu};
 
 // ============================================================================
 // Help and Version Performance Tests (<100ms)

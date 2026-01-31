@@ -2,6 +2,7 @@ use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use std::fs;
 use std::path::Path;
 use std::process::Output;
+use std::time::Instant;
 use tempfile::TempDir;
 
 /// Get a Command for qipu
@@ -272,4 +273,49 @@ pub fn create_link_with_env(store_path: &Path, from_id: &str, to_id: &str, link_
         .env("QIPU_STORE", store_path)
         .assert()
         .success();
+}
+
+/// Benchmark result struct
+#[allow(dead_code)]
+pub struct BenchmarkResult {
+    pub duration_secs: f64,
+    pub notes_per_sec: f64,
+}
+
+/// Helper to run benchmark and return results
+#[allow(dead_code)]
+pub fn run_index_benchmark(store_dir: &Path, force: bool) -> BenchmarkResult {
+    let start = Instant::now();
+
+    let mut cmd = qipu();
+    cmd.arg("--store").arg(store_dir).arg("index");
+    if force {
+        cmd.arg("--rebuild");
+    }
+    cmd.assert().success();
+
+    let duration = start.elapsed();
+    let duration_secs = duration.as_secs_f64();
+
+    let notes_dir = store_dir.join(".qipu/notes");
+    let mocs_dir = store_dir.join(".qipu/mocs");
+    let note_count = walkdir::WalkDir::new(&notes_dir)
+        .into_iter()
+        .filter_entry(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+        .count()
+        + walkdir::WalkDir::new(&mocs_dir)
+            .into_iter()
+            .filter_entry(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+            .count();
+
+    let notes_per_sec = if duration_secs > 0.0 {
+        note_count as f64 / duration_secs
+    } else {
+        0.0
+    };
+
+    BenchmarkResult {
+        duration_secs,
+        notes_per_sec,
+    }
 }

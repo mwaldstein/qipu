@@ -1,18 +1,6 @@
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
-use std::process::Output;
 use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
-
-fn extract_id(output: &Output) -> String {
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .next()
-        .map(|s| s.to_string())
-        .unwrap_or_default()
-}
+use crate::support::{extract_id, qipu};
 
 #[test]
 fn test_workspace_merge_rename_strategy_preserves_unique_notes() {

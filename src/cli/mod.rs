@@ -15,6 +15,7 @@ pub mod parse;
 pub mod paths;
 pub mod store;
 pub mod tags;
+pub mod telemetry;
 pub mod value;
 pub mod workspace;
 

@@ -8,6 +8,7 @@ use crate::cli::link::LinkCommands;
 use crate::cli::ontology::OntologyCommands;
 use crate::cli::store::StoreCommands;
 use crate::cli::tags::TagsCommands;
+use crate::cli::telemetry::TelemetryCommands;
 use crate::cli::value::ValueCommands;
 use crate::cli::workspace::WorkspaceCommands;
 
@@ -140,4 +141,10 @@ pub struct StoreSubcommand {
 pub struct OntologySubcommand {
     #[command(subcommand)]
     pub command: OntologyCommands,
+}
+
+#[derive(Args, Debug)]
+pub struct TelemetrySubcommand {
+    #[command(subcommand)]
+    pub command: TelemetryCommands,
 }

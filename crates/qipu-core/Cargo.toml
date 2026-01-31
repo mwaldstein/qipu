@@ -29,6 +29,7 @@ ulid = "1"
 
 # File system utilities
 walkdir = "2"
+dirs = "5"
 
 # Slug generation
 slug = "0.1"

@@ -105,4 +105,7 @@ pub enum Commands {
 
     /// Manage and display ontology configuration
     Ontology(OntologySubcommand),
+
+    /// Manage anonymous usage analytics
+    Telemetry(TelemetrySubcommand),
 }

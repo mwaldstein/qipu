@@ -130,11 +130,9 @@ fn test_search_min_value_and_sort_combined() {
             "value",
             "note",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();

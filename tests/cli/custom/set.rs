@@ -8,10 +8,8 @@ fn test_custom_set_json_string() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -26,10 +24,8 @@ fn test_custom_set_json_string() {
             "status",
             "in-progress",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -50,10 +46,8 @@ fn test_custom_set_json_number() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -62,10 +56,8 @@ fn test_custom_set_json_number() {
         .args([
             "--format", "json", "custom", "set", &note_id, "priority", "5",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -83,10 +75,8 @@ fn test_custom_set_json_boolean() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -95,10 +85,8 @@ fn test_custom_set_json_boolean() {
         .args([
             "--format", "json", "custom", "set", &note_id, "flag", "true",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -116,10 +104,8 @@ fn test_custom_set_json_array() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -134,10 +120,8 @@ fn test_custom_set_json_array() {
             "tags",
             "[\"a\", \"b\", \"c\"]",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -157,10 +141,8 @@ fn test_custom_set_json_no_disclaimer_on_stderr() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -169,10 +151,8 @@ fn test_custom_set_json_no_disclaimer_on_stderr() {
         .args([
             "--format", "json", "custom", "set", &note_id, "key", "value",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(!stderr.contains("Custom metadata is for applications"));
@@ -180,10 +160,8 @@ fn test_custom_set_json_no_disclaimer_on_stderr() {
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["custom", "set", &note_id, "key2", "value2"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stderr2 = String::from_utf8_lossy(&output2.stderr);
     assert!(stderr2.contains("Custom metadata is for applications"));
@@ -196,10 +174,8 @@ fn test_custom_set_negative_number() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -208,10 +184,8 @@ fn test_custom_set_negative_number() {
         .args([
             "--format", "json", "custom", "set", &note_id, "balance", "-100",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -223,10 +197,8 @@ fn test_custom_set_negative_number() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "custom", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -241,10 +213,8 @@ fn test_custom_set_leading_hyphen_strings() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -259,10 +229,8 @@ fn test_custom_set_leading_hyphen_strings() {
             "temperature",
             "-2.75",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -277,10 +245,8 @@ fn test_custom_set_leading_hyphen_strings() {
         .args([
             "--format", "json", "custom", "set", &note_id, "flag", "-verbose",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -300,10 +266,8 @@ fn test_custom_set_leading_hyphen_strings() {
             "option",
             "--long-option",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();

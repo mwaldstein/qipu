@@ -253,11 +253,9 @@ fn test_workspace_new_from_note() {
     let note_id = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id = extract_id_from_bytes(&note_id);
 

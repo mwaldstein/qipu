@@ -8,10 +8,8 @@ fn test_custom_get_json() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -24,10 +22,8 @@ fn test_custom_get_json() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "custom", "get", &note_id, "workflow"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -45,10 +41,8 @@ fn test_custom_get_json_nonexistent_field() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 

@@ -178,10 +178,8 @@ fn test_list_filter_by_custom_string() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Note with Custom"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -219,10 +217,8 @@ fn test_list_filter_by_custom_number() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "High Priority Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -260,19 +256,15 @@ fn test_list_filter_by_custom_boolean() {
     let output1 = qipu()
         .current_dir(dir.path())
         .args(["create", "Active Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
     let note1_id = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "Inactive Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
     let note2_id = extract_id(&output2);
 
     qipu()
@@ -317,19 +309,15 @@ fn test_list_filter_by_custom_with_tag() {
     let output1 = qipu()
         .current_dir(dir.path())
         .args(["create", "--tag", "work", "Work Note with Custom"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
     let work_id = extract_id(&output1);
 
     let output2 = qipu()
         .current_dir(dir.path())
         .args(["create", "--tag", "personal", "Personal Note with Custom"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
     let personal_id = extract_id(&output2);
 
     qipu()

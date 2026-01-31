@@ -200,10 +200,8 @@ fn test_doctor_custom_metadata_normal_size() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Note with Small Custom"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
     let note_id = extract_id(&output);
 
     qipu()

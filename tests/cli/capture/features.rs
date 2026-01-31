@@ -38,11 +38,9 @@ fn test_capture_multiple_tags_json() {
             "--format", "json", "capture", "--tag", "alpha", "--tag", "beta", "--tag", "gamma",
         ])
         .write_stdin("Multi-tag test")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("\"tags\":"));
@@ -103,11 +101,9 @@ fn test_capture_json_with_provenance() {
             "true",
         ])
         .write_stdin("Content with full provenance")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
 

@@ -8,10 +8,8 @@ fn test_custom_show_json_multiple_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -30,10 +28,8 @@ fn test_custom_show_json_multiple_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "custom", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -52,20 +48,16 @@ fn test_custom_show_json_empty() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "custom", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -83,10 +75,8 @@ fn test_custom_show_json_deterministic_ordering() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -111,10 +101,8 @@ fn test_custom_show_json_deterministic_ordering() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "custom", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();

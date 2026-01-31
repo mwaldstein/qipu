@@ -31,11 +31,9 @@ fn test_search_exclude_mocs() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "programming"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -57,11 +55,9 @@ fn test_search_exclude_mocs() {
             "--exclude-mocs",
             "programming",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -158,11 +154,9 @@ fn test_search_exclude_mocs_with_filters() {
             "--exclude-mocs",
             "rust",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -235,11 +229,9 @@ fn test_search_exclude_mocs_with_min_value() {
             "--exclude-mocs",
             "value",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();

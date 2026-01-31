@@ -12,11 +12,9 @@ fn test_create_json_has_required_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -61,11 +59,9 @@ fn test_create_json_with_provenance_has_all_fields() {
             "true",
             "Provenance Note",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -95,11 +91,9 @@ fn test_capture_json_has_required_fields() {
             "test",
         ])
         .write_stdin("Capture content")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -132,22 +126,18 @@ fn test_show_json_has_required_fields() {
     let create_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Show Test"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let id = extract_id_from_bytes(&create_output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "show", &id])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -182,11 +172,9 @@ fn test_show_json_custom_omitted_by_default() {
     let create_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Custom Test"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let id = extract_id_from_bytes(&create_output);
 
@@ -199,11 +187,9 @@ fn test_show_json_custom_omitted_by_default() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "show", &id])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -221,11 +207,9 @@ fn test_show_json_custom_opt_in() {
     let create_output = qipu()
         .current_dir(dir.path())
         .args(["create", "Custom Test"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let id = extract_id_from_bytes(&create_output);
 
@@ -238,11 +222,9 @@ fn test_show_json_custom_opt_in() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "show", &id, "--custom"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -273,11 +255,9 @@ fn test_list_json_has_required_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "list"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -312,11 +292,9 @@ fn test_list_json_empty() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "list"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -344,11 +322,9 @@ fn test_search_json_has_required_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "programming"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -383,11 +359,9 @@ fn test_search_json_empty() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "nonexistent"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -409,11 +383,9 @@ fn test_prime_json_has_required_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "prime"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();

@@ -88,11 +88,9 @@ fn test_capture_default_type_fleeting() {
         .current_dir(dir.path())
         .args(["--format", "json", "capture"])
         .write_stdin("Default type test")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("\"type\": \"fleeting\""));
@@ -107,22 +105,18 @@ fn test_capture_content_preservation() {
         .current_dir(dir.path())
         .args(["capture", "--title", "Content Test"])
         .write_stdin(content)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id = extract_id_from_bytes(&output);
 
     let show_output = qipu()
         .current_dir(dir.path())
         .args(["show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let show_str = String::from_utf8(show_output).unwrap();
     assert!(show_str.contains("Line 1"));

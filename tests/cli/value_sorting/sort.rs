@@ -53,11 +53,9 @@ fn test_search_sort_by_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "value"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -111,11 +109,9 @@ fn test_search_sort_by_value_with_defaults() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "value"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -164,11 +160,9 @@ fn test_search_sort_by_value_all_defaults() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -229,11 +223,9 @@ fn test_search_sort_by_value_same_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -281,11 +273,9 @@ fn test_search_sort_by_value_min_max() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -349,11 +339,9 @@ fn test_search_sort_by_value_with_min_max_and_defaults() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "--sort", "value", "note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();

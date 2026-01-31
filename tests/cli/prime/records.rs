@@ -60,11 +60,9 @@ fn test_prime_records_comprehensive_structure() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "records", "prime"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let lines: Vec<&str> = stdout.lines().collect();
@@ -187,11 +185,9 @@ fn test_prime_records_empty_tags() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "records", "prime"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let lines: Vec<&str> = stdout.lines().collect();

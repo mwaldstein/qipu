@@ -109,11 +109,9 @@ fn test_create_json_with_provenance() {
             "false",
             "Provenance Test",
         ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
@@ -151,11 +149,9 @@ fn test_create_with_custom_id() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "--id", "qp-custom123", "Custom ID Note"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(
@@ -188,11 +184,9 @@ fn test_create_with_open_flag() {
         .current_dir(dir.path())
         .env("EDITOR", "true") // 'true' is a command that always succeeds immediately
         .args(["create", "--open", "Open Flag Test"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(

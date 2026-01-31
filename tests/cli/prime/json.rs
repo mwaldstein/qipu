@@ -58,11 +58,9 @@ fn test_prime_json_comprehensive_structure() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "prime"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let json_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();

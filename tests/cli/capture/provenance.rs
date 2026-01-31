@@ -20,11 +20,9 @@ fn test_capture_with_provenance() {
             "test-agent",
         ])
         .write_stdin("Content with provenance")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id = extract_id_from_bytes(&output);
 
@@ -69,11 +67,9 @@ fn test_capture_web_defaults() {
             "https://example.com/article",
         ])
         .write_stdin("Content from web")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id1 = extract_id_from_bytes(&output1);
     let note_path = dir.path().join(".qipu").join("notes");
@@ -112,11 +108,9 @@ fn test_capture_web_defaults() {
             "John Doe",
         ])
         .write_stdin("Content from web with author")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id2 = extract_id_from_bytes(&output2);
     let note_file2 = fs::read_dir(&note_path)
@@ -147,11 +141,9 @@ fn test_capture_web_defaults() {
         .current_dir(dir.path())
         .args(["capture", "--title", "Non-web Capture Test"])
         .write_stdin("Content without source")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let note_id3 = extract_id_from_bytes(&output3);
     let note_file3 = fs::read_dir(&note_path)

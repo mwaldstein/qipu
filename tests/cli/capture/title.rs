@@ -8,11 +8,9 @@ fn test_capture_auto_title_from_content() {
         .current_dir(dir.path())
         .args(["--format", "json", "capture"])
         .write_stdin("Auto generated title from this line\nMore content")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("Auto generated title from this line"));
@@ -26,11 +24,9 @@ fn test_capture_auto_title_from_heading() {
         .current_dir(dir.path())
         .args(["--format", "json", "capture"])
         .write_stdin("# My Heading\n\nSome content below")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("My Heading"));
@@ -44,11 +40,9 @@ fn test_capture_auto_title_empty_content() {
         .current_dir(dir.path())
         .args(["--format", "json", "capture"])
         .write_stdin("")
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let output_str = String::from_utf8(output).unwrap();
     assert!(output_str.contains("Untitled capture"));

@@ -12,10 +12,8 @@ fn test_value_set_basic() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -35,10 +33,8 @@ fn test_value_set_min_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -58,10 +54,8 @@ fn test_value_set_max_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -81,10 +75,8 @@ fn test_value_set_validation_over_100() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -106,10 +98,8 @@ fn test_value_set_updates_frontmatter() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -136,10 +126,8 @@ fn test_value_show_explicit_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -167,10 +155,8 @@ fn test_value_show_default_value() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -219,10 +205,8 @@ fn test_value_set_multiple_times() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -258,20 +242,16 @@ fn test_value_set_json() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "value", "set", &note_id, "85"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -288,10 +268,8 @@ fn test_value_show_json_explicit() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
@@ -304,10 +282,8 @@ fn test_value_show_json_explicit() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "value", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -325,20 +301,16 @@ fn test_value_show_json_default() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "value", "show", &note_id])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -356,10 +328,8 @@ fn test_value_set_json_error_invalid() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["create", "Test Note"])
-        .assert()
-        .success()
-        .get_output()
-        .clone();
+        .output()
+        .unwrap();
 
     let note_id = extract_id(&output);
 

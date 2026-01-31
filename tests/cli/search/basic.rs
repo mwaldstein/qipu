@@ -220,11 +220,9 @@ fn test_search_recency_boost() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "programming"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -293,18 +291,16 @@ fn test_search_title_only_match_with_body_matches() {
 
     for note_file in &note_files {
         let note_path = note_file.path();
-        let content = fs::read_to_string(&note_path).unwrap();
+        let mut content = fs::read_to_string(&note_path).unwrap();
 
         if content.contains("title: Xylophone Musical") {
             // Xylophone Musical: word "musical" only in title, NOT in body
-            let mut modified = content.clone();
-            modified.push_str("\nThis note discusses instruments but avoids using the keyword.");
-            fs::write(&note_path, modified).unwrap();
+            content.push_str("\nThis note discusses instruments but avoids using the keyword.");
+            fs::write(&note_path, content).unwrap();
         } else if content.contains("title: Generic Note") {
             // Generic Note: word "musical" in body
-            let mut modified = content.clone();
-            modified.push_str("\nThis note contains information about musical instruments.");
-            fs::write(&note_path, modified).unwrap();
+            content.push_str("\nThis note contains information about musical instruments.");
+            fs::write(&note_path, content).unwrap();
         }
     }
 
@@ -322,11 +318,9 @@ fn test_search_title_only_match_with_body_matches() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "musical"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();

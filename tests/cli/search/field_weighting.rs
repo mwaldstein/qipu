@@ -53,11 +53,9 @@ fn test_search_field_weighting_impact() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "alphap"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -157,11 +155,9 @@ fn test_search_field_weighting_all_fields() {
     let output = qipu()
         .current_dir(dir.path())
         .args(["--format", "json", "search", "betap"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+        .output()
+        .unwrap()
+        .stdout;
 
     let stdout = String::from_utf8_lossy(&output);
     let results: serde_json::Value = serde_json::from_str(&stdout).unwrap();

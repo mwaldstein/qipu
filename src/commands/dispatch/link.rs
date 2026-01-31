@@ -3,13 +3,12 @@
 use std::path::Path;
 use std::time::Instant;
 
-use tracing::debug;
-
 use crate::cli::{Cli, LinkCommands};
 use crate::commands;
 use qipu_core::error::{QipuError, Result};
 
 use super::command::discover_or_open_store;
+use super::trace_command;
 
 pub(super) fn handle_link(
     cli: &Cli,
@@ -18,9 +17,7 @@ pub(super) fn handle_link(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
 
     match command {
         LinkCommands::List {
@@ -44,23 +41,17 @@ pub(super) fn handle_link(
                 *inline_only,
                 *max_chars,
             )?;
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "execute_command");
-            }
+            trace_command!(cli, start, "execute_command");
             Ok(())
         }
         LinkCommands::Add { from, to, r#type } => {
             commands::link::add::execute(cli, &store, from, to, r#type.clone())?;
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "execute_command");
-            }
+            trace_command!(cli, start, "execute_command");
             Ok(())
         }
         LinkCommands::Remove { from, to, r#type } => {
             commands::link::remove::execute(cli, &store, from, to, r#type.clone())?;
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "execute_command");
-            }
+            trace_command!(cli, start, "execute_command");
             Ok(())
         }
         LinkCommands::Tree {
@@ -99,9 +90,7 @@ pub(super) fn handle_link(
                 ignore_value: *ignore_value,
             };
             commands::link::tree::execute(cli, &store, id_or_path, opts)?;
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "execute_command");
-            }
+            trace_command!(cli, start, "execute_command");
             Ok(())
         }
         LinkCommands::Path {
@@ -138,9 +127,7 @@ pub(super) fn handle_link(
                 ignore_value: *ignore_value,
             };
             commands::link::path::execute(cli, &store, from, to, opts)?;
-            if cli.verbose {
-                debug!(elapsed = ?start.elapsed(), "execute_command");
-            }
+            trace_command!(cli, start, "execute_command");
             Ok(())
         }
     }

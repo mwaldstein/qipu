@@ -3,13 +3,12 @@
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use tracing::debug;
-
 use crate::cli::Cli;
 use crate::commands;
 use qipu_core::error::{QipuError, Result};
 
 use super::command::discover_or_open_store;
+use super::trace_command;
 
 /// Parameters for the export command handler
 pub struct ExportParams<'a> {
@@ -31,9 +30,7 @@ pub struct ExportParams<'a> {
 
 pub(super) fn handle_export(params: ExportParams) -> Result<()> {
     let store = discover_or_open_store(params.cli, params.root)?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "discover_store");
-    }
+    trace_command!(params.cli, params.start, "discover_store");
     let export_mode = commands::export::ExportMode::parse(params.mode)?;
     let link_mode = commands::export::LinkMode::parse(params.link_mode)?;
     let bib_format = commands::export::emit::bibliography::BibFormat::parse(params.bib_format)?;
@@ -54,9 +51,7 @@ pub(super) fn handle_export(params: ExportParams) -> Result<()> {
             pdf: params.pdf,
         },
     )?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "execute_command");
-    }
+    trace_command!(params.cli, params.start, "execute_command");
     Ok(())
 }
 
@@ -81,9 +76,7 @@ pub struct DumpParams<'a> {
 
 pub(super) fn handle_dump(params: DumpParams) -> Result<()> {
     let store = discover_or_open_store(params.cli, params.root)?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "discover_store");
-    }
+    trace_command!(params.cli, params.start, "discover_store");
 
     let dir = params
         .direction
@@ -118,9 +111,7 @@ pub(super) fn handle_dump(params: DumpParams) -> Result<()> {
             output: resolved_output,
         },
     )?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "execute_command");
-    }
+    trace_command!(params.cli, params.start, "execute_command");
     Ok(())
 }
 
@@ -136,9 +127,7 @@ pub struct LoadParams<'a> {
 
 pub(super) fn handle_load(params: LoadParams) -> Result<()> {
     let store = discover_or_open_store(params.cli, params.root)?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "discover_store");
-    }
+    trace_command!(params.cli, params.start, "discover_store");
     commands::load::execute(
         params.cli,
         &store,
@@ -146,8 +135,6 @@ pub(super) fn handle_load(params: LoadParams) -> Result<()> {
         params.strategy,
         params.apply_config,
     )?;
-    if params.cli.verbose {
-        debug!(elapsed = ?params.start.elapsed(), "execute_command");
-    }
+    trace_command!(params.cli, params.start, "execute_command");
     Ok(())
 }

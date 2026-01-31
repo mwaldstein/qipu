@@ -3,14 +3,14 @@
 use std::path::Path;
 use std::time::Instant;
 
-use tracing::debug;
-
 use crate::cli::Cli;
 use crate::commands;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
 
 use super::command::discover_or_open_store;
+#[allow(unused_imports)]
+use super::trace_command;
 
 pub(super) fn handle_doctor(
     cli: &Cli,
@@ -35,14 +35,10 @@ pub(super) fn handle_doctor(
         });
     };
 
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     let check_ontology = check.is_some_and(|checks| checks.contains(&"ontology".to_string()));
     commands::doctor::execute(cli, &store, fix, duplicates, threshold, check_ontology)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -56,13 +52,9 @@ pub(super) fn handle_sync(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::sync::execute(cli, &store, validate, fix, commit, push)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -82,9 +74,7 @@ pub(super) fn handle_index(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::index::execute(
         cli,
         &store,
@@ -98,9 +88,7 @@ pub(super) fn handle_index(
         moc.as_deref(),
         status,
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -116,12 +104,8 @@ pub(super) fn handle_prime(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::prime::execute(cli, &store, compact, minimal, full, mcp, use_prime_md)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }

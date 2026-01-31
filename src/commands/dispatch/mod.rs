@@ -12,8 +12,12 @@ mod commands;
 pub mod handlers;
 mod io;
 mod link;
+#[macro_use]
+mod macros;
 mod maintenance;
 mod notes;
+
+pub(crate) use macros::{trace_command, trace_command_always};
 
 use command::{Command, CommandContext, NoCommand};
 

@@ -4,7 +4,6 @@ use std::path::Path;
 use std::time::Instant;
 
 use chrono::DateTime;
-use tracing::debug;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands;
@@ -13,6 +12,8 @@ use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
 
 use super::command::discover_or_open_store;
+#[allow(unused_imports)]
+use super::trace_command;
 
 pub(super) fn handle_create(
     cli: &Cli,
@@ -21,9 +22,7 @@ pub(super) fn handle_create(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::create::execute(
         cli,
         &store,
@@ -38,9 +37,7 @@ pub(super) fn handle_create(
         args.prompt_hash.clone(),
         args.verified,
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -56,9 +53,7 @@ pub struct ListOptions<'a> {
 
 pub(super) fn handle_list(cli: &Cli, root: &Path, opts: ListOptions<'_>) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?opts.start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, opts.start, "discover_store");
 
     let since_dt = opts
         .since
@@ -79,9 +74,7 @@ pub(super) fn handle_list(cli: &Cli, root: &Path, opts: ListOptions<'_>) -> Resu
         opts.custom,
         opts.show_custom,
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?opts.start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, opts.start, "execute_command");
     Ok(())
 }
 
@@ -94,13 +87,9 @@ pub(super) fn handle_show(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::show::execute(cli, &store, id_or_path, links, show_custom)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -111,9 +100,7 @@ pub(super) fn handle_inbox(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
 
     let notes = store.list_notes()?;
 
@@ -141,9 +128,7 @@ pub(super) fn handle_inbox(
     // Filter out notes linked from MOCs if requested
     if exclude_linked {
         let index = qipu_core::index::IndexBuilder::new(&store).build()?;
-        if cli.verbose {
-            debug!(elapsed = ?start.elapsed(), "load_indexes");
-        }
+        trace_command!(cli, start, "load_indexes");
         let mut linked_from_mocs = std::collections::HashSet::new();
         for edge in &index.edges {
             if let Some(source_meta) = index.get_metadata(&edge.from) {
@@ -156,9 +141,7 @@ pub(super) fn handle_inbox(
     }
 
     output_inbox_notes(cli, &store, &inbox_notes)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -247,9 +230,7 @@ pub struct CaptureOptions {
 
 pub(super) fn handle_capture(cli: &Cli, root: &Path, opts: CaptureOptions) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?opts.start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, opts.start, "discover_store");
     commands::capture::execute(
         cli,
         &store,
@@ -263,9 +244,7 @@ pub(super) fn handle_capture(cli: &Cli, root: &Path, opts: CaptureOptions) -> Re
         opts.verified,
         opts.id.as_deref(),
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?opts.start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, opts.start, "execute_command");
     Ok(())
 }
 
@@ -277,13 +256,9 @@ pub(super) fn handle_verify(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::verify::execute(cli, &store, id_or_path, status)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -300,9 +275,7 @@ pub(super) fn handle_search(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::search::execute(
         cli,
         &store,
@@ -313,9 +286,7 @@ pub(super) fn handle_search(
         min_value,
         sort,
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -329,13 +300,9 @@ pub(super) fn handle_merge(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::merge::execute(cli, &store, id1, id2, dry_run)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -347,13 +314,9 @@ pub(super) fn handle_edit(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::edit::execute(cli, &store, id_or_path, editor)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }
 
@@ -375,9 +338,7 @@ pub(super) fn handle_update(
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "discover_store");
-    }
+    trace_command!(cli, start, "discover_store");
     commands::update::execute(
         cli,
         &store,
@@ -393,8 +354,6 @@ pub(super) fn handle_update(
         prompt_hash,
         verified,
     )?;
-    if cli.verbose {
-        debug!(elapsed = ?start.elapsed(), "execute_command");
-    }
+    trace_command!(cli, start, "execute_command");
     Ok(())
 }

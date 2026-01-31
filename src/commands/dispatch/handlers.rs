@@ -8,9 +8,9 @@ use crate::cli::{
 };
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
-use tracing::debug;
 
 use super::command::discover_or_open_store;
+use super::trace_command_always;
 
 pub struct InitOptions {
     pub stealth: bool,
@@ -104,7 +104,7 @@ pub(super) fn handle_value(
                 }
             )?;
 
-            debug!(elapsed = ?start.elapsed(), "value_set");
+            trace_command_always!(start, "value_set");
             Ok(())
         }
 
@@ -140,7 +140,7 @@ pub(super) fn handle_value(
                 }
             )?;
 
-            debug!(elapsed = ?start.elapsed(), "value_show");
+            trace_command_always!(start, "value_show");
             Ok(())
         }
     }
@@ -196,7 +196,7 @@ pub(super) fn handle_tags(
                 }
             )?;
 
-            debug!(elapsed = ?start.elapsed(), "tags_list");
+            trace_command_always!(start, "tags_list");
             Ok(())
         }
     }
@@ -220,19 +220,19 @@ pub(super) fn handle_custom(
             crate::commands::custom::set_custom_field(
                 &store, id_or_path, key, value, format, cli.quiet,
             )?;
-            debug!(elapsed = ?start.elapsed(), "custom_set");
+            trace_command_always!(start, "custom_set");
             Ok(())
         }
 
         CustomCommands::Get { id_or_path, key } => {
             crate::commands::custom::get_custom_field(&store, id_or_path, key, format)?;
-            debug!(elapsed = ?start.elapsed(), "custom_get");
+            trace_command_always!(start, "custom_get");
             Ok(())
         }
 
         CustomCommands::Show { id_or_path } => {
             crate::commands::custom::show_custom_fields(&store, id_or_path, format)?;
-            debug!(elapsed = ?start.elapsed(), "custom_show");
+            trace_command_always!(start, "custom_show");
             Ok(())
         }
 
@@ -240,7 +240,7 @@ pub(super) fn handle_custom(
             crate::commands::custom::unset_custom_field(
                 &store, id_or_path, key, format, cli.quiet,
             )?;
-            debug!(elapsed = ?start.elapsed(), "custom_unset");
+            trace_command_always!(start, "custom_unset");
             Ok(())
         }
     }
@@ -257,7 +257,7 @@ pub(super) fn handle_store(
     match command {
         StoreCommands::Stats {} => {
             crate::commands::store::execute_stats(cli, &store)?;
-            debug!(elapsed = ?start.elapsed(), "store_stats");
+            trace_command_always!(start, "store_stats");
             Ok(())
         }
     }
@@ -274,7 +274,7 @@ pub(super) fn handle_ontology(
     match command {
         OntologyCommands::Show {} => {
             crate::commands::ontology::execute_show(cli, &store)?;
-            debug!(elapsed = ?start.elapsed(), "ontology_show");
+            trace_command_always!(start, "ontology_show");
             Ok(())
         }
     }

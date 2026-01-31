@@ -143,48 +143,34 @@ fn main() -> anyhow::Result<()> {
                     .and_then(|v| v.parse::<f64>().ok())
             });
 
-            if let Some(ref path) = scenario {
-                let resolved_path = resolve_scenario_path(path);
-                scenario::load(&resolved_path)?;
-                commands::handle_run_command(
-                    scenario,
-                    *all,
-                    tags,
-                    tier,
-                    tool,
-                    model,
-                    tools,
-                    models,
-                    *dry_run,
-                    *no_cache,
-                    *timeout_secs,
-                    judge_model,
-                    *no_judge,
-                    session_budget,
-                    &base_dir,
-                    &results_db,
-                    &cache,
-                )?;
-            } else if *all {
-                commands::handle_run_command(
-                    scenario,
-                    *all,
-                    tags,
-                    tier,
-                    tool,
-                    model,
-                    tools,
-                    models,
-                    *dry_run,
-                    *no_cache,
-                    *timeout_secs,
-                    judge_model,
-                    *no_judge,
-                    session_budget,
-                    &base_dir,
-                    &results_db,
-                    &cache,
-                )?;
+            let selection = commands::ScenarioSelection {
+                scenario: scenario.clone(),
+                all: *all,
+                tags: tags.clone(),
+                tier: *tier,
+            };
+
+            let exec_config = commands::ExecutionConfig {
+                tool: tool.clone(),
+                model: model.clone(),
+                tools: tools.clone(),
+                models: models.clone(),
+                dry_run: *dry_run,
+                no_cache: *no_cache,
+                timeout_secs: *timeout_secs,
+                judge_model: judge_model.clone(),
+                no_judge: *no_judge,
+                session_budget,
+            };
+
+            let ctx = commands::ExecutionContext {
+                base_dir: &base_dir,
+                results_db: &results_db,
+                cache: &cache,
+            };
+
+            if selection.scenario.is_some() || selection.all {
+                commands::handle_run_command(&selection, &exec_config, &ctx)?;
             } else {
                 println!("No scenario specified. Use --scenario <path> or --all");
             }

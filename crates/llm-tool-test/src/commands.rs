@@ -6,6 +6,32 @@ use crate::scenario::load;
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 
+pub struct ScenarioSelection {
+    pub scenario: Option<String>,
+    pub all: bool,
+    pub tags: Vec<String>,
+    pub tier: usize,
+}
+
+pub struct ExecutionConfig {
+    pub tool: String,
+    pub model: Option<String>,
+    pub tools: Option<String>,
+    pub models: Option<String>,
+    pub dry_run: bool,
+    pub no_cache: bool,
+    pub timeout_secs: u64,
+    pub judge_model: Option<String>,
+    pub no_judge: bool,
+    pub session_budget: Option<f64>,
+}
+
+pub struct ExecutionContext<'a> {
+    pub base_dir: &'a Path,
+    pub results_db: &'a ResultsDB,
+    pub cache: &'a Cache,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn resolve_scenario_path(path: &str) -> PathBuf {
     let p = Path::new(path);
@@ -45,25 +71,10 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn handle_run_command(
-    scenario: &Option<String>,
-    all: bool,
-    tags: &[String],
-    tier: &usize,
-    tool: &str,
-    model: &Option<String>,
-    tools: &Option<String>,
-    models: &Option<String>,
-    dry_run: bool,
-    no_cache: bool,
-    timeout_secs: u64,
-    judge_model: &Option<String>,
-    no_judge: bool,
-    session_budget: Option<f64>,
-    base_dir: &Path,
-    results_db: &ResultsDB,
-    cache: &Cache,
+    selection: &ScenarioSelection,
+    exec_config: &ExecutionConfig,
+    ctx: &ExecutionContext,
 ) -> anyhow::Result<()> {
     if std::env::var("LLM_TOOL_TEST_ENABLED").is_err() {
         anyhow::bail!(
@@ -71,11 +82,11 @@ pub fn handle_run_command(
         );
     }
 
-    if let Some(model) = judge_model {
+    if let Some(model) = &exec_config.judge_model {
         std::env::set_var("LLM_TOOL_TEST_JUDGE", model);
     }
 
-    let scenarios_to_run = if all {
+    let scenarios_to_run = if selection.all {
         let mut scenarios = Vec::new();
         let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
             PathBuf::from("crates/llm-tool-test/fixtures")
@@ -90,20 +101,20 @@ pub fn handle_run_command(
         for (name, path) in scenarios {
             let s = load(&path)?;
 
-            let tags_match = if tags.is_empty() {
+            let tags_match = if selection.tags.is_empty() {
                 true
             } else {
-                tags.iter().all(|tag| s.tags.contains(tag))
+                selection.tags.iter().all(|tag| s.tags.contains(tag))
             };
 
-            let tier_match = &s.tier <= tier;
+            let tier_match = &s.tier <= &selection.tier;
 
             if tags_match && tier_match {
                 filtered_scenarios.push((name, path));
             }
         }
         filtered_scenarios
-    } else if let Some(path) = scenario {
+    } else if let Some(path) = &selection.scenario {
         let resolved_path = resolve_scenario_path(path);
         let s = load(&resolved_path)?;
         vec![(s.name, resolved_path)]
@@ -119,7 +130,7 @@ pub fn handle_run_command(
         // Budget enforcement: check scenario cost limit against session budget
         if let Some(ref cost_config) = s.cost {
             // Check per-run limit against session budget
-            if let Some(session_max) = session_budget {
+            if let Some(session_max) = exec_config.session_budget {
                 if cost_config.max_usd > session_max {
                     anyhow::bail!(
                         "Scenario '{}' cost limit (${:.2}) exceeds session budget (${:.2}). \
@@ -132,7 +143,13 @@ pub fn handle_run_command(
             }
         }
 
-        let matrix = crate::build_tool_matrix(tools, models, tool, model, &s.tool_matrix);
+        let matrix = crate::build_tool_matrix(
+            &exec_config.tools,
+            &exec_config.models,
+            &exec_config.tool,
+            &exec_config.model,
+            &s.tool_matrix,
+        );
 
         if matrix.len() > 1 {
             println!("Matrix run: {} tool×model combinations", matrix.len());
@@ -147,13 +164,13 @@ pub fn handle_run_command(
                 &s,
                 &config.tool,
                 &config.model,
-                dry_run,
-                no_cache,
-                timeout_secs,
-                no_judge,
-                base_dir,
-                results_db,
-                cache,
+                exec_config.dry_run,
+                exec_config.no_cache,
+                exec_config.timeout_secs,
+                exec_config.no_judge,
+                ctx.base_dir,
+                ctx.results_db,
+                ctx.cache,
             );
 
             results.push((config.clone(), result));

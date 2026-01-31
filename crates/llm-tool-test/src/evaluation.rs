@@ -7,6 +7,26 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
 
+macro_rules! eval_gate {
+    ($gate_type:expr, $expr:expr, |$result:ident| $closure:expr) => {
+        match $expr {
+            Ok($result) => {
+                let (passed, message) = $closure;
+                GateResult {
+                    gate_type: $gate_type.to_string(),
+                    passed,
+                    message,
+                }
+            }
+            Err(e) => GateResult {
+                gate_type: $gate_type.to_string(),
+                passed: false,
+                message: format!("Evaluation error: {:#}", e),
+            },
+        }
+    };
+}
+
 pub trait GateEvaluator {
     fn evaluate(&self, env_root: &Path) -> GateResult;
 }
@@ -35,156 +55,104 @@ impl GateEvaluator for Gate {
 }
 
 fn eval_min_notes(count: usize, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::count_notes(env_root).context("Failed to count notes") {
-        Ok(note_count) => GateResult {
-            gate_type: "MinNotes".to_string(),
-            passed: note_count >= count,
-            message: format!("Expected >= {}, found {}", count, note_count),
-        },
-        Err(e) => GateResult {
-            gate_type: "MinNotes".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "MinNotes",
+        crate::eval_helpers::count_notes(env_root).context("Failed to count notes"),
+        |note_count| (
+            note_count >= count,
+            format!("Expected >= {}, found {}", count, note_count)
+        )
+    )
 }
 
 fn eval_min_links(count: usize, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::count_links(env_root).context("Failed to count links") {
-        Ok(link_count) => GateResult {
-            gate_type: "MinLinks".to_string(),
-            passed: link_count >= count,
-            message: format!("Expected >= {}, found {}", count, link_count),
-        },
-        Err(e) => GateResult {
-            gate_type: "MinLinks".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "MinLinks",
+        crate::eval_helpers::count_links(env_root).context("Failed to count links"),
+        |link_count| (
+            link_count >= count,
+            format!("Expected >= {}, found {}", count, link_count)
+        )
+    )
 }
 
 fn eval_search_hit(query: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::search_hit(query, env_root) {
-        Ok(hit) => GateResult {
-            gate_type: "SearchHit".to_string(),
-            passed: hit,
-            message: format!("Query '{}' found: {}", query, hit),
-        },
-        Err(e) => GateResult {
-            gate_type: "SearchHit".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "SearchHit",
+        crate::eval_helpers::search_hit(query, env_root),
+        |hit| (hit, format!("Query '{}' found: {}", query, hit))
+    )
 }
 
 fn eval_note_exists(id: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::note_exists(id, env_root) {
-        Ok(exists) => GateResult {
-            gate_type: "NoteExists".to_string(),
-            passed: exists,
-            message: format!("Note '{}' exists: {}", id, exists),
-        },
-        Err(e) => GateResult {
-            gate_type: "NoteExists".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "NoteExists",
+        crate::eval_helpers::note_exists(id, env_root),
+        |exists| (exists, format!("Note '{}' exists: {}", id, exists))
+    )
 }
 
 fn eval_link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::link_exists(from, to, link_type, env_root) {
-        Ok(exists) => GateResult {
-            gate_type: "LinkExists".to_string(),
-            passed: exists,
-            message: format!(
+    eval_gate!(
+        "LinkExists",
+        crate::eval_helpers::link_exists(from, to, link_type, env_root),
+        |exists| (
+            exists,
+            format!(
                 "Link {} --[{}]--> {} exists: {}",
                 from, link_type, to, exists
-            ),
-        },
-        Err(e) => GateResult {
-            gate_type: "LinkExists".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+            )
+        )
+    )
 }
 
 fn eval_tag_exists(tag: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::tag_exists(tag, env_root) {
-        Ok(exists) => GateResult {
-            gate_type: "TagExists".to_string(),
-            passed: exists,
-            message: format!("Tag '{}' exists: {}", tag, exists),
-        },
-        Err(e) => GateResult {
-            gate_type: "TagExists".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "TagExists",
+        crate::eval_helpers::tag_exists(tag, env_root),
+        |exists| (exists, format!("Tag '{}' exists: {}", tag, exists))
+    )
 }
 
 fn eval_content_contains(id: &str, substring: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::content_contains(id, substring, env_root) {
-        Ok(contains) => GateResult {
-            gate_type: "ContentContains".to_string(),
-            passed: contains,
-            message: format!("Note '{}' contains '{}': {}", id, substring, contains),
-        },
-        Err(e) => GateResult {
-            gate_type: "ContentContains".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "ContentContains",
+        crate::eval_helpers::content_contains(id, substring, env_root),
+        |contains| (
+            contains,
+            format!("Note '{}' contains '{}': {}", id, substring, contains)
+        )
+    )
 }
 
 fn eval_command_succeeds(command: &str, env_root: &Path) -> GateResult {
-    match crate::eval_helpers::command_succeeds(command, env_root) {
-        Ok(succeeds) => GateResult {
-            gate_type: "CommandSucceeds".to_string(),
-            passed: succeeds,
-            message: format!("Command '{}' succeeded: {}", command, succeeds),
-        },
-        Err(e) => GateResult {
-            gate_type: "CommandSucceeds".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "CommandSucceeds",
+        crate::eval_helpers::command_succeeds(command, env_root),
+        |succeeds| (
+            succeeds,
+            format!("Command '{}' succeeded: {}", command, succeeds)
+        )
+    )
 }
 
 fn eval_doctor_passes(env_root: &Path) -> GateResult {
-    match crate::eval_helpers::doctor_passes(env_root) {
-        Ok(passes) => GateResult {
-            gate_type: "DoctorPasses".to_string(),
-            passed: passes,
-            message: format!("Store passes 'qipu doctor': {}", passes),
-        },
-        Err(e) => GateResult {
-            gate_type: "DoctorPasses".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "DoctorPasses",
+        crate::eval_helpers::doctor_passes(env_root),
+        |passes| (passes, format!("Store passes 'qipu doctor': {}", passes))
+    )
 }
 
 fn eval_no_transcript_errors(env_root: &Path) -> GateResult {
-    match crate::eval_helpers::no_transcript_errors(env_root) {
-        Ok(no_errors) => GateResult {
-            gate_type: "NoTranscriptErrors".to_string(),
-            passed: no_errors,
-            message: format!("Transcript has no command errors: {}", no_errors),
-        },
-        Err(e) => GateResult {
-            gate_type: "NoTranscriptErrors".to_string(),
-            passed: false,
-            message: format!("Evaluation error: {:#}", e),
-        },
-    }
+    eval_gate!(
+        "NoTranscriptErrors",
+        crate::eval_helpers::no_transcript_errors(env_root),
+        |no_errors| (
+            no_errors,
+            format!("Transcript has no command errors: {}", no_errors)
+        )
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

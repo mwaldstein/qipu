@@ -1,8 +1,9 @@
-mod common;
+#[path = "support/mod.rs"]
+mod support;
 
 use tempfile::tempdir;
 
-use common::{extract_id, qipu};
+use support::{extract_id, qipu};
 
 #[test]
 fn test_workspace_copy_primary_preserves_id() {

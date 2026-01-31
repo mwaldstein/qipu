@@ -3,73 +3,13 @@
 //! Tests for packing and unpacking attachments with notes, including
 //! multi-attachment scenarios and --no-attachments flag behavior.
 
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
-
-struct PackTestSetup {
-    _dir1: tempfile::TempDir,
-    _dir2: tempfile::TempDir,
-    pack_file: std::path::PathBuf,
-}
-
-impl PackTestSetup {
-    fn new(pack_name: &str) -> Self {
-        let dir1 = tempdir().unwrap();
-        let dir2 = tempdir().unwrap();
-        let pack_file = dir1.path().join(pack_name);
-
-        qipu()
-            .arg("init")
-            .env("QIPU_STORE", dir1.path())
-            .assert()
-            .success();
-
-        qipu()
-            .arg("init")
-            .env("QIPU_STORE", dir2.path())
-            .assert()
-            .success();
-
-        Self {
-            _dir1: dir1,
-            _dir2: dir2,
-            pack_file,
-        }
-    }
-
-    fn store1_path(&self) -> &std::path::Path {
-        self._dir1.path()
-    }
-
-    fn store2_path(&self) -> &std::path::Path {
-        self._dir2.path()
-    }
-}
+use crate::pack::support::{create_note_with_env, qipu, TwoStoreSetup};
 
 fn create_note_in_store(store_path: &std::path::Path, title: &str) -> String {
-    qipu()
-        .arg("create")
-        .arg(title)
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-
-    let output = qipu()
-        .arg("list")
-        .arg("--format")
-        .arg("json")
-        .env("QIPU_STORE", store_path)
-        .output()
-        .unwrap();
-
-    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    list[0]["id"].as_str().unwrap().to_string()
+    create_note_with_env(store_path, title)
 }
 
 fn find_note_file(store_path: &std::path::Path, note_id: &str) -> std::path::PathBuf {
@@ -119,8 +59,8 @@ fn rebuild_index(store_path: &std::path::Path) {
         .success();
 }
 
-fn dump_pack(setup: &PackTestSetup, args: &[&str]) {
-    let mut cmd_args = vec!["dump", "--output", setup.pack_file.to_str().unwrap()];
+fn dump_pack(setup: &TwoStoreSetup, args: &[&str]) {
+    let mut cmd_args = vec!["dump", "--output", setup.pack_file().to_str().unwrap()];
     cmd_args.extend(args);
 
     qipu()
@@ -130,16 +70,16 @@ fn dump_pack(setup: &PackTestSetup, args: &[&str]) {
         .success();
 }
 
-fn load_pack(setup: &PackTestSetup) {
+fn load_pack(setup: &TwoStoreSetup) {
     qipu()
         .arg("load")
-        .arg(&setup.pack_file)
+        .arg(setup.pack_file())
         .env("QIPU_STORE", setup.store2_path())
         .assert()
         .success();
 }
 
-fn verify_note_loaded(setup: &PackTestSetup, note_id: &str, expected_title: &str) {
+fn verify_note_loaded(setup: &TwoStoreSetup, note_id: &str, expected_title: &str) {
     qipu()
         .arg("show")
         .arg(note_id)
@@ -149,7 +89,7 @@ fn verify_note_loaded(setup: &PackTestSetup, note_id: &str, expected_title: &str
         .stdout(predicate::str::contains(expected_title));
 }
 
-fn verify_attachment_restored(setup: &PackTestSetup, name: &str, expected_content: &[u8]) {
+fn verify_attachment_restored(setup: &TwoStoreSetup, name: &str, expected_content: &[u8]) {
     let file = setup.store2_path().join("attachments").join(name);
     assert!(file.exists(), "Attachment {} should exist", name);
     let content = fs::read(&file).unwrap();
@@ -162,7 +102,7 @@ fn verify_attachment_restored(setup: &PackTestSetup, name: &str, expected_conten
 
 #[test]
 fn test_pack_attachments_roundtrip() {
-    let setup = PackTestSetup::new("test.pack");
+    let setup = TwoStoreSetup::new("test.pack");
     let note_id = create_note_in_store(setup.store1_path(), "Note with Attachments");
 
     setup_attachments(
@@ -198,7 +138,7 @@ fn test_pack_attachments_roundtrip() {
 
 #[test]
 fn test_pack_no_attachments_flag() {
-    let setup = PackTestSetup::new("test_no_attach.pack");
+    let setup = TwoStoreSetup::new("test_no_attach.pack");
     let note_id = create_note_in_store(setup.store1_path(), "Note without Attachments");
 
     setup_attachments(
@@ -231,7 +171,7 @@ fn test_pack_no_attachments_flag() {
 
 #[test]
 fn test_pack_attachments_multiple_notes() {
-    let setup = PackTestSetup::new("test_multi.pack");
+    let setup = TwoStoreSetup::new("test_multi.pack");
     let note1_id = create_note_in_store(setup.store1_path(), "First Note");
     let note2_id = create_note_in_store(setup.store1_path(), "Second Note");
 

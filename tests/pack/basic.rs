@@ -3,14 +3,11 @@
 //! Tests for packing and unpacking notes using JSON and Records formats,
 //! including preservation of typed links and metadata.
 
-#[path = "../common.rs"]
-mod common;
-
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
-use common::{extract_id_from_bytes, qipu};
+use crate::pack::support::{create_link_with_env, create_note_with_env, qipu, TwoStoreSetup};
 
 #[test]
 fn test_pack_unpack_json_roundtrip() {
@@ -197,69 +194,11 @@ fn test_pack_unpack_records_roundtrip() {
         .success();
 }
 
-struct TestStores {
-    _dir1: tempfile::TempDir,
-    _dir2: tempfile::TempDir,
-    pack_file: std::path::PathBuf,
-}
-
-impl TestStores {
-    fn store1_path(&self) -> &std::path::Path {
-        self._dir1.path()
-    }
-
-    fn store2_path(&self) -> &std::path::Path {
-        self._dir2.path()
-    }
-}
-
-fn setup_stores() -> TestStores {
-    let dir1 = tempdir().unwrap();
-    let dir2 = tempdir().unwrap();
-    let pack_file = dir1.path().join("test.pack.json");
-
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", dir1.path())
-        .assert()
-        .success();
-
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", dir2.path())
-        .assert()
-        .success();
-
-    TestStores {
-        _dir1: dir1,
-        _dir2: dir2,
-        pack_file,
-    }
-}
-
-fn create_note(store_path: &std::path::Path, title: &str) -> String {
-    let output = qipu()
-        .arg("create")
-        .arg(title)
-        .env("QIPU_STORE", store_path)
-        .output()
-        .unwrap();
-    extract_id_from_bytes(&output.stdout)
-}
-
-fn add_typed_link(store_path: &std::path::Path, from: &str, to: &str, link_type: &str) {
-    qipu()
-        .args(["link", "add", from, to, "--type", link_type])
-        .env("QIPU_STORE", store_path)
-        .assert()
-        .success();
-}
-
-fn dump_to_json(stores: &TestStores) {
+fn dump_to_json(stores: &TwoStoreSetup) {
     qipu()
         .arg("dump")
         .arg("--output")
-        .arg(&stores.pack_file)
+        .arg(stores.pack_file())
         .arg("--format")
         .arg("json")
         .env("QIPU_STORE", stores.store1_path())
@@ -267,10 +206,10 @@ fn dump_to_json(stores: &TestStores) {
         .success();
 }
 
-fn load_from_json(stores: &TestStores) {
+fn load_from_json(stores: &TwoStoreSetup) {
     qipu()
         .arg("load")
-        .arg(&stores.pack_file)
+        .arg(stores.pack_file())
         .env("QIPU_STORE", stores.store2_path())
         .assert()
         .success();
@@ -305,16 +244,16 @@ struct LinkGraph {
     pub id_d: String,
 }
 
-fn setup_link_graph(stores: &TestStores) -> LinkGraph {
-    let id_a = create_note(stores.store1_path(), "Note A");
-    let id_b = create_note(stores.store1_path(), "Note B");
-    let id_c = create_note(stores.store1_path(), "Note C");
-    let id_d = create_note(stores.store1_path(), "Note D");
+fn setup_link_graph(stores: &TwoStoreSetup) -> LinkGraph {
+    let id_a = create_note_with_env(stores.store1_path(), "Note A");
+    let id_b = create_note_with_env(stores.store1_path(), "Note B");
+    let id_c = create_note_with_env(stores.store1_path(), "Note C");
+    let id_d = create_note_with_env(stores.store1_path(), "Note D");
 
-    add_typed_link(stores.store1_path(), &id_a, &id_b, "supports");
-    add_typed_link(stores.store1_path(), &id_a, &id_c, "derived-from");
-    add_typed_link(stores.store1_path(), &id_b, &id_d, "contradicts");
-    add_typed_link(stores.store1_path(), &id_c, &id_d, "part-of");
+    create_link_with_env(stores.store1_path(), &id_a, &id_b, "supports");
+    create_link_with_env(stores.store1_path(), &id_a, &id_c, "derived-from");
+    create_link_with_env(stores.store1_path(), &id_b, &id_d, "contradicts");
+    create_link_with_env(stores.store1_path(), &id_c, &id_d, "part-of");
 
     qipu()
         .arg("index")
@@ -340,7 +279,7 @@ fn setup_link_graph(stores: &TestStores) -> LinkGraph {
 
 #[test]
 fn test_typed_links_preserved_note_a_links() {
-    let stores = setup_stores();
+    let stores = TwoStoreSetup::new("test.pack.json");
     let graph = setup_link_graph(&stores);
 
     let json = get_note_links_json(stores.store2_path(), &graph.id_a);
@@ -359,7 +298,7 @@ fn test_typed_links_preserved_note_a_links() {
 
 #[test]
 fn test_typed_links_preserved_note_b_links() {
-    let stores = setup_stores();
+    let stores = TwoStoreSetup::new("test.pack.json");
     let graph = setup_link_graph(&stores);
 
     let json = get_note_links_json(stores.store2_path(), &graph.id_b);
@@ -373,7 +312,7 @@ fn test_typed_links_preserved_note_b_links() {
 
 #[test]
 fn test_typed_links_preserved_note_c_links() {
-    let stores = setup_stores();
+    let stores = TwoStoreSetup::new("test.pack.json");
     let graph = setup_link_graph(&stores);
 
     let json = get_note_links_json(stores.store2_path(), &graph.id_c);

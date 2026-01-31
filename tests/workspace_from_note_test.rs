@@ -3,39 +3,13 @@
 //! Tests verify that workspace creation from a note includes notes
 //! within the specified hop distance (default: 3 hops).
 
-mod common;
+#[path = "support/mod.rs"]
+mod support;
 
 use std::path::Path;
 use tempfile::tempdir;
 
-use common::{extract_id, qipu};
-
-fn create_note(root: &Path, title: &str) -> String {
-    let output = qipu()
-        .arg("create")
-        .arg(title)
-        .current_dir(root)
-        .output()
-        .unwrap();
-    extract_id(&output)
-}
-
-fn add_link(root: &Path, from: &str, to: &str, link_type: &str) {
-    qipu()
-        .arg("link")
-        .arg("add")
-        .arg("--type")
-        .arg(link_type)
-        .arg(from)
-        .arg(to)
-        .current_dir(root)
-        .assert()
-        .success();
-}
-
-fn init_store(root: &Path) {
-    qipu().arg("init").current_dir(root).assert().success();
-}
+use support::{create_link_at_path, create_note_at_path, init_store_at_path, qipu};
 
 struct TestGraph {
     root_id: String,
@@ -46,22 +20,22 @@ struct TestGraph {
 }
 
 fn setup_test_graph(root: &Path) -> TestGraph {
-    init_store(root);
+    init_store_at_path(root);
 
-    let root_id = create_note(root, "Root Note");
+    let root_id = create_note_at_path(root, "Root Note");
     assert!(!root_id.is_empty(), "Root ID should not be empty");
 
-    let child1_id = create_note(root, "Child 1");
-    let child2_id = create_note(root, "Child 2");
+    let child1_id = create_note_at_path(root, "Child 1");
+    let child2_id = create_note_at_path(root, "Child 2");
 
-    add_link(root, &root_id, &child1_id, "part-of");
-    add_link(root, &root_id, &child2_id, "part-of");
+    create_link_at_path(root, &root_id, &child1_id, "part-of");
+    create_link_at_path(root, &root_id, &child2_id, "part-of");
 
-    let grandchild_id = create_note(root, "Grandchild");
-    add_link(root, &child1_id, &grandchild_id, "part-of");
+    let grandchild_id = create_note_at_path(root, "Grandchild");
+    create_link_at_path(root, &child1_id, &grandchild_id, "part-of");
 
-    let far_id = create_note(root, "Far Away Note");
-    add_link(root, &grandchild_id, &far_id, "related");
+    let far_id = create_note_at_path(root, "Far Away Note");
+    create_link_at_path(root, &grandchild_id, &far_id, "related");
 
     TestGraph {
         root_id,
@@ -74,22 +48,17 @@ fn setup_test_graph(root: &Path) -> TestGraph {
 
 fn create_workspace_from_note(root: &Path, name: &str, note_id: &str) {
     qipu()
-        .arg("workspace")
-        .arg("new")
-        .arg(name)
-        .arg("--from-note")
-        .arg(note_id)
         .current_dir(root)
+        .args(["workspace", "new", name, "--from-note", note_id])
         .assert()
         .success();
 }
 
 fn list_workspace_notes(root: &Path, workspace: &str) -> String {
-    let output = qipu()
-        .arg("list")
-        .arg("--workspace")
-        .arg(workspace)
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_qipu"))
+        .env("CARGO_MANIFEST_DIR", env!("CARGO_MANIFEST_DIR"))
         .current_dir(root)
+        .args(["list", "--workspace", workspace])
         .output()
         .unwrap();
     String::from_utf8(output.stdout).unwrap()

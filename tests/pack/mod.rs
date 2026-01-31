@@ -1,4 +1,7 @@
 //! Tests for pack/dump/load functionality
+#[path = "../support/mod.rs"]
+pub mod support;
+
 mod attachments;
 mod basic;
 mod metadata;

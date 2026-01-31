@@ -8,4 +8,6 @@ mod report;
 mod show;
 mod status;
 mod suggest;
-mod suggest_value;
+mod suggest_value_default;
+mod suggest_value_low;
+mod suggest_value_mixed;

@@ -10,6 +10,7 @@ use tracing::debug;
 mod command;
 mod commands;
 pub mod handlers;
+mod helpers;
 mod io;
 mod link;
 #[macro_use]

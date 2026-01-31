@@ -2,6 +2,7 @@ pub mod bibliography;
 pub mod bundle;
 pub mod json;
 pub mod links;
+pub mod markdown_utils;
 pub mod outline;
 pub mod records;
 

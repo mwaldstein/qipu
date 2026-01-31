@@ -1,7 +1,6 @@
 use super::types::{BuildNoteJsonParams, ContextOutputParams};
 use qipu_core::error::Result;
 use qipu_core::note::Note;
-use qipu_core::ontology::Ontology;
 use std::time::Instant;
 use tracing::debug;
 
@@ -45,46 +44,6 @@ fn truncate_note_content(content: &str, note_size: usize, remaining: usize) -> (
     } else {
         (marker.to_string(), true)
     }
-}
-
-fn build_ontology_json(store: &qipu_core::store::Store) -> serde_json::Value {
-    let config = store.config();
-    let ontology = Ontology::from_config_with_graph(&config.ontology, &config.graph);
-
-    let note_types = ontology.note_types();
-    let link_types = ontology.link_types();
-
-    let note_type_objs: Vec<_> = note_types
-        .iter()
-        .map(|nt| {
-            let type_config = config.ontology.note_types.get(nt);
-            serde_json::json!({
-                "name": nt,
-                "description": type_config.and_then(|c| c.description.clone()),
-                "usage": type_config.and_then(|c| c.usage.clone()),
-            })
-        })
-        .collect();
-
-    let link_type_objs: Vec<_> = link_types
-        .iter()
-        .map(|lt| {
-            let inverse = ontology.get_inverse(lt);
-            let type_config = config.ontology.link_types.get(lt);
-            serde_json::json!({
-                "name": lt,
-                "inverse": inverse,
-                "description": type_config.and_then(|c| c.description.clone()),
-                "usage": type_config.and_then(|c| c.usage.clone()),
-            })
-        })
-        .collect();
-
-    serde_json::json!({
-        "mode": config.ontology.mode,
-        "note_types": note_type_objs,
-        "link_types": link_type_objs,
-    })
 }
 
 fn build_json_output(params: &ContextOutputParams) -> serde_json::Value {
@@ -166,29 +125,14 @@ fn build_json_output(params: &ContextOutputParams) -> serde_json::Value {
 
     if params.include_ontology {
         if let Some(obj) = output.as_object_mut() {
-            obj.insert("ontology".to_string(), build_ontology_json(params.store));
+            obj.insert(
+                "ontology".to_string(),
+                crate::commands::json_builders::build_ontology_json(params.store),
+            );
         }
     }
 
     output
-}
-
-fn build_sources_json(sources: &[qipu_core::note::Source]) -> Vec<serde_json::Value> {
-    sources
-        .iter()
-        .map(|s| {
-            let mut obj = serde_json::json!({
-                "url": s.url,
-            });
-            if let Some(title) = &s.title {
-                obj["title"] = serde_json::json!(title);
-            }
-            if let Some(accessed) = &s.accessed {
-                obj["accessed"] = serde_json::json!(accessed);
-            }
-            obj
-        })
-        .collect()
 }
 
 fn build_custom_json(
@@ -211,7 +155,7 @@ fn build_compacted_note_json(note: &Note, include_custom: bool) -> serde_json::V
         "type": note.note_type().to_string(),
         "tags": note.frontmatter.tags,
         "content": note.body,
-        "sources": build_sources_json(&note.frontmatter.sources),
+        "sources": crate::commands::json_builders::build_sources_json(&note.frontmatter.sources),
     });
 
     if include_custom && !note.frontmatter.custom.is_empty() {
@@ -288,7 +232,7 @@ fn build_note_json(params: BuildNoteJsonParams) -> serde_json::Value {
         "tags": params.note.frontmatter.tags,
         "content": params.content,
         "content_truncated": false,
-        "sources": build_sources_json(&params.note.frontmatter.sources),
+        "sources": crate::commands::json_builders::build_sources_json(&params.note.frontmatter.sources),
         "source": params.note.frontmatter.source,
         "author": params.note.frontmatter.author,
         "generated_by": params.note.frontmatter.generated_by,

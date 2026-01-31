@@ -41,29 +41,27 @@ fn export_bibliography_json(notes: &[Note], store: &Store, mode_str: &str) -> se
         .iter()
         .flat_map(|note| {
             note.frontmatter.sources.iter().map(move |source| {
-                let mut obj = serde_json::json!({
-                    "url": source.url,
-                    "from_note_id": note.id(),
-                    "from_note_title": note.title(),
-                });
-                if let Some(title) = &source.title {
-                    obj["title"] = serde_json::json!(title);
-                }
-                if let Some(accessed) = &source.accessed {
-                    obj["accessed"] = serde_json::json!(accessed);
-                }
-                obj
+                crate::commands::json_builders::build_source_json(
+                    source,
+                    Some(note.id()),
+                    Some(note.title()),
+                )
             })
         })
         .collect();
 
     for note in notes {
         if let Some(source_url) = &note.frontmatter.source {
-            all_sources.push(serde_json::json!({
-                "url": source_url,
-                "from_note_id": note.id(),
-                "from_note_title": note.title(),
-            }));
+            let source = qipu_core::note::Source {
+                url: source_url.clone(),
+                title: None,
+                accessed: None,
+            };
+            all_sources.push(crate::commands::json_builders::build_source_json(
+                &source,
+                Some(note.id()),
+                Some(note.title()),
+            ));
         }
     }
 
@@ -107,47 +105,16 @@ fn export_notes_json(
                     "updated": note.frontmatter.updated,
                     "content": note.body,
                     "source": note.frontmatter.source,
-                    "sources": note.frontmatter.sources.iter().map(|s| {
-                        let mut obj = serde_json::json!({
-                            "url": s.url,
-                        });
-                        if let Some(title) = &s.title {
-                            obj["title"] = serde_json::json!(title);
-                        }
-                        if let Some(accessed) = &s.accessed {
-                            obj["accessed"] = serde_json::json!(accessed);
-                        }
-                        obj
-                    }).collect::<Vec<_>>(),
+                    "sources": crate::commands::json_builders::build_sources_json(&note.frontmatter.sources),
                 });
 
-                // Add compaction annotations for digest notes
-                let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
-                if compacts_count > 0 {
-                    if let Some(obj_mut) = obj.as_object_mut() {
-                        obj_mut.insert("compacts".to_string(), serde_json::json!(compacts_count));
-                        if let Some(pct) = compaction_ctx.get_compaction_pct(note, &note_map) {
-                            obj_mut.insert(
-                                "compaction_pct".to_string(),
-                                serde_json::json!(format!("{:.1}", pct)),
-                            );
-                        }
-
-                        if cli.with_compaction_ids {
-                            let depth = cli.compaction_depth.unwrap_or(1);
-                            if let Some((ids, _truncated)) = compaction_ctx.get_compacted_ids(
-                                &note.frontmatter.id,
-                                depth,
-                                cli.compaction_max_nodes,
-                            ) {
-                                obj_mut.insert(
-                                    "compacted_ids".to_string(),
-                                    serde_json::json!(ids),
-                                );
-                            }
-                        }
-                    }
-                }
+                crate::commands::json_builders::add_compaction_metadata_to_json(
+                    &mut obj,
+                    note,
+                    cli,
+                    compaction_ctx,
+                    &note_map,
+                );
 
                 obj
             })

@@ -9,42 +9,11 @@ use qipu_core::store::Store;
 pub fn print_ontology_json(
     _cli: &Cli,
     store: &Store,
-    ontology: &Ontology,
-    note_types: &[String],
-    link_types: &[String],
+    _ontology: &Ontology,
+    _note_types: &[String],
+    _link_types: &[String],
 ) -> Result<()> {
-    let config = store.config();
-    let mode = config.ontology.mode;
-
-    let note_type_objs: Vec<_> = note_types
-        .iter()
-        .map(|nt| {
-            let config = config.ontology.note_types.get(nt);
-            serde_json::json!({
-                "name": nt,
-                "description": config.and_then(|c| c.description.clone()),
-            })
-        })
-        .collect();
-
-    let link_type_objs: Vec<_> = link_types
-        .iter()
-        .map(|lt| {
-            let inverse = ontology.get_inverse(lt);
-            let config = config.ontology.link_types.get(lt);
-            serde_json::json!({
-                "name": lt,
-                "inverse": inverse,
-                "description": config.and_then(|c| c.description.clone()),
-            })
-        })
-        .collect();
-
-    let output = serde_json::json!({
-        "mode": serde_json::to_value(mode)?,
-        "note_types": note_type_objs,
-        "link_types": link_type_objs,
-    });
+    let output = crate::commands::json_builders::build_ontology_json(store);
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
 }

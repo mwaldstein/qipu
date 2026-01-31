@@ -14,6 +14,7 @@ pub mod format;
 pub mod helpers;
 pub mod index;
 pub mod init;
+pub mod json_builders;
 pub mod link;
 pub mod list;
 pub mod load;

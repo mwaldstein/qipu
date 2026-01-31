@@ -52,8 +52,12 @@ pub(super) mod dispatch_command {
             Commands::Load(args) => execute_load(ctx, args),
             Commands::Merge(args) => execute_merge(ctx, args),
             Commands::Link(subcmd) => execute_link(ctx, &subcmd.command),
-            Commands::Compact(subcmd) => handlers::execute_compact(ctx.cli, &subcmd.command),
-            Commands::Workspace(subcmd) => handlers::execute_workspace(ctx.cli, &subcmd.command),
+            Commands::Compact(subcmd) => {
+                handlers::execute_compact(ctx.cli, ctx.root, &subcmd.command)
+            }
+            Commands::Workspace(subcmd) => {
+                handlers::execute_workspace(ctx.cli, ctx.root, &subcmd.command)
+            }
             Commands::Edit(args) => execute_edit(ctx, args),
             Commands::Update(args) => execute_update(ctx, args),
             Commands::Store(subcmd) => {

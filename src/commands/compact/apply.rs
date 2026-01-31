@@ -1,11 +1,10 @@
 use std::fs;
 use std::io::{self, BufRead};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use tracing::debug;
 
-use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
@@ -14,6 +13,7 @@ use qipu_core::store::Store;
 /// Execute `qipu compact apply`
 pub fn execute(
     cli: &Cli,
+    root: &Path,
     digest_id: &str,
     note_ids: &[String],
     from_stdin: bool,
@@ -31,7 +31,6 @@ pub fn execute(
         );
     }
 
-    let root = resolve_root_path(cli.root.clone());
     let store = if let Some(path) = &cli.store {
         let resolved = if path.is_absolute() {
             path.clone()
@@ -40,7 +39,7 @@ pub fn execute(
         };
         Store::open(&resolved)?
     } else {
-        Store::discover(&root)?
+        Store::discover(root)?
     };
 
     if cli.verbose {

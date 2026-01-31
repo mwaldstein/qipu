@@ -1,11 +1,10 @@
-use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use crate::cli::OutputFormat;
 use qipu_core::error::Result;
 use qipu_core::store::paths::WORKSPACE_FILE;
 use qipu_core::store::workspace::WorkspaceMetadata;
 use qipu_core::store::Store;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use tracing::debug;
 
@@ -19,15 +18,14 @@ fn get_last_updated(store: &Store) -> String {
     }
 }
 
-pub fn execute(cli: &Cli) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path) -> Result<()> {
     let start = Instant::now();
-    let root = resolve_root_path(cli.root.clone());
 
     if cli.verbose {
         debug!(root = %root.display(), "list_root");
     }
 
-    let primary_store = Store::discover(&root)?;
+    let primary_store = Store::discover(root)?;
 
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discovered_primary");

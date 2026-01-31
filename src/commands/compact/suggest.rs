@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -101,9 +102,13 @@ fn output_records(candidates: &[CompactionCandidate]) {
 }
 
 /// Execute `qipu compact suggest`
-pub fn execute(cli: &Cli) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path) -> Result<()> {
     let start = Instant::now();
-    let store = discover_compact_store(cli)?;
+    if cli.verbose {
+        debug!("suggest_params");
+    }
+
+    let store = discover_compact_store(cli, root)?;
 
     let index = qipu_core::index::IndexBuilder::new(&store).build()?;
 

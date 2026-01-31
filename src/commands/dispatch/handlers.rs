@@ -56,12 +56,20 @@ pub(super) fn handle_onboard(cli: &Cli) -> Result<()> {
     crate::commands::setup::execute_onboard(cli)
 }
 
-pub(super) fn handle_compact(cli: &Cli, command: &crate::cli::CompactCommands) -> Result<()> {
-    crate::commands::compact::execute(cli, command)
+pub(super) fn handle_compact(
+    cli: &Cli,
+    root: &Path,
+    command: &crate::cli::CompactCommands,
+) -> Result<()> {
+    crate::commands::compact::execute(cli, root, command)
 }
 
-pub(super) fn handle_workspace(cli: &Cli, command: &crate::cli::WorkspaceCommands) -> Result<()> {
-    crate::commands::workspace::execute(cli, command)
+pub(super) fn handle_workspace(
+    cli: &Cli,
+    root: &Path,
+    command: &crate::cli::WorkspaceCommands,
+) -> Result<()> {
+    crate::commands::workspace::execute(cli, root, command)
 }
 
 pub(super) fn handle_value(
@@ -316,12 +324,12 @@ pub(super) fn execute_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
     handle_setup(cli, options)
 }
 
-pub(super) fn execute_compact(cli: &Cli, command: &CompactCommands) -> Result<()> {
-    handle_compact(cli, command)
+pub(super) fn execute_compact(cli: &Cli, root: &Path, command: &CompactCommands) -> Result<()> {
+    handle_compact(cli, root, command)
 }
 
-pub(super) fn execute_workspace(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
-    handle_workspace(cli, command)
+pub(super) fn execute_workspace(cli: &Cli, root: &Path, command: &WorkspaceCommands) -> Result<()> {
+    handle_workspace(cli, root, command)
 }
 
 pub(super) fn execute_store(

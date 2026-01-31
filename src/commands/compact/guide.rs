@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -6,7 +7,7 @@ use crate::cli::Cli;
 use qipu_core::error::Result;
 
 /// Execute `qipu compact guide`
-pub fn execute(cli: &Cli) -> Result<()> {
+pub fn execute(cli: &Cli, _root: &Path) -> Result<()> {
     let start = Instant::now();
 
     if cli.verbose {

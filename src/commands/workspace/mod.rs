@@ -5,10 +5,11 @@ pub mod new;
 
 use crate::cli::{Cli, WorkspaceCommands};
 use qipu_core::error::Result;
+use std::path::Path;
 
-pub fn execute(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path, command: &WorkspaceCommands) -> Result<()> {
     match command {
-        WorkspaceCommands::List => list::execute(cli),
+        WorkspaceCommands::List => list::execute(cli, root),
         WorkspaceCommands::New {
             name,
             temp,
@@ -19,6 +20,7 @@ pub fn execute(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
             from_query,
         } => new::execute(
             cli,
+            root,
             name,
             *temp,
             *empty,
@@ -27,13 +29,21 @@ pub fn execute(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
             from_note.as_deref(),
             from_query.as_deref(),
         ),
-        WorkspaceCommands::Delete { name, force } => delete::execute(cli, name, *force),
+        WorkspaceCommands::Delete { name, force } => delete::execute(cli, root, name, *force),
         WorkspaceCommands::Merge {
             source,
             target,
             dry_run,
             strategy,
             delete_source,
-        } => merge::execute(cli, source, target, *dry_run, strategy, *delete_source),
+        } => merge::execute(
+            cli,
+            root,
+            source,
+            target,
+            *dry_run,
+            strategy,
+            *delete_source,
+        ),
     }
 }

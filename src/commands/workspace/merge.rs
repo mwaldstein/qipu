@@ -1,13 +1,14 @@
-use crate::cli::paths::resolve_root_path;
 use crate::Cli;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
 use std::collections::HashMap;
+use std::path::Path;
 use std::time::Instant;
 use tracing::debug;
 
 pub fn execute(
     cli: &Cli,
+    root: &Path,
     source_name: &str,
     target_name: &str,
     dry_run: bool,
@@ -27,23 +28,21 @@ pub fn execute(
         debug!(source_name, target_name, strategy, dry_run, "merge_params");
     }
 
-    let root = resolve_root_path(cli.root.clone());
-
-    let primary_store = Store::discover(&root)?;
+    let primary_store = Store::discover(root)?;
 
     if cli.verbose {
         debug!(elapsed = ?start.elapsed(), "discovered_stores");
     }
 
     let source_store = if source_name == "." {
-        Store::discover(&root)?
+        Store::discover(root)?
     } else {
         let path = primary_store.workspaces_dir().join(source_name);
         Store::open(&path)?
     };
 
     let target_store = if target_name == "." {
-        Store::discover(&root)?
+        Store::discover(root)?
     } else {
         let path = primary_store.workspaces_dir().join(target_name);
         Store::open(&path)?

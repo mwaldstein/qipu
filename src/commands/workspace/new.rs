@@ -1,4 +1,3 @@
-use crate::cli::paths::resolve_root_path;
 use crate::Cli;
 use qipu_core::error::Result;
 use qipu_core::index::Index;
@@ -8,12 +7,14 @@ use qipu_core::store::paths::{GITIGNORE_FILE, WORKSPACES_DIR, WORKSPACE_FILE};
 use qipu_core::store::workspace::WorkspaceMetadata;
 use qipu_core::store::Store;
 use std::collections::{HashSet, VecDeque};
+use std::path::Path;
 use std::time::Instant;
 use tracing::debug;
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute(
     cli: &Cli,
+    root: &Path,
     name: &str,
     temp: bool,
     empty: bool,
@@ -28,9 +29,7 @@ pub fn execute(
         debug!(name, temp, empty, copy_primary, "new_params");
     }
 
-    let root = resolve_root_path(cli.root.clone());
-
-    let primary_store = Store::discover(&root)?;
+    let primary_store = Store::discover(root)?;
     let workspace_path = primary_store.workspaces_dir().join(name);
 
     if workspace_path.exists() {

@@ -1,14 +1,12 @@
-use crate::cli::paths::resolve_root_path;
 use crate::Cli;
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use qipu_core::store::Store;
 use std::fs;
+use std::path::Path;
 
-pub fn execute(cli: &Cli, name: &str, force: bool) -> Result<()> {
-    let root = resolve_root_path(cli.root.clone());
-
-    let primary_store = Store::discover(&root)?;
+pub fn execute(cli: &Cli, root: &Path, name: &str, force: bool) -> Result<()> {
+    let primary_store = Store::discover(root)?;
     let workspace_path = primary_store.workspaces_dir().join(name);
 
     if !workspace_path.exists() {

@@ -1,4 +1,5 @@
 use qipu_core::store::Store;
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -91,13 +92,13 @@ fn output_status_records(
 }
 
 /// Execute `qipu compact status`
-pub fn execute(cli: &Cli, note_id: &str) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path, note_id: &str) -> Result<()> {
     let start = Instant::now();
     if cli.verbose {
         debug!(note_id, "status_params");
     }
 
-    let store = discover_compact_store(cli)?;
+    let store = discover_compact_store(cli, root)?;
 
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;

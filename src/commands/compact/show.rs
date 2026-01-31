@@ -3,6 +3,7 @@
 //! Displays which notes are compacted by a digest note,
 //! supporting multiple output formats and depth levels.
 
+use std::path::Path;
 use std::time::Instant;
 
 use tracing::debug;
@@ -220,13 +221,13 @@ fn output_records_format(oc: &RecordsOutputContext<'_>) -> Result<()> {
 }
 
 /// Execute `qipu compact show`
-pub fn execute(cli: &Cli, digest_id: &str, depth: u32) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path, digest_id: &str, depth: u32) -> Result<()> {
     let start = Instant::now();
     if cli.verbose {
         debug!(digest_id, depth, "show_params");
     }
 
-    let store = discover_compact_store(cli)?;
+    let store = discover_compact_store(cli, root)?;
 
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;

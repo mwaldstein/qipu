@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::Path;
 use std::time::Instant;
 
 use qipu_core::compaction::CompactionContext;
@@ -38,8 +39,8 @@ struct ReportContext {
     direct_compacts: Vec<String>,
 }
 
-fn build_report_context(cli: &Cli, digest_id: &str) -> Result<ReportContext> {
-    let store = discover_compact_store(cli)?;
+fn build_report_context(cli: &Cli, root: &Path, digest_id: &str) -> Result<ReportContext> {
+    let store = discover_compact_store(cli, root)?;
 
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;
@@ -275,13 +276,13 @@ fn output_report(
     Ok(())
 }
 
-pub fn execute(cli: &Cli, digest_id: &str) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path, digest_id: &str) -> Result<()> {
     let start = Instant::now();
     if cli.verbose {
         debug!(digest_id, "report_params");
     }
 
-    let ctx = build_report_context(cli, digest_id)?;
+    let ctx = build_report_context(cli, root, digest_id)?;
     let metrics = calculate_metrics(&ctx);
 
     if cli.verbose {

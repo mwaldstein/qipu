@@ -5,6 +5,7 @@ use clap::Args;
 use crate::cli::parse::parse_note_type;
 use qipu_core::note::NoteType;
 
+/// Arguments for the init command.
 #[derive(Args, Debug)]
 pub struct InitArgs {
     /// Use visible store directory (qipu/ instead of .qipu/)
@@ -28,6 +29,7 @@ pub struct InitArgs {
     pub index_strategy: Option<String>,
 }
 
+/// Arguments for the list command.
 #[derive(Args, Debug)]
 pub struct ListArgs {
     /// Filter by tag
@@ -55,6 +57,7 @@ pub struct ListArgs {
     pub show_custom: bool,
 }
 
+/// Arguments for the show command.
 #[derive(Args, Debug)]
 pub struct ShowArgs {
     /// Note ID or file path
@@ -69,6 +72,7 @@ pub struct ShowArgs {
     pub custom: bool,
 }
 
+/// Arguments for the inbox command.
 #[derive(Args, Debug)]
 pub struct InboxArgs {
     /// Exclude notes already linked into a MOC
@@ -76,6 +80,7 @@ pub struct InboxArgs {
     pub exclude_linked: bool,
 }
 
+/// Arguments for the capture command.
 #[derive(Args, Debug)]
 pub struct CaptureArgs {
     /// Note title (auto-generated from content if not provided)
@@ -115,6 +120,7 @@ pub struct CaptureArgs {
     pub id: Option<String>,
 }
 
+/// Arguments for the index command.
 #[derive(Args, Debug)]
 pub struct IndexArgs {
     /// Drop and regenerate indexes from scratch
@@ -154,6 +160,7 @@ pub struct IndexArgs {
     pub status: bool,
 }
 
+/// Arguments for the search command.
 #[derive(Args, Debug)]
 pub struct SearchArgs {
     /// Search query
@@ -180,6 +187,7 @@ pub struct SearchArgs {
     pub sort: Option<String>,
 }
 
+/// Arguments for the edit command.
 #[derive(Args, Debug)]
 pub struct EditArgs {
     /// Note ID or file path
@@ -190,6 +198,7 @@ pub struct EditArgs {
     pub editor: Option<String>,
 }
 
+/// Arguments for the update command.
 #[derive(Args, Debug)]
 pub struct UpdateArgs {
     /// Note ID or file path

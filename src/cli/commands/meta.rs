@@ -12,6 +12,7 @@ use crate::cli::telemetry::TelemetryCommands;
 use crate::cli::value::ValueCommands;
 use crate::cli::workspace::WorkspaceCommands;
 
+/// Arguments for the verify command.
 #[derive(Args, Debug)]
 pub struct VerifyArgs {
     /// Note ID or file path
@@ -22,30 +23,35 @@ pub struct VerifyArgs {
     pub status: Option<bool>,
 }
 
+/// Subcommand for value management commands.
 #[derive(Args, Debug)]
 pub struct ValueSubcommand {
     #[command(subcommand)]
     pub command: ValueCommands,
 }
 
+/// Subcommand for tag management commands.
 #[derive(Args, Debug)]
 pub struct TagsSubcommand {
     #[command(subcommand)]
     pub command: TagsCommands,
 }
 
+/// Subcommand for custom property commands.
 #[derive(Args, Debug)]
 pub struct CustomSubcommand {
     #[command(subcommand)]
     pub command: CustomCommands,
 }
 
+/// Subcommand for link management commands.
 #[derive(Args, Debug)]
 pub struct LinkSubcommand {
     #[command(subcommand)]
     pub command: LinkCommands,
 }
 
+/// Arguments for the setup command.
 #[derive(Args, Debug)]
 pub struct SetupArgs {
     /// List available integrations
@@ -68,6 +74,7 @@ pub struct SetupArgs {
     pub remove: bool,
 }
 
+/// Arguments for the doctor command.
 #[derive(Args, Debug)]
 pub struct DoctorArgs {
     /// Auto-repair issues where possible
@@ -87,6 +94,7 @@ pub struct DoctorArgs {
     pub check: Option<Vec<String>>,
 }
 
+/// Arguments for the sync command.
 #[derive(Args, Debug)]
 pub struct SyncArgs {
     /// Run doctor validation after syncing
@@ -106,18 +114,21 @@ pub struct SyncArgs {
     pub push: bool,
 }
 
+/// Subcommand for store compaction commands.
 #[derive(Args, Debug)]
 pub struct CompactSubcommand {
     #[command(subcommand)]
     pub command: CompactCommands,
 }
 
+/// Subcommand for workspace management commands.
 #[derive(Args, Debug)]
 pub struct WorkspaceSubcommand {
     #[command(subcommand)]
     pub command: WorkspaceCommands,
 }
 
+/// Arguments for the merge command.
 #[derive(Args, Debug)]
 pub struct MergeArgs {
     /// Source note ID (will be deleted)
@@ -131,18 +142,21 @@ pub struct MergeArgs {
     pub dry_run: bool,
 }
 
+/// Subcommand for store management commands.
 #[derive(Args, Debug)]
 pub struct StoreSubcommand {
     #[command(subcommand)]
     pub command: StoreCommands,
 }
 
+/// Subcommand for ontology management commands.
 #[derive(Args, Debug)]
 pub struct OntologySubcommand {
     #[command(subcommand)]
     pub command: OntologyCommands,
 }
 
+/// Subcommand for telemetry management commands.
 #[derive(Args, Debug)]
 pub struct TelemetrySubcommand {
     #[command(subcommand)]

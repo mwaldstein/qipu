@@ -10,6 +10,7 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+/// Checks if tag aliases point to existing tags.
 pub fn check_tag_aliases(store: &Store, notes: &[Note], result: &mut DoctorResult) {
     let config = store.config();
 
@@ -41,6 +42,7 @@ pub fn check_tag_aliases(store: &Store, notes: &[Note], result: &mut DoctorResul
     }
 }
 
+/// Scans all notes from the store, returning successfully parsed notes and errors.
 pub fn scan_notes(store: &Store) -> (Vec<Note>, Vec<(String, String)>) {
     let mut notes = Vec::new();
     let mut errors = Vec::new();
@@ -75,6 +77,7 @@ pub fn scan_notes(store: &Store) -> (Vec<Note>, Vec<(String, String)>) {
     (notes, errors)
 }
 
+/// Checks that all notes have required fields (id, title).
 pub fn check_required_fields(notes: &[Note], result: &mut DoctorResult) {
     for note in notes {
         let path = note
@@ -107,6 +110,7 @@ pub fn check_required_fields(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Validates compaction invariants across all notes.
 pub fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
     let compaction_ctx = match CompactionContext::build(notes) {
         Ok(ctx) => ctx,
@@ -136,6 +140,7 @@ pub fn check_compaction_invariants(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Checks for near-duplicate notes using similarity scoring.
 pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorResult) {
     use qipu_core::similarity::find_all_duplicates;
     let duplicates = find_all_duplicates(index, threshold);
@@ -157,6 +162,7 @@ pub fn check_near_duplicates(index: &Index, threshold: f64, result: &mut DoctorR
     }
 }
 
+/// Checks that note values are within valid range (0-100).
 pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
     for note in notes {
         if let Some(value) = note.frontmatter.value {
@@ -178,6 +184,7 @@ pub fn check_value_range(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Checks that custom metadata is not excessively large.
 pub fn check_custom_metadata(notes: &[Note], result: &mut DoctorResult) {
     for note in notes {
         if note.frontmatter.custom.is_empty() {
@@ -203,6 +210,7 @@ pub fn check_custom_metadata(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Checks for broken or orphaned attachments.
 pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResult) {
     let attachments_dir = store.root().join(ATTACHMENTS_DIR);
     let mut referenced_attachments = HashSet::new();
@@ -286,6 +294,7 @@ pub fn check_attachments(store: &Store, notes: &[Note], result: &mut DoctorResul
     }
 }
 
+/// Checks for bare link lists (lists of links without explanatory text).
 pub fn check_bare_link_lists(notes: &[Note], result: &mut DoctorResult) {
     let wiki_link_re = Regex::new(r"\[\[([^\]]+)\]\]").expect("Invalid wiki link regex pattern");
 
@@ -327,6 +336,7 @@ pub fn check_bare_link_lists(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Checks if notes are too complex (too many words or paragraphs).
 pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
     const MAX_WORDS: usize = 1500;
     const MAX_PARAGRAPHS: usize = 50;

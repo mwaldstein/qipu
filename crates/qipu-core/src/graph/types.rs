@@ -232,7 +232,7 @@ mod tests {
     }
 }
 
-/// Direction for link listing/traversal
+/// Direction for link listing/traversal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Direction {
     /// Outbound links only (links FROM this note)

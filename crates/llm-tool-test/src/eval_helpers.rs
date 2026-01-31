@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
+/// Returns the path to the qipu binary, searching common build locations.
 pub fn get_qipu_path() -> String {
     let paths = [
         "target/release/qipu",
@@ -19,6 +20,7 @@ pub fn get_qipu_path() -> String {
     "target/debug/qipu".to_string()
 }
 
+/// Executes a qipu command with JSON output format and returns the parsed JSON value.
 pub fn run_qipu_json(args: &[&str], env_root: &Path) -> Result<serde_json::Value> {
     let qipu = get_qipu_path();
     let qipu_abs = std::fs::canonicalize(&qipu)
@@ -40,6 +42,7 @@ pub fn run_qipu_json(args: &[&str], env_root: &Path) -> Result<serde_json::Value
     serde_json::from_slice(&output.stdout).context("Failed to parse JSON output")
 }
 
+/// Counts the total number of notes in the store.
 pub fn count_notes(env_root: &Path) -> Result<usize> {
     let json = run_qipu_json(&["list"], env_root)?;
     if let Some(arr) = json.as_array() {
@@ -60,6 +63,7 @@ pub fn count_links(env_root: &Path) -> Result<usize> {
     Ok(0)
 }
 
+/// Checks if a search query returns any results.
 pub fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
     let _ = run_qipu_json(&["sync"], env_root);
 
@@ -71,11 +75,13 @@ pub fn search_hit(query: &str, env_root: &Path) -> Result<bool> {
     }
 }
 
+/// Checks if a note with the given ID exists in the store.
 pub fn note_exists(id: &str, env_root: &Path) -> Result<bool> {
     let json = run_qipu_json(&["show", id], env_root).context("Failed to run qipu show")?;
     Ok(json.get("id").is_some())
 }
 
+/// Checks if a link exists between two notes with the specified type.
 pub fn link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> Result<bool> {
     let json =
         run_qipu_json(&["link", "list", from], env_root).context("Failed to run qipu link list")?;
@@ -91,6 +97,7 @@ pub fn link_exists(from: &str, to: &str, link_type: &str, env_root: &Path) -> Re
     Ok(false)
 }
 
+/// Checks if any note in the store has the given tag.
 pub fn tag_exists(tag: &str, env_root: &Path) -> Result<bool> {
     let json = run_qipu_json(&["list"], env_root).context("Failed to run qipu list")?;
     if let Some(arr) = json.as_array() {
@@ -109,6 +116,7 @@ pub fn tag_exists(tag: &str, env_root: &Path) -> Result<bool> {
     Ok(false)
 }
 
+/// Checks if a note's title or body contains the given substring.
 pub fn content_contains(id: &str, substring: &str, env_root: &Path) -> Result<bool> {
     let json = run_qipu_json(&["show", id], env_root).context("Failed to run qipu show")?;
     let title = json.get("title").and_then(|v| v.as_str()).unwrap_or("");
@@ -117,6 +125,7 @@ pub fn content_contains(id: &str, substring: &str, env_root: &Path) -> Result<bo
     Ok(content.contains(substring))
 }
 
+/// Checks if a qipu command executes successfully.
 pub fn command_succeeds(command: &str, env_root: &Path) -> Result<bool> {
     let qipu = get_qipu_path();
     let qipu_abs = std::fs::canonicalize(&qipu)
@@ -133,6 +142,7 @@ pub fn command_succeeds(command: &str, env_root: &Path) -> Result<bool> {
     Ok(output.status.success())
 }
 
+/// Checks if the doctor command passes validation.
 pub fn doctor_passes(env_root: &Path) -> Result<bool> {
     let qipu = get_qipu_path();
     let qipu_abs = std::fs::canonicalize(&qipu)
@@ -147,6 +157,7 @@ pub fn doctor_passes(env_root: &Path) -> Result<bool> {
     Ok(output.status.success())
 }
 
+/// Checks if the transcript has no errors.
 pub fn no_transcript_errors(env_root: &Path) -> Result<bool> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
     let content = std::fs::read_to_string(&transcript_path)
@@ -155,6 +166,7 @@ pub fn no_transcript_errors(env_root: &Path) -> Result<bool> {
     Ok(metrics.error_count == 0)
 }
 
+/// Computes efficiency metrics from the transcript.
 pub fn compute_efficiency_metrics(env_root: &Path) -> Result<crate::transcript::EfficiencyMetrics> {
     let transcript_path = env_root.join("artifacts/transcript.raw.txt");
     let content = std::fs::read_to_string(&transcript_path)
@@ -162,6 +174,7 @@ pub fn compute_efficiency_metrics(env_root: &Path) -> Result<crate::transcript::
     Ok(crate::transcript::TranscriptAnalyzer::analyze_with_exit_codes(&content))
 }
 
+/// Computes quality metrics from the store export.
 pub fn compute_quality_metrics(env_root: &Path) -> Result<crate::store_analysis::QualityMetrics> {
     let json = run_qipu_json(&["export"], env_root)
         .context("Failed to run qipu export for quality metrics")?;
@@ -170,6 +183,7 @@ pub fn compute_quality_metrics(env_root: &Path) -> Result<crate::store_analysis:
         .context("Failed to analyze store quality")
 }
 
+/// Computes a composite score from judge score, gates, efficiency, and quality metrics.
 pub fn compute_composite_score(
     judge_score: Option<f64>,
     gates_passed: usize,

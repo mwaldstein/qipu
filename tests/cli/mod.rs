@@ -11,6 +11,7 @@ mod inbox;
 mod index;
 mod init;
 mod json_schema;
+mod json_schema_query;
 mod link;
 mod list;
 mod load;

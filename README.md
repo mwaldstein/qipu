@@ -192,4 +192,4 @@ cargo clippy                # Lint
 
 ## Documentation
 
-[Specs](specs/README.md) | [Agent Guide](AGENTS.md) | [Usage Patterns](docs/usage-patterns.md) | [Building on Qipu](docs/building-on-qipu.md)
+[Specs](specs/README.md) | [Agent Guide](AGENTS.md) | [Usage Patterns](docs/usage-patterns.md) | [Building on Qipu](docs/building-on-qipu.md) | [AI Skills Integration](skills/README.md)

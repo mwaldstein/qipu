@@ -8,7 +8,7 @@
 use crate::cli::{Cli, OutputFormat};
 use crate::commands::doctor;
 use crate::commands::format::output_by_format_result;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::index::IndexBuilder;
 use qipu_core::store::Store;
 
@@ -31,51 +31,7 @@ pub fn execute(
     // Step 2: Handle git automation if branch is configured
     if let Some(branch_name) = &store.config().branch {
         if commit || push {
-            use qipu_core::git;
-
-            // Determine repository root (assume store parent for now)
-            let repo_root = store.root().parent().ok_or_else(|| {
-                qipu_core::error::QipuError::Other("Cannot determine repository root".to_string())
-            })?;
-
-            if !git::is_git_available() {
-                return Err(qipu_core::error::QipuError::Other(
-                    "Git not found in PATH".to_string(),
-                ));
-            }
-
-            // Setup branch workflow (switch to qipu branch)
-            let original_branch = git::setup_branch_workflow(repo_root, branch_name)?;
-
-            let result = (|| -> Result<()> {
-                // Commit if requested and there are changes
-                if commit && git::has_changes(repo_root)? {
-                    git::add(repo_root, ".")?;
-                    git::commit(repo_root, "qipu sync: update notes and indexes")?;
-                }
-
-                // Push if requested
-                if push {
-                    git::push(repo_root, "origin", branch_name)?;
-                }
-
-                Ok(())
-            })();
-
-            // Always attempt to switch back to the original branch IF it differs
-            let checkout_result = if let Ok(current) = git::current_branch(repo_root) {
-                if current != original_branch {
-                    git::checkout_branch(repo_root, &original_branch)
-                } else {
-                    Ok(())
-                }
-            } else {
-                Ok(())
-            };
-
-            // Return the first error encountered
-            result?;
-            checkout_result?;
+            handle_git_automation(store, branch_name, commit, push)?;
         }
     }
 
@@ -141,6 +97,49 @@ pub fn execute(
             }
         )?;
     }
+
+    Ok(())
+}
+
+fn handle_git_automation(store: &Store, branch_name: &str, commit: bool, push: bool) -> Result<()> {
+    use qipu_core::git;
+
+    let repo_root = store
+        .root()
+        .parent()
+        .ok_or_else(|| QipuError::Other("Cannot determine repository root".to_string()))?;
+
+    if !git::is_git_available() {
+        return Err(QipuError::Other("Git not found in PATH".to_string()));
+    }
+
+    let original_branch = git::setup_branch_workflow(repo_root, branch_name)?;
+
+    let result = (|| -> Result<()> {
+        if commit && git::has_changes(repo_root)? {
+            git::add(repo_root, ".")?;
+            git::commit(repo_root, "qipu sync: update notes and indexes")?;
+        }
+
+        if push {
+            git::push(repo_root, "origin", branch_name)?;
+        }
+
+        Ok(())
+    })();
+
+    let checkout_result = if let Ok(current) = git::current_branch(repo_root) {
+        if current != original_branch {
+            git::checkout_branch(repo_root, &original_branch)
+        } else {
+            Ok(())
+        }
+    } else {
+        Ok(())
+    };
+
+    result?;
+    checkout_result?;
 
     Ok(())
 }

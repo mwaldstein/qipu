@@ -23,17 +23,37 @@ pub(super) fn handle_doctor(
 ) -> Result<()> {
     // For doctor, always use unchecked open to avoid auto-repair
     // We want to detect issues, not fix them automatically
-    let qipu_path = root.join(".qipu");
-    let visible_path = root.join("qipu");
-    let store = if qipu_path.is_dir() {
-        Store::open_unchecked(&qipu_path, false)?
-    } else if visible_path.is_dir() {
-        Store::open_unchecked(&visible_path, false)?
+
+    // Resolve store path respecting --store flag
+    let base_path = if let Some(path) = &cli.store {
+        if path.is_absolute() {
+            path.clone()
+        } else {
+            root.join(path)
+        }
     } else {
-        return Err(QipuError::StoreNotFound {
-            search_root: root.to_path_buf(),
-        });
+        // Discover default store location
+        let qipu_path = root.join(".qipu");
+        let visible_path = root.join("qipu");
+        if qipu_path.is_dir() {
+            qipu_path
+        } else if visible_path.is_dir() {
+            visible_path
+        } else {
+            return Err(QipuError::StoreNotFound {
+                search_root: root.to_path_buf(),
+            });
+        }
     };
+
+    // Handle workspace if specified
+    let store_path = if let Some(workspace_name) = &cli.workspace {
+        base_path.join("workspaces").join(workspace_name)
+    } else {
+        base_path
+    };
+
+    let store = Store::open_unchecked(&store_path, false)?;
 
     trace_command!(cli, start, "discover_store");
     let check_ontology = check.is_some_and(|checks| checks.contains(&"ontology".to_string()));

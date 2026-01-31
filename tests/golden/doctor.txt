@@ -1,5 +1,5 @@
-Found 1 issue(s) in 138 notes:
+Found 1 issue(s) in 4 notes:
 
-  ERROR [broken-link] Note 'qp-12cf' has link to non-existent note 'quality is the hard part' [fixable]
+  WARN  [bare-link-list] Note 'qp-moc123' contains bare link list at line 5: links should include descriptive text explaining why they are relevant
 
-Summary: 1 error(s), 0 warning(s)
+Summary: 0 error(s), 1 warning(s)

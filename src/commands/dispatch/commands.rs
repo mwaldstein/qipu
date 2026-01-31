@@ -17,7 +17,7 @@ pub(super) mod dispatch_command {
     use crate::cli::link::LinkCommands;
     use crate::cli::CreateArgs;
     use crate::commands::dispatch::handlers::{self, InitOptions, SetupOptions};
-    use crate::commands::dispatch::io;
+    use crate::commands::dispatch::io::{handle_dump, handle_export, handle_load};
     use crate::commands::dispatch::{link, maintenance, notes};
 
     pub(super) fn execute(cmd: &Commands, ctx: &CommandContext) -> Result<()> {
@@ -209,53 +209,56 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_export(ctx: &CommandContext, args: &ExportArgs) -> Result<()> {
-        io::execute_export(
-            ctx.cli,
-            ctx.root,
-            &args.note,
-            args.tag.as_deref(),
-            args.moc.as_deref(),
-            args.query.as_deref(),
-            args.output.as_ref(),
-            &args.mode,
-            args.with_attachments,
-            &args.link_mode,
-            &args.bib_format,
-            args.max_hops,
-            args.pdf,
-            ctx.start,
-        )
+        use crate::commands::dispatch::io::ExportParams;
+        handle_export(ExportParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            note_ids: &args.note,
+            tag: args.tag.as_deref(),
+            moc_id: args.moc.as_deref(),
+            query: args.query.as_deref(),
+            output: args.output.as_ref(),
+            mode: &args.mode,
+            with_attachments: args.with_attachments,
+            link_mode: &args.link_mode,
+            bib_format: &args.bib_format,
+            max_hops: args.max_hops,
+            pdf: args.pdf,
+            start: ctx.start,
+        })
     }
 
     fn execute_dump(ctx: &CommandContext, args: &DumpArgs) -> Result<()> {
-        io::execute_dump(
-            ctx.cli,
-            ctx.root,
-            args.file.as_ref(),
-            &args.note,
-            args.tag.as_deref(),
-            args.moc.as_deref(),
-            args.query.as_deref(),
-            &args.direction,
-            args.max_hops,
-            &args.r#type,
-            args.typed_only,
-            args.inline_only,
-            args.no_attachments,
-            args.output.as_ref(),
-            ctx.start,
-        )
+        use crate::commands::dispatch::io::DumpParams;
+        handle_dump(DumpParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            file: args.file.as_ref(),
+            note_ids: &args.note,
+            tag: args.tag.as_deref(),
+            moc_id: args.moc.as_deref(),
+            query: args.query.as_deref(),
+            direction: &args.direction,
+            max_hops: args.max_hops,
+            type_include: &args.r#type,
+            typed_only: args.typed_only,
+            inline_only: args.inline_only,
+            no_attachments: args.no_attachments,
+            output: args.output.as_ref(),
+            start: ctx.start,
+        })
     }
 
     fn execute_load(ctx: &CommandContext, args: &LoadArgs) -> Result<()> {
-        io::execute_load_dispatch(
-            ctx.cli,
-            ctx.root,
-            &args.pack_file,
-            &args.strategy,
-            args.apply_config,
-            ctx.start,
-        )
+        use crate::commands::dispatch::io::LoadParams;
+        handle_load(LoadParams {
+            cli: ctx.cli,
+            root: ctx.root,
+            pack_file: &args.pack_file,
+            strategy: &args.strategy,
+            apply_config: args.apply_config,
+            start: ctx.start,
+        })
     }
 
     fn execute_merge(ctx: &CommandContext, args: &MergeArgs) -> Result<()> {

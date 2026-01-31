@@ -146,7 +146,6 @@ impl SessionRunner {
             .take()
             .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr"))?;
 
-        let (output_tx, _output_rx) = channel();
         let (status_tx, status_rx) = channel();
 
         // Spawn threads to read stdout and stderr
@@ -215,7 +214,6 @@ impl SessionRunner {
             combined_output.extend_from_slice(&stderr_data);
         }
 
-        let _ = output_tx.send(combined_output);
         let _ = wait_thread.join();
 
         let exit_code = exit_status.code().unwrap_or(-1);

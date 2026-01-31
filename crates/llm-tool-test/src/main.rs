@@ -72,7 +72,7 @@ pub fn build_tool_matrix(
         for tool in tools {
             for model in &models {
                 matrix.push(output::ToolModelConfig {
-                    tool,
+                    tool: tool.clone(),
                     model: model.clone(),
                 });
             }

@@ -24,7 +24,7 @@ use command::{Command, CommandContext, NoCommand};
 
 pub fn run(cli: &Cli, start: Instant) -> Result<()> {
     // Determine the root directory
-    let root = resolve_root_path(cli.root.clone());
+    let root = resolve_root_path(cli.root.as_deref());
 
     debug!(elapsed = ?start.elapsed(), "resolve_root");
 

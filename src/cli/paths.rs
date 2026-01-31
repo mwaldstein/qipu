@@ -3,7 +3,7 @@
 //! Provides shared helpers for consistent path resolution across commands.
 
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Resolve the root path for store discovery.
 ///
@@ -27,8 +27,9 @@ use std::path::PathBuf;
 /// let root = resolve_root_path(None);
 /// // root will be current_dir() or PathBuf::from(".")
 /// ```
-pub fn resolve_root_path(root: Option<PathBuf>) -> PathBuf {
-    root.unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+pub fn resolve_root_path(root: Option<&Path>) -> PathBuf {
+    root.map(|p: &Path| p.to_path_buf())
+        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
 }
 
 #[cfg(test)]
@@ -39,7 +40,7 @@ mod tests {
     #[test]
     fn test_resolve_with_explicit_path() {
         let explicit = PathBuf::from("/tmp/test/path");
-        let result = resolve_root_path(Some(explicit.clone()));
+        let result = resolve_root_path(Some(explicit.as_ref()));
         assert_eq!(result, explicit);
     }
 

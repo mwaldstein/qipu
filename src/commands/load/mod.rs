@@ -8,7 +8,9 @@
 
 pub mod deserialize;
 pub mod loader;
+pub mod metadata;
 pub mod model;
+pub mod parsers;
 
 use std::path::Path;
 

@@ -3,6 +3,7 @@ use crate::output;
 use crate::results::{Cache, ResultsDB};
 use crate::run;
 use crate::scenario::load;
+use crate::utils::resolve_fixtures_path;
 use chrono::{Duration, Utc};
 use std::path::{Path, PathBuf};
 
@@ -38,11 +39,7 @@ fn resolve_scenario_path(path: &str) -> PathBuf {
     if p.is_absolute() || p.exists() {
         p.to_path_buf()
     } else {
-        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
-            PathBuf::from("crates/llm-tool-test/fixtures")
-        } else {
-            PathBuf::from("fixtures")
-        };
+        let fixtures_dir = resolve_fixtures_path("");
         let fixture_path = fixtures_dir.join(path);
         if fixture_path.exists() {
             fixture_path
@@ -88,11 +85,7 @@ pub fn handle_run_command(
 
     let scenarios_to_run = if selection.all {
         let mut scenarios = Vec::new();
-        let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
-            PathBuf::from("crates/llm-tool-test/fixtures")
-        } else {
-            PathBuf::from("fixtures")
-        };
+        let fixtures_dir = resolve_fixtures_path("");
         if fixtures_dir.exists() {
             find_scenarios(&fixtures_dir, &mut scenarios);
         }
@@ -213,11 +206,7 @@ pub fn handle_list_command(
         }
     }
 
-    let fixtures_dir = if PathBuf::from("crates/llm-tool-test/fixtures").exists() {
-        PathBuf::from("crates/llm-tool-test/fixtures")
-    } else {
-        PathBuf::from("fixtures")
-    };
+    let fixtures_dir = resolve_fixtures_path("");
     if fixtures_dir.exists() {
         find_scenarios(&fixtures_dir, &mut scenarios);
     }

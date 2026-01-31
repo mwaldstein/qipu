@@ -1,4 +1,5 @@
 use crate::run::utils::copy_dir_recursive;
+use crate::utils::resolve_fixtures_path;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -20,11 +21,7 @@ impl TestEnv {
     }
 
     pub fn setup_fixture(&self, fixture_name: &str) -> anyhow::Result<()> {
-        let templates_base = if Path::new("crates/llm-tool-test/fixtures/templates").exists() {
-            Path::new("crates/llm-tool-test/fixtures/templates")
-        } else {
-            Path::new("fixtures/templates")
-        };
+        let templates_base = resolve_fixtures_path("templates");
         let fixture_src = templates_base.join(fixture_name);
         if !fixture_src.exists() {
             anyhow::bail!("Fixture not found: {:?}", fixture_src);

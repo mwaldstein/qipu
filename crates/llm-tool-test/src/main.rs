@@ -24,6 +24,7 @@ mod scenario;
 mod session;
 mod store_analysis;
 mod transcript;
+mod utils;
 
 use clap::Parser;
 use cli::Cli;

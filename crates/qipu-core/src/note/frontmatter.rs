@@ -106,4 +106,19 @@ impl NoteFrontmatter {
             self.tags.join(",")
         }
     }
+
+    /// Serialize compacts to JSON string (defaults to "[]")
+    pub fn to_compacts_json(&self) -> String {
+        serde_json::to_string(&self.compacts).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    /// Serialize sources to JSON string (defaults to "[]")
+    pub fn to_sources_json(&self) -> String {
+        serde_json::to_string(&self.sources).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    /// Serialize custom metadata to JSON string (defaults to "{}")
+    pub fn to_custom_json(&self) -> String {
+        serde_json::to_string(&self.custom).unwrap_or_else(|_| "{}".to_string())
+    }
 }

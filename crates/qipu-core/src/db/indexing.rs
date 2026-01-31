@@ -59,13 +59,10 @@ impl super::Database {
             .map(|d| d.as_nanos() as i64)
             .unwrap_or(0);
 
-        let compacts_json =
-            serde_json::to_string(&note.frontmatter.compacts).unwrap_or_else(|_| "[]".to_string());
-        let sources_json =
-            serde_json::to_string(&note.frontmatter.sources).unwrap_or_else(|_| "[]".to_string());
+        let compacts_json = note.frontmatter.to_compacts_json();
+        let sources_json = note.frontmatter.to_sources_json();
         let verified_int = note.frontmatter.verified.map(|b| if b { 1 } else { 0 });
-        let custom_json =
-            serde_json::to_string(&note.frontmatter.custom).unwrap_or_else(|_| "{}".to_string());
+        let custom_json = note.frontmatter.to_custom_json();
 
         conn.execute(
             "INSERT OR REPLACE INTO notes (id, title, type, path, created, updated, body, mtime, value, compacts, author, verified, source, sources, generated_by, prompt_hash, custom_json, index_level)

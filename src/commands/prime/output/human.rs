@@ -44,12 +44,19 @@ pub fn output_human(
     println!();
 
     print_link_types(ontology, config);
-    println!();
 
-    print_mocs_section(mocs, compact);
-    println!();
+    let has_mocs = !compact && !mocs.is_empty();
+    if has_mocs {
+        println!();
+        print_mocs_section(mocs, compact);
+    }
 
-    print_recent_notes_section(recent_notes);
+    let has_recent_notes = !recent_notes.is_empty();
+    if has_recent_notes {
+        println!();
+        print_recent_notes_section(recent_notes);
+    }
+
     println!();
 
     println!("Use `qipu context --note <id>` to fetch full note content.");

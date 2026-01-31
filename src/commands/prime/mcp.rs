@@ -16,7 +16,11 @@ use std::path::PathBuf;
 pub fn detect_mcp_mode() -> bool {
     // Check explicit opt-in/opt-out
     if let Ok(val) = env::var("QIPU_MCP_MODE") {
-        return val == "1" || val.to_lowercase() == "true";
+        let val_lower = val.to_lowercase();
+        if val_lower == "0" || val_lower == "false" {
+            return false;
+        }
+        return val_lower == "1" || val_lower == "true";
     }
 
     // Check for MCP-specific environment variables

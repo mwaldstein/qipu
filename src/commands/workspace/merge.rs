@@ -104,13 +104,7 @@ pub fn execute(
         for note in &source_notes {
             let id: String = note.id().to_string();
             if target_notes_ids.contains(&id) {
-                let action = match strategy {
-                    "overwrite" => "overwrite",
-                    "merge-links" => "merge-links",
-                    "skip" => "skip",
-                    "rename" => "rename",
-                    _ => strategy,
-                };
+                let action = strategy;
                 if strategy != "rename" {
                     conflicts.push((id.clone(), action));
                 }

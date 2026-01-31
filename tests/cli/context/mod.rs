@@ -14,5 +14,6 @@ mod ontology_flags;
 mod ontology_replacement;
 mod selection;
 mod two_hop;
-mod walk_advanced;
+mod walk_advanced_semantic;
+mod walk_advanced_value;
 mod walk_basic;

@@ -7,6 +7,7 @@
 //! - Reading from stdin replaces note body (preserving frontmatter)
 
 use std::io::Read;
+use std::path::PathBuf;
 
 use tracing::debug;
 
@@ -14,6 +15,63 @@ use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
+
+fn rename_note_file_for_title(
+    note_id: &str,
+    note_title: &str,
+    note_path: &PathBuf,
+    new_title: &str,
+) -> Result<PathBuf> {
+    if new_title == note_title {
+        return Ok(note_path.clone());
+    }
+
+    let note_id_ref = qipu_core::id::NoteId::new_unchecked(note_id.to_string());
+    let new_file_name = qipu_core::id::filename(&note_id_ref, new_title);
+    let new_file_path = note_path
+        .parent()
+        .ok_or_else(|| QipuError::Other("cannot determine parent directory".to_string()))?
+        .join(&new_file_name);
+
+    if new_file_path != *note_path {
+        std::fs::rename(note_path, &new_file_path)?;
+    }
+
+    Ok(new_file_path)
+}
+
+fn move_note_to_type_directory(
+    note_path: &PathBuf,
+    new_type: &qipu_core::note::NoteType,
+    store: &Store,
+) -> Result<PathBuf> {
+    let is_moc = new_type.is_moc();
+    let was_moc: bool = note_path
+        .parent()
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+        .map(|n| n == "mocs")
+        .unwrap_or(false);
+
+    if is_moc == was_moc {
+        return Ok(note_path.clone());
+    }
+
+    let target_dir = if is_moc {
+        store.root().join(qipu_core::store::paths::MOCS_DIR)
+    } else {
+        store.root().join(qipu_core::store::paths::NOTES_DIR)
+    };
+
+    let new_file_path = target_dir.join(
+        note_path
+            .file_name()
+            .ok_or_else(|| QipuError::Other("cannot determine filename".to_string()))?,
+    );
+
+    std::fs::rename(note_path, &new_file_path)?;
+    Ok(new_file_path)
+}
 
 /// Execute the update command
 #[allow(clippy::too_many_arguments)]
@@ -52,21 +110,12 @@ pub fn execute(
     if let Some(new_title) = title {
         note.frontmatter.title = new_title.to_string();
         modified = true;
-
-        // Rename the file if title changed
-        if new_title != note.title() {
-            let note_id_ref = qipu_core::id::NoteId::new_unchecked(note_id.clone());
-            let new_file_name = qipu_core::id::filename(&note_id_ref, new_title);
-            let new_file_path = note_path
-                .parent()
-                .ok_or_else(|| QipuError::Other("cannot determine parent directory".to_string()))?
-                .join(&new_file_name);
-
-            if new_file_path != note_path {
-                std::fs::rename(&note_path, &new_file_path)?;
-                note.path = Some(new_file_path.clone());
-            }
-        }
+        note.path = Some(rename_note_file_for_title(
+            &note_id,
+            note.title(),
+            &note_path,
+            new_title,
+        )?);
     }
 
     // Update type if provided
@@ -74,31 +123,8 @@ pub fn execute(
         note.frontmatter.note_type = Some(new_type.clone());
         modified = true;
 
-        // Move file to appropriate directory if type changed
         if let Some(path) = &note.path {
-            let is_moc = new_type.is_moc();
-            let was_moc: bool = path
-                .parent()
-                .and_then(|p: &std::path::Path| p.file_name())
-                .and_then(|n| n.to_str())
-                .map(|n| n == "mocs")
-                .unwrap_or(false);
-
-            if is_moc != was_moc {
-                let target_dir = if is_moc {
-                    store.root().join(qipu_core::store::paths::MOCS_DIR)
-                } else {
-                    store.root().join(qipu_core::store::paths::NOTES_DIR)
-                };
-
-                let new_file_path = target_dir
-                    .join(path.file_name().ok_or_else(|| {
-                        QipuError::Other("cannot determine filename".to_string())
-                    })?);
-
-                std::fs::rename(path, &new_file_path)?;
-                note.path = Some(new_file_path);
-            }
+            note.path = Some(move_note_to_type_directory(path, &new_type, store)?);
         }
     }
 

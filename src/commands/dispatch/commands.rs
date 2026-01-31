@@ -301,7 +301,7 @@ pub(super) mod dispatch_command {
         command: &crate::cli::telemetry::TelemetryCommands,
     ) -> Result<()> {
         use crate::cli::telemetry::TelemetryCommands;
-        use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig};
+        use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig, PRIVACY_MANIFEST};
         use serde_json;
         use std::sync::Arc;
 
@@ -336,6 +336,9 @@ pub(super) mod dispatch_command {
                         println!("{}", json);
                     }
                 }
+            }
+            TelemetryCommands::Manifest => {
+                println!("{}", PRIVACY_MANIFEST);
             }
         }
         Ok(())

@@ -1,13 +1,19 @@
 //! Telemetry collection and upload for anonymous usage analytics
 
+mod aggregation;
 mod collector;
 mod events;
+mod privacy_manifest;
 mod uploader;
 
+pub use aggregation::{
+    AggregatedSession, CommandStats, SessionAggregator, UploadBatch, UploadMetadata,
+};
 pub use collector::{TelemetryCollector, TelemetryConfig};
 pub use events::{
     CommandName, DurationBucket, ErrorType, NoteCountBucket, TelemetryEvent, WorkspaceCountBucket,
 };
+pub use privacy_manifest::{PrivacyManifest, PRIVACY_MANIFEST};
 pub use uploader::{TelemetryUploader, UploadError};
 
 use std::sync::Arc;
@@ -82,7 +88,7 @@ mod tests {
         let err = QipuError::UsageError("test".to_string());
         assert_eq!(error_to_type(&err), ErrorType::UsageError);
 
-        let err = QipuError::IO(std::io::Error::new(std::io::ErrorKind::NotFound, "test"));
+        let err = QipuError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "test"));
         assert_eq!(error_to_type(&err), ErrorType::IOError);
     }
 

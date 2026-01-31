@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Duration buckets for command execution time
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DurationBucket {
     LessThan100ms,
@@ -76,7 +76,7 @@ impl NoteCountBucket {
 }
 
 /// Command names (enum variants only, no args)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CommandName {
     Init,
@@ -151,7 +151,7 @@ impl CommandName {
 }
 
 /// Error type variants only (no messages or paths)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ErrorType {
     UsageError,

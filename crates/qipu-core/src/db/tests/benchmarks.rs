@@ -79,7 +79,7 @@ fn find_note_by_title(store: &Store, title_pattern: &str) -> Option<String> {
 // ============================================================================
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_search_500_notes() {
     let store = create_test_store_with_notes(500);
     let db = store.db();
@@ -112,7 +112,7 @@ fn bench_search_500_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_search_2000_notes() {
     let store = create_test_store_with_notes(2000);
     let db = store.db();
@@ -145,7 +145,7 @@ fn bench_search_2000_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_search_with_filters_2000_notes() {
     let store = create_test_store_with_notes(2000);
     let db = store.db();
@@ -180,7 +180,7 @@ fn bench_search_with_filters_2000_notes() {
 // ============================================================================
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_backlinks_100_notes() {
     let store = create_test_store_with_links(100, 3);
     let db = store.db();
@@ -208,7 +208,7 @@ fn bench_backlinks_100_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_backlinks_500_notes() {
     let store = create_test_store_with_links(500, 3);
     let db = store.db();
@@ -236,7 +236,7 @@ fn bench_backlinks_500_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_backlinks_2000_notes() {
     let store = create_test_store_with_links(2000, 3);
     let db = store.db();
@@ -268,7 +268,7 @@ fn bench_backlinks_2000_notes() {
 // ============================================================================
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_traverse_1_hop_200_notes() {
     let store = create_test_store_with_links(200, 3);
 
@@ -300,7 +300,7 @@ fn bench_traverse_1_hop_200_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_traverse_3_hops_200_notes() {
     let store = create_test_store_with_links(200, 3);
 
@@ -332,7 +332,7 @@ fn bench_traverse_3_hops_200_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_traverse_3_hops_500_notes() {
     let store = create_test_store_with_links(500, 3);
 
@@ -364,7 +364,7 @@ fn bench_traverse_3_hops_500_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_traverse_3_hops_2000_notes() {
     let store = create_test_store_with_links(2000, 3);
 
@@ -396,7 +396,7 @@ fn bench_traverse_3_hops_2000_notes() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // Run with: cargo test --release -- --ignored | Reason: Requires release build for accurate timing
 fn bench_traverse_both_directions_3_hops_500_notes() {
     let store = create_test_store_with_links(500, 3);
 

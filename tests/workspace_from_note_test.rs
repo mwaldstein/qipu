@@ -1,19 +1,9 @@
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
+mod common;
+
 use std::path::Path;
-use std::process::Output;
 use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
-
-fn extract_id(output: &Output) -> String {
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .next()
-        .map(|s| s.to_string())
-        .unwrap_or_default()
-}
+use common::{extract_id, qipu};
 
 fn create_note(root: &Path, title: &str) -> String {
     let output = qipu()

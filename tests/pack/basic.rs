@@ -1,11 +1,11 @@
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
+#[path = "../common.rs"]
+mod common;
+
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
+use common::{extract_id_from_bytes, qipu};
 
 #[test]
 fn test_pack_unpack_json_roundtrip() {
@@ -378,13 +378,4 @@ fn test_typed_links_preserved_note_c_links() {
         verify_link(links, &graph.id_d, "part-of"),
         "Note C should have 'part-of' link to Note D"
     );
-}
-
-fn extract_id_from_bytes(bytes: &[u8]) -> String {
-    let output = String::from_utf8_lossy(bytes);
-    output
-        .lines()
-        .find(|line| line.starts_with("qp-"))
-        .map(|line| line.trim().to_string())
-        .expect("Failed to extract ID from output")
 }

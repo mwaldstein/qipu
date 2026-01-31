@@ -5,62 +5,13 @@
 //! - <200ms for list with ~1k notes
 //! - <1s for search over ~10k notes
 
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
+mod common;
+
 use predicates::prelude::*;
-use std::fs;
-use std::path::Path;
 use std::time::Instant;
 use tempfile::tempdir;
 
-/// Get a Command for qipu
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
-
-/// Create a test store with specified number of notes
-fn create_test_store_with_notes(
-    store_dir: &Path,
-    count: usize,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize store
-    qipu()
-        .arg("--store")
-        .arg(store_dir)
-        .arg("init")
-        .assert()
-        .success();
-
-    // Create notes with predictable content for search testing
-    for i in 0..count {
-        let title = format!("Note {}", i);
-        let content = if i % 5 == 0 {
-            format!("This is a test note about programming and algorithms. Note number {} contains relevant content.", i)
-        } else {
-            format!("This is test note number {} with some content.", i)
-        };
-
-        let note_content = format!(
-            "---\nid: qp-test{}\ntitle: {}\ntype: permanent\n---\n\n{}",
-            i, title, content
-        );
-
-        let note_path = store_dir
-            .join("notes")
-            .join(format!("qp-test{}-note-{}.md", i, i));
-        fs::create_dir_all(note_path.parent().unwrap())?;
-        fs::write(note_path, note_content)?;
-    }
-
-    // Build index
-    qipu()
-        .arg("--store")
-        .arg(store_dir)
-        .arg("index")
-        .assert()
-        .success();
-
-    Ok(())
-}
+use common::{create_test_store_with_notes, qipu};
 
 // ============================================================================
 // Help and Version Performance Tests (<100ms)

@@ -150,21 +150,13 @@ pub fn sort_notes_by_created_id(notes: &mut [Note]) {
     });
 }
 
-/// Get notes linked from a MOC (direct links only, not transitive)
-/// Preserves the order in which links appear in the MOC
-pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Result<Vec<Note>> {
-    use regex::Regex;
-
-    let moc = store.get_note(moc_id)?;
-
-    // Extract links in the same order as during index building:
-    // 1. Typed links from frontmatter
-    // 2. Wiki links from body (in order of appearance)
-    // 3. Markdown links from body (in order of appearance)
-    let mut linked_notes = Vec::new();
-    let mut seen_ids = HashSet::new();
-
-    // 1. Extract typed links from frontmatter first
+fn extract_typed_links(
+    moc: &Note,
+    index: &Index,
+    store: &Store,
+    seen_ids: &mut HashSet<String>,
+    linked_notes: &mut Vec<Note>,
+) {
     for typed_link in &moc.frontmatter.links {
         let to_id = &typed_link.id;
         if !seen_ids.insert(to_id.clone()) {
@@ -177,8 +169,17 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
             }
         }
     }
+}
 
-    // 2. Extract wiki links: [[id]] or [[id|label]]
+fn extract_wiki_links(
+    moc: &Note,
+    index: &Index,
+    store: &Store,
+    seen_ids: &mut HashSet<String>,
+    linked_notes: &mut Vec<Note>,
+) -> Result<()> {
+    use regex::Regex;
+
     let wiki_link_re =
         Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| QipuError::FailedOperation {
             operation: "compile wiki link regex".to_string(),
@@ -191,7 +192,6 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
             continue;
         }
 
-        // Verify the note exists in the index
         if index.contains(&to_id) {
             if let Ok(note) = store.get_note(&to_id) {
                 linked_notes.push(note);
@@ -199,7 +199,18 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
         }
     }
 
-    // 3. Extract markdown links: [text](qp-xxxx) or [text](./qp-xxxx-slug.md)
+    Ok(())
+}
+
+fn extract_markdown_links(
+    moc: &Note,
+    index: &Index,
+    store: &Store,
+    seen_ids: &mut HashSet<String>,
+    linked_notes: &mut Vec<Note>,
+) -> Result<()> {
+    use regex::Regex;
+
     let md_link_re =
         Regex::new(r"\[([^\]]*)\]\(([^)]+)\)").map_err(|e| QipuError::FailedOperation {
             operation: "compile markdown link regex".to_string(),
@@ -209,7 +220,6 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
     for cap in md_link_re.captures_iter(&moc.body) {
         let target = cap[2].trim();
 
-        // Skip external URLs and anchors
         if target.starts_with("http://")
             || target.starts_with("https://")
             || target.starts_with('#')
@@ -217,12 +227,9 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
             continue;
         }
 
-        // Try to resolve the link to a note ID
         let to_id = if target.starts_with("qp-") {
-            // Direct ID reference: [text](qp-xxxx)
             Some(target.split('-').take(2).collect::<Vec<_>>().join("-"))
         } else if target.contains("qp-") {
-            // Path reference containing ID: [text](./qp-xxxx-slug.md)
             if let Some(start) = target.find("qp-") {
                 let rest = &target[start..];
                 let end = rest
@@ -244,7 +251,6 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
                 continue;
             }
 
-            // Verify the note exists in the index
             if index.contains(&id) {
                 if let Ok(note) = store.get_note(&id) {
                     linked_notes.push(note);
@@ -252,6 +258,19 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
             }
         }
     }
+
+    Ok(())
+}
+
+pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Result<Vec<Note>> {
+    let moc = store.get_note(moc_id)?;
+
+    let mut linked_notes = Vec::new();
+    let mut seen_ids = HashSet::new();
+
+    extract_typed_links(&moc, index, store, &mut seen_ids, &mut linked_notes);
+    extract_wiki_links(&moc, index, store, &mut seen_ids, &mut linked_notes)?;
+    extract_markdown_links(&moc, index, store, &mut seen_ids, &mut linked_notes)?;
 
     Ok(linked_notes)
 }

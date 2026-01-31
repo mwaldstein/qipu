@@ -215,7 +215,7 @@ impl SessionRunner {
             combined_output.extend_from_slice(&stderr_data);
         }
 
-        let _ = output_tx.send(combined_output.clone());
+        let _ = output_tx.send(combined_output);
         let _ = wait_thread.join();
 
         let exit_code = exit_status.code().unwrap_or(-1);

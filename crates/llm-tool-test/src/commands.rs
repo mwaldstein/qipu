@@ -34,7 +34,7 @@ fn find_scenarios(dir: &Path, scenarios: &mut Vec<(String, PathBuf)>) {
                 if let Some(ext) = path.extension() {
                     if ext == "yaml" {
                         if let Ok(s) = load(&path) {
-                            scenarios.push((s.name.clone(), path));
+                            scenarios.push((s.name, path));
                         }
                     }
                 }
@@ -106,7 +106,7 @@ pub fn handle_run_command(
     } else if let Some(path) = scenario {
         let resolved_path = resolve_scenario_path(path);
         let s = load(&resolved_path)?;
-        vec![(s.name.clone(), resolved_path)]
+        vec![(s.name, resolved_path)]
     } else {
         println!("No scenario specified. Use --scenario <path> or --all");
         return Ok(());
@@ -185,13 +185,7 @@ pub fn handle_list_command(
                     if let Some(ext) = path.extension() {
                         if ext == "yaml" {
                             if let Ok(s) = load(&path) {
-                                scenarios.push((
-                                    path,
-                                    s.name.clone(),
-                                    s.tier,
-                                    s.description,
-                                    s.tags,
-                                ));
+                                scenarios.push((path, s.name, s.tier, s.description, s.tags));
                             }
                         }
                     }

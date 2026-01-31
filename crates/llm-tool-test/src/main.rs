@@ -69,10 +69,10 @@ pub fn build_tool_matrix(
             .collect();
 
         let mut matrix = Vec::new();
-        for tool in &tools {
+        for tool in tools {
             for model in &models {
                 matrix.push(output::ToolModelConfig {
-                    tool: tool.clone(),
+                    tool,
                     model: model.clone(),
                 });
             }

@@ -60,9 +60,10 @@ pub fn run_evaluation_flow(
     std::time::Duration,
     EvaluationMetrics,
 )> {
+    let start = std::time::Instant::now();
     let (output, exit_code, cost, token_usage) =
         execute_tool(adapter, s, env, tool, model, effective_timeout)?;
-    let duration = std::time::Instant::now().elapsed();
+    let duration = start.elapsed();
 
     // Write transcript immediately after execution so evaluation can read it
     writer.write_raw(&output)?;

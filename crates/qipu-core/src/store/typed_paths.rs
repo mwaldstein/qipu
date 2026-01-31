@@ -277,8 +277,7 @@ mod tests {
         // Test AsRef<Path>
         let _path_ref: &Path = note_path.as_ref();
 
-        // Test to_path_buf
-        let _pb = note_path.to_path_buf();
+        let _ = note_path.to_path_buf();
     }
 
     #[test]

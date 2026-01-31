@@ -170,7 +170,7 @@ fn test_workspace_merge_delete_source_does_not_delete_primary() {
         .current_dir(root)
         .output()
         .unwrap();
-    let _ws_id = extract_id(&output);
+    extract_id(&output);
 
     // 5. Attempt to merge from primary (.) to workspace with --delete-source
     // This should NOT delete the primary store

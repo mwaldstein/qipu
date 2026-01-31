@@ -145,7 +145,7 @@ fn main() -> anyhow::Result<()> {
 
             if let Some(ref path) = scenario {
                 let resolved_path = resolve_scenario_path(path);
-                let _s = scenario::load(&resolved_path)?;
+                scenario::load(&resolved_path)?;
                 commands::handle_run_command(
                     scenario,
                     *all,

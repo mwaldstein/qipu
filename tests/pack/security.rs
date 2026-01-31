@@ -182,8 +182,6 @@ fn test_malicious_attachment_absolute_path() {
 fn test_malicious_attachment_null_bytes() {
     let dir1 = tempdir().unwrap();
     let store1_path = dir1.path();
-    let _dir2 = tempdir().unwrap();
-    let _store2_path = _dir2.path();
     let pack_file = dir1.path().join("malicious3.pack.json");
 
     // 1. Initialize store 1

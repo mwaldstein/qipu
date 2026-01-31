@@ -285,7 +285,7 @@ fn bench_traverse_1_hop_200_notes() {
     };
 
     let start = Instant::now();
-    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
+    bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 1 hop 200 notes: {:?}", duration);
@@ -317,7 +317,7 @@ fn bench_traverse_3_hops_200_notes() {
     };
 
     let start = Instant::now();
-    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
+    bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 200 notes: {:?}", duration);
@@ -349,7 +349,7 @@ fn bench_traverse_3_hops_500_notes() {
     };
 
     let start = Instant::now();
-    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
+    bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 500 notes: {:?}", duration);
@@ -381,7 +381,7 @@ fn bench_traverse_3_hops_2000_notes() {
     };
 
     let start = Instant::now();
-    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
+    bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal 3 hops 2000 notes: {:?}", duration);
@@ -413,7 +413,7 @@ fn bench_traverse_both_directions_3_hops_500_notes() {
     };
 
     let start = Instant::now();
-    let _results = bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
+    bfs_traverse(&index, &store, &start_note_id, &opts, None, None).unwrap();
     let duration = start.elapsed();
 
     println!("Traversal both directions 3 hops 500 notes: {:?}", duration);

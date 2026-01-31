@@ -25,7 +25,7 @@ pub fn execute(
 
     // Load and verify both notes exist
     let mut from_note = store.get_note(&from_resolved)?;
-    let _to_note = store.get_note(&to_resolved)?;
+    store.get_note(&to_resolved)?;
 
     // Check if link already exists
     let link_exists = from_note

@@ -10,6 +10,13 @@ pub fn qipu() -> Command {
     cargo_bin_cmd!("qipu")
 }
 
+/// Get a Command for qipu with QIPU_STORE env var already set
+pub fn qipu_store(store_path: impl AsRef<Path>) -> Command {
+    let mut cmd = qipu();
+    cmd.env("QIPU_STORE", store_path.as_ref());
+    cmd
+}
+
 /// Extract note ID from create command output (first line)
 /// Create outputs: <id>\n<path>\n, so we take the first line
 pub fn extract_id(output: &Output) -> String {

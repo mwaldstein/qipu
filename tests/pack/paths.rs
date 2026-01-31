@@ -1,11 +1,8 @@
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
+use crate::pack::support::qipu_store;
 
 #[test]
 fn test_pack_preserves_note_paths() {
@@ -16,20 +13,14 @@ fn test_pack_preserves_note_paths() {
     let pack_file = dir1.path().join("test.pack.json");
 
     // 1. Initialize store 1
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
     // 2. Create a note
-    let mut cmd = qipu();
-    let output = cmd
+    let output = qipu_store(store1_path)
         .arg("create")
         .arg("Custom Path Note")
         .arg("--type")
         .arg("permanent")
-        .env("QIPU_STORE", store1_path)
         .output()
         .unwrap();
     let output_str = String::from_utf8_lossy(&output.stdout);
@@ -50,11 +41,10 @@ fn test_pack_preserves_note_paths() {
     let original_note_path = original_note_path.expect("Should find note file");
 
     // 4. Dump (which should include the path in pack)
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu_store(store1_path)
+        .arg("dump")
         .arg("--output")
         .arg(&pack_file)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
@@ -62,17 +52,12 @@ fn test_pack_preserves_note_paths() {
     assert!(pack_file.exists(), "Pack file should be created");
 
     // 5. Initialize store 2
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // 6. Load into store 2
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu_store(store2_path)
+        .arg("load")
         .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
@@ -103,10 +88,9 @@ fn test_pack_preserves_note_paths() {
     );
 
     // 8. Verify the note is accessible via qipu show
-    let mut cmd = qipu();
-    cmd.arg("show")
+    qipu_store(store2_path)
+        .arg("show")
         .arg(note_id)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("Custom Path Note"));

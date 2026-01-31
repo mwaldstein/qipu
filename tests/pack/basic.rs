@@ -7,7 +7,7 @@ use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
-use crate::pack::support::{create_link_with_env, create_note_with_env, qipu, TwoStoreSetup};
+use crate::pack::support::{create_link_with_env, create_note_with_env, qipu_store, TwoStoreSetup};
 
 #[test]
 fn test_pack_unpack_json_roundtrip() {
@@ -18,15 +18,11 @@ fn test_pack_unpack_json_roundtrip() {
     let pack_file = dir1.path().join("test.pack.json");
 
     // 1. Initialize store 1
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
     // 2. Create a note with all fields
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Test Note")
         .arg("--type")
         .arg("moc")
@@ -34,16 +30,14 @@ fn test_pack_unpack_json_roundtrip() {
         .arg("tag1")
         .arg("--tag")
         .arg("tag2")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Find the note ID from the output
-    let output = qipu()
+    let output = qipu_store(store1_path)
         .arg("list")
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .output()
         .unwrap();
 
@@ -67,36 +61,29 @@ fn test_pack_unpack_json_roundtrip() {
     }
 
     // 3. Pack to JSON
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu_store(store1_path)
+        .arg("dump")
         .arg("--output")
         .arg(&pack_file)
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu_store(store2_path)
+        .arg("load")
         .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = qipu();
-    cmd.arg("show")
+    qipu_store(store2_path)
+        .arg("show")
         .arg(&note_id)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("Test Note"));
@@ -111,15 +98,11 @@ fn test_pack_unpack_records_roundtrip() {
     let pack_file = dir1.path().join("test.pack.records");
 
     // 1. Initialize store 1
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
     // 2. Create a note
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Test Note Records")
         .arg("--type")
         .arg("moc")
@@ -127,16 +110,14 @@ fn test_pack_unpack_records_roundtrip() {
         .arg("tag1")
         .arg("--tag")
         .arg("tag2")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Find the note ID
-    let output = qipu()
+    let output = qipu_store(store1_path)
         .arg("list")
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .output()
         .unwrap();
 
@@ -160,63 +141,54 @@ fn test_pack_unpack_records_roundtrip() {
     }
 
     // 3. Pack to Records
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu_store(store1_path)
+        .arg("dump")
         .arg("--output")
         .arg(&pack_file)
         .arg("--format")
         .arg("records")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 4. Initialize store 2
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // 5. Unpack/Load into store 2
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu_store(store2_path)
+        .arg("load")
         .arg(&pack_file)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 6. Verify note in store 2
-    let mut cmd = qipu();
-    cmd.arg("show")
+    qipu_store(store2_path)
+        .arg("show")
         .arg(&note_id)
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 }
 
 fn dump_to_json(stores: &TwoStoreSetup) {
-    qipu()
+    qipu_store(stores.store1_path())
         .arg("dump")
         .arg("--output")
         .arg(stores.pack_file())
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", stores.store1_path())
         .assert()
         .success();
 }
 
 fn load_from_json(stores: &TwoStoreSetup) {
-    qipu()
+    qipu_store(stores.store2_path())
         .arg("load")
         .arg(stores.pack_file())
-        .env("QIPU_STORE", stores.store2_path())
         .assert()
         .success();
 }
 
 fn get_note_links_json(store_path: &std::path::Path, note_id: &str) -> serde_json::Value {
-    let output = qipu()
+    let output = qipu_store(store_path)
         .args([
             "show",
             note_id,
@@ -225,7 +197,6 @@ fn get_note_links_json(store_path: &std::path::Path, note_id: &str) -> serde_jso
             "json",
             "--no-semantic-inversion",
         ])
-        .env("QIPU_STORE", store_path)
         .output()
         .unwrap();
     serde_json::from_slice(&output.stdout).unwrap()
@@ -255,17 +226,15 @@ fn setup_link_graph(stores: &TwoStoreSetup) -> LinkGraph {
     create_link_with_env(stores.store1_path(), &id_b, &id_d, "contradicts");
     create_link_with_env(stores.store1_path(), &id_c, &id_d, "part-of");
 
-    qipu()
+    qipu_store(stores.store1_path())
         .arg("index")
-        .env("QIPU_STORE", stores.store1_path())
         .assert()
         .success();
 
     dump_to_json(stores);
     load_from_json(stores);
-    qipu()
+    qipu_store(stores.store2_path())
         .arg("index")
-        .env("QIPU_STORE", stores.store2_path())
         .assert()
         .success();
 

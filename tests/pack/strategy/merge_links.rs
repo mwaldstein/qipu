@@ -1,10 +1,7 @@
-use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use predicates::prelude::*;
 use tempfile::tempdir;
 
-fn qipu() -> Command {
-    cargo_bin_cmd!("qipu")
-}
+use crate::pack::support::qipu_store;
 
 #[test]
 fn test_load_strategy_merge_links() {
@@ -23,87 +20,72 @@ fn test_load_strategy_merge_links() {
     let linked_id = format!("qp-{}", unique_suffix + 1);
 
     // 1. Initialize store 1 and create a note with links
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Target Note")
         .arg("--id")
         .arg(&target_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Linked Note")
         .arg("--id")
         .arg(&linked_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu_store(store1_path)
+        .arg("link")
         .arg("add")
         .arg(&target_id)
         .arg(&linked_id)
         .arg("--type")
         .arg("related")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Pack the notes
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu_store(store1_path)
+        .arg("dump")
         .arg("--output")
         .arg(&pack_file)
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 3. Initialize store 2 and create a target note with same ID but different links
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // Create target note in store2 with same ID as in store1
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store2_path)
+        .arg("create")
         .arg("Target Note")
         .arg("--id")
         .arg(&target_id)
         .arg("--tag")
         .arg("store2")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 4. Load with merge-links strategy
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu_store(store2_path)
+        .arg("load")
         .arg(&pack_file)
         .arg("--strategy")
         .arg("merge-links")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Verify the target note now has the merged link from pack
-    let output = qipu()
+    let output = qipu_store(store2_path)
         .arg("show")
         .arg(&target_id)
         .arg("--links")
-        .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
 
@@ -129,86 +111,71 @@ fn test_load_strategy_merge_links_preserves_content() {
     let linked_id = format!("qp-{}", unique_suffix + 1);
 
     // 1. Initialize store 1 and create notes with links
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Target Note")
         .arg("--id")
         .arg(&target_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store1_path)
+        .arg("create")
         .arg("Linked Note")
         .arg("--id")
         .arg(&linked_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
-    let mut cmd = qipu();
-    cmd.arg("link")
+    qipu_store(store1_path)
+        .arg("link")
         .arg("add")
         .arg(&target_id)
         .arg(&linked_id)
         .arg("--type")
         .arg("related")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Pack the notes
-    let mut cmd = qipu();
-    cmd.arg("dump")
+    qipu_store(store1_path)
+        .arg("dump")
         .arg("--output")
         .arg(&pack_file)
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 3. Initialize store 2 and create a target note with DIFFERENT content
-    let mut cmd = qipu();
-    cmd.arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // Create target note in store2 with same ID but different title and tags
-    let mut cmd = qipu();
-    cmd.arg("create")
+    qipu_store(store2_path)
+        .arg("create")
         .arg("Different Title")
         .arg("--id")
         .arg(&target_id)
         .arg("--tag")
         .arg("store2-tag")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 4. Load with merge-links strategy
-    let mut cmd = qipu();
-    cmd.arg("load")
+    qipu_store(store2_path)
+        .arg("load")
         .arg(&pack_file)
         .arg("--strategy")
         .arg("merge-links")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 5. Verify the target note's ORIGINAL content is preserved
-    let output = qipu()
+    let output = qipu_store(store2_path)
         .arg("show")
         .arg(&target_id)
-        .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
 
@@ -245,103 +212,87 @@ fn test_merge_links_only_merges_to_newly_loaded_notes() {
     let note_c_id = format!("qp-c-{}", unique_suffix);
 
     // 1. Initialize store 1 and create notes A, B, C with links
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store1_path)
-        .assert()
-        .success();
+    qipu_store(store1_path).arg("init").assert().success();
 
     // Create note A
-    qipu()
+    qipu_store(store1_path)
         .arg("create")
         .arg("Note A")
         .arg("--id")
         .arg(&note_a_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Create note B
-    qipu()
+    qipu_store(store1_path)
         .arg("create")
         .arg("Note B")
         .arg("--id")
         .arg(&note_b_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Create note C
-    qipu()
+    qipu_store(store1_path)
         .arg("create")
         .arg("Note C")
         .arg("--id")
         .arg(&note_c_id)
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Add link from A to B (B will be pre-existing in store2)
-    qipu()
+    qipu_store(store1_path)
         .arg("link")
         .arg("add")
         .arg(&note_a_id)
         .arg(&note_b_id)
         .arg("--type")
         .arg("supports")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // Add link from A to C (C will be newly loaded in store2)
-    qipu()
+    qipu_store(store1_path)
         .arg("link")
         .arg("add")
         .arg(&note_a_id)
         .arg(&note_c_id)
         .arg("--type")
         .arg("related")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 2. Dump all notes to pack
-    qipu()
+    qipu_store(store1_path)
         .arg("dump")
         .arg("--output")
         .arg(&pack_file)
         .arg("--format")
         .arg("json")
-        .env("QIPU_STORE", store1_path)
         .assert()
         .success();
 
     // 3. Initialize store 2 with pre-existing note B (but not A or C)
-    qipu()
-        .arg("init")
-        .env("QIPU_STORE", store2_path)
-        .assert()
-        .success();
+    qipu_store(store2_path).arg("init").assert().success();
 
     // Create note B in store2 with same ID but different content
-    qipu()
+    qipu_store(store2_path)
         .arg("create")
         .arg("Note B Pre-existing")
         .arg("--id")
         .arg(&note_b_id)
         .arg("--tag")
         .arg("pre-existing")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
     // 4. Load pack with merge-links strategy
-    qipu()
+    qipu_store(store2_path)
         .arg("load")
         .arg(&pack_file)
         .arg("--strategy")
         .arg("merge-links")
-        .env("QIPU_STORE", store2_path)
         .assert()
         .success();
 
@@ -354,11 +305,10 @@ fn test_merge_links_only_merges_to_newly_loaded_notes() {
     //   * Link to B should NOT be present (B already existed)
 
     // Check note A - should have link to C but not to B
-    let output_a = qipu()
+    let output_a = qipu_store(store2_path)
         .arg("show")
         .arg(&note_a_id)
         .arg("--links")
-        .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
     let output_a_str = String::from_utf8_lossy(&output_a.stdout);
@@ -378,10 +328,9 @@ fn test_merge_links_only_merges_to_newly_loaded_notes() {
     );
 
     // Check note B - should preserve original content
-    let output_b = qipu()
+    let output_b = qipu_store(store2_path)
         .arg("show")
         .arg(&note_b_id)
-        .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
     let output_b_str = String::from_utf8_lossy(&output_b.stdout);
@@ -398,10 +347,9 @@ fn test_merge_links_only_merges_to_newly_loaded_notes() {
     );
 
     // Check note C - should be created
-    let output_c = qipu()
+    let output_c = qipu_store(store2_path)
         .arg("show")
         .arg(&note_c_id)
-        .env("QIPU_STORE", store2_path)
         .output()
         .unwrap();
     let output_c_str = String::from_utf8_lossy(&output_c.stdout);

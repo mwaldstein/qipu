@@ -26,6 +26,44 @@ impl TranscriptWriter {
 
     pub fn write_raw(&self, content: &str) -> anyhow::Result<()> {
         fs::write(self.base_dir.join("transcript.raw.txt"), content)?;
+        // Also generate human-readable version from the content
+        self.generate_human_transcript(content)?;
+        Ok(())
+    }
+
+    fn generate_human_transcript(&self, raw_content: &str) -> anyhow::Result<()> {
+        let mut human_lines = Vec::new();
+
+        for line in raw_content.lines() {
+            if let Ok(event) = serde_json::from_str::<serde_json::Value>(line) {
+                if let Some(event_type) = event.get("type").and_then(|v| v.as_str()) {
+                    match event_type {
+                        "step_start" => {
+                            human_lines.push("---".to_string());
+                            human_lines.push("NEW TURN".to_string());
+                            human_lines.push("---".to_string());
+                        }
+                        "text" => {
+                            if let Some(text) = event
+                                .get("part")
+                                .and_then(|p| p.get("text"))
+                                .and_then(|t| t.as_str())
+                            {
+                                human_lines.push(text.to_string());
+                                human_lines.push(String::new()); // blank line
+                            }
+                        }
+                        "step_finish" => {
+                            human_lines.push("---".to_string());
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        let human_content = human_lines.join("\n");
+        fs::write(self.base_dir.join("transcript.human.txt"), human_content)?;
         Ok(())
     }
 

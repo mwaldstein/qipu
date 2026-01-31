@@ -86,8 +86,8 @@ mod tests {
 
     #[test]
     fn test_detect_mcp_mode_explicit_true() {
+        env::remove_var("QIPU_MCP_MODE");
         env::set_var("QIPU_MCP_MODE", "1");
-        // Clear other env vars to ensure only QIPU_MCP_MODE matters
         for var in ["MCP_SERVER", "CLAUDE_MCP", "MCP_CONTEXT"] {
             env::remove_var(var);
         }
@@ -97,6 +97,7 @@ mod tests {
 
     #[test]
     fn test_detect_mcp_mode_explicit_false() {
+        env::remove_var("QIPU_MCP_MODE");
         env::set_var("QIPU_MCP_MODE", "0");
         for var in ["MCP_SERVER", "CLAUDE_MCP", "MCP_CONTEXT"] {
             env::remove_var(var);

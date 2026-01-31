@@ -246,14 +246,15 @@ llm-tool-test-results/
 ├── results.jsonl            # Append-only results database
 └── <timestamp>-<tool>-<model>-<scenario>/
     ├── artifacts/
-    │   ├── events.jsonl      # Event log
-    │   ├── run.json          # Run metadata
-    │   ├── store_snapshot/   # Store export after test
-    │   └── transcript.raw.txt # Full command transcript
-    ├── fixture/              # Template files used for test
-    ├── evaluation.md         # Human-readable evaluation
-    ├── metrics.json          # Detailed metrics
-    └── report.md             # Test run report
+    │   ├── events.jsonl          # Event log (JSON)
+    │   ├── run.json              # Run metadata
+    │   ├── store_snapshot/       # Store export after test
+    │   ├── transcript.human.txt  # Human-readable transcript (extracted text)
+    │   └── transcript.raw.txt    # Full command transcript (JSON events)
+    ├── fixture/                  # Template files used for test
+    ├── evaluation.md             # Human-readable evaluation
+    ├── metrics.json              # Detailed metrics
+    └── report.md                 # Test run report
 ```
 
 **File locations:**

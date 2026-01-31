@@ -168,7 +168,7 @@ fn collect_notes_with_traversal(
         let traversal_options = TreeOptions {
             direction: options.direction,
             max_hops: qipu_core::graph::HopCost::from(options.max_hops),
-            type_include: options.type_include.clone(),
+            type_include: options.type_include,
             type_exclude: Vec::new(),
             typed_only: options.typed_only,
             inline_only: options.inline_only,

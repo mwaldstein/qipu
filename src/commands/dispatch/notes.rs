@@ -248,6 +248,54 @@ pub(super) fn handle_capture(cli: &Cli, root: &Path, opts: CaptureOptions) -> Re
     Ok(())
 }
 
+pub(super) fn execute_capture_from_args(
+    cli: &Cli,
+    root: &Path,
+    args: &crate::cli::commands::core::CaptureArgs,
+    start: Instant,
+) -> Result<()> {
+    handle_capture(
+        cli,
+        root,
+        CaptureOptions {
+            title: args.title.clone(),
+            note_type: args.r#type.clone(),
+            tags: args.tag.clone(),
+            source: args.source.clone(),
+            author: args.author.clone(),
+            generated_by: args.generated_by.clone(),
+            prompt_hash: args.prompt_hash.clone(),
+            verified: args.verified,
+            id: args.id.clone(),
+            start,
+        },
+    )
+}
+
+pub(super) fn execute_update_from_args(
+    cli: &Cli,
+    root: &Path,
+    args: &crate::cli::commands::core::UpdateArgs,
+    start: Instant,
+) -> Result<()> {
+    handle_update(
+        cli,
+        root,
+        &args.id_or_path,
+        args.title.as_deref(),
+        args.r#type.clone(),
+        &args.tag,
+        &args.remove_tag,
+        args.value,
+        args.source.as_deref(),
+        args.author.as_deref(),
+        args.generated_by.as_deref(),
+        args.prompt_hash.as_deref(),
+        args.verified,
+        start,
+    )
+}
+
 pub(super) fn handle_verify(
     cli: &Cli,
     root: &Path,

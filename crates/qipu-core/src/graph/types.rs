@@ -262,13 +262,13 @@ impl std::str::FromStr for Direction {
 
 /// Options for tree traversal
 #[derive(Debug, Clone)]
-pub struct TreeOptions {
+pub struct TreeOptions<'a> {
     /// Direction for traversal
     pub direction: Direction,
     /// Maximum traversal depth (as hop cost)
     pub max_hops: HopCost,
     /// Include only these link types (empty = all)
-    pub type_include: Vec<String>,
+    pub type_include: &'a [String],
     /// Exclude these link types
     pub type_exclude: Vec<String>,
     /// Show only typed links
@@ -291,12 +291,12 @@ pub struct TreeOptions {
     pub ignore_value: bool,
 }
 
-impl Default for TreeOptions {
+impl<'a> Default for TreeOptions<'a> {
     fn default() -> Self {
         TreeOptions {
             direction: Direction::Both,
             max_hops: HopCost::from(3),
-            type_include: Vec::new(),
+            type_include: &[],
             type_exclude: Vec::new(),
             typed_only: false,
             inline_only: false,

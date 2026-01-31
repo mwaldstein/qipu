@@ -66,10 +66,10 @@ pub(super) fn handle_index(
     resume: bool,
     rewrite_wiki_links: bool,
     quick: bool,
-    tag: Option<String>,
+    tag: Option<&str>,
     note_type: Option<qipu_core::note::NoteType>,
     recent: Option<usize>,
-    moc: Option<String>,
+    moc: Option<&str>,
     status: bool,
     start: Instant,
 ) -> Result<()> {
@@ -82,10 +82,10 @@ pub(super) fn handle_index(
         resume,
         rewrite_wiki_links,
         quick,
-        tag.as_deref(),
+        tag,
         note_type,
         recent,
-        moc.as_deref(),
+        moc,
         status,
     )?;
     trace_command!(cli, start, "execute_command");

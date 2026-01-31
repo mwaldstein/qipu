@@ -77,7 +77,7 @@ pub(super) fn handle_link(
             let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
                 max_hops: qipu_core::graph::HopCost::from(*max_hops),
-                type_include: r#type.clone(),
+                type_include: r#type,
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,
                 inline_only: *inline_only,
@@ -114,7 +114,7 @@ pub(super) fn handle_link(
             let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
                 max_hops: qipu_core::graph::HopCost::from(*max_hops),
-                type_include: r#type.clone(),
+                type_include: r#type,
                 type_exclude: exclude_type.clone(),
                 typed_only: *typed_only,
                 inline_only: *inline_only,

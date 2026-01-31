@@ -83,7 +83,7 @@ pub fn collect_notes(
         let traversal_options = TreeOptions {
             direction: Direction::Both,
             max_hops: HopCost::from(options.max_hops),
-            type_include: Vec::new(),
+            type_include: &[],
             type_exclude: Vec::new(),
             typed_only: false,
             inline_only: false,
@@ -251,10 +251,10 @@ pub fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Resul
 }
 
 /// Perform simple graph traversal for export command
-fn perform_simple_traversal(
+fn perform_simple_traversal<'a>(
     index: &Index,
     root: &str,
-    opts: &TreeOptions,
+    opts: &TreeOptions<'a>,
     _compaction_ctx: Option<&CompactionContext>,
     store: &Store,
     selected_notes: &mut Vec<Note>,

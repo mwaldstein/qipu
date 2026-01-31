@@ -1,7 +1,7 @@
 use qipu_core::graph::Direction;
 use serde::Serialize;
 
-/// Options for the dump command
+/// Options for dump command
 pub struct DumpOptions<'a> {
     pub note_ids: &'a [String],
     pub tag: Option<&'a str>,
@@ -9,7 +9,7 @@ pub struct DumpOptions<'a> {
     pub query: Option<&'a str>,
     pub direction: Direction,
     pub max_hops: u32,
-    pub type_include: Vec<String>,
+    pub type_include: &'a [String],
     pub typed_only: bool,
     pub inline_only: bool,
     pub include_attachments: bool,

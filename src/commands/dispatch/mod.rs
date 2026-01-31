@@ -7,7 +7,7 @@ use crate::cli::Cli;
 use qipu_core::error::Result;
 use tracing::debug;
 
-mod command;
+pub mod command;
 mod commands;
 pub mod handlers;
 mod helpers;

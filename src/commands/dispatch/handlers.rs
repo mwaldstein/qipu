@@ -4,7 +4,8 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::cli::{
-    Cli, CustomCommands, OntologyCommands, StoreCommands, TagsCommands, ValueCommands,
+    Cli, CompactCommands, CustomCommands, OntologyCommands, StoreCommands, TagsCommands,
+    ValueCommands, WorkspaceCommands,
 };
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
@@ -12,12 +13,12 @@ use qipu_core::error::{QipuError, Result};
 use super::command::discover_or_open_store;
 use super::trace_command_always;
 
-pub struct InitOptions {
+pub struct InitOptions<'a> {
     pub stealth: bool,
     pub visible: bool,
-    pub branch: Option<String>,
+    pub branch: Option<&'a str>,
     pub no_index: bool,
-    pub index_strategy: Option<String>,
+    pub index_strategy: Option<&'a str>,
 }
 
 pub(super) fn handle_init(cli: &Cli, root: &Path, options: InitOptions) -> Result<()> {
@@ -26,9 +27,9 @@ pub(super) fn handle_init(cli: &Cli, root: &Path, options: InitOptions) -> Resul
         root,
         options.stealth,
         options.visible,
-        options.branch,
+        options.branch.map(|s| s.to_string()),
         options.no_index,
-        options.index_strategy,
+        options.index_strategy.map(|s| s.to_string()),
     )
 }
 
@@ -278,4 +279,65 @@ pub(super) fn handle_ontology(
             Ok(())
         }
     }
+}
+
+pub(super) fn execute_value(
+    cli: &Cli,
+    root: &Path,
+    command: &ValueCommands,
+    start: Instant,
+) -> Result<()> {
+    handle_value(cli, root, command, start)
+}
+
+pub(super) fn execute_tags(
+    cli: &Cli,
+    root: &Path,
+    command: &TagsCommands,
+    start: Instant,
+) -> Result<()> {
+    handle_tags(cli, root, command, start)
+}
+
+pub(super) fn execute_custom(
+    cli: &Cli,
+    root: &Path,
+    command: &CustomCommands,
+    start: Instant,
+) -> Result<()> {
+    handle_custom(cli, root, command, start)
+}
+
+pub(super) fn execute_onboard(cli: &Cli) -> Result<()> {
+    handle_onboard(cli)
+}
+
+pub(super) fn execute_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
+    handle_setup(cli, options)
+}
+
+pub(super) fn execute_compact(cli: &Cli, command: &CompactCommands) -> Result<()> {
+    handle_compact(cli, command)
+}
+
+pub(super) fn execute_workspace(cli: &Cli, command: &WorkspaceCommands) -> Result<()> {
+    handle_workspace(cli, command)
+}
+
+pub(super) fn execute_store(
+    cli: &Cli,
+    root: &Path,
+    command: &StoreCommands,
+    start: Instant,
+) -> Result<()> {
+    handle_store(cli, root, command, start)
+}
+
+pub(super) fn execute_ontology_dispatch(
+    cli: &Cli,
+    root: &Path,
+    command: &OntologyCommands,
+    start: Instant,
+) -> Result<()> {
+    handle_ontology(cli, root, command, start)
 }

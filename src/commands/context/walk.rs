@@ -80,7 +80,7 @@ pub fn walk_for_context(
     let tree_opts = TreeOptions {
         direction,
         max_hops: HopCost::from(walk_max_hops),
-        type_include: walk_type.to_vec(),
+        type_include: walk_type,
         type_exclude: walk_exclude_type.to_vec(),
         typed_only: walk_typed_only,
         inline_only: walk_inline_only,

@@ -230,7 +230,7 @@ pub struct NeighborContext<'a> {
     pub accumulated_cost: HopCost,
     pub provider: &'a dyn GraphProvider,
     pub store: &'a Store,
-    pub opts: &'a TreeOptions,
+    pub opts: &'a TreeOptions<'a>,
     pub compaction_ctx: Option<&'a CompactionContext>,
 }
 

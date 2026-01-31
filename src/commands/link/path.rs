@@ -5,7 +5,7 @@ use qipu_core::error::Result;
 use qipu_core::index::IndexBuilder;
 use qipu_core::store::Store;
 
-use super::{human, json, records, resolve_note_id, TreeOptions};
+use super::{human, json, records, records_tree, resolve_note_id, TreeOptions};
 
 /// Execute the link path command
 pub fn execute(
@@ -124,7 +124,7 @@ pub fn execute(
                 opts.max_chars,
                 &all_notes,
             );
-            records::output_path_records(&result, &ctx, &opts);
+            records_tree::output_path_records(&result, &ctx, &opts);
         }
     }
 

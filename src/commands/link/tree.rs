@@ -25,7 +25,7 @@ use qipu_core::note::Note;
 use qipu_core::store::Store;
 
 use super::{
-    human::output_tree_human, json::output_tree_json, records::output_tree_records,
+    human::output_tree_human, json::output_tree_json, records_tree::output_tree_records,
     resolve_note_id, LinkOutputContext, TreeOptions,
 };
 

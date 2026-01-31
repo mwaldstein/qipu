@@ -13,6 +13,7 @@ pub mod json;
 pub mod list;
 pub mod path;
 pub mod records;
+pub mod records_tree;
 pub mod remove;
 pub mod tree;
 

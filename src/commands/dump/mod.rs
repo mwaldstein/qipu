@@ -43,7 +43,7 @@ pub fn execute(cli: &Cli, store: &Store, options: DumpOptions) -> Result<()> {
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {
-            tracing::info!("no notes selected for dump");
+            tracing::info!("No notes selected for dump");
         }
         return Ok(());
     }

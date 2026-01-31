@@ -229,7 +229,7 @@ pub fn execute(cli: &Cli, store: &Store, options: ExportOptions) -> Result<()> {
 
     if selected_notes.is_empty() {
         if cli.verbose && !cli.quiet {
-            tracing::info!("no notes selected for export");
+            tracing::info!("No notes selected for export");
         }
         return Ok(());
     }

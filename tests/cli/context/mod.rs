@@ -2,7 +2,8 @@
 
 mod basic;
 mod budget;
-mod compaction;
+mod compaction_depth;
+mod compaction_format;
 mod expansion;
 mod filtering_custom;
 mod filtering_value;

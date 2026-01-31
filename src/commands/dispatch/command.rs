@@ -39,10 +39,6 @@ impl<'a> CommandContext<'a> {
     pub fn new(cli: &'a Cli, root: &'a Path, start: Instant) -> Self {
         Self { cli, root, start }
     }
-
-    pub fn discover_or_open_store(&self) -> Result<Store> {
-        discover_or_open_store(self.cli, self.root)
-    }
 }
 
 /// Trait for commands that can be executed

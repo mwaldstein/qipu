@@ -64,11 +64,11 @@ impl Ontology {
 
         // Merge link types from graph.types for backward compatibility
         for (name, type_config) in &graph_config.types {
-            ontology.link_types.insert(name.to_string());
+            ontology.link_types.insert(name.clone());
             if let Some(ref inverse) = type_config.inverse {
                 ontology
                     .inverses
-                    .insert(name.to_string(), inverse.as_str().to_owned());
+                    .insert(name.clone(), inverse.as_str().to_owned());
             }
         }
 
@@ -113,13 +113,13 @@ impl Ontology {
             .collect();
 
         for name in config.note_types.keys() {
-            note_types.insert(name.to_string());
+            note_types.insert(name.clone());
         }
 
         for (name, type_config) in &config.link_types {
-            link_types.insert(name.to_string());
+            link_types.insert(name.clone());
             if let Some(ref inverse) = type_config.inverse {
-                inverses.insert(name.to_string(), inverse.as_str().to_owned());
+                inverses.insert(name.clone(), inverse.as_str().to_owned());
             }
         }
 
@@ -140,7 +140,7 @@ impl Ontology {
 
         for (name, type_config) in &config.link_types {
             if let Some(ref inverse) = type_config.inverse {
-                inverses.insert(name.to_string(), inverse.as_str().to_owned());
+                inverses.insert(name.clone(), inverse.as_str().to_owned());
             }
         }
 

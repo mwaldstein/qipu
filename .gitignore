@@ -2,6 +2,12 @@
 /target
 crates/**/target/
 
+# Stray test binaries (should be in target/)
+/mcp
+/format
+/paths
+/helpers
+
 # Qipu store - ignored for now since no project knowledgebase exists yet.
 # If we add a kb in the future, remove this and track .qipu/ contents.
 .qipu/

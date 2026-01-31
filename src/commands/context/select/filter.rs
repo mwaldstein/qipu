@@ -13,7 +13,7 @@ pub fn filter_and_sort_selected_notes(
     selected_notes: &mut Vec<SelectedNote<'_>>,
     options: &ContextOptions<'_>,
 ) {
-    if let Some(min_value) = options.min_value {
+    if let Some(min_value) = options.selection.min_value {
         let before_count = selected_notes.len();
         selected_notes.retain(|selected| {
             let note_value = selected.note.frontmatter.value.unwrap_or(50);
@@ -32,10 +32,11 @@ pub fn filter_and_sort_selected_notes(
         }
     }
 
-    if !options.custom_filter.is_empty() {
+    if !options.selection.custom_filter.is_empty() {
         let before_count = selected_notes.len();
 
         let filters: Vec<CustomFilter> = options
+            .selection
             .custom_filter
             .iter()
             .map(|filter_expr| {
@@ -54,7 +55,7 @@ pub fn filter_and_sort_selected_notes(
 
         if cli.verbose && before_count > after_count {
             debug!(
-                filter_count = options.custom_filter.len(),
+                filter_count = options.selection.custom_filter.len(),
                 before_count,
                 after_count,
                 filtered = before_count - after_count,

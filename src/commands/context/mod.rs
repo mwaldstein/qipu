@@ -30,7 +30,10 @@ use crate::commands::dispatch::command::discover_or_open_store;
 
 use select::{collect_selected_notes, filter_and_sort_selected_notes};
 pub use types::{ContextOptions, HumanOutputParams, RecordsParams};
-use types::{ContextOutputParams, RecordsOutputConfig};
+use types::{
+    ContextOutputParams, ExpansionOptions, OutputOptions, RecordsOutputConfig, SelectionOptions,
+    WalkOptions,
+};
 
 /// Convert an absolute path to a path relative to the current working directory
 pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
@@ -50,17 +53,17 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     if cli.verbose {
         tracing::debug!(
-            note_ids_count = options.note_ids.len(),
-            tag = options.tag,
-            moc_id = options.moc_id,
-            query = options.query,
-            max_chars = options.max_chars,
-            transitive = options.transitive,
-            with_body = options.with_body,
-            safety_banner = options.safety_banner,
-            related_threshold = options.related_threshold,
-            backlinks = options.backlinks,
-            min_value = options.min_value,
+            note_ids_count = options.selection.note_ids.len(),
+            tag = options.selection.tag,
+            moc_id = options.selection.moc_id,
+            query = options.selection.query,
+            max_chars = options.output.max_chars,
+            transitive = options.expansion.transitive,
+            with_body = options.output.with_body,
+            safety_banner = options.output.safety_banner,
+            related_threshold = options.expansion.related_threshold,
+            backlinks = options.expansion.backlinks,
+            min_value = options.selection.min_value,
             "context_params"
         );
     }
@@ -76,7 +79,11 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
 
     let (truncated, notes_to_output, _excluded_notes) = match cli.format {
         OutputFormat::Records => (false, selected_notes.iter().collect(), Vec::new()),
-        _ => budget::apply_budget(&selected_notes, options.max_chars, options.with_body),
+        _ => budget::apply_budget(
+            &selected_notes,
+            options.output.max_chars,
+            options.output.with_body,
+        ),
     };
 
     let store_path = path_relative_to_cwd(store.root());
@@ -91,11 +98,11 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 compaction_ctx: &compaction_ctx,
                 note_map: &note_map,
                 all_notes: &all_notes,
-                include_custom: options.include_custom,
-                include_ontology: options.include_ontology,
+                include_custom: options.output.include_custom,
+                include_ontology: options.output.include_ontology,
                 truncated,
-                with_body: options.with_body,
-                max_chars: options.max_chars,
+                with_body: options.output.with_body,
+                max_chars: options.output.max_chars,
             })?;
         }
         OutputFormat::Human => {
@@ -107,20 +114,20 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 compaction_ctx: &compaction_ctx,
                 note_map: &note_map,
                 all_notes: &all_notes,
-                include_custom: options.include_custom,
-                include_ontology: options.include_ontology,
+                include_custom: options.output.include_custom,
+                include_ontology: options.output.include_ontology,
                 truncated,
-                with_body: options.with_body,
-                safety_banner: options.safety_banner,
-                max_chars: options.max_chars,
+                with_body: options.output.with_body,
+                safety_banner: options.output.safety_banner,
+                max_chars: options.output.max_chars,
             });
         }
         OutputFormat::Records => {
             let config = RecordsOutputConfig {
                 truncated,
-                with_body: options.with_body,
-                safety_banner: options.safety_banner,
-                max_chars: options.max_chars,
+                with_body: options.output.with_body,
+                safety_banner: options.output.safety_banner,
+                max_chars: options.output.max_chars,
             };
             output::output_records(RecordsParams {
                 cli,
@@ -131,8 +138,8 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
                 compaction_ctx: &compaction_ctx,
                 note_map: &note_map,
                 all_notes: &all_notes,
-                include_custom: options.include_custom,
-                include_ontology: options.include_ontology,
+                include_custom: options.output.include_custom,
+                include_ontology: options.output.include_ontology,
             });
         }
     }
@@ -154,36 +161,44 @@ pub fn execute_with_args(
     let use_full_body = !args.summary_only || args.with_body;
 
     let options = ContextOptions {
-        walk_id: args.walk.as_deref(),
-        walk_direction: args.walk_direction.as_str(),
-        walk_max_hops: args.walk_max_hops,
-        walk_type: &args.walk_type,
-        walk_exclude_type: &args.walk_exclude_type,
-        walk_typed_only: args.walk_typed_only,
-        walk_inline_only: args.walk_inline_only,
-        walk_max_nodes: args.walk_max_nodes,
-        walk_max_edges: args.walk_max_edges,
-        walk_max_fanout: args.walk_max_fanout,
-        walk_min_value: args.walk_min_value,
-        walk_ignore_value: args.walk_ignore_value,
-        note_ids: &args.note,
-        tag: args.tag.as_deref(),
-        moc_id: args.moc.as_deref(),
-        query: args.query.as_deref(),
-        max_chars: args.max_chars,
-        transitive: args.transitive,
-        with_body: use_full_body,
-        safety_banner: args.safety_banner,
-        related_threshold: if args.related > 0.0 {
-            Some(args.related)
-        } else {
-            None
+        walk: WalkOptions {
+            id: args.walk.as_deref(),
+            direction: args.walk_direction.as_str(),
+            max_hops: args.walk_max_hops,
+            type_include: &args.walk_type,
+            type_exclude: &args.walk_exclude_type,
+            typed_only: args.walk_typed_only,
+            inline_only: args.walk_inline_only,
+            max_nodes: args.walk_max_nodes,
+            max_edges: args.walk_max_edges,
+            max_fanout: args.walk_max_fanout,
+            min_value: args.walk_min_value,
+            ignore_value: args.walk_ignore_value,
         },
-        backlinks: args.backlinks,
-        min_value: args.min_value,
-        custom_filter: &args.custom_filter,
-        include_custom: args.custom,
-        include_ontology: args.include_ontology,
+        selection: SelectionOptions {
+            note_ids: &args.note,
+            tag: args.tag.as_deref(),
+            moc_id: args.moc.as_deref(),
+            query: args.query.as_deref(),
+            min_value: args.min_value,
+            custom_filter: &args.custom_filter,
+        },
+        expansion: ExpansionOptions {
+            transitive: args.transitive,
+            backlinks: args.backlinks,
+            related_threshold: if args.related > 0.0 {
+                Some(args.related)
+            } else {
+                None
+            },
+        },
+        output: OutputOptions {
+            max_chars: args.max_chars,
+            with_body: use_full_body,
+            safety_banner: args.safety_banner,
+            include_custom: args.custom,
+            include_ontology: args.include_ontology,
+        },
     };
 
     execute(cli, &store, options)

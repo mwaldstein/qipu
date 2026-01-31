@@ -1,31 +1,46 @@
 use qipu_core::note::{LinkType, Note};
 
-/// Options for the context command
 pub struct ContextOptions<'a> {
-    pub walk_id: Option<&'a str>,
-    pub walk_direction: &'a str,
-    pub walk_max_hops: u32,
-    pub walk_type: &'a [String],
-    pub walk_exclude_type: &'a [String],
-    pub walk_typed_only: bool,
-    pub walk_inline_only: bool,
-    pub walk_max_nodes: Option<usize>,
-    pub walk_max_edges: Option<usize>,
-    pub walk_max_fanout: Option<usize>,
-    pub walk_min_value: Option<u8>,
-    pub walk_ignore_value: bool,
+    pub walk: WalkOptions<'a>,
+    pub selection: SelectionOptions<'a>,
+    pub expansion: ExpansionOptions,
+    pub output: OutputOptions,
+}
+
+pub struct WalkOptions<'a> {
+    pub id: Option<&'a str>,
+    pub direction: &'a str,
+    pub max_hops: u32,
+    pub type_include: &'a [String],
+    pub type_exclude: &'a [String],
+    pub typed_only: bool,
+    pub inline_only: bool,
+    pub max_nodes: Option<usize>,
+    pub max_edges: Option<usize>,
+    pub max_fanout: Option<usize>,
+    pub min_value: Option<u8>,
+    pub ignore_value: bool,
+}
+
+pub struct SelectionOptions<'a> {
     pub note_ids: &'a [String],
     pub tag: Option<&'a str>,
     pub moc_id: Option<&'a str>,
     pub query: Option<&'a str>,
-    pub max_chars: Option<usize>,
-    pub transitive: bool,
-    pub with_body: bool,
-    pub safety_banner: bool,
-    pub related_threshold: Option<f64>,
-    pub backlinks: bool,
     pub min_value: Option<u8>,
     pub custom_filter: &'a [String],
+}
+
+pub struct ExpansionOptions {
+    pub transitive: bool,
+    pub backlinks: bool,
+    pub related_threshold: Option<f64>,
+}
+
+pub struct OutputOptions {
+    pub max_chars: Option<usize>,
+    pub with_body: bool,
+    pub safety_banner: bool,
     pub include_custom: bool,
     pub include_ontology: bool,
 }

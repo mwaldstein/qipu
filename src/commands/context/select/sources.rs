@@ -16,7 +16,7 @@ pub fn collect_from_walk<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    let Some(walk_id) = options.walk_id else {
+    let Some(walk_id) = options.walk.id else {
         return Ok(());
     };
 
@@ -24,17 +24,17 @@ pub fn collect_from_walk<'a>(
         cli,
         store,
         walk_id,
-        options.walk_direction,
-        options.walk_max_hops,
-        options.walk_type,
-        options.walk_exclude_type,
-        options.walk_typed_only,
-        options.walk_inline_only,
-        options.walk_max_nodes,
-        options.walk_max_edges,
-        options.walk_max_fanout,
-        options.walk_min_value,
-        options.walk_ignore_value,
+        options.walk.direction,
+        options.walk.max_hops,
+        options.walk.type_include,
+        options.walk.type_exclude,
+        options.walk.typed_only,
+        options.walk.inline_only,
+        options.walk.max_nodes,
+        options.walk.max_edges,
+        options.walk.max_fanout,
+        options.walk.min_value,
+        options.walk.ignore_value,
     )?;
 
     for id in &walked_ids {
@@ -58,7 +58,7 @@ pub fn collect_from_note_ids<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    for id in options.note_ids {
+    for id in options.selection.note_ids {
         let resolved_id = resolve_id(id)?;
         state.add_note(id, resolved_id, note_map, None, None)?;
     }
@@ -73,7 +73,7 @@ pub fn collect_from_tag<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    let Some(tag_name) = options.tag else {
+    let Some(tag_name) = options.selection.tag else {
         return Ok(());
     };
 
@@ -95,7 +95,7 @@ pub fn collect_from_query<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    let Some(q) = options.query else {
+    let Some(q) = options.selection.query else {
         return Ok(());
     };
 
@@ -129,16 +129,16 @@ pub fn collect_all_notes<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    if !options.note_ids.is_empty()
-        || options.tag.is_some()
-        || options.moc_id.is_some()
-        || options.query.is_some()
-        || options.walk_id.is_some()
+    if !options.selection.note_ids.is_empty()
+        || options.selection.tag.is_some()
+        || options.selection.moc_id.is_some()
+        || options.selection.query.is_some()
+        || options.walk.id.is_some()
     {
         return Ok(());
     }
 
-    if options.min_value.is_none() && options.custom_filter.is_empty() {
+    if options.selection.min_value.is_none() && options.selection.custom_filter.is_empty() {
         return Err(QipuError::UsageError(
             "no selection criteria provided. Use --note, --tag, --moc, --query, --walk, --min-value, or --custom-filter"
                 .to_string(),

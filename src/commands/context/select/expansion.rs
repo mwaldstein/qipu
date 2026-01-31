@@ -18,7 +18,7 @@ pub fn collect_backlinks<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    if !options.backlinks {
+    if !options.expansion.backlinks {
         return Ok(());
     }
 
@@ -63,7 +63,7 @@ pub fn collect_related_notes<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    let Some(threshold) = options.related_threshold else {
+    let Some(threshold) = options.expansion.related_threshold else {
         return Ok(());
     };
 

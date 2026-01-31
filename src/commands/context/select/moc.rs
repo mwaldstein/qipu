@@ -64,11 +64,11 @@ pub fn collect_from_moc<'a>(
     note_map: &'a HashMap<&'a str, &'a Note>,
     resolve_id: &dyn Fn(&str) -> Result<String>,
 ) -> Result<()> {
-    let Some(moc) = options.moc_id else {
+    let Some(moc) = options.selection.moc_id else {
         return Ok(());
     };
 
-    let linked_ids = get_moc_linked_ids(store.db(), moc, options.transitive)?;
+    let linked_ids = get_moc_linked_ids(store.db(), moc, options.expansion.transitive)?;
     for (id, link_type) in linked_ids {
         let resolved_id = resolve_id(&id)?;
         state.add_note(&id, resolved_id, note_map, None, link_type)?;

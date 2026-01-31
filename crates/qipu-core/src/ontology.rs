@@ -66,9 +66,7 @@ impl Ontology {
         for (name, type_config) in &graph_config.types {
             ontology.link_types.insert(name.clone());
             if let Some(ref inverse) = type_config.inverse {
-                ontology
-                    .inverses
-                    .insert(name.clone(), inverse.as_str().to_owned());
+                ontology.inverses.insert(name.clone(), inverse.clone());
             }
         }
 
@@ -119,7 +117,7 @@ impl Ontology {
         for (name, type_config) in &config.link_types {
             link_types.insert(name.clone());
             if let Some(ref inverse) = type_config.inverse {
-                inverses.insert(name.clone(), inverse.as_str().to_owned());
+                inverses.insert(name.clone(), inverse.clone());
             }
         }
 
@@ -140,7 +138,7 @@ impl Ontology {
 
         for (name, type_config) in &config.link_types {
             if let Some(ref inverse) = type_config.inverse {
-                inverses.insert(name.clone(), inverse.as_str().to_owned());
+                inverses.insert(name.clone(), inverse.clone());
             }
         }
 
@@ -168,7 +166,7 @@ impl Ontology {
         let lt = link_type.to_lowercase();
 
         match self.inverses.get(&lt) {
-            Some(inverse) => inverse.as_str().to_owned(),
+            Some(inverse) => inverse.clone(),
             None => LinkType::new(&lt).inverse().to_string(),
         }
     }

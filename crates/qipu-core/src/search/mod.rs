@@ -33,14 +33,10 @@ pub fn process_search_results(
                     if canonical_id != result.id {
                         if let Ok(Some(digest_meta)) = store.db().get_note_metadata(&canonical_id) {
                             result.via = Some(mem::replace(&mut result.id, canonical_id));
-                            result.title = digest_meta.title.as_str().to_owned();
+                            result.title = digest_meta.title.clone();
                             result.note_type = digest_meta.note_type;
-                            result.tags = digest_meta
-                                .tags
-                                .iter()
-                                .map(|s| s.as_str().to_owned())
-                                .collect();
-                            result.path = digest_meta.path.as_str().to_owned();
+                            result.tags = digest_meta.tags.clone();
+                            result.path = digest_meta.path.clone();
                         }
                     }
 

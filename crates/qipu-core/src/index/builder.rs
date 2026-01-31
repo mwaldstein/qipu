@@ -60,9 +60,7 @@ impl<'a> IndexBuilder<'a> {
             self.update_term_statistics(note.id(), term_freqs);
             let meta = self.build_note_metadata(note, path);
             self.update_tag_index(&meta);
-            self.index
-                .metadata
-                .insert(meta.id.as_str().to_owned(), meta);
+            self.index.metadata.insert(meta.id.clone(), meta);
         }
     }
 
@@ -88,7 +86,7 @@ impl<'a> IndexBuilder<'a> {
 
     fn update_term_statistics(&mut self, note_id: &str, term_freqs: HashMap<String, f64>) {
         let word_count = term_freqs.values().map(|&f| f as usize).sum();
-        let unique_terms: Vec<String> = term_freqs.keys().map(|s| s.as_str().to_owned()).collect();
+        let unique_terms: Vec<String> = term_freqs.keys().cloned().collect();
 
         self.index.total_docs += 1;
         self.index.total_len += word_count;
@@ -97,11 +95,7 @@ impl<'a> IndexBuilder<'a> {
             .insert(note_id.to_string(), word_count);
 
         for term in &unique_terms {
-            *self
-                .index
-                .term_df
-                .entry(term.as_str().to_owned())
-                .or_insert(0) += 1;
+            *self.index.term_df.entry(term.clone()).or_insert(0) += 1;
         }
         self.index
             .note_terms

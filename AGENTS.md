@@ -17,13 +17,14 @@ cargo fmt --all                 # Auto-format
 cargo clippy --all-targets --all-features -- -D warnings  # Lint (treat warnings as errors)
 
 # Run all tests
-cargo test                      # All tests (812 total)
+cargo t                         # All tests (compact: one char per test)
+cargo test                      # All tests (verbose format)
 cargo test --verbose            # With verbose output
 
 # Run single test by name
-cargo test test_capture_basic                    # Exact match
-cargo test capture                               # Partial match (runs all matching)
-cargo test --test cli_tests capture              # Tests in specific test file
+cargo t test_capture_basic                       # Exact match (use 't' for compact)
+cargo t capture                                  # Partial match (runs all matching)
+cargo t --test cli_tests capture                 # Tests in specific test file
 
 # Run test module
 cargo test --test cli_tests cli::search          # Module path

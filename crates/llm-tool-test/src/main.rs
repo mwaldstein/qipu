@@ -86,10 +86,14 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     // Use the configured results path for cache and database
+    // Resolve to absolute path to avoid issues with nested creation
     let config = crate::config::Config::load_or_default();
     let base_dir = std::path::PathBuf::from(config.get_results_path());
-    // Ensure the base directory exists
-    std::fs::create_dir_all(&base_dir).ok();
+    let base_dir = base_dir.canonicalize().unwrap_or_else(|_| {
+        // If canonicalize fails (path doesn't exist), create it and try again
+        std::fs::create_dir_all(&base_dir).ok();
+        base_dir.canonicalize().unwrap_or(base_dir)
+    });
     let results_db = ResultsDB::new(&base_dir);
     let cache = Cache::new(&base_dir);
 

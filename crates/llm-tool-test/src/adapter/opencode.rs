@@ -105,7 +105,11 @@ impl ToolAdapter for OpenCodeAdapter {
         // Isolate opencode from global AGENTS.md by using a temp XDG_CONFIG_HOME
         // This ensures test results aren't skewed by global prompts/rules/tools
         // while still allowing authentication to work
-        let xdg_config_dir = cwd.join(".opencode_config");
+        // Use absolute path for XDG_CONFIG_HOME to ensure opencode respects it
+        let xdg_config_dir = cwd
+            .canonicalize()
+            .unwrap_or_else(|_| cwd.to_path_buf())
+            .join(".opencode_config");
         std::fs::create_dir_all(&xdg_config_dir).ok(); // Create if doesn't exist, ignore errors
         let env_vars: Vec<(String, String)> = vec![(
             "XDG_CONFIG_HOME".to_string(),

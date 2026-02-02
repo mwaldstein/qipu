@@ -42,7 +42,6 @@ cargo doc --no-deps -p qipu-core  # Build specific crate documentation
 ```
 crates/
   qipu-core/        # Core library (domain logic, persistence, indexing)
-  llm-tool-test/    # LLM tool testing utility
 src/
   main.rs           # Entry point, CLI parsing, dispatch
   cli/              # CLI argument definitions (Clap derive)
@@ -53,6 +52,9 @@ tests/
   bench/            # Performance benchmarks
 specs/              # Implementable specifications
 ```
+
+**External Tools:**
+- [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) - Standalone testing framework for validating qipu with LLM agents
 
 ## Code Style Guidelines
 

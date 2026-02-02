@@ -153,7 +153,6 @@ qipu verify <id>           # Mark note as human-verified
 ```
 crates/
   qipu-core/        # Core library (domain logic, persistence, indexing)
-  llm-tool-test/    # LLM tool testing utility
 src/
   main.rs           # Entry point, CLI parsing, dispatch
   cli/              # CLI argument definitions (Clap derive)
@@ -161,6 +160,9 @@ src/
 tests/              # Integration tests and benchmarks
 specs/              # Implementable specifications
 ```
+
+**External Tools:**
+- [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) - Standalone testing framework for validating qipu with LLM agents (sibling project)
 
 The `qipu-core` crate is a reusable library that can be used independently of the CLI.
 
@@ -189,6 +191,25 @@ cargo build --release       # Release build
 cargo test                  # Run all tests
 cargo clippy                # Lint
 ```
+
+### Testing with LLM Agents
+
+To validate qipu works correctly with LLM coding agents, install the standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) testing framework:
+
+```bash
+# Install llm-tool-test from crates.io (when published)
+cargo install llm-tool-test
+
+# Or install from source
+git clone https://github.com/mwaldstein/llm-tool-test
+cd llm-tool-test
+cargo install --path .
+
+# Run qipu validation scenarios (from your qipu project directory)
+llm-tool-test run --all --tool opencode
+```
+
+See `docs/llm-testing.md` for detailed usage instructions.
 
 ## Documentation
 

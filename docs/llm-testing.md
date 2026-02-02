@@ -46,12 +46,23 @@ The LLM tool test harness runs automated scenarios that:
 
 This enables regression testing and cross-tool/model comparison.
 
+## Installation
+
+llm-tool-test is now a standalone project. Install it from crates.io or source:
+
+```bash
+# From crates.io (when published)
+cargo install llm-tool-test
+
+# Or from source
+git clone https://github.com/mwaldstein/llm-tool-test
+cd llm-tool-test
+cargo install --path .
+```
+
 ## Quick Start
 
 ```bash
-# Build the harness
-cargo build -p llm-tool-test
-
 # List available scenarios (no env var needed)
 llm-tool-test scenarios
 
@@ -90,7 +101,17 @@ The harness checks that the specified tool is available before running:
 Create a `llm-tool-test-config.toml` in your workspace root:
 
 ```bash
-cp crates/llm-tool-test/llm-tool-test-config.example.toml llm-tool-test-config.toml
+# Copy the example config from llm-tool-test repository
+cp /path/to/llm-tool-test/llm-tool-test-config.example.toml llm-tool-test-config.toml
+
+# Or create a minimal one
+cat > llm-tool-test-config.toml << 'EOF'
+# Path to test fixtures (default: "llm-test-fixtures")
+fixtures_path = "llm-test-fixtures"
+
+# Path for test results (default: "llm-tool-test-results")
+results_path = "llm-tool-test-results"
+EOF
 ```
 
 **Configuration options:**
@@ -377,10 +398,14 @@ ls llm-test-fixtures/
 
 ### Long-running scenarios
 
-The harness currently has no timeout. For long scenarios, monitor manually or use system timeout:
+Use the `--timeout-secs` flag or system timeout:
 
 ```bash
-timeout 300 cargo run -p llm-tool-test -- run --scenario ...
+# Use built-in timeout
+llm-tool-test run --scenario capture_basic --timeout-secs 600
+
+# Or use system timeout
+timeout 300 llm-tool-test run --scenario ...
 ```
 
 ## Known Limitations
@@ -389,4 +414,4 @@ timeout 300 cargo run -p llm-tool-test -- run --scenario ...
 - No multi-turn interaction support (single prompt only)
 - Cost tracking not implemented
 - No parallel scenario execution
-- Limited gate types (tracked in beads; use `bd search "gate types"`)
+- Limited gate types (see llm-tool-test TODO.md)

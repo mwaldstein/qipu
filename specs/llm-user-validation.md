@@ -39,7 +39,7 @@ The test harness is a **separate binary** (`llm-tool-test`) that tests qipu as a
 
 ### Key Architectural Decisions
 
-1. **Separate binary**: `llm-tool-test` is NOT part of qipu. It lives in a separate crate within the workspace (or separate repo).
+1. **Separate binary**: `llm-tool-test` is NOT part of qipu. It lives in a [standalone project](https://github.com/mwaldstein/llm-tool-test) that can be used to test any CLI tool.
 
 2. **Black-box testing**: The harness treats qipu as an external CLI tool. It doesn't link against qipu's library code.
 

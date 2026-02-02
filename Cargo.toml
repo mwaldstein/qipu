@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/llm-tool-test", "crates/qipu-core"]
+members = [".", "crates/qipu-core"]
 
 [package]
 name = "qipu"
@@ -57,6 +57,10 @@ predicates = "3"
 
 # SQLite for tests
 rusqlite = { version = "0.31", features = ["bundled"] }
+
+# LLM tool testing - standalone project for testing qipu with LLM agents
+# Install: cargo install --path ../llm-tool-test
+# llm-tool-test = { path = "../llm-tool-test" }
 
 [profile.dev]
 opt-level = 0

@@ -56,7 +56,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
 | `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
 | `llm-context.md` | ✅ | ✅ | ⚠️ | Character budgeting implemented (4000-8000 chars); `--max-tokens` flag out of scope |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | Budget cost estimation inaccurate; budget warning doesn't enforce limits; events defined but not dispatched |
+| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
 | `progressive-indexing.md` | ⚠️ | ❌ | New spec - not implemented |
 | `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |

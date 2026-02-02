@@ -13,7 +13,7 @@ pub fn write_transcript_files(
     cache_key: &CacheKey,
     output: &str,
     exit_code: i32,
-    cost: f64,
+    cost: Option<f64>,
     token_usage: Option<crate::adapter::TokenUsage>,
     duration: std::time::Duration,
     metrics: &EvaluationMetrics,

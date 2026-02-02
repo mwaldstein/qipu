@@ -38,7 +38,6 @@ fn create_test_scenario(gate: Gate) -> Scenario {
         setup: None,
         tags: vec![],
         run: None,
-        cost: None,
     }
 }
 

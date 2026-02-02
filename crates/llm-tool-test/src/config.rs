@@ -1,38 +1,44 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+/// Configuration for a specific LLM tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModelPricingConfig {
-    pub input_cost_per_1k_tokens: f64,
-    pub output_cost_per_1k_tokens: f64,
+pub struct ToolConfig {
+    /// Tool name (e.g., "opencode", "claude-code")
+    pub name: String,
+    /// Command to execute the tool
+    pub command: String,
+    /// List of supported model names
+    #[serde(default)]
+    pub models: Vec<String>,
+}
+
+/// Configuration for a test profile defining a matrix of tool/model combinations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProfileConfig {
+    /// Profile name
+    pub name: String,
+    /// List of tool names to include in this profile
+    pub tools: Vec<String>,
+    /// List of model names to include in this profile
+    pub models: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
-    pub models: std::collections::HashMap<String, ModelPricingConfig>,
+    /// Tool configurations
+    #[serde(default)]
+    pub tools: HashMap<String, ToolConfig>,
+    /// Profile configurations for test matrices
+    #[serde(default)]
+    pub profiles: HashMap<String, ProfileConfig>,
     #[serde(default)]
     pub fixtures_path: Option<String>,
     #[serde(default)]
     pub results_path: Option<String>,
 }
-
-#[allow(dead_code)]
-const DEFAULT_MODEL_CONFIGS: &[(&str, f64, f64)] = &[
-    ("claude-3-5-sonnet", 3.0, 15.0),
-    ("claude-3-5-haiku", 0.8, 4.0),
-    ("claude-3-opus", 15.0, 75.0),
-    ("claude-3", 3.0, 15.0),
-    ("claude", 3.0, 15.0),
-    ("gpt-4o", 2.5, 10.0),
-    ("gpt-4-turbo", 10.0, 30.0),
-    ("gpt-4", 30.0, 60.0),
-    ("gpt-3.5-turbo", 0.5, 1.5),
-    ("gpt-3.5", 0.5, 1.5),
-    ("smart", 3.0, 15.0),
-    ("rush", 0.8, 4.0),
-    ("free", 0.0, 0.0),
-];
 
 impl Config {
     pub fn load_or_default() -> Self {
@@ -43,12 +49,12 @@ impl Config {
                 Ok(config) => return config,
                 Err(e) => {
                     eprintln!("Warning: Failed to load config file: {}", e);
-                    eprintln!("Using default pricing configuration");
+                    eprintln!("Using default configuration");
                 }
             }
         }
 
-        Self::with_defaults()
+        Self::default()
     }
 
     pub fn load(path: &Path) -> Result<Self, String> {
@@ -61,28 +67,6 @@ impl Config {
         Ok(config)
     }
 
-    fn build_default_models() -> std::collections::HashMap<String, ModelPricingConfig> {
-        let mut models = std::collections::HashMap::new();
-        for (name, input_cost, output_cost) in DEFAULT_MODEL_CONFIGS {
-            models.insert(
-                name.to_string(),
-                ModelPricingConfig {
-                    input_cost_per_1k_tokens: *input_cost,
-                    output_cost_per_1k_tokens: *output_cost,
-                },
-            );
-        }
-        models
-    }
-
-    pub fn with_defaults() -> Self {
-        Config {
-            models: Self::build_default_models(),
-            fixtures_path: None,
-            results_path: None,
-        }
-    }
-
     pub fn get_fixtures_path(&self) -> &str {
         self.fixtures_path.as_deref().unwrap_or("llm-test-fixtures")
     }
@@ -93,23 +77,62 @@ impl Config {
             .unwrap_or("llm-tool-test-results")
     }
 
-    pub fn get_model_pricing(&self, model: &str) -> Option<crate::pricing::ModelPricing> {
-        let model_lower = model.to_lowercase();
+    /// Get a tool configuration by name.
+    pub fn get_tool(&self, name: &str) -> Option<&ToolConfig> {
+        self.tools.get(name)
+    }
 
-        let mut keys: Vec<_> = self.models.keys().collect();
-        keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
+    /// Get a profile configuration by name.
+    pub fn get_profile(&self, name: &str) -> Option<&ProfileConfig> {
+        self.profiles.get(name)
+    }
 
-        for key in keys {
-            if model_lower.contains(key) {
-                let pricing = &self.models[key];
-                return Some(crate::pricing::ModelPricing {
-                    input_cost_per_1k_tokens: pricing.input_cost_per_1k_tokens,
-                    output_cost_per_1k_tokens: pricing.output_cost_per_1k_tokens,
-                });
+    /// Build a matrix of tool-model combinations from a profile.
+    /// Validates that each tool supports its assigned models.
+    pub fn build_profile_matrix(
+        &self,
+        profile_name: &str,
+    ) -> Result<Vec<(String, String)>, String> {
+        let profile = self
+            .get_profile(profile_name)
+            .ok_or_else(|| format!("Profile '{}' not found in configuration", profile_name))?;
+
+        let mut matrix = Vec::new();
+
+        for tool_name in &profile.tools {
+            let tool = self
+                .get_tool(tool_name)
+                .ok_or_else(|| format!("Tool '{}' not found in configuration", tool_name))?;
+
+            for model_name in &profile.models {
+                // Validate that the tool supports this model
+                if !tool.models.is_empty() && !tool.models.contains(&model_name.to_string()) {
+                    return Err(format!(
+                        "Tool '{}' does not support model '{}'",
+                        tool_name, model_name
+                    ));
+                }
+                matrix.push((tool_name.clone(), model_name.clone()));
             }
         }
 
-        None
+        Ok(matrix)
+    }
+
+    /// Validate that a tool supports a specific model.
+    pub fn validate_tool_model(&self, tool_name: &str, model_name: &str) -> Result<(), String> {
+        let tool = self
+            .get_tool(tool_name)
+            .ok_or_else(|| format!("Tool '{}' not found in configuration", tool_name))?;
+
+        if !tool.models.is_empty() && !tool.models.contains(&model_name.to_string()) {
+            return Err(format!(
+                "Tool '{}' does not support model '{}'",
+                tool_name, model_name
+            ));
+        }
+
+        Ok(())
     }
 }
 
@@ -118,44 +141,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_with_defaults() {
-        let config = Config::with_defaults();
-        assert!(!config.models.is_empty());
-        assert!(config.models.contains_key("gpt-4o"));
-        assert!(config.models.contains_key("claude-3-5-sonnet"));
-    }
-
-    #[test]
-    fn test_get_model_pricing() {
-        let config = Config::with_defaults();
-
-        let pricing = config.get_model_pricing("gpt-4o");
-        assert!(pricing.is_some());
-        let p = pricing.unwrap();
-        assert_eq!(p.input_cost_per_1k_tokens, 2.5);
-        assert_eq!(p.output_cost_per_1k_tokens, 10.0);
-    }
-
-    #[test]
-    fn test_get_model_pricing_case_insensitive() {
-        let config = Config::with_defaults();
-
-        let pricing1 = config.get_model_pricing("GPT-4O");
-        let pricing2 = config.get_model_pricing("gpt-4o");
-        assert_eq!(pricing1, pricing2);
-    }
-
-    #[test]
-    fn test_get_model_pricing_unknown() {
-        let config = Config::with_defaults();
-
-        let pricing = config.get_model_pricing("unknown-model");
-        assert!(pricing.is_none());
+    fn test_default_config() {
+        let config = Config::default();
+        assert!(config.tools.is_empty());
+        assert!(config.profiles.is_empty());
     }
 
     #[test]
     fn test_load_and_save() {
-        let config = Config::with_defaults();
+        let mut config = Config::default();
+        config.tools.insert(
+            "opencode".to_string(),
+            ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("test-config.toml");
@@ -164,6 +166,89 @@ mod tests {
         fs::write(&path, content).unwrap();
 
         let loaded = Config::load(&path).unwrap();
-        assert_eq!(loaded.models.len(), config.models.len());
+        assert_eq!(loaded.tools.len(), config.tools.len());
+    }
+
+    #[test]
+    fn test_build_profile_matrix() {
+        let mut config = Config::default();
+
+        // Add a tool
+        config.tools.insert(
+            "opencode".to_string(),
+            ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
+            },
+        );
+
+        // Add a profile
+        config.profiles.insert(
+            "standard".to_string(),
+            ProfileConfig {
+                name: "standard".to_string(),
+                tools: vec!["opencode".to_string()],
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
+
+        let matrix = config.build_profile_matrix("standard").unwrap();
+        assert_eq!(matrix.len(), 1);
+        assert_eq!(matrix[0], ("opencode".to_string(), "gpt-4o".to_string()));
+    }
+
+    #[test]
+    fn test_build_profile_matrix_invalid_model() {
+        let mut config = Config::default();
+
+        // Add a tool with limited models
+        config.tools.insert(
+            "opencode".to_string(),
+            ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
+
+        // Add a profile with unsupported model
+        config.profiles.insert(
+            "standard".to_string(),
+            ProfileConfig {
+                name: "standard".to_string(),
+                tools: vec!["opencode".to_string()],
+                models: vec!["unsupported-model".to_string()],
+            },
+        );
+
+        let result = config.build_profile_matrix("standard");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("does not support"));
+    }
+
+    #[test]
+    fn test_validate_tool_model() {
+        let mut config = Config::default();
+
+        config.tools.insert(
+            "opencode".to_string(),
+            ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
+
+        // Valid model
+        assert!(config.validate_tool_model("opencode", "gpt-4o").is_ok());
+
+        // Invalid model
+        assert!(config
+            .validate_tool_model("opencode", "unsupported")
+            .is_err());
+
+        // Unknown tool
+        assert!(config.validate_tool_model("unknown", "gpt-4o").is_err());
     }
 }

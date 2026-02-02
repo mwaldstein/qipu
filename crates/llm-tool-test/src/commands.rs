@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::evaluation::ScoreTier;
 use crate::output;
 use crate::results::{Cache, ResultsDB};
@@ -15,16 +16,14 @@ pub struct ScenarioSelection {
 }
 
 pub struct ExecutionConfig {
-    pub tool: String,
+    pub tool: Option<String>,
     pub model: Option<String>,
-    pub tools: Option<String>,
-    pub models: Option<String>,
+    pub profile: Option<String>,
     pub dry_run: bool,
     pub no_cache: bool,
     pub timeout_secs: u64,
     pub judge_model: Option<String>,
     pub no_judge: bool,
-    pub session_budget: Option<f64>,
 }
 
 pub struct ExecutionContext<'a> {
@@ -72,6 +71,7 @@ pub fn handle_run_command(
     selection: &ScenarioSelection,
     exec_config: &ExecutionConfig,
     ctx: &ExecutionContext,
+    config: &Config,
 ) -> anyhow::Result<()> {
     if std::env::var("LLM_TOOL_TEST_ENABLED").is_err() {
         anyhow::bail!(
@@ -120,29 +120,13 @@ pub fn handle_run_command(
         let s = load(&path)?;
         println!("Loaded scenario: {}", name);
 
-        // Budget enforcement: check scenario cost limit against session budget
-        if let Some(ref cost_config) = s.cost {
-            // Check per-run limit against session budget
-            if let Some(session_max) = exec_config.session_budget {
-                if cost_config.max_usd > session_max {
-                    anyhow::bail!(
-                        "Scenario '{}' cost limit (${:.2}) exceeds session budget (${:.2}). \
-                         Increase budget with --max-usd or LLM_TOOL_TEST_BUDGET_USD env var.",
-                        name,
-                        cost_config.max_usd,
-                        session_max
-                    );
-                }
-            }
-        }
-
         let matrix = crate::build_tool_matrix(
-            &exec_config.tools,
-            &exec_config.models,
             &exec_config.tool,
             &exec_config.model,
+            &exec_config.profile,
+            config,
             &s.tool_matrix,
-        );
+        )?;
 
         if matrix.len() > 1 {
             println!("Matrix run: {} tool×model combinations", matrix.len());
@@ -253,7 +237,9 @@ pub fn handle_show_command(name: &str, results_db: &ResultsDB) -> anyhow::Result
             println!("Tool: {}", r.tool);
             println!("Timestamp: {}", r.timestamp);
             println!("Duration: {:.2}s", r.duration_secs);
-            println!("Cost: ${:.4}", r.cost_usd);
+            if let Some(cost) = r.cost_usd {
+                println!("Cost: ${:.4}", cost);
+            }
             println!("Outcome: {}", r.outcome);
             println!(
                 "Gates: {}/{}",

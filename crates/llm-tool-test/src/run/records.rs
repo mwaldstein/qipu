@@ -13,7 +13,7 @@ pub fn build_result_record(
     metrics: EvaluationMetrics,
     outcome: String,
     duration_secs: f64,
-    cost: f64,
+    cost: Option<f64>,
     transcript_path: String,
 ) -> ResultRecord {
     use crate::results::{EfficiencyMetricsRecord, GateResultRecord, QualityMetricsRecord};
@@ -93,7 +93,7 @@ pub fn handle_dry_run(
         qipu_commit: qipu_version.to_string(),
         timestamp: chrono::Utc::now(),
         duration_secs: 0.0,
-        cost_usd: 0.0,
+        cost_usd: None,
         gates_passed: true,
         metrics: EvaluationMetricsRecord {
             gates_passed: 0,

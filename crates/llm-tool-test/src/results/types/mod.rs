@@ -35,8 +35,9 @@ pub struct ResultRecord {
     pub timestamp: DateTime<Utc>,
     /// Total duration in seconds
     pub duration_secs: f64,
-    /// Estimated cost in USD
-    pub cost_usd: f64,
+    /// Estimated cost in USD (if tool reports it)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_usd: Option<f64>,
     /// Whether all gates passed
     pub gates_passed: bool,
     /// Detailed evaluation metrics

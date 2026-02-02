@@ -44,7 +44,7 @@ pub fn create_test_record_with_tool(id: &str, scenario_id: &str, tool: &str) -> 
         qipu_commit: "abc123".to_string(),
         timestamp: Utc::now(),
         duration_secs: 45.5,
-        cost_usd: 0.01,
+        cost_usd: Some(0.01),
         gates_passed: true,
         metrics: EvaluationMetricsRecord {
             gates_passed: 2,

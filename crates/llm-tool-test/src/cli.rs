@@ -1,10 +1,22 @@
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+}
+
+#[derive(Args, Clone, Debug)]
+#[group(required = false, multiple = false)]
+pub struct ToolModelArgs {
+    /// Tool to test (e.g., claude-code, opencode)
+    #[arg(long, default_value = "opencode")]
+    pub tool: String,
+
+    /// Model to use with the tool (e.g., claude-sonnet-4-20250514, gpt-4o)
+    #[arg(long)]
+    pub model: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -28,20 +40,16 @@ pub enum Commands {
         tier: usize,
 
         /// Tool to test (e.g., claude-code, opencode)
-        #[arg(long, default_value = "opencode")]
-        tool: String,
+        #[arg(long)]
+        tool: Option<String>,
 
         /// Model to use with the tool (e.g., claude-sonnet-4-20250514, gpt-4o)
         #[arg(long)]
         model: Option<String>,
 
-        /// Multiple tools for matrix run (comma-separated, e.g., opencode,claude-code)
+        /// Profile to use for matrix run (defined in config)
         #[arg(long)]
-        tools: Option<String>,
-
-        /// Multiple models for matrix run (comma-separated, e.g., claude-sonnet-4-20250514,gpt-4o)
-        #[arg(long)]
-        models: Option<String>,
+        profile: Option<String>,
 
         /// Dry run (don't execute LLM calls)
         #[arg(long)]
@@ -62,10 +70,6 @@ pub enum Commands {
         /// Maximum execution time in seconds per command
         #[arg(long, default_value = "300")]
         timeout_secs: u64,
-
-        /// Maximum budget in USD for this session (overrides env var)
-        #[arg(long)]
-        max_usd: Option<f64>,
     },
     /// List available scenarios
     Scenarios {

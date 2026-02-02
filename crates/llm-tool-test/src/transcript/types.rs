@@ -10,7 +10,7 @@ pub struct RunMetadata {
     pub qipu_commit: String,
     pub timestamp: String,
     pub duration_secs: f64,
-    pub cost_estimate_usd: f64,
+    pub cost_estimate_usd: Option<f64>,
     pub token_usage: Option<TokenUsage>,
 }
 
@@ -27,7 +27,7 @@ pub struct RunReport {
     pub model: String,
     pub timestamp: String,
     pub duration_secs: f64,
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
     pub token_usage: Option<TokenUsage>,
     pub outcome: String,
     pub gates_passed: usize,
@@ -86,7 +86,7 @@ pub struct EvaluationReport {
     pub note_count: usize,
     pub link_count: usize,
     pub duration_secs: f64,
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
     pub composite_score: f64,
     pub judge_feedback: Vec<String>,
 }

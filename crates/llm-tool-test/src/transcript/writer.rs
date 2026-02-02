@@ -208,7 +208,9 @@ impl TranscriptWriter {
     fn write_execution_section(&self, report: &RunReport, content: &mut String) {
         content.push_str("## Execution\n\n");
         content.push_str(&format!("- **Duration**: {:.2}s\n", report.duration_secs));
-        content.push_str(&format!("- **Cost**: ${:.4}\n", report.cost_usd));
+        if let Some(cost) = report.cost_usd {
+            content.push_str(&format!("- **Cost**: ${:.4}\n", cost));
+        }
 
         if !report.setup_commands.is_empty() {
             content.push_str(&format!(
@@ -350,7 +352,9 @@ impl TranscriptWriter {
             "- **Duration**: {:.2}s\n",
             evaluation.duration_secs
         ));
-        content.push_str(&format!("- **Cost**: ${:.4}\n", evaluation.cost_usd));
+        if let Some(cost) = evaluation.cost_usd {
+            content.push_str(&format!("- **Cost**: ${:.4}\n", cost));
+        }
         content.push_str(&format!(
             "- **Composite Score**: {:.2}\n\n",
             evaluation.composite_score

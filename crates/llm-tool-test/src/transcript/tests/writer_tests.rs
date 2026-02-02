@@ -13,7 +13,7 @@ fn test_write_report_basic() {
         model: "claude-3-5-sonnet".to_string(),
         timestamp: "2025-01-27T12:00:00Z".to_string(),
         duration_secs: 45.3,
-        cost_usd: 0.0234,
+        cost_usd: Some(0.0234),
         token_usage: None,
         outcome: "Pass".to_string(),
         gates_passed: 3,
@@ -71,7 +71,7 @@ fn test_write_evaluation_basic() {
         note_count: 5,
         link_count: 2,
         duration_secs: 30.0,
-        cost_usd: 0.015,
+        cost_usd: Some(0.015),
         composite_score: 0.82,
         judge_feedback: vec![
             "**Issues:**\nMinor formatting issue".to_string(),
@@ -130,7 +130,7 @@ fn test_write_evaluation_without_judge_score() {
         note_count: 3,
         link_count: 1,
         duration_secs: 20.0,
-        cost_usd: 0.01,
+        cost_usd: Some(0.01),
         composite_score: 0.75,
         judge_feedback: vec![],
     };

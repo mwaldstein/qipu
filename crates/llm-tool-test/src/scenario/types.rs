@@ -38,9 +38,6 @@ pub struct Scenario {
     /// Optional runtime configuration
     #[serde(default)]
     pub run: Option<RunConfig>,
-    /// Optional cost configuration for budget enforcement
-    #[serde(default)]
-    pub cost: Option<CostConfig>,
 }
 
 /// Runtime configuration for scenario execution.
@@ -52,13 +49,6 @@ pub struct RunConfig {
     /// Optional maximum number of turns/interactions
     #[serde(default)]
     pub max_turns: Option<usize>,
-}
-
-/// Cost configuration for budget enforcement.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CostConfig {
-    /// Maximum budget for this scenario in USD
-    pub max_usd: f64,
 }
 
 /// Setup commands to prepare the test environment.

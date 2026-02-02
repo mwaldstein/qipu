@@ -276,7 +276,7 @@ fn test_result_record_json_round_trip() {
         qipu_commit: "abc123".to_string(),
         timestamp: chrono::Utc::now(),
         duration_secs: 45.5,
-        cost_usd: 0.01,
+        cost_usd: Some(0.01),
         gates_passed: true,
         metrics: EvaluationMetricsRecord {
             gates_passed: 2,
@@ -357,7 +357,7 @@ fn test_result_record_json_skip_none_cache_key() {
         qipu_commit: "abc123".to_string(),
         timestamp: chrono::Utc::now(),
         duration_secs: 45.5,
-        cost_usd: 0.01,
+        cost_usd: Some(0.01),
         gates_passed: true,
         metrics: EvaluationMetricsRecord {
             gates_passed: 2,

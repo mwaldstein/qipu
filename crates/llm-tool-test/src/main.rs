@@ -17,7 +17,6 @@ mod evaluation;
 mod fixture;
 mod judge;
 mod output;
-mod pricing;
 mod results;
 mod run;
 mod scenario;
@@ -30,35 +29,27 @@ use clap::Parser;
 use cli::Cli;
 use cli::Commands;
 use results::{Cache, ResultsDB};
-use scenario::ToolConfig;
-use std::iter::Iterator;
+use scenario::ToolConfig as ScenarioToolConfig;
 
-/// Build a matrix of tool-model configurations from CLI args or scenario config
+/// Build a matrix of tool-model configurations from CLI args, profile, or scenario config
 pub fn build_tool_matrix(
-    cli_tools: &Option<String>,
-    cli_models: &Option<String>,
-    cli_tool: &str,
+    cli_tool: &Option<String>,
     cli_model: &Option<String>,
-    scenario_matrix: &Option<Vec<ToolConfig>>,
-) -> Vec<output::ToolModelConfig> {
-    if let (Some(tools_str), Some(models_str)) = (cli_tools, cli_models) {
-        let tools: Vec<String> = tools_str.split(',').map(|s| s.trim().to_string()).collect();
-        let models: Vec<String> = models_str
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .collect();
+    cli_profile: &Option<String>,
+    config: &config::Config,
+    scenario_matrix: &Option<Vec<ScenarioToolConfig>>,
+) -> anyhow::Result<Vec<output::ToolModelConfig>> {
+    // If profile is specified, expand from config
+    if let Some(profile_name) = cli_profile {
+        let matrix = config.build_profile_matrix(profile_name).map_err(|e| anyhow::anyhow!(e))?;
+        return Ok(matrix
+            .into_iter()
+            .map(|(tool, model)| output::ToolModelConfig { tool, model })
+            .collect());
+    }
 
-        let mut matrix = Vec::new();
-        for tool in tools {
-            for model in &models {
-                matrix.push(output::ToolModelConfig {
-                    tool: tool.clone(),
-                    model: model.clone(),
-                });
-            }
-        }
-        matrix
-    } else if let Some(scenario_matrix) = scenario_matrix {
+    // If scenario has a tool_matrix, use it (deprecated but still supported)
+    if let Some(scenario_matrix) = scenario_matrix {
         let mut matrix = Vec::new();
         for config in scenario_matrix {
             let models = if config.models.is_empty() {
@@ -73,13 +64,27 @@ pub fn build_tool_matrix(
                 });
             }
         }
-        matrix
-    } else {
-        vec![output::ToolModelConfig {
-            tool: cli_tool.to_string(),
-            model: cli_model.as_deref().unwrap_or("default").to_string(),
-        }]
+        return Ok(matrix);
     }
+
+    // Single tool/model mode - default to "opencode" if no tool specified
+    let tool = cli_tool.as_deref().unwrap_or("opencode");
+
+    // Validate that the tool supports the model if tool is configured
+    if let Some(model) = cli_model {
+        if let Err(e) = config.validate_tool_model(tool, model) {
+            // Only error if the tool exists in config and doesn't support the model
+            // If tool not in config, we allow any model (backwards compatibility)
+            if config.get_tool(tool).is_some() {
+                return Err(anyhow::anyhow!(e));
+            }
+        }
+    }
+
+    Ok(vec![output::ToolModelConfig {
+        tool: tool.to_string(),
+        model: cli_model.as_deref().unwrap_or("default").to_string(),
+    }])
 }
 
 fn main() -> anyhow::Result<()> {
@@ -105,14 +110,12 @@ fn main() -> anyhow::Result<()> {
             tier,
             tool,
             model,
-            tools,
-            models,
+            profile,
             dry_run,
             no_cache,
             judge_model,
             no_judge,
             timeout_secs,
-            max_usd,
         } => {
             // Safety check: only run tests when explicitly enabled
             if std::env::var("LLM_TOOL_TEST_ENABLED").as_deref() != Ok("1") {
@@ -125,12 +128,13 @@ fn main() -> anyhow::Result<()> {
                 );
             }
 
-            // Get session budget: CLI flag takes precedence over env var
-            let session_budget = max_usd.or_else(|| {
-                std::env::var("LLM_TOOL_TEST_BUDGET_USD")
-                    .ok()
-                    .and_then(|v| v.parse::<f64>().ok())
-            });
+            // Validate that profile and single tool/model are not both specified
+            if profile.is_some() && (model.is_some() || tool.is_some()) {
+                anyhow::bail!(
+                    "Cannot specify both --profile and --tool/--model. \
+                     Use --profile for matrix runs or --tool/--model for single runs."
+                );
+            }
 
             let selection = commands::ScenarioSelection {
                 scenario: scenario.clone(),
@@ -142,14 +146,12 @@ fn main() -> anyhow::Result<()> {
             let exec_config = commands::ExecutionConfig {
                 tool: tool.clone(),
                 model: model.clone(),
-                tools: tools.clone(),
-                models: models.clone(),
+                profile: profile.clone(),
                 dry_run: *dry_run,
                 no_cache: *no_cache,
                 timeout_secs: *timeout_secs,
                 judge_model: judge_model.clone(),
                 no_judge: *no_judge,
-                session_budget,
             };
 
             let ctx = commands::ExecutionContext {
@@ -159,7 +161,7 @@ fn main() -> anyhow::Result<()> {
             };
 
             if selection.scenario.is_some() || selection.all {
-                commands::handle_run_command(&selection, &exec_config, &ctx)?;
+                commands::handle_run_command(&selection, &exec_config, &ctx, &config)?;
             } else {
                 println!("No scenario specified. Use --scenario <path> or --all");
             }
@@ -181,7 +183,7 @@ fn main() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use output::ToolModelConfig;
-    use scenario::ToolConfig;
+    use scenario::ToolConfig as ScenarioToolConfig;
 
     fn assert_matrix_contains(matrix: &[ToolModelConfig], tool: &str, model: &str) {
         assert!(
@@ -194,53 +196,48 @@ mod tests {
     }
 
     #[test]
-    fn test_build_tool_matrix_cli_both() {
-        let result = build_tool_matrix(
-            &Some("opencode,claude-code".to_string()),
-            &Some("gpt-4o,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
+    fn test_build_tool_matrix_single_tool_default_model() {
+        let config = config::Config::default();
+        let result = build_tool_matrix(&None, &None, &None, &config, &None).unwrap();
 
-        assert_eq!(result.len(), 4);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "claude-code", "gpt-4o");
-        assert_matrix_contains(&result, "claude-code", "claude-sonnet");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "default");
     }
 
     #[test]
-    fn test_build_tool_matrix_cli_whitespace_handling() {
+    fn test_build_tool_matrix_single_tool_with_model() {
+        let config = config::Config::default();
         let result = build_tool_matrix(
-            &Some(" opencode , claude-code ".to_string()),
-            &Some(" gpt-4o , claude-sonnet ".to_string()),
-            "opencode",
+            &Some("opencode".to_string()),
+            &Some("claude-sonnet".to_string()),
             &None,
+            &config,
             &None,
-        );
+        )
+        .unwrap();
 
-        assert_eq!(result.len(), 4);
-        assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "claude-code", "gpt-4o");
-        assert_matrix_contains(&result, "claude-code", "claude-sonnet");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "opencode");
+        assert_eq!(result[0].model, "claude-sonnet");
     }
 
     #[test]
     fn test_build_tool_matrix_scenario_matrix_with_models() {
+        let config = config::Config::default();
         let scenario_matrix = vec![
-            ToolConfig {
+            ScenarioToolConfig {
                 tool: "opencode".to_string(),
                 models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
             },
-            ToolConfig {
+            ScenarioToolConfig {
                 tool: "claude-code".to_string(),
                 models: vec!["default".to_string()],
             },
         ];
 
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+        let result =
+            build_tool_matrix(&None, &None, &None, &config, &Some(scenario_matrix)).unwrap();
 
         assert_eq!(result.len(), 3);
         assert_matrix_contains(&result, "opencode", "gpt-4o");
@@ -250,18 +247,20 @@ mod tests {
 
     #[test]
     fn test_build_tool_matrix_scenario_matrix_empty_models() {
+        let config = config::Config::default();
         let scenario_matrix = vec![
-            ToolConfig {
+            ScenarioToolConfig {
                 tool: "opencode".to_string(),
                 models: vec![],
             },
-            ToolConfig {
+            ScenarioToolConfig {
                 tool: "claude-code".to_string(),
                 models: vec![],
             },
         ];
 
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+        let result =
+            build_tool_matrix(&None, &None, &None, &config, &Some(scenario_matrix)).unwrap();
 
         assert_eq!(result.len(), 2);
         assert_matrix_contains(&result, "opencode", "default");
@@ -269,87 +268,131 @@ mod tests {
     }
 
     #[test]
-    fn test_build_tool_matrix_single_tool_default_model() {
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &None);
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_single_tool_with_model() {
-        let result = build_tool_matrix(
-            &None,
-            &None,
-            "opencode",
-            &Some("claude-sonnet".to_string()),
-            &None,
-        );
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "claude-sonnet");
-    }
-
-    #[test]
     fn test_build_tool_matrix_scenario_matrix_empty() {
-        let scenario_matrix: Vec<ToolConfig> = vec![];
+        let config = config::Config::default();
+        let scenario_matrix: Vec<ScenarioToolConfig> = vec![];
 
-        let result = build_tool_matrix(&None, &None, "opencode", &None, &Some(scenario_matrix));
+        let result =
+            build_tool_matrix(&None, &None, &None, &config, &Some(scenario_matrix)).unwrap();
 
         assert_eq!(result.len(), 0);
     }
 
     #[test]
-    fn test_build_tool_matrix_cli_tools_only() {
-        let result = build_tool_matrix(
-            &Some("opencode,claude-code".to_string()),
-            &None,
-            "opencode",
-            &None,
-            &None,
+    fn test_build_tool_matrix_profile() {
+        let mut config = config::Config::default();
+
+        // Add a tool
+        config.tools.insert(
+            "opencode".to_string(),
+            config::ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
+            },
         );
+
+        // Add a profile
+        config.profiles.insert(
+            "standard".to_string(),
+            config::ProfileConfig {
+                name: "standard".to_string(),
+                tools: vec!["opencode".to_string()],
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
+
+        let result = build_tool_matrix(&None, &None, &Some("standard".to_string()), &config, &None).unwrap();
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_cli_models_only() {
-        let result = build_tool_matrix(
-            &None,
-            &Some("gpt-4o,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].tool, "opencode");
-        assert_eq!(result[0].model, "default");
-    }
-
-    #[test]
-    fn test_build_tool_matrix_single_tool_empty_strings() {
-        let result = build_tool_matrix(
-            &Some("opencode,,claude-code".to_string()),
-            &Some("gpt-4o,,claude-sonnet".to_string()),
-            "opencode",
-            &None,
-            &None,
-        );
-
-        assert_eq!(result.len(), 9);
         assert_matrix_contains(&result, "opencode", "gpt-4o");
-        assert_matrix_contains(&result, "opencode", "");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_profile_multi() {
+        let mut config = config::Config::default();
+
+        // Add tools
+        config.tools.insert(
+            "opencode".to_string(),
+            config::ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
+            },
+        );
+        config.tools.insert(
+            "claude-code".to_string(),
+            config::ToolConfig {
+                name: "claude-code".to_string(),
+                command: "claude-code".to_string(),
+                models: vec!["claude-sonnet".to_string(), "gpt-4o".to_string()],
+            },
+        );
+
+        // Add a profile with multiple tools/models
+        config.profiles.insert(
+            "full".to_string(),
+            config::ProfileConfig {
+                name: "full".to_string(),
+                tools: vec!["opencode".to_string(), "claude-code".to_string()],
+                models: vec!["gpt-4o".to_string(), "claude-sonnet".to_string()],
+            },
+        );
+
+        let result = build_tool_matrix(&None, &None, &Some("full".to_string()), &config, &None).unwrap();
+
+        assert_eq!(result.len(), 4);
+        assert_matrix_contains(&result, "opencode", "gpt-4o");
         assert_matrix_contains(&result, "opencode", "claude-sonnet");
-        assert_matrix_contains(&result, "", "gpt-4o");
-        assert_matrix_contains(&result, "", "");
-        assert_matrix_contains(&result, "", "claude-sonnet");
         assert_matrix_contains(&result, "claude-code", "gpt-4o");
-        assert_matrix_contains(&result, "claude-code", "");
         assert_matrix_contains(&result, "claude-code", "claude-sonnet");
+    }
+
+    #[test]
+    fn test_build_tool_matrix_profile_invalid_model() {
+        let mut config = config::Config::default();
+
+        // Add a tool with limited models
+        config.tools.insert(
+            "opencode".to_string(),
+            config::ToolConfig {
+                name: "opencode".to_string(),
+                command: "opencode".to_string(),
+                models: vec!["gpt-4o".to_string()],
+            },
+        );
+
+        // Add a profile with unsupported model
+        config.profiles.insert(
+            "bad".to_string(),
+            config::ProfileConfig {
+                name: "bad".to_string(),
+                tools: vec!["opencode".to_string()],
+                models: vec!["unsupported-model".to_string()],
+            },
+        );
+
+        let result = build_tool_matrix(&None, &None, &Some("bad".to_string()), &config, &None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("does not support"));
+    }
+
+    #[test]
+    fn test_build_tool_matrix_validation_tool_not_in_config() {
+        // When tool is not in config, we should allow any model (backwards compat)
+        let config = config::Config::default();
+        let result = build_tool_matrix(
+            &Some("unknown-tool".to_string()),
+            &Some("any-model".to_string()),
+            &None,
+            &config,
+            &None,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].tool, "unknown-tool");
+        assert_eq!(result[0].model, "any-model");
     }
 }

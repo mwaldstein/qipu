@@ -11,16 +11,14 @@ pub fn execute_tool(
     tool: &str,
     model: &str,
     effective_timeout: u64,
-) -> anyhow::Result<(String, i32, f64, Option<TokenUsage>)> {
+) -> anyhow::Result<(String, i32, Option<f64>, Option<TokenUsage>)> {
     let start_time = std::time::Instant::now();
     println!("Running tool '{}' with model '{}'...", tool, model);
     let (output, exit_code, cost_opt, token_usage) =
         adapter.run(s, &env.root, Some(model), effective_timeout)?;
     let _duration = start_time.elapsed();
 
-    let cost = cost_opt.unwrap_or(0.0);
-
-    Ok((output, exit_code, cost, token_usage))
+    Ok((output, exit_code, cost_opt, token_usage))
 }
 
 pub fn create_adapter_and_check(tool: &str) -> anyhow::Result<Box<dyn ToolAdapter>> {
@@ -55,7 +53,7 @@ pub fn run_evaluation_flow(
 ) -> anyhow::Result<(
     String,
     i32,
-    f64,
+    Option<f64>,
     Option<TokenUsage>,
     std::time::Duration,
     EvaluationMetrics,
@@ -67,13 +65,23 @@ pub fn run_evaluation_flow(
 
     // Write transcript immediately after execution so evaluation can read it
     writer.write_raw(&output)?;
-    writer.append_event(&serde_json::json!({
-        "type": "execution",
-        "tool": tool,
-        "output": &output,
-        "exit_code": exit_code,
-        "cost_usd": cost
-    }))?;
+    let event = if let Some(c) = cost {
+        serde_json::json!({
+            "type": "execution",
+            "tool": tool,
+            "output": &output,
+            "exit_code": exit_code,
+            "cost_usd": c
+        })
+    } else {
+        serde_json::json!({
+            "type": "execution",
+            "tool": tool,
+            "output": &output,
+            "exit_code": exit_code
+        })
+    };
+    writer.append_event(&event)?;
 
     println!("Running evaluation...");
     let metrics = crate::evaluation::evaluate(s, transcript_dir, no_judge)?;

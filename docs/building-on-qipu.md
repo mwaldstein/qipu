@@ -170,7 +170,20 @@ qipu list --tag api --custom priority=1 --min-value 70
 
 # Context with custom filters
 qipu context --moc qp-sprint-23 --custom-filter assignee="alice@example.com"
+
+# Numeric comparisons
+qipu context --custom-filter "priority>=2" --custom-filter "score<90"
+
+# Date comparisons (use ISO-8601 format: YYYY-MM-DD)
+qipu custom set qp-123 publication_date "2024-06-15"
+qipu context --custom-filter "publication_date>=2024-01-01" --custom-filter "publication_date<2025-01-01"
 ```
+
+**Supported filter operators:**
+- Equality: `key=value`
+- Existence: `key` (present), `!key` (absent)
+- Numeric: `key>n`, `key>=n`, `key<n`, `key<=n`
+- Date: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
 
 ### Including Custom Metadata in Output
 

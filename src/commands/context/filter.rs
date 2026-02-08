@@ -4,11 +4,26 @@
 //! - Equality: `key=value`
 //! - Existence: `key` (present), `!key` (absent)
 //! - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+//! - Date comparisons: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
 
 use qipu_core::bail_invalid;
 use qipu_core::error::{QipuError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
+
+/// Check if a string is an ISO-8601 date (YYYY-MM-DD format)
+fn is_iso_date(s: &str) -> bool {
+    if s.len() != 10 {
+        return false;
+    }
+    let bytes = s.as_bytes();
+    // Check format: YYYY-MM-DD
+    bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[0..4].iter().all(|b| b.is_ascii_digit())
+        && bytes[5..7].iter().all(|b| b.is_ascii_digit())
+        && bytes[8..10].iter().all(|b| b.is_ascii_digit())
+}
 
 /// Comparison operators for custom filter expressions
 #[derive(Debug, Clone)]
@@ -25,6 +40,7 @@ pub enum ComparisonOp {
 /// - Equality: `key=value`
 /// - Existence: `key` (present), `!key` (absent)
 /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
+/// - Date comparisons: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
 #[allow(clippy::type_complexity)]
 pub fn parse_custom_filter_expression(
     expr: &str,
@@ -104,10 +120,34 @@ pub fn parse_custom_filter_expression(
         );
     }
 
+    // Check if comparing dates (ISO-8601 format: YYYY-MM-DD)
+    if is_iso_date(&value) {
+        let compare_fn: fn(&str, &str) -> bool = match op {
+            ComparisonOp::GreaterEqual => |a, b| a >= b,
+            ComparisonOp::Greater => |a, b| a > b,
+            ComparisonOp::LessEqual => |a, b| a <= b,
+            ComparisonOp::Less => |a, b| a < b,
+        };
+
+        return Ok(Arc::new(
+            move |custom: &HashMap<String, serde_yaml::Value>| {
+                custom
+                    .get(&key)
+                    .and_then(|v| match v {
+                        serde_yaml::Value::String(s) => Some(s.as_str()),
+                        _ => None,
+                    })
+                    .map(|actual_value| compare_fn(actual_value, &value))
+                    .unwrap_or(false)
+            },
+        ));
+    }
+
+    // Numeric comparison
     let target_value: f64 = value.parse().map_err(|_| {
         QipuError::invalid_value(
             &format!("custom filter expression '{}'", expr),
-            format!("invalid numeric value '{}'", value),
+            format!("invalid numeric or date value '{}' (dates must be YYYY-MM-DD)", value),
         )
     })?;
 

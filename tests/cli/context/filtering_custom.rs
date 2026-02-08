@@ -381,3 +381,137 @@ Note 4 content.
     );
     assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-note1");
 }
+
+#[test]
+fn test_context_custom_filter_date_comparisons() {
+    use std::fs;
+
+    let dir = setup_test_dir();
+
+    let note1 = r#"---
+id: qp-note1
+title: January Article
+type: literature
+custom:
+  publication_date: "2024-01-15"
+---
+
+Published in January.
+"#;
+
+    let note2 = r#"---
+id: qp-note2
+title: June Article
+type: literature
+custom:
+  publication_date: "2024-06-20"
+---
+
+Published in June.
+"#;
+
+    let note3 = r#"---
+id: qp-note3
+title: December Article
+type: literature
+custom:
+  publication_date: "2024-12-01"
+---
+
+Published in December.
+"#;
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    fs::write(notes_dir.join("qp-note1-january-article.md"), note1).unwrap();
+    fs::write(notes_dir.join("qp-note2-june-article.md"), note2).unwrap();
+    fs::write(notes_dir.join("qp-note3-december-article.md"), note3).unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    // Test: publication_date >= 2024-06-01 (should match note2 and note3)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--custom-filter",
+            "publication_date>=2024-06-01",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        2,
+        "Should include notes with publication_date >= 2024-06-01, got {}",
+        notes.len()
+    );
+    let note_ids: Vec<&str> = notes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+    assert!(note_ids.contains(&"qp-note2"));
+    assert!(note_ids.contains(&"qp-note3"));
+
+    // Test: publication_date < 2024-06-01 (should match only note1)
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--custom-filter",
+            "publication_date<2024-06-01",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Should include only note with publication_date < 2024-06-01, got {}",
+        notes.len()
+    );
+    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-note1");
+
+    // Test: date range (>= 2024-03-01 AND <= 2024-09-01) - should match only note2
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--custom-filter",
+            "publication_date>=2024-03-01",
+            "--custom-filter",
+            "publication_date<=2024-09-01",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let notes = json["notes"].as_array().unwrap();
+
+    assert_eq!(
+        notes.len(),
+        1,
+        "Should include only note with publication_date in range 2024-03-01 to 2024-09-01, got {}",
+        notes.len()
+    );
+    assert_eq!(notes[0]["id"].as_str().unwrap(), "qp-note2");
+}

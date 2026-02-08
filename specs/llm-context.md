@@ -62,6 +62,9 @@ Required support:
 - Equality: `key=value`
 - Existence: `key` (present), `!key` (absent)
 - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n` (where `n` is an integer or float literal)
+- Date comparisons: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
+
+Date values are compared lexicographically (ISO-8601 format sorts correctly).
 
 Multiple `--custom-filter` flags are combined with AND semantics.
 

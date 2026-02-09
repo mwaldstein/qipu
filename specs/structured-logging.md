@@ -34,6 +34,83 @@ Zero-cost when disabled, minimal overhead when enabled.
 
 `QIPU_LOG` - Set log level via environment (e.g., `QIPU_LOG=debug`)
 
+## Instrumentation Plan
+
+### Tier 1: Operations (Always Instrumented)
+These functions are annotated with `#[tracing::instrument]` and provide entry point visibility:
+
+**Store Lifecycle:**
+- `Store::discover()` - Store discovery with path context
+- `Store::init()` - Store initialization with migration tracking
+- `NoteStore::create_fleeting_note()` - Note creation with title/type/id fields
+- `NoteStore::create_literature_note()` - Literature note creation
+- `NoteStore::update_note()` - Note update operations
+
+**Indexing Operations:**
+- `IndexBuilder::build()` - Full index build with store root
+- `index_note_links()` - Per-note link indexing with note_id
+- `Indexer::rebuild()` / `resume()` - Database rebuild/resume with checkpoint tracking
+
+**Graph Operations:**
+- `find_path_bfs()` - Path finding with from/to/direction/max_hops
+- `bfs_traversal()` / `dijkstra_traversal()` - Graph traversal with root/direction/cost parameters
+
+**Search Operations:**
+- `process_search_results()` - Result processing with results_count and sort parameters
+
+**Parsing:**
+- `Note::from_bytes()` - Note parsing with path context
+- `parse_note()` - Low-level parse with path context
+
+**Query Operations:**
+- `Store::get_note()` - Note retrieval with note_id
+
+**Doctor/Validation:**
+- `DoctorCommand::execute()` - Doctor execution with store_root and check parameters
+- `AutoFixer::execute()` - Auto-fix operations
+- `DbValidator::validate()` - Database validation
+
+### Tier 2: Timing Points (Debug/Trace Level)
+Functions instrumented with manual timing logs at strategic points:
+
+**Resource Metrics (via `log_resource_metrics!` macro):**
+- Search result processing - memory/cache statistics
+
+**Timing Spans (via `trace_time!` macro or manual `tracing::debug!`):**
+- CLI argument parsing
+- Index loading operations
+- Context command completion
+- Export/dump operations
+- Link operations (path, tree, list)
+- Store operations with timing context
+
+### Tier 3: Event Logging (Info/Warn/Error Level)
+Structured logging for operational events:
+
+**Info Level:**
+- Database rebuild start/completion
+- Migration events (JSON cache → SQLite)
+- Checkpoint commits during indexing
+- Telemetry events (enable/disable/pending/upload)
+
+**Warn Level:**
+- Failed note parsing (with path and error)
+- Database inconsistencies triggering repair
+- Compaction validation errors
+- Workspace deletion with unmerged changes
+
+**Error Level:**
+- Database validation failures
+- Doctor check failures
+- Critical operational errors
+
+### Tier 4: Internal Tracing (Trace Level)
+Fine-grained tracing for deep debugging:
+- Individual cache operations
+- Memory allocation patterns
+- Individual traversal steps
+- Parse token-level details
+
 ## Logging Categories
 
 ### Core Operations

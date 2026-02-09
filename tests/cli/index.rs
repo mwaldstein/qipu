@@ -315,3 +315,62 @@ fn test_index_incremental_repair_only_updates_changed_notes() {
         .success()
         .stdout(predicate::str::contains("Indexed 2 notes"));
 }
+
+#[test]
+fn test_index_full_flag_triggers_full_reindex() {
+    let dir = setup_test_dir();
+
+    // Create notes
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 1"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 2"])
+        .assert()
+        .success();
+
+    // Use --full flag - should fully reindex all notes
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--full"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+}
+
+#[test]
+fn test_index_basic_flag_triggers_basic_index_only() {
+    let dir = setup_test_dir();
+
+    // Create notes
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Note 1"])
+        .assert()
+        .success();
+
+    // Use --basic flag - should index metadata only
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--basic"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+}
+
+#[test]
+fn test_index_full_and_basic_mutually_exclusive() {
+    let dir = setup_test_dir();
+
+    // Try to use both --full and --basic - should fail
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--full", "--basic"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("mutually exclusive"));
+}

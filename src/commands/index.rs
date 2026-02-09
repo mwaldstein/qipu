@@ -255,7 +255,7 @@ pub fn execute(
             store
                 .db()
                 .rebuild_resume(store.root(), Some(&mut progress), Some(&interrupted), batch)
-        } else if rebuild {
+        } else if rebuild || full {
             store
                 .db()
                 .rebuild(store.root(), Some(&mut progress), Some(&interrupted), batch)
@@ -293,7 +293,7 @@ pub fn execute(
             store
                 .db()
                 .rebuild_resume(store.root(), None, Some(&interrupted), batch)
-        } else if rebuild {
+        } else if rebuild || full {
             store
                 .db()
                 .rebuild(store.root(), None, Some(&interrupted), batch)

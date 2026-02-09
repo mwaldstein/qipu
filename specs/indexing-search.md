@@ -69,5 +69,13 @@ Qipu must avoid scope creep into code search:
 - qipu search is limited to the qipu store by default
 - it should not attempt to index source code files
 
-## Open questions
-- Should backlinks be embedded into notes (opt-in) or remain fully derived?
+## Design decision: Derived backlinks
+
+**Backlinks remain fully derived** (not embedded in note content). This decision:
+
+- **Maintains single source of truth**: Links are stored in note frontmatter (`links[]`) and inline wiki links; backlinks are computed from these
+- **Prevents synchronization issues**: Embedding backlinks would require keeping them in sync with actual links
+- **Enables efficient queries**: The backlink index in `.qipu/qipu.db` supports fast reverse lookups
+- **Supports semantic inversion**: Derived backlinks allow virtual edge transformation (see `graph-traversal.md`)
+
+If users need backlink visibility in note content, use `qipu show <id>` or `qipu link list <id> --direction in`.

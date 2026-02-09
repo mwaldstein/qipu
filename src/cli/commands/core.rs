@@ -127,9 +127,21 @@ pub struct IndexArgs {
     #[arg(long)]
     pub rebuild: bool,
 
+    /// Force full re-index (alias for --rebuild)
+    #[arg(long)]
+    pub force: bool,
+
     /// Resume from last checkpoint (for interrupted rebuild)
     #[arg(long)]
     pub resume: bool,
+
+    /// Basic index only (metadata, no full-text)
+    #[arg(long)]
+    pub basic: bool,
+
+    /// Full-text index (includes body content)
+    #[arg(long)]
+    pub full: bool,
 
     /// Rewrite wiki-links to markdown links (optional; opt-in)
     #[arg(long)]
@@ -154,6 +166,14 @@ pub struct IndexArgs {
     /// Index MOC and its linked notes
     #[arg(long)]
     pub moc: Option<String>,
+
+    /// Index only notes modified since timestamp
+    #[arg(long)]
+    pub modified_since: Option<String>,
+
+    /// Set batch size for indexing (default: 1000)
+    #[arg(long)]
+    pub batch: Option<usize>,
 
     /// Show index status only (don't index)
     #[arg(long)]

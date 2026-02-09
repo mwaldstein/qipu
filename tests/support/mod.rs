@@ -11,6 +11,7 @@ pub fn qipu() -> Command {
 }
 
 /// Get a Command for qipu with QIPU_STORE env var already set
+#[allow(dead_code)]
 pub fn qipu_store(store_path: impl AsRef<Path>) -> Command {
     let mut cmd = qipu();
     cmd.env("QIPU_STORE", store_path.as_ref());

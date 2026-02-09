@@ -38,6 +38,7 @@ impl Database {
         store_root: &Path,
         mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
         interrupted: Option<&std::sync::Arc<std::sync::atomic::AtomicBool>>,
+        batch_size_override: Option<usize>,
     ) -> Result<()> {
         let mut notes = Vec::new();
 
@@ -81,7 +82,7 @@ impl Database {
             .map_err(|e| map_db_err!("clear notes", e))?;
 
         let total_notes = notes.len();
-        let batch_size = 1000;
+        let batch_size = batch_size_override.unwrap_or(1000);
 
         let mut current_tx = Some(tx);
 
@@ -148,6 +149,7 @@ impl Database {
         store_root: &Path,
         mut progress: Option<&mut dyn FnMut(usize, usize, &Note)>,
         interrupted: Option<&std::sync::Arc<std::sync::atomic::AtomicBool>>,
+        batch_size_override: Option<usize>,
     ) -> Result<()> {
         let mut notes = Vec::new();
 
@@ -184,7 +186,7 @@ impl Database {
             notes_to_index.iter().map(|n| n.id().to_string()).collect();
 
         let total_notes = notes_to_index.len();
-        let batch_size = 1000;
+        let batch_size = batch_size_override.unwrap_or(1000);
 
         if total_notes == 0 {
             tracing::info!("All notes already indexed, nothing to resume");

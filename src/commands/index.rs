@@ -186,9 +186,20 @@ pub fn execute(
     recent: Option<usize>,
     moc: Option<&str>,
     status: bool,
+    basic: bool,
+    full: bool,
+    modified_since: Option<&str>,
+    batch: Option<usize>,
 ) -> Result<()> {
     if status {
         return show_index_status(cli, store);
+    }
+
+    // Validate mutually exclusive flags
+    if basic && full {
+        return Err(QipuError::Other(
+            "--basic and --full are mutually exclusive".to_string(),
+        ));
     }
 
     let mut notes = store.list_notes()?;
@@ -214,6 +225,14 @@ pub fn execute(
         interrupted_clone.store(true, std::sync::atomic::Ordering::SeqCst);
     });
 
+    // Determine if we should use selective indexing
+    let use_selective = quick
+        || tag.is_some()
+        || note_type.is_some()
+        || recent.is_some()
+        || moc.is_some()
+        || modified_since.is_some();
+
     if cli.verbose {
         eprintln!("Indexing notes from .qipu/notes/...");
         let mut tracker = ProgressTracker::new();
@@ -221,22 +240,32 @@ pub fn execute(
             tracker.update(indexed, total, note);
         };
 
-        let result =
-            if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
-                selective_index(cli, store, quick, tag, note_type, recent, moc)
-            } else if resume {
-                store
-                    .db()
-                    .rebuild_resume(store.root(), Some(&mut progress), Some(&interrupted))
-            } else if rebuild {
-                store
-                    .db()
-                    .rebuild(store.root(), Some(&mut progress), Some(&interrupted))
-            } else {
-                store
-                    .db()
-                    .incremental_repair(store.root(), Some(&mut progress), Some(&interrupted))
-            };
+        let result = if use_selective {
+            selective_index(
+                cli,
+                store,
+                quick,
+                tag,
+                note_type,
+                recent,
+                moc,
+                modified_since,
+            )
+        } else if resume {
+            store
+                .db()
+                .rebuild_resume(store.root(), Some(&mut progress), Some(&interrupted), batch)
+        } else if rebuild {
+            store
+                .db()
+                .rebuild(store.root(), Some(&mut progress), Some(&interrupted), batch)
+        } else if basic {
+            store.db().rebuild_basic(store.root())
+        } else {
+            store
+                .db()
+                .incremental_repair(store.root(), Some(&mut progress), Some(&interrupted))
+        };
 
         match result {
             Ok(_) => {
@@ -249,20 +278,32 @@ pub fn execute(
             Err(e) => return Err(e),
         }
     } else {
-        let result =
-            if quick || tag.is_some() || note_type.is_some() || recent.is_some() || moc.is_some() {
-                selective_index(cli, store, quick, tag, note_type, recent, moc)
-            } else if resume {
-                store
-                    .db()
-                    .rebuild_resume(store.root(), None, Some(&interrupted))
-            } else if rebuild {
-                store.db().rebuild(store.root(), None, Some(&interrupted))
-            } else {
-                store
-                    .db()
-                    .incremental_repair(store.root(), None, Some(&interrupted))
-            };
+        let result = if use_selective {
+            selective_index(
+                cli,
+                store,
+                quick,
+                tag,
+                note_type,
+                recent,
+                moc,
+                modified_since,
+            )
+        } else if resume {
+            store
+                .db()
+                .rebuild_resume(store.root(), None, Some(&interrupted), batch)
+        } else if rebuild {
+            store
+                .db()
+                .rebuild(store.root(), None, Some(&interrupted), batch)
+        } else if basic {
+            store.db().rebuild_basic(store.root())
+        } else {
+            store
+                .db()
+                .incremental_repair(store.root(), None, Some(&interrupted))
+        };
 
         match result {
             Ok(_) => {
@@ -299,6 +340,7 @@ fn show_index_status(cli: &Cli, store: &Store) -> Result<()> {
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn selective_index(
     cli: &Cli,
     store: &Store,
@@ -307,6 +349,7 @@ fn selective_index(
     note_type: Option<NoteType>,
     recent: Option<usize>,
     moc: Option<&str>,
+    modified_since: Option<&str>,
 ) -> Result<()> {
     let mut notes = store.list_notes()?;
 
@@ -330,6 +373,20 @@ fn selective_index(
         notes = filter_by_recent(&notes, n);
     }
 
+    if let Some(time_str) = modified_since {
+        let cutoff = parse_modified_since(time_str)?;
+        notes.retain(|n| {
+            if let Some(path) = &n.path {
+                if let Ok(metadata) = std::fs::metadata(path) {
+                    if let Ok(mtime) = metadata.modified() {
+                        return mtime >= cutoff;
+                    }
+                }
+            }
+            false
+        });
+    }
+
     for note in &notes {
         store.db().reindex_single_note(store.root(), note)?;
     }
@@ -339,6 +396,67 @@ fn selective_index(
     }
 
     Ok(())
+}
+
+/// Parse a time string like "24 hours ago", "2 days ago", "1 week ago", or ISO 8601 timestamp
+fn parse_modified_since(s: &str) -> Result<std::time::SystemTime> {
+    use std::time::{Duration, SystemTime};
+
+    let now = SystemTime::now();
+    let s_lower = s.to_lowercase();
+
+    // Try to parse relative time expressions
+    if s_lower.ends_with(" ago") {
+        let parts: Vec<&str> = s_lower
+            .trim_end_matches(" ago")
+            .split_whitespace()
+            .collect();
+        if parts.len() == 2 {
+            if let Ok(amount) = parts[0].parse::<u64>() {
+                let duration = match parts[1] {
+                    "second" | "seconds" => Duration::from_secs(amount),
+                    "minute" | "minutes" => Duration::from_secs(amount * 60),
+                    "hour" | "hours" => Duration::from_secs(amount * 60 * 60),
+                    "day" | "days" => Duration::from_secs(amount * 24 * 60 * 60),
+                    "week" | "weeks" => Duration::from_secs(amount * 7 * 24 * 60 * 60),
+                    _ => {
+                        return Err(QipuError::Other(format!(
+                            "Unknown time unit: {}. Use seconds, minutes, hours, days, or weeks",
+                            parts[1]
+                        )));
+                    }
+                };
+                return now.checked_sub(duration).ok_or_else(|| {
+                    QipuError::Other("Invalid time duration: too far in the past".to_string())
+                });
+            }
+        }
+    }
+
+    // Try ISO 8601 format
+    if let Ok(datetime) = chrono::DateTime::parse_from_rfc3339(s) {
+        return Ok(datetime.into());
+    }
+
+    // Try simpler ISO format (2024-01-15T10:30:00)
+    if let Ok(datetime) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
+        return Ok(
+            SystemTime::UNIX_EPOCH + Duration::from_secs(datetime.and_utc().timestamp() as u64)
+        );
+    }
+
+    // Try date-only format (2024-01-15)
+    if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+        let datetime = date.and_hms_opt(0, 0, 0).unwrap();
+        return Ok(
+            SystemTime::UNIX_EPOCH + Duration::from_secs(datetime.and_utc().timestamp() as u64)
+        );
+    }
+
+    Err(QipuError::Other(format!(
+        "Cannot parse time: '{}'. Use formats like '24 hours ago', '2 days ago', '2024-01-15', or ISO 8601",
+        s
+    )))
 }
 
 fn filter_quick_index(

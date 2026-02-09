@@ -91,6 +91,10 @@ pub(super) fn handle_index(
     recent: Option<usize>,
     moc: Option<&str>,
     status: bool,
+    basic: bool,
+    full: bool,
+    modified_since: Option<&str>,
+    batch: Option<usize>,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -107,6 +111,10 @@ pub(super) fn handle_index(
         recent,
         moc,
         status,
+        basic,
+        full,
+        modified_since,
+        batch,
     )?;
     trace_command!(cli, start, "execute_command");
     Ok(())

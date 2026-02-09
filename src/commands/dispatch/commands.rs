@@ -128,7 +128,7 @@ pub(super) mod dispatch_command {
         maintenance::handle_index(
             ctx.cli,
             ctx.root,
-            args.rebuild,
+            args.rebuild || args.force,
             args.resume,
             args.rewrite_wiki_links,
             args.quick,
@@ -137,6 +137,10 @@ pub(super) mod dispatch_command {
             args.recent,
             args.moc.as_deref(),
             args.status,
+            args.basic,
+            args.full,
+            args.modified_since.as_deref(),
+            args.batch,
             ctx.start,
         )
     }

@@ -20,6 +20,7 @@ pub struct InitOptions<'a> {
     pub branch: Option<&'a str>,
     pub no_index: bool,
     pub index_strategy: Option<&'a str>,
+    pub agents_md: bool,
 }
 
 pub(super) fn handle_init(cli: &Cli, root: &Path, options: InitOptions) -> Result<()> {
@@ -31,6 +32,7 @@ pub(super) fn handle_init(cli: &Cli, root: &Path, options: InitOptions) -> Resul
         options.branch.map(|s| s.to_string()),
         options.no_index,
         options.index_strategy.map(|s| s.to_string()),
+        options.agents_md,
     )
 }
 

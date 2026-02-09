@@ -27,6 +27,10 @@ pub struct InitArgs {
     /// Override auto-indexing strategy (adaptive, full, incremental, quick)
     #[arg(long)]
     pub index_strategy: Option<String>,
+
+    /// Write qipu section to AGENTS.md
+    #[arg(long)]
+    pub agents_md: bool,
 }
 
 /// Arguments for the list command.

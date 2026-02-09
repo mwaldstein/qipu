@@ -82,6 +82,7 @@ pub(super) mod dispatch_command {
                 branch: args.branch.as_deref(),
                 no_index: args.no_index,
                 index_strategy: args.index_strategy.as_deref(),
+                agents_md: args.agents_md,
             },
         )
     }

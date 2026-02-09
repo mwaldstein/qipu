@@ -1,7 +1,7 @@
 //! Init command integration tests
 //!
 //! Tests for store initialization including stealth mode, git branch workflow,
-//! and cache migration behavior.
+//! cache migration behavior, and AGENTS.md creation.
 
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
@@ -415,4 +415,115 @@ fn test_init_branch_json_output() {
         assert_eq!(json["status"], "ok");
         assert!(json["store"].as_str().unwrap().ends_with(".qipu"));
     }
+}
+
+// ============================================================================
+// AGENTS.md creation tests
+// ============================================================================
+
+#[test]
+fn test_init_agents_md_creates_agents_md() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--agents-md"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Initialized qipu store"));
+
+    // Verify AGENTS.md was created
+    let agents_md_path = dir.path().join("AGENTS.md");
+    assert!(agents_md_path.exists(), "AGENTS.md should be created");
+
+    // Verify content contains qipu section
+    let content = std::fs::read_to_string(&agents_md_path).unwrap();
+    assert!(
+        content.contains("## Qipu Knowledge"),
+        "AGENTS.md should contain qipu section"
+    );
+    assert!(
+        content.contains("qipu prime"),
+        "AGENTS.md should reference qipu prime"
+    );
+}
+
+#[test]
+fn test_init_agents_md_appends_to_existing() {
+    let dir = tempdir().unwrap();
+
+    // Create existing AGENTS.md
+    let agents_md_path = dir.path().join("AGENTS.md");
+    std::fs::write(
+        &agents_md_path,
+        "# Existing Agent Instructions\n\nSome content.\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--agents-md"])
+        .assert()
+        .success();
+
+    // Verify AGENTS.md still exists with both content
+    let content = std::fs::read_to_string(&agents_md_path).unwrap();
+    assert!(
+        content.contains("# Existing Agent Instructions"),
+        "Existing content should be preserved"
+    );
+    assert!(
+        content.contains("## Qipu Knowledge"),
+        "Qipu section should be appended"
+    );
+}
+
+#[test]
+fn test_init_agents_md_idempotent() {
+    let dir = tempdir().unwrap();
+
+    // First init with --agents-md
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--agents-md"])
+        .assert()
+        .success();
+
+    let agents_md_path = dir.path().join("AGENTS.md");
+    let _content_after_first = std::fs::read_to_string(&agents_md_path).unwrap();
+
+    // Second init with --agents-md should not duplicate
+    qipu()
+        .current_dir(dir.path())
+        .args(["init", "--agents-md"])
+        .assert()
+        .success();
+
+    let content_after_second = std::fs::read_to_string(&agents_md_path).unwrap();
+
+    // Count occurrences of "## Qipu Knowledge" - should be exactly 1
+    let count = content_after_second.matches("## Qipu Knowledge").count();
+    assert_eq!(
+        count, 1,
+        "Qipu section should not be duplicated, found {} occurrences",
+        count
+    );
+}
+
+#[test]
+fn test_init_without_agents_md_does_not_create() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // Verify AGENTS.md was NOT created
+    let agents_md_path = dir.path().join("AGENTS.md");
+    assert!(
+        !agents_md_path.exists(),
+        "AGENTS.md should not be created without --agents-md flag"
+    );
 }

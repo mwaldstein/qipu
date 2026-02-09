@@ -184,7 +184,7 @@ test_checksum_algorithm() {
 # Test: Checksum files are uploaded
 test_checksum_upload() {
     echo "TEST: Checksum files are uploaded"
-    if grep -q '.sha256' "$WORKFLOW_FILE" && \
+    if grep -q 'SHA256SUMS' "$WORKFLOW_FILE" && \
        grep -q 'upload-release-asset' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else

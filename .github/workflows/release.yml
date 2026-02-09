@@ -246,5 +246,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       
-      - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish qipu-core crate
+        run: cargo publish -p qipu-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      
+      - name: Wait for qipu-core to be available
+        run: sleep 30
+      
+      - name: Publish qipu crate
+        run: cargo publish -p qipu --token ${{ secrets.CARGO_REGISTRY_TOKEN }}

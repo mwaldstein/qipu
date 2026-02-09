@@ -1,5 +1,5 @@
 use crate::support::setup_test_dir;
-use crate::support::{extract_id_from_bytes, qipu};
+use crate::support::{extract_id, extract_id_from_bytes, qipu};
 
 #[test]
 fn test_create_json_has_required_fields() {
@@ -230,4 +230,100 @@ fn test_show_json_custom_opt_in() {
         "custom should be present with --custom flag"
     );
     assert_eq!(json["custom"]["priority"], "high");
+}
+
+#[test]
+fn test_update_json_has_required_fields() {
+    let dir = setup_test_dir();
+
+    // Create a note
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Update Test"])
+        .output()
+        .unwrap();
+    let id = extract_id(&output);
+
+    // Update and verify JSON output has required fields
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "--format",
+            "json",
+            "update",
+            "--title",
+            "Updated Title",
+            &id,
+        ])
+        .output()
+        .unwrap()
+        .stdout;
+
+    let json_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+    assert!(json["id"].is_string(), "id should be a string");
+    assert!(
+        json["id"].as_str().unwrap().starts_with("qp-"),
+        "id should start with qp-"
+    );
+    assert_eq!(json["title"], "Updated Title");
+    assert!(json["type"].is_string(), "type should be a string");
+    assert!(json["tags"].is_array(), "tags should be an array");
+    assert!(
+        json["created"].is_string(),
+        "created should be a string (RFC3339)"
+    );
+    assert!(
+        json.as_object().unwrap().contains_key("updated"),
+        "updated field should be present"
+    );
+}
+
+#[test]
+fn test_inbox_json_has_required_fields() {
+    let dir = setup_test_dir();
+
+    // Create a fleeting note (should appear in inbox)
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "fleeting", "Inbox Test"])
+        .assert()
+        .success();
+
+    // Query inbox in JSON format
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "inbox"])
+        .output()
+        .unwrap()
+        .stdout;
+
+    let json_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+    let results = json.as_array().unwrap();
+
+    assert!(
+        !results.is_empty(),
+        "inbox should contain the fleeting note"
+    );
+
+    for result in results {
+        assert!(result["id"].is_string(), "id should be a string");
+        assert!(
+            result["id"].as_str().unwrap().starts_with("qp-"),
+            "id should start with qp-"
+        );
+        assert!(result["title"].is_string(), "title should be a string");
+        assert!(result["type"].is_string(), "type should be a string");
+        assert!(result["tags"].is_array(), "tags should be an array");
+        assert!(
+            result["created"].is_string(),
+            "created should be a string (RFC3339)"
+        );
+        assert!(
+            result.as_object().unwrap().contains_key("updated"),
+            "updated field should be present"
+        );
+    }
 }

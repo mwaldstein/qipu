@@ -102,6 +102,10 @@ impl SessionAggregator {
                     session.workspace_count = workspace_count;
                     session.note_count = note_count;
                 }
+                TelemetryEvent::QueryStats { .. } => {
+                    // Query statistics are for local observability only
+                    // and not included in aggregated telemetry uploads
+                }
             }
         }
     }

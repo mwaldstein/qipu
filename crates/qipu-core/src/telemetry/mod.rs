@@ -13,7 +13,8 @@ pub use aggregation::{
 pub use collector::{TelemetryCollector, TelemetryConfig};
 pub use endpoint::{EndpointClient, EndpointConfig};
 pub use events::{
-    CommandName, DurationBucket, ErrorType, NoteCountBucket, TelemetryEvent, WorkspaceCountBucket,
+    CommandName, DurationBucket, ErrorType, NoteCountBucket, QueryType, ResultCountBucket,
+    TelemetryEvent, WorkspaceCountBucket,
 };
 pub use privacy_manifest::{PrivacyManifest, PRIVACY_MANIFEST};
 pub use uploader::{TelemetryUploader, UploadError};

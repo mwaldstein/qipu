@@ -162,6 +162,29 @@ pub fn handle_show(start: Instant) -> Result<()> {
                     note_count
                 );
             }
+            TelemetryEvent::QueryStats {
+                timestamp,
+                query_type,
+                duration,
+                result_count,
+                success,
+            } => {
+                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
+                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                    .unwrap_or_else(|| timestamp.to_string());
+
+                let status = if *success { "✓" } else { "✗" };
+
+                println!(
+                    "{}. [{}] Query: {} - {} (duration: {:?}, results: {:?})",
+                    i + 1,
+                    dt,
+                    query_type.as_str(),
+                    status,
+                    duration,
+                    result_count
+                );
+            }
         }
     }
 

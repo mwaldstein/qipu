@@ -168,6 +168,62 @@ pub enum ErrorType {
     Other,
 }
 
+/// Query types for database operation tracking
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum QueryType {
+    Search,
+    GetNote,
+    ListNotes,
+    GetBacklinks,
+    GetOutboundEdges,
+    GetTagFrequencies,
+    GetNoteMetadata,
+    ListNoteIds,
+    Traversal,
+}
+
+impl QueryType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Search => "search",
+            Self::GetNote => "get_note",
+            Self::ListNotes => "list_notes",
+            Self::GetBacklinks => "get_backlinks",
+            Self::GetOutboundEdges => "get_outbound_edges",
+            Self::GetTagFrequencies => "get_tag_frequencies",
+            Self::GetNoteMetadata => "get_note_metadata",
+            Self::ListNoteIds => "list_note_ids",
+            Self::Traversal => "traversal",
+        }
+    }
+}
+
+/// Result count buckets for query statistics
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResultCountBucket {
+    Zero,
+    One,
+    TwoToFive,
+    SixToTwenty,
+    TwentyOneTo100,
+    MoreThan100,
+}
+
+impl ResultCountBucket {
+    pub fn from_count(count: usize) -> Self {
+        match count {
+            0 => Self::Zero,
+            1 => Self::One,
+            2..=5 => Self::TwoToFive,
+            6..=20 => Self::SixToTwenty,
+            21..=100 => Self::TwentyOneTo100,
+            _ => Self::MoreThan100,
+        }
+    }
+}
+
 /// Event types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event_type", rename_all = "kebab-case")]
@@ -187,6 +243,13 @@ pub enum TelemetryEvent {
         workspace_count: WorkspaceCountBucket,
         note_count: NoteCountBucket,
     },
+    QueryStats {
+        timestamp: i64,
+        query_type: QueryType,
+        duration: DurationBucket,
+        result_count: ResultCountBucket,
+        success: bool,
+    },
 }
 
 impl TelemetryEvent {
@@ -194,6 +257,7 @@ impl TelemetryEvent {
         match self {
             Self::CommandExecuted { timestamp, .. } => *timestamp,
             Self::SessionStats { timestamp, .. } => *timestamp,
+            Self::QueryStats { timestamp, .. } => *timestamp,
         }
     }
 }
@@ -280,5 +344,52 @@ mod tests {
         assert!(!json.contains("path"));
         assert!(!json.contains("user"));
         assert!(!json.contains("message"));
+    }
+
+    #[test]
+    fn test_result_count_buckets() {
+        assert_eq!(ResultCountBucket::from_count(0), ResultCountBucket::Zero);
+        assert_eq!(ResultCountBucket::from_count(1), ResultCountBucket::One);
+        assert_eq!(
+            ResultCountBucket::from_count(3),
+            ResultCountBucket::TwoToFive
+        );
+        assert_eq!(
+            ResultCountBucket::from_count(10),
+            ResultCountBucket::SixToTwenty
+        );
+        assert_eq!(
+            ResultCountBucket::from_count(50),
+            ResultCountBucket::TwentyOneTo100
+        );
+        assert_eq!(
+            ResultCountBucket::from_count(200),
+            ResultCountBucket::MoreThan100
+        );
+    }
+
+    #[test]
+    fn test_query_type_display() {
+        assert_eq!(QueryType::Search.as_str(), "search");
+        assert_eq!(QueryType::GetNote.as_str(), "get_note");
+        assert_eq!(QueryType::ListNotes.as_str(), "list_notes");
+    }
+
+    #[test]
+    fn test_query_stats_event_serialization() {
+        let event = TelemetryEvent::QueryStats {
+            timestamp: 1234567890,
+            query_type: QueryType::Search,
+            duration: DurationBucket::Ms100To500,
+            result_count: ResultCountBucket::TwentyOneTo100,
+            success: true,
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("query-stats"));
+        assert!(json.contains("search"));
+        assert!(json.contains("1234567890"));
+        assert!(json.contains("ms100-to500"));
+        assert!(json.contains("twenty-one-to100"));
     }
 }

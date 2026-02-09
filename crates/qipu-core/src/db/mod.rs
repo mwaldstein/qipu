@@ -4,6 +4,7 @@ mod edges;
 mod edges_insert_helper;
 pub mod indexing;
 mod notes;
+mod query_stats;
 mod rebuild;
 mod repair;
 mod schema;

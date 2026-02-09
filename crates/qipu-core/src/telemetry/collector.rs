@@ -111,6 +111,28 @@ impl TelemetryCollector {
         self.add_event(event);
     }
 
+    pub fn record_query(
+        &self,
+        query_type: super::events::QueryType,
+        duration_ms: u128,
+        result_count: usize,
+        success: bool,
+    ) {
+        if !self.is_enabled() {
+            return;
+        }
+
+        let event = TelemetryEvent::QueryStats {
+            timestamp: Utc::now().timestamp(),
+            query_type,
+            duration: super::events::DurationBucket::from_millis(duration_ms),
+            result_count: super::events::ResultCountBucket::from_count(result_count),
+            success,
+        };
+
+        self.add_event(event);
+    }
+
     fn add_event(&self, event: TelemetryEvent) {
         let mut events = self.events.lock().unwrap();
 
@@ -272,5 +294,50 @@ mod tests {
         let content = fs::read_to_string(&events_file).unwrap();
         assert!(!content.contains(&old_timestamp.to_string()));
         assert!(content.contains(&new_timestamp.to_string()));
+    }
+
+    #[test]
+    fn test_record_query_creates_event() {
+        let collector = TelemetryCollector::new(TelemetryConfig {
+            enabled: true,
+            events_dir: PathBuf::from("/tmp/test_telemetry"),
+        });
+
+        collector.record_query(super::super::events::QueryType::Search, 250, 15, true);
+
+        let events = collector.get_pending_events();
+        assert_eq!(events.len(), 1);
+
+        match &events[0] {
+            TelemetryEvent::QueryStats {
+                query_type,
+                duration,
+                result_count,
+                success,
+                ..
+            } => {
+                assert_eq!(*query_type, super::super::events::QueryType::Search);
+                assert_eq!(*duration, super::super::events::DurationBucket::Ms100To500);
+                assert_eq!(
+                    *result_count,
+                    super::super::events::ResultCountBucket::SixToTwenty
+                );
+                assert!(*success);
+            }
+            _ => panic!("Expected QueryStats event"),
+        }
+    }
+
+    #[test]
+    fn test_record_query_disabled_no_collection() {
+        let collector = TelemetryCollector::new(TelemetryConfig {
+            enabled: false,
+            events_dir: PathBuf::from("/tmp/test_telemetry"),
+        });
+
+        collector.record_query(super::super::events::QueryType::GetNote, 50, 1, true);
+
+        let events = collector.get_pending_events();
+        assert!(events.is_empty());
     }
 }

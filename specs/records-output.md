@@ -95,7 +95,16 @@ B-END
 |--------|---------|---------|
 | `H` | Header line with bundle metadata | `H qipu=1 records=1 store=.qipu/ mode=context notes=2 truncated=false` |
 | `N` | Note metadata line | `N qp-a1b2 permanent "My Title" tags=tag1,tag2` |
-| `S` | Summary line (first paragraph) | `S qp-a1b2 Brief summary of the note content` |
+| `S` | Summary line (mode-specific semantics, see below) | `S qp-a1b2 Brief summary of the note content` |
+
+#### S-prefix mode-specific semantics
+
+The `S` prefix has different meanings depending on the output mode:
+
+| Mode | S-prefix meaning | Example |
+|------|------------------|---------|
+| `context`, `link` | Summary (first paragraph of note body) | `S qp-a1b2 First paragraph from body` |
+| `dump` (pack format) | Sources (bibliographic references) | `S qp-a1b2 url=https://example.com/paper` |
 
 ### Extended prefixes (mode-specific)
 

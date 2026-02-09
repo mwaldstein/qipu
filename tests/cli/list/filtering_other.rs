@@ -110,11 +110,11 @@ fn test_list_filter_by_since() {
         .assert()
         .success();
 
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(250));
 
     let since_time = chrono::Utc::now().to_rfc3339();
 
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(250));
 
     qipu()
         .current_dir(dir.path())

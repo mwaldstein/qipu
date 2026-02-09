@@ -95,7 +95,7 @@ and graph traversal capabilities."""
 # RPM package configuration (cargo-rpm)
 [package.metadata.rpm]
 name = "qipu"
-version = "0.3.22"
+version = "0.3.26"
 license = "MIT"
 summary = "Zettelkasten-inspired knowledge management CLI"
 group = "Applications/System"

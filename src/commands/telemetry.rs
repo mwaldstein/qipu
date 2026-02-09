@@ -83,8 +83,7 @@ pub fn handle_show() -> Result<()> {
     let mut all_events: Vec<TelemetryEvent> = Vec::new();
 
     if events_file.exists() {
-        let content =
-            fs::read_to_string(&events_file).map_err(|e| qipu_core::error::QipuError::Io(e))?;
+        let content = fs::read_to_string(&events_file).map_err(qipu_core::error::QipuError::Io)?;
 
         for line in content.lines() {
             if let Ok(event) = serde_json::from_str::<TelemetryEvent>(line) {
@@ -163,6 +162,53 @@ pub fn handle_show() -> Result<()> {
 
     println!("\n{}", "=".repeat(50));
     println!("Total events ready for upload: {}", all_events.len());
+
+    Ok(())
+}
+
+pub fn handle_upload() -> Result<()> {
+    use qipu_core::telemetry::{EndpointConfig, TelemetryUploader};
+    use std::sync::Arc;
+
+    let config = TelemetryConfig::default();
+    let collector = TelemetryCollector::new(config.clone());
+
+    if !collector.is_enabled() {
+        println!("Telemetry is disabled. Enable with: qipu telemetry enable");
+        return Ok(());
+    }
+
+    let endpoint_config = EndpointConfig::from_env();
+    if !endpoint_config.is_configured() {
+        println!("No telemetry endpoint configured.");
+        println!("Set QIPU_TELEMETRY_ENDPOINT to enable remote upload.");
+        println!("Example: export QIPU_TELEMETRY_ENDPOINT=https://telemetry.example.com/v1/batch");
+        return Ok(());
+    }
+
+    // Load events from disk into collector
+    collector.rotate_events().ok();
+
+    let events = collector.get_pending_events();
+    if events.is_empty() {
+        println!("No telemetry events to upload.");
+        return Ok(());
+    }
+
+    println!("Uploading {} telemetry events...", events.len());
+
+    let uploader = TelemetryUploader::new(Arc::new(collector));
+
+    match uploader.upload_immediate() {
+        Ok(()) => {
+            println!("✓ Upload successful");
+            println!("  Local events cleared.");
+        }
+        Err(e) => {
+            println!("✗ Upload failed: {}", e);
+            println!("  Events retained for retry.");
+        }
+    }
 
     Ok(())
 }

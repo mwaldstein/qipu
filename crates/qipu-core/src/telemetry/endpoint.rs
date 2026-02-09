@@ -125,9 +125,9 @@ impl EndpointClient {
         match response {
             Ok(res) => {
                 let status = res.status();
-                if status >= 200 && status < 300 {
+                if (200..300).contains(&status) {
                     Ok(())
-                } else if status >= 400 && status < 500 {
+                } else if (400..500).contains(&status) {
                     Err(UploadError::EndpointUnavailable)
                 } else {
                     Err(UploadError::NetworkError(format!(
@@ -140,7 +140,7 @@ impl EndpointClient {
                 Err(UploadError::NetworkError(format!("Transport error: {}", e)))
             }
             Err(ureq::Error::Status(code, _)) => {
-                if code >= 400 && code < 500 {
+                if (400..500).contains(&code) {
                     Err(UploadError::EndpointUnavailable)
                 } else {
                     Err(UploadError::NetworkError(format!("HTTP {}", code)))

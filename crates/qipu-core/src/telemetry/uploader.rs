@@ -63,6 +63,45 @@ impl TelemetryUploader {
     pub fn is_endpoint_configured(&self) -> bool {
         self.endpoint.config.is_configured()
     }
+
+    /// Get reference to the endpoint client
+    pub fn endpoint(&self) -> &EndpointClient {
+        &self.endpoint
+    }
+
+    /// Get reference to the collector
+    pub fn collector(&self) -> &Arc<TelemetryCollector> {
+        &self.collector
+    }
+
+    /// Perform immediate upload of pending events
+    pub fn upload_immediate(&self) -> Result<(), UploadError> {
+        if !self.collector.is_enabled() {
+            return Err(UploadError::EndpointUnavailable);
+        }
+
+        let events = self.collector.get_pending_events();
+        if events.is_empty() {
+            return Ok(());
+        }
+
+        let batch = SessionAggregator::aggregate_events(events);
+
+        if batch.is_empty() {
+            return Ok(());
+        }
+
+        if !self.endpoint.config.is_configured() {
+            return Err(UploadError::EndpointUnavailable);
+        }
+
+        self.endpoint.upload_with_retry(&batch)?;
+
+        let _ = self.collector.persist_to_disk();
+        self.collector.clear_events();
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

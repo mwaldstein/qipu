@@ -308,6 +308,7 @@ pub(super) mod dispatch_command {
             TelemetryCommands::Disable => telemetry::handle_disable(),
             TelemetryCommands::Status => telemetry::handle_status(),
             TelemetryCommands::Show => telemetry::handle_show(),
+            TelemetryCommands::Upload => telemetry::handle_upload(),
         }
     }
 }

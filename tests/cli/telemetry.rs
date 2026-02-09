@@ -210,6 +210,57 @@ fn test_telemetry_show_shows_status_when_enabled() {
 }
 
 // =============================================================================
+// Telemetry upload command
+// =============================================================================
+
+#[test]
+fn test_telemetry_upload_disabled() {
+    let config_dir = tempdir().unwrap();
+
+    qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .args(["telemetry", "upload"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Telemetry is disabled"))
+        .stdout(predicate::str::contains("qipu telemetry enable"));
+}
+
+#[test]
+fn test_telemetry_upload_no_endpoint() {
+    let config_dir = tempdir().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+
+    // Create config with telemetry enabled but no endpoint
+    fs::write(&config_path, "telemetry_enabled = true\n").unwrap();
+
+    qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .args(["telemetry", "upload"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No telemetry endpoint configured"))
+        .stdout(predicate::str::contains("QIPU_TELEMETRY_ENDPOINT"));
+}
+
+#[test]
+fn test_telemetry_upload_no_events() {
+    let config_dir = tempdir().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+
+    // Create config with telemetry enabled and set a dummy endpoint
+    fs::write(&config_path, "telemetry_enabled = true\n").unwrap();
+
+    qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .env("QIPU_TELEMETRY_ENDPOINT", "https://example.com/telemetry")
+        .args(["telemetry", "upload"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No telemetry events to upload"));
+}
+
+// =============================================================================
 // Integration: full enable/disable/status cycle
 // =============================================================================
 

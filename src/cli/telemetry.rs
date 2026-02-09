@@ -9,4 +9,6 @@ pub enum TelemetryCommands {
     Status,
     /// Show pending telemetry events (dry run of what would be uploaded)
     Show,
+    /// Upload pending telemetry events to configured endpoint
+    Upload,
 }

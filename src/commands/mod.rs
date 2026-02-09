@@ -23,6 +23,7 @@ pub mod merge;
 pub mod ontology;
 pub mod prime;
 pub mod provenance;
+pub mod quickstart;
 pub mod search;
 pub mod setup;
 pub mod show;

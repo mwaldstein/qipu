@@ -64,6 +64,9 @@ pub enum Commands {
     /// Output session-start primer for LLM agents
     Prime(PrimeArgs),
 
+    /// Quick start guide for common workflows
+    Quickstart,
+
     /// Toggle verification status of a note
     Verify(VerifyArgs),
 

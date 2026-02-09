@@ -42,6 +42,7 @@ pub(super) mod dispatch_command {
                 handlers::execute_custom(ctx.cli, ctx.root, &subcmd.command, ctx.start)
             }
             Commands::Prime(args) => execute_prime(ctx, args),
+            Commands::Quickstart => execute_quickstart(ctx),
             Commands::Onboard => handlers::execute_onboard(ctx.cli),
             Commands::Setup(args) => execute_setup(ctx, args),
             Commands::Doctor(args) => execute_doctor(ctx, args),
@@ -315,5 +316,9 @@ pub(super) mod dispatch_command {
             TelemetryCommands::Show => telemetry::handle_show(),
             TelemetryCommands::Upload => telemetry::handle_upload(),
         }
+    }
+
+    fn execute_quickstart(ctx: &CommandContext) -> Result<()> {
+        crate::commands::quickstart::execute(ctx.cli)
     }
 }

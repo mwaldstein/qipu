@@ -108,6 +108,7 @@ fn command_to_name(cmd: &crate::cli::Commands) -> CommandName {
         Commands::Export(_) => CommandName::Export,
         Commands::Load(_) => CommandName::Load,
         Commands::Prime(_) => CommandName::Prime,
+        Commands::Quickstart => CommandName::Quickstart,
         Commands::Verify(_) => CommandName::Verify,
         Commands::Value(_) => CommandName::Value,
         Commands::Tags(_) => CommandName::Tags,

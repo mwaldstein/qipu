@@ -47,7 +47,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
 | `cli-tool.md` | ✅ | ✅ | ✅ | All tests implemented including performance tests |
-| `knowledge-model.md` | ✅ | ✅ | ✅ | All note types, IDs, tags, typed links working; unknown types rejected (not coerced) |
+| `knowledge-model.md` | ✅ | ✅ | ⚠️ | All features working; missing MOC link validation (doctor should warn on empty MOCs) |
 | `storage-format.md` | ✅ | ✅ | ✅ | All features implemented with path traversal protection |
 | `cli-interface.md` | ✅ | ✅ | ✅ | Exit codes correct per spec |
 | `indexing-search.md` | ✅ | ✅ | ✅ | Field weights correct (2.0/1.5/1.0); AND semantics working |
@@ -55,20 +55,20 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
 | `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
-| `llm-context.md` | ✅ | ✅ | ⚠️ | Character budgeting implemented (4000-8000 chars); `--max-tokens` flag out of scope |
+| `llm-context.md` | ✅ | ✅ | ✅ | Character budgeting implemented (4000-8000 chars); tests complete; `--max-tokens` intentionally removed |
 | `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
-| `progressive-indexing.md` | ⚠️ | ❌ | New spec - not implemented |
+| `progressive-indexing.md` | ⚠️ | ⚠️ | ~70% complete; missing file watching, background mode, explicit --basic/--full flags |
 | `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
 | `compaction.md` | ✅ | ✅ | ✅ | Link JSON includes `via` annotation; truncation markers ARE present |
 | `pack.md` | ✅ | ✅ | ✅ | Value/custom correctly preserved; merge-links restricted to newly loaded notes |
-| `workspaces.md` | ✅ | ✅ | ⚠️ | Rename strategy link rewriting untested; metadata location per-workspace (spec ambiguous) |
-| `structured-logging.md` | ✅ | ✅ | ⚠️ | Logs correctly route to stderr; missing TRACE tests; structured fields not validated |
+| `workspaces.md` | ✅ | ✅ | ✅ | All features implemented; link rewriting tested; file reference handling only gap |
+| `structured-logging.md` | ✅ | ✅ | ⚠️ | Core logging complete; missing TRACE usage; no resource usage metrics |
 | `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
-| `distribution.md` | ⚠️ | ✅ | ❌ | Install scripts work; release workflow configured; SHA256SUMS format fixed; missing tests |
+| `distribution.md` | ⚠️ | ✅ | ⚠️ | Install scripts work; release workflow configured; missing PowerShell tests (tracked in qipu-vvhz) |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
-| `telemetry.md` | ✅ | ❌ | ❌ | Approved; remote endpoint pending |
+| `telemetry.md` | ✅ | ⚠️ | ⚠️ | Local collection complete; remote endpoint stubbed; missing `telemetry show` command |
 
 ## Legend
 
@@ -105,10 +105,9 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `graph-traversal.md` | Test coverage | Missing tests for max-fanout limit behavior; records format edge cases |
 | `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries; tests don't validate actual weight values |
 | `records-output.md` | Test coverage | Missing tests for S prefix semantic distinction; truncation flags |
-| `llm-context.md` | Test coverage | Missing tests for `qipu prime --format json/records`; missing-selection exit codes |
-| `llm-context.md` | Out of scope | `--max-tokens` flag and tiktoken dependency should be removed (character-only budgets) |
+| `llm-context.md` | ✅ FIXED | Tests exist for `qipu prime --format json/records`; `--max-tokens` removed per spec |
 | `pack.md` | Test coverage | Missing tests for `--tag`/`--moc`/`--query` selectors in dump; graph traversal options; link preservation |
-| `workspaces.md` | Test coverage | Missing tests for rename strategy link rewriting; `--delete-source` flag |
+| `workspaces.md` | ✅ FIXED | Tests exist for rename link rewriting (`tests/workspace/rename/`) and delete_source |
 | `structured-logging.md` | Test coverage | Missing TRACE level tests; structured field validation; span/trace relationship tests |
 | `operational-database.md` | Test coverage | No FTS5 field weight tests; no performance benchmarks; no WAL concurrent read tests |
 | `value-model.md` | Test coverage | Missing tests for compaction suggest + value; context `--min-value` edge cases; search sort-by-value defaults |
@@ -122,5 +121,19 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Reason |
 | --- | --- |
-| `telemetry.md` | DRAFT spec explicitly prohibits implementation |
-| `knowledge-model.md` tag aliases | Marked as optional in spec |
+| `knowledge-model.md` tag aliases | Optional per spec - implemented but not required |
+
+### New Gaps Identified (2026-02-08 Audit)
+
+| Spec | Gap | Priority | Notes |
+| --- | --- | --- | --- |
+| `knowledge-model.md` | MOC link validation | P3 | Doctor should warn when MOCs have zero links |
+| `telemetry.md` | `telemetry show` command | P3 | Spec requirement for transparency - display what would be uploaded |
+| `telemetry.md` | Session stats collection | P3 | `record_session_stats()` exists but never called |
+| `progressive-indexing.md` | File watching (--watch) | P3 | Spec requirement for 5k+ note repos |
+| `progressive-indexing.md` | Background mode | P3 | Flag exists but not implemented |
+| `progressive-indexing.md` | --basic/--full flags | P3 | Explicit two-level indexing not exposed |
+| `records-output.md` | S-prefix semantic tests | P2 | Tests for truncation vs summary distinction |
+| `structured-logging.md` | TRACE level usage | P3 | Infrastructure exists but trace!() never called |
+| `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented |
+| `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten |

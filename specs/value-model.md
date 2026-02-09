@@ -183,8 +183,20 @@ pub fn get_edge_cost(link_type: &str, target_value: Option<u8>) -> HopCost {
 
 This preserves the link-type cost extension point while adding value-based weighting.
 
-## Open Questions
-- Should `value` influence search ranking by default, or only when explicitly sorted by value?
+## Clarifications
+
+### Value does NOT influence search ranking by default
+**Decision:** The `value` field does not influence search result ranking by default. It only affects search ordering when explicitly requested via `qipu search --sort value`.
+
+**Rationale:**
+1. **Clear separation of concerns**: Search ranking is about query relevance (text matching, title priority, recency). Value is about graph traversal quality (node importance for pathfinding).
+2. **Predictability**: Users expect search results ordered by relevance to their query, not mixed with quality scores that may surface irrelevant high-value notes.
+3. **Explicit opt-in**: The `--sort value` flag provides intentional control when users want to see highest-valued notes matching their query.
+4. **Traversal vs lookup**: Value is designed to guide traversal algorithms (tree, path, context) toward high-quality nodes. Search is a lookup operation, not traversal.
+
+**Current behavior preserved:**
+- `qipu search <query>` → Results ranked by text relevance only (title > exact tag > body, recency boost)
+- `qipu search <query> --sort value` → Results sorted by value descending (highest value first), then by ID
 
 ## Clarifications
 

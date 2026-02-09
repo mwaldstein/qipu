@@ -5,7 +5,11 @@ use std::time::Instant;
 use crate::cli::paths::resolve_root_path;
 use crate::cli::Cli;
 use qipu_core::error::Result;
-use qipu_core::telemetry::{init_telemetry, record_command_execution, CommandName};
+use qipu_core::store::paths::WORKSPACE_FILE;
+use qipu_core::store::Store;
+use qipu_core::telemetry::{
+    get_app_version, init_telemetry, record_command_execution, CommandName,
+};
 use tracing::debug;
 
 pub mod command;
@@ -34,6 +38,13 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
     // Initialize telemetry
     let telemetry = init_telemetry();
 
+    // Record session stats if telemetry is enabled and store exists
+    if telemetry.is_enabled() {
+        if let Ok(store) = Store::discover(&root) {
+            record_session_stats(&telemetry, &store);
+        }
+    }
+
     // Execute command and record telemetry
     match &cli.command {
         None => {
@@ -48,6 +59,34 @@ pub fn run(cli: &Cli, start: Instant) -> Result<()> {
             result
         }
     }
+}
+
+fn record_session_stats(
+    telemetry: &std::sync::Arc<qipu_core::telemetry::TelemetryCollector>,
+    store: &Store,
+) {
+    // Count workspaces: primary (1) + valid workspace subdirectories
+    let workspaces_dir = store.workspaces_dir();
+    let mut workspace_count: usize = 1; // Primary workspace
+
+    if workspaces_dir.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(&workspaces_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    // A valid workspace has a workspace.toml file
+                    if path.join(WORKSPACE_FILE).exists() {
+                        workspace_count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    // Get note count from database
+    let note_count = store.db().get_note_count().unwrap_or(0) as usize;
+
+    telemetry.record_session_stats(workspace_count, note_count, get_app_version());
 }
 
 fn command_to_name(cmd: &crate::cli::Commands) -> CommandName {

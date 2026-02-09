@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 8;
+pub const CURRENT_SCHEMA_VERSION: i32 = 9;
 
 static GLOBAL_SCHEMA_VERSION: AtomicI32 = AtomicI32::new(CURRENT_SCHEMA_VERSION);
 
@@ -21,6 +21,15 @@ pub enum SchemaCreateResult {
 }
 
 const SCHEMA_SQL: &str = r#"
+-- Indexing checkpoints for batched indexing with resume support
+CREATE TABLE IF NOT EXISTS indexing_checkpoints (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_number INTEGER NOT NULL,
+    last_note_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    completed_at TEXT
+);
+
 -- Note metadata (mirrors frontmatter)
 CREATE TABLE IF NOT EXISTS notes (
     id TEXT PRIMARY KEY,
@@ -94,6 +103,7 @@ fn drop_all_tables(conn: &Connection) -> Result<()> {
     conn.execute("DROP TABLE IF EXISTS edges", [])?;
     conn.execute("DROP TABLE IF EXISTS unresolved", [])?;
     conn.execute("DROP TABLE IF EXISTS index_meta", [])?;
+    conn.execute("DROP TABLE IF EXISTS indexing_checkpoints", [])?;
     Ok(())
 }
 
@@ -155,6 +165,27 @@ pub fn create_schema(conn: &Connection) -> Result<SchemaCreateResult> {
                 )?;
                 tracing::info!(
                     "Database schema updated from version {} to {}",
+                    v,
+                    target_version
+                );
+                SchemaCreateResult::Ok
+            } else if v == 8 && target_version == 9 {
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS indexing_checkpoints (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        batch_number INTEGER NOT NULL,
+                        last_note_id TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        completed_at TEXT
+                    )",
+                    [],
+                )?;
+                conn.execute(
+                    "UPDATE index_meta SET value = ?1 WHERE key = 'schema_version'",
+                    [&target_version.to_string()],
+                )?;
+                tracing::info!(
+                    "Database schema updated from version {} to {} (added indexing_checkpoints)",
                     v,
                     target_version
                 );

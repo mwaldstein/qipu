@@ -1,8 +1,8 @@
 Store: <STORE_PATH>
 
 Database:
-  Size: 90112 bytes
-  Schema version: 8
+  Size: 98304 bytes
+  Schema version: 9
 
 Contents:
   Notes: 4

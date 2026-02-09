@@ -258,3 +258,68 @@ fn test_doctor_attachments() {
         .iter()
         .any(|i| i.category == "orphaned-attachment" && i.message.contains("orphaned.txt")));
 }
+
+#[test]
+fn test_doctor_empty_moc_no_links() {
+    // MOC with no links should trigger warning
+    let fm = NoteFrontmatter::new("qp-moc1".to_string(), "Empty MOC".to_string())
+        .with_type("moc".into());
+    let moc = Note::new(fm, "This MOC has no links.".to_string());
+
+    let mut result = DoctorResult::new();
+    check_empty_mocs(&[moc], &mut result);
+
+    assert_eq!(result.warning_count, 1);
+    assert!(result
+        .issues
+        .iter()
+        .any(|i| i.category == "empty-moc" && i.message.contains("qp-moc1")));
+}
+
+#[test]
+fn test_doctor_empty_moc_with_typed_links() {
+    // MOC with typed links should not trigger warning
+    let mut fm = NoteFrontmatter::new("qp-moc1".to_string(), "Linked MOC".to_string())
+        .with_type("moc".into());
+    fm.links.push(qipu_core::note::TypedLink {
+        id: "qp-note1".to_string(),
+        link_type: "related".into(),
+    });
+    let moc = Note::new(fm, "This MOC has typed links.".to_string());
+
+    let mut result = DoctorResult::new();
+    check_empty_mocs(&[moc], &mut result);
+
+    assert_eq!(result.warning_count, 0);
+    assert!(!result.issues.iter().any(|i| i.category == "empty-moc"));
+}
+
+#[test]
+fn test_doctor_empty_moc_with_wiki_links() {
+    // MOC with wiki links should not trigger warning
+    let fm = NoteFrontmatter::new("qp-moc1".to_string(), "Wiki Linked MOC".to_string())
+        .with_type("moc".into());
+    let moc = Note::new(
+        fm,
+        "This MOC links to [[qp-note1]] and [[qp-note2]].".to_string(),
+    );
+
+    let mut result = DoctorResult::new();
+    check_empty_mocs(&[moc], &mut result);
+
+    assert_eq!(result.warning_count, 0);
+    assert!(!result.issues.iter().any(|i| i.category == "empty-moc"));
+}
+
+#[test]
+fn test_doctor_empty_moc_non_moc_ignored() {
+    // Non-MOC notes should not be checked for empty MOC condition
+    let fm = NoteFrontmatter::new("qp-note1".to_string(), "Regular Note".to_string());
+    let note = Note::new(fm, "This note has no links.".to_string());
+
+    let mut result = DoctorResult::new();
+    check_empty_mocs(&[note], &mut result);
+
+    assert_eq!(result.warning_count, 0);
+    assert!(!result.issues.iter().any(|i| i.category == "empty-moc"));
+}

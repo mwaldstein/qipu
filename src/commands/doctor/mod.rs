@@ -90,6 +90,9 @@ pub fn execute(
     // 12. Check for overly complex notes (quality bar)
     checks::check_note_complexity(&notes, &mut result);
 
+    // 12.5. Check for empty MOCs (MOCs with no links)
+    checks::check_empty_mocs(&notes, &mut result);
+
     // 13. Check for near-duplicates if requested
     if duplicates {
         checks::check_near_duplicates(&index, threshold, &mut result);

@@ -372,5 +372,39 @@ pub fn check_note_complexity(notes: &[Note], result: &mut DoctorResult) {
     }
 }
 
+/// Checks if MOC notes have zero links (warning since MOCs should organize content).
+pub fn check_empty_mocs(notes: &[Note], result: &mut DoctorResult) {
+    let wiki_link_re = Regex::new(r"\[\[([^\]]+)\]\]").expect("Invalid wiki link regex pattern");
+
+    for note in notes {
+        if !note.note_type().is_moc() {
+            continue;
+        }
+
+        // Count typed links in frontmatter
+        let typed_link_count = note.frontmatter.links.len();
+
+        // Count wiki links in body
+        let wiki_link_count = wiki_link_re.find_iter(&note.body).count();
+
+        // Total links
+        let total_links = typed_link_count + wiki_link_count;
+
+        if total_links == 0 {
+            result.add_issue(Issue {
+                severity: Severity::Warning,
+                category: "empty-moc".to_string(),
+                message: format!(
+                    "MOC '{}' has no links - MOCs should organize and link to related notes",
+                    note.id()
+                ),
+                note_id: Some(note.id_string()),
+                path: note.path_display(),
+                fixable: false,
+            });
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests;

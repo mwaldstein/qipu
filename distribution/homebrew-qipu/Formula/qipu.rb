@@ -1,8 +1,8 @@
 class Qipu < Formula
   desc "Zettelkasten-inspired knowledge management CLI"
   homepage "https://github.com/mwaldstein/qipu"
-  url "https://github.com/mwaldstein/qipu/archive/refs/tags/v0.3.19.tar.gz"
-  sha256 "04c3f3ba4712b81252c29f4535e92e305efc8506da5f4f2499e0479eefa39d03"
+  url "https://github.com/mwaldstein/qipu/archive/refs/tags/v0.3.22.tar.gz"
+  sha256 "0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"
   license "MIT"
 
   depends_on "rust" => :build

@@ -1,9 +1,11 @@
 //! Telemetry command handlers
 
+use crate::commands::dispatch::trace_command_always;
 use qipu_core::config::GlobalConfig;
 use qipu_core::error::Result;
 use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig, TelemetryEvent};
 use std::fs;
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 pub enum TelemetrySource {
@@ -12,23 +14,25 @@ pub enum TelemetrySource {
     Default,
 }
 
-pub fn handle_enable() -> Result<()> {
+pub fn handle_enable(start: Instant) -> Result<()> {
     let mut config = GlobalConfig::load()?;
     config.set_telemetry_enabled(true);
     config.save()?;
     println!("Telemetry enabled");
+    trace_command_always!(start, "telemetry_enable");
     Ok(())
 }
 
-pub fn handle_disable() -> Result<()> {
+pub fn handle_disable(start: Instant) -> Result<()> {
     let mut config = GlobalConfig::load()?;
     config.set_telemetry_enabled(false);
     config.save()?;
     println!("Telemetry disabled");
+    trace_command_always!(start, "telemetry_disable");
     Ok(())
 }
 
-pub fn handle_status() -> Result<()> {
+pub fn handle_status(start: Instant) -> Result<()> {
     let source;
     let enabled;
 
@@ -60,10 +64,11 @@ pub fn handle_status() -> Result<()> {
     };
     println!("Source: {}", source_str);
 
+    trace_command_always!(start, "telemetry_status");
     Ok(())
 }
 
-pub fn handle_show() -> Result<()> {
+pub fn handle_show(start: Instant) -> Result<()> {
     let config = TelemetryConfig::default();
     let collector = TelemetryCollector::new(config.clone());
 
@@ -163,10 +168,11 @@ pub fn handle_show() -> Result<()> {
     println!("\n{}", "=".repeat(50));
     println!("Total events ready for upload: {}", all_events.len());
 
+    trace_command_always!(start, "telemetry_show");
     Ok(())
 }
 
-pub fn handle_upload() -> Result<()> {
+pub fn handle_upload(start: Instant) -> Result<()> {
     use qipu_core::telemetry::{EndpointConfig, TelemetryUploader};
     use std::sync::Arc;
 
@@ -210,5 +216,6 @@ pub fn handle_upload() -> Result<()> {
         }
     }
 
+    trace_command_always!(start, "telemetry_upload");
     Ok(())
 }

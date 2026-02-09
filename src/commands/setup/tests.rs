@@ -85,11 +85,15 @@ fn assert_install_cursor_success(format: OutputFormat, verify_content: bool) -> 
 
 fn assert_execute_ok<F>(func: F)
 where
-    F: Fn(&Cli) -> Result<(), QipuError>,
+    F: Fn(&Cli, std::time::Instant) -> Result<(), QipuError>,
 {
-    func(&create_cli(OutputFormat::Human)).unwrap();
-    func(&create_cli(OutputFormat::Json)).unwrap();
-    func(&create_cli(OutputFormat::Records)).unwrap();
+    func(&create_cli(OutputFormat::Human), std::time::Instant::now()).unwrap();
+    func(&create_cli(OutputFormat::Json), std::time::Instant::now()).unwrap();
+    func(
+        &create_cli(OutputFormat::Records),
+        std::time::Instant::now(),
+    )
+    .unwrap();
 }
 
 #[cfg(test)]
@@ -311,14 +315,30 @@ mod tests {
     #[test]
     fn test_execute_with_list_flag() {
         let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, true, None, false, false, false);
+        let result = execute(
+            &cli,
+            true,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_execute_with_print_flag() {
         let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, None, true, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            true,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -327,7 +347,15 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -336,7 +364,15 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
 
-        let result = execute(&cli, false, Some("cursor"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -346,7 +382,15 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
         let path = setup_agents_md(temp_dir.path());
 
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
         assert!(!path.exists());
     }
@@ -357,7 +401,15 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Human, Some(temp_dir.path().to_path_buf()));
         let path = setup_cursor_rules(temp_dir.path());
 
-        let result = execute(&cli, false, Some("cursor"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
         assert!(!path.exists());
     }
@@ -365,7 +417,15 @@ mod tests {
     #[test]
     fn test_execute_no_args() {
         let cli = create_cli(OutputFormat::Human);
-        let result = execute(&cli, false, None, false, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -382,16 +442,48 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
         setup_agents_md(temp_dir.path());
 
-        let result = execute(&cli, true, None, false, false, false);
+        let result = execute(
+            &cli,
+            true,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, None, true, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            true,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -401,16 +493,48 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
         setup_agents_md(temp_dir.path());
 
-        let result = execute(&cli, true, None, false, false, false);
+        let result = execute(
+            &cli,
+            true,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, None, true, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            true,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("agents-md"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("agents-md"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("agents-md"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -420,16 +544,48 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Json, Some(temp_dir.path().to_path_buf()));
         setup_cursor_rules(temp_dir.path());
 
-        let result = execute(&cli, true, None, false, false, false);
+        let result = execute(
+            &cli,
+            true,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, None, true, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            true,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("cursor"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("cursor"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 
@@ -439,16 +595,48 @@ mod tests {
         let cli = create_cli_with_root(OutputFormat::Records, Some(temp_dir.path().to_path_buf()));
         setup_cursor_rules(temp_dir.path());
 
-        let result = execute(&cli, true, None, false, false, false);
+        let result = execute(
+            &cli,
+            true,
+            None,
+            false,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, None, true, false, false);
+        let result = execute(
+            &cli,
+            false,
+            None,
+            true,
+            false,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("cursor"), false, true, false);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            true,
+            false,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
 
-        let result = execute(&cli, false, Some("cursor"), false, false, true);
+        let result = execute(
+            &cli,
+            false,
+            Some("cursor"),
+            false,
+            false,
+            true,
+            std::time::Instant::now(),
+        );
         assert!(result.is_ok());
     }
 

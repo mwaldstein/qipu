@@ -5,9 +5,11 @@
 //! - Supports --format flag for json/records/human output
 
 use crate::cli::Cli;
+use crate::commands::dispatch::trace_command_always;
 use crate::commands::format::{print_records_header, wrap_records_body};
 use crate::output_by_format;
 use qipu_core::error::Result;
+use std::time::Instant;
 
 const QUICKSTART_CONTENT: &str = r#"# Qipu Quick Start Guide
 
@@ -73,7 +75,7 @@ Run `qipu --help` for complete command reference.
 "#;
 
 /// Execute the quickstart command
-pub fn execute(cli: &Cli) -> Result<()> {
+pub fn execute(cli: &Cli, start: Instant) -> Result<()> {
     output_by_format!(cli.format,
         json => {
             let output = serde_json::json!({
@@ -90,5 +92,6 @@ pub fn execute(cli: &Cli) -> Result<()> {
             wrap_records_body("guide", QUICKSTART_CONTENT);
         }
     );
+    trace_command_always!(start, "quickstart_execute");
     Ok(())
 }

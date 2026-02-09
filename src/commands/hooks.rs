@@ -5,11 +5,13 @@
 
 use crate::cli::hooks::HookCommands;
 use crate::cli::Cli;
+use crate::commands::dispatch::trace_command_always;
 use crate::commands::format::{
     output_by_format_result, print_json_status, print_records_data, print_records_header,
 };
 use qipu_core::error::{QipuError, Result};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 /// Available git hooks and their descriptions
 const AVAILABLE_HOOKS: &[(&str, &str)] = &[
@@ -92,13 +94,33 @@ exec qipu hooks run {} "$@"
 }
 
 /// Execute hooks command
-pub fn execute(cli: &Cli, command: &HookCommands) -> Result<()> {
+pub fn execute(cli: &Cli, command: &HookCommands, start: Instant) -> Result<()> {
     match command {
-        HookCommands::Install { hook, force } => execute_install(cli, hook.as_deref(), *force),
-        HookCommands::Run { hook, args } => execute_run(cli, hook, args),
-        HookCommands::List => execute_list(cli),
-        HookCommands::Uninstall { hook } => execute_uninstall(cli, hook.as_deref()),
-        HookCommands::Status => execute_status(cli),
+        HookCommands::Install { hook, force } => {
+            let result = execute_install(cli, hook.as_deref(), *force);
+            trace_command_always!(start, "hooks_install");
+            result
+        }
+        HookCommands::Run { hook, args } => {
+            let result = execute_run(cli, hook, args);
+            trace_command_always!(start, "hooks_run");
+            result
+        }
+        HookCommands::List => {
+            let result = execute_list(cli);
+            trace_command_always!(start, "hooks_list");
+            result
+        }
+        HookCommands::Uninstall { hook } => {
+            let result = execute_uninstall(cli, hook.as_deref());
+            trace_command_always!(start, "hooks_uninstall");
+            result
+        }
+        HookCommands::Status => {
+            let result = execute_status(cli);
+            trace_command_always!(start, "hooks_status");
+            result
+        }
     }
 }
 

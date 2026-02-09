@@ -4,6 +4,7 @@
 //! At minimum, supports the AGENTS.md standard (cross-tool compatible).
 
 use crate::cli::Cli;
+use crate::commands::dispatch::trace_command_always;
 use crate::commands::format::{
     output_by_format_result, print_json_status, print_records_data, print_records_header,
     wrap_records_body,
@@ -12,6 +13,7 @@ use crate::output_by_format;
 use qipu_core::bail_usage;
 use qipu_core::error::QipuError;
 use std::path::PathBuf;
+use std::time::Instant;
 
 const ONBOARD_SNIPPET: &str = r#"## Qipu Knowledge
 
@@ -241,15 +243,18 @@ pub fn execute(
     print: bool,
     check: bool,
     remove: bool,
+    start: Instant,
 ) -> Result<(), QipuError> {
     // Handle --list
     if list {
-        return execute_list(cli);
+        let result = execute_list(cli, start);
+        return result;
     }
 
     // Handle --print
     if print {
-        return execute_print(cli);
+        let result = execute_print(cli, start);
+        return result;
     }
 
     // Handle <tool> with optional --check or --remove
@@ -263,24 +268,30 @@ pub fn execute(
             ));
         }
         if check {
-            return match normalized.as_str() {
+            let result = match normalized.as_str() {
                 "agents-md" => execute_check_agents_md(cli),
                 "cursor" => execute_check_cursor(cli),
                 _ => unreachable!(),
             };
+            trace_command_always!(start, "setup_check");
+            return result;
         }
         if remove {
-            return match normalized.as_str() {
+            let result = match normalized.as_str() {
                 "agents-md" => execute_remove_agents_md(cli),
                 "cursor" => execute_remove_cursor(cli),
                 _ => unreachable!(),
             };
+            trace_command_always!(start, "setup_remove");
+            return result;
         }
-        return match normalized.as_str() {
+        let result = match normalized.as_str() {
             "agents-md" => execute_install_agents_md(cli),
             "cursor" => execute_install_cursor(cli),
             _ => unreachable!(),
         };
+        trace_command_always!(start, "setup_install");
+        return result;
     }
 
     // No flags specified - show usage
@@ -290,7 +301,7 @@ pub fn execute(
 }
 
 /// Execute the onboard command - display minimal AGENTS.md snippet
-pub fn execute_onboard(cli: &Cli) -> Result<(), QipuError> {
+pub fn execute_onboard(cli: &Cli, start: Instant) -> Result<(), QipuError> {
     output_by_format!(cli.format,
         json => {
             let output = serde_json::json!({
@@ -307,11 +318,12 @@ pub fn execute_onboard(cli: &Cli) -> Result<(), QipuError> {
             wrap_records_body("snippet", ONBOARD_SNIPPET);
         }
     );
+    trace_command_always!(start, "setup_onboard");
     Ok(())
 }
 
 /// List available integrations
-fn execute_list(cli: &Cli) -> Result<(), QipuError> {
+fn execute_list(cli: &Cli, start: Instant) -> Result<(), QipuError> {
     output_by_format!(cli.format,
         json => {
             let integrations = vec![
@@ -349,11 +361,12 @@ fn execute_list(cli: &Cli) -> Result<(), QipuError> {
             println!("D integration name=cursor description=\"Cursor IDE rules (.cursor/rules/qipu.mdc)\" status=available");
         }
     );
+    trace_command_always!(start, "setup_list");
     Ok(())
 }
 
 /// Print integration instructions to stdout
-fn execute_print(cli: &Cli) -> Result<(), QipuError> {
+fn execute_print(cli: &Cli, start: Instant) -> Result<(), QipuError> {
     // Default to agents-md content for --print flag
     output_by_format!(cli.format,
         json => {
@@ -371,6 +384,7 @@ fn execute_print(cli: &Cli) -> Result<(), QipuError> {
             wrap_records_body("agents-md", AGENTS_MD_CONTENT);
         }
     );
+    trace_command_always!(start, "setup_print");
     Ok(())
 }
 

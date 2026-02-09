@@ -44,7 +44,7 @@ pub struct SetupOptions<'a> {
     pub remove: bool,
 }
 
-pub(super) fn handle_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
+pub(super) fn handle_setup(cli: &Cli, options: SetupOptions, start: Instant) -> Result<()> {
     crate::commands::setup::execute(
         cli,
         options.list,
@@ -52,11 +52,12 @@ pub(super) fn handle_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
         options.print,
         options.check,
         options.remove,
+        start,
     )
 }
 
-pub(super) fn handle_onboard(cli: &Cli) -> Result<()> {
-    crate::commands::setup::execute_onboard(cli)
+pub(super) fn handle_onboard(cli: &Cli, start: Instant) -> Result<()> {
+    crate::commands::setup::execute_onboard(cli, start)
 }
 
 pub(super) fn handle_compact(
@@ -317,12 +318,12 @@ pub(super) fn execute_custom(
     handle_custom(cli, root, command, start)
 }
 
-pub(super) fn execute_onboard(cli: &Cli) -> Result<()> {
-    handle_onboard(cli)
+pub(super) fn execute_onboard(cli: &Cli, start: Instant) -> Result<()> {
+    handle_onboard(cli, start)
 }
 
-pub(super) fn execute_setup(cli: &Cli, options: SetupOptions) -> Result<()> {
-    handle_setup(cli, options)
+pub(super) fn execute_setup(cli: &Cli, options: SetupOptions, start: Instant) -> Result<()> {
+    handle_setup(cli, options, start)
 }
 
 pub(super) fn execute_compact(cli: &Cli, root: &Path, command: &CompactCommands) -> Result<()> {

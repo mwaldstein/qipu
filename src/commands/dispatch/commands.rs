@@ -43,7 +43,7 @@ pub(super) mod dispatch_command {
             }
             Commands::Prime(args) => execute_prime(ctx, args),
             Commands::Quickstart => execute_quickstart(ctx),
-            Commands::Onboard => handlers::execute_onboard(ctx.cli),
+            Commands::Onboard => handlers::execute_onboard(ctx.cli, ctx.start),
             Commands::Setup(args) => execute_setup(ctx, args),
             Commands::Doctor(args) => execute_doctor(ctx, args),
             Commands::Sync(args) => execute_sync(ctx, args),
@@ -67,8 +67,12 @@ pub(super) mod dispatch_command {
             Commands::Ontology(subcmd) => {
                 handlers::execute_ontology_dispatch(ctx.cli, ctx.root, &subcmd.command, ctx.start)
             }
-            Commands::Telemetry(subcmd) => execute_telemetry(ctx.cli, ctx.root, &subcmd.command),
-            Commands::Hooks(subcmd) => crate::commands::hooks::execute(ctx.cli, &subcmd.command),
+            Commands::Telemetry(subcmd) => {
+                execute_telemetry(ctx.cli, ctx.root, &subcmd.command, ctx.start)
+            }
+            Commands::Hooks(subcmd) => {
+                crate::commands::hooks::execute(ctx.cli, &subcmd.command, ctx.start)
+            }
         }
     }
 
@@ -189,6 +193,7 @@ pub(super) mod dispatch_command {
                 check: args.check,
                 remove: args.remove,
             },
+            ctx.start,
         )
     }
 
@@ -306,20 +311,21 @@ pub(super) mod dispatch_command {
         _cli: &crate::cli::Cli,
         _root: &std::path::Path,
         command: &crate::cli::telemetry::TelemetryCommands,
+        start: std::time::Instant,
     ) -> Result<()> {
         use crate::cli::telemetry::TelemetryCommands;
         use crate::commands::telemetry;
 
         match command {
-            TelemetryCommands::Enable => telemetry::handle_enable(),
-            TelemetryCommands::Disable => telemetry::handle_disable(),
-            TelemetryCommands::Status => telemetry::handle_status(),
-            TelemetryCommands::Show => telemetry::handle_show(),
-            TelemetryCommands::Upload => telemetry::handle_upload(),
+            TelemetryCommands::Enable => telemetry::handle_enable(start),
+            TelemetryCommands::Disable => telemetry::handle_disable(start),
+            TelemetryCommands::Status => telemetry::handle_status(start),
+            TelemetryCommands::Show => telemetry::handle_show(start),
+            TelemetryCommands::Upload => telemetry::handle_upload(start),
         }
     }
 
     fn execute_quickstart(ctx: &CommandContext) -> Result<()> {
-        crate::commands::quickstart::execute(ctx.cli)
+        crate::commands::quickstart::execute(ctx.cli, ctx.start)
     }
 }

@@ -32,12 +32,10 @@ jobs:
       
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
 
@@ -135,28 +133,6 @@ jobs:
             qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
         shell: pwsh
       
-      - name: Upload release asset (Unix)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload release asset (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
-          asset_content_type: application/zip
-      
       - name: Upload partial checksums
         uses: actions/upload-artifact@v4
         with:
@@ -164,49 +140,11 @@ jobs:
           path: SHA256SUMS.partial
           retention-days: 1
       
-      - name: Upload signature (Unix)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sig
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sig
-          asset_content_type: application/octet-stream
-      
-      - name: Upload signature (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sig
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sig
-          asset_content_type: application/octet-stream
-      
-      - name: Upload certificate (Unix)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.pem
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.pem
-          asset_content_type: application/x-pem-file
-      
-      - name: Upload certificate (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.pem
-          asset_content_type: application/x-pem-file
+          files: |
+            qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.*
 
   combine-checksums:
     name: Combine Checksums
@@ -226,14 +164,9 @@ jobs:
           cat SHA256SUMS
       
       - name: Upload SHA256SUMS to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./SHA256SUMS
-          asset_name: SHA256SUMS
-          asset_content_type: text/plain
+          files: SHA256SUMS
 
   build-deb:
     name: Build Debian Package
@@ -276,14 +209,9 @@ jobs:
           fi
       
       - name: Upload .deb to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./target/${{ matrix.target }}/debian/qipu_${{ needs.create-release.outputs.version }}_*.deb
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.deb
-          asset_content_type: application/vnd.debian.binary-package
+          files: ./target/${{ matrix.target }}/debian/qipu_${{ needs.create-release.outputs.version }}_*.deb
 
   build-rpm:
     name: Build RPM Package
@@ -304,14 +232,9 @@ jobs:
         run: cargo rpm build --release
       
       - name: Upload RPM to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./target/release/rpmbuild/RPMS/x86_64/qipu-*.rpm
-          asset_name: qipu-${{ needs.create-release.outputs.version }}-x86_64.rpm
-          asset_content_type: application/x-rpm
+          files: ./target/release/rpmbuild/RPMS/x86_64/qipu-*.rpm
 
   publish-crates:
     name: Publish to crates.io

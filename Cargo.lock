@@ -909,7 +909,7 @@ dependencies = [
 
 [[package]]
 name = "qipu-core"
-version = "0.3.2"
+version = "0.3.26"
 dependencies = [
  "base64",
  "chrono",

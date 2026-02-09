@@ -1,0 +1,23 @@
+{
+    "version": "0.3.19",
+    "description": "A Zettelkasten-inspired knowledge management CLI",
+    "homepage": "https://github.com/mwaldstein/qipu",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/qipu-0.3.19-x86_64-pc-windows-msvc.zip",
+            "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    },
+    "bin": "qipu.exe",
+    "checkver": {
+        "github": "https://github.com/mwaldstein/qipu"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/mwaldstein/qipu/releases/download/v$version/qipu-$version-x86_64-pc-windows-msvc.zip"
+            }
+        }
+    }
+}

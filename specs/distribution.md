@@ -86,7 +86,7 @@ Candidates for future support:
 
 | Manager | Platform | Priority |
 |---------|----------|----------|
-| AUR     | Arch Linux | Medium |
+| AUR     | Arch Linux | **Implemented** ✓ |
 | Nix     | NixOS/macOS | **Implemented** ✓ |
 | winget  | Windows | Low |
 | Scoop   | Windows | Low |

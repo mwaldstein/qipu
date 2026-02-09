@@ -70,7 +70,44 @@ Or use the SHA256SUMS file from the release.
 
 ## AUR (Arch Linux)
 
-Status: Future work. See issue `qipu-ttc`.
+Location: `distribution/aur/PKGBUILD`
+
+### Installation
+
+Install using your favorite AUR helper:
+
+```bash
+# Using yay
+yay -S qipu-bin
+
+# Using paru
+paru -S qipu-bin
+
+# Manual installation
+git clone https://aur.archlinux.org/qipu-bin.git
+cd qipu-bin
+makepkg -si
+```
+
+### Submitting to AUR
+
+After a new release is published:
+
+1. Update `pkgver` in `distribution/aur/PKGBUILD` to the new version
+2. Update `sha256sums_x86_64` and `sha256sums_aarch64` with actual hashes from the release
+3. Reset `pkgrel=1` if `pkgver` changed, otherwise increment
+4. Regenerate `.SRCINFO`: `makepkg --printsrcinfo > .SRCINFO`
+5. Commit and push to the AUR git repository
+
+To update hashes from the release SHA256SUMS file:
+
+```bash
+# Download release artifacts
+curl -sL "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/SHA256SUMS" | grep "x86_64-unknown-linux-gnu"
+curl -sL "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/SHA256SUMS" | grep "aarch64-unknown-linux-gnu"
+```
+
+**Note**: The AUR package is `qipu-bin` since it uses pre-built binaries. A source-only `qipu` package could be added in the future for those who prefer building from source.
 
 ## Nix
 

@@ -1,0 +1,19 @@
+# Maintainer: Micah Waldstein <micah@waldstein.dev>
+pkgname=qipu-bin
+pkgver=0.3.19
+pkgrel=1
+pkgdesc="A Zettelkasten-inspired knowledge management CLI"
+arch=('x86_64' 'aarch64')
+url="https://github.com/mwaldstein/qipu"
+license=('MIT')
+provides=('qipu')
+conflicts=('qipu')
+source_x86_64=("${url}/releases/download/v${pkgver}/qipu-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
+source_aarch64=("${url}/releases/download/v${pkgver}/qipu-${pkgver}-aarch64-unknown-linux-gnu.tar.gz")
+sha256sums_x86_64=('0000000000000000000000000000000000000000000000000000000000000000')
+sha256sums_aarch64=('0000000000000000000000000000000000000000000000000000000000000000')
+
+package() {
+    install -Dm755 qipu "${pkgdir}/usr/bin/qipu"
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

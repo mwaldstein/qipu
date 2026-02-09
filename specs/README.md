@@ -66,7 +66,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `structured-logging.md` | ✅ | ✅ | ✅ | Core logging complete; all 5 levels supported; resource metrics P4 feature |
 | `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
-| `distribution.md` | ✅ | ✅ | ✅ | Release workflow + install scripts work; Homebrew formula current (v0.3.8); tap repo creation is future infrastructure |
+| `distribution.md` | ✅ | ✅ | ✅ | Release workflow + install scripts work; Homebrew formula current (v0.3.26); tap repo creation is future infrastructure |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
 | `telemetry.md` | ✅ | ✅ | ✅ | Local collection complete; `telemetry show` implemented; remote endpoint stubbed pending infrastructure |
 
@@ -91,7 +91,6 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `operational-database.md` | ✅ FIXED: Corruption detection and auto-rebuild implemented with tests | `crates/qipu-core/src/db/mod.rs:46-91` |
 | `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | External: `llm-tool-test/src/adapter/*.rs` |
 | `llm-user-validation.md` | Budget warning doesn't enforce limits | External: `llm-tool-test/src/run.rs:417-424` |
-| `distribution.md` | Homebrew formula outdated (v0.2.43 vs current 0.3.0) | `distribution/homebrew-qipu/Formula/qipu.rb:4-5` |
 
 
 ### P2/P3: Missing Coverage or Features
@@ -130,7 +129,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Gap | Priority | Notes |
 | --- | --- | --- | --- |
 | `knowledge-model.md` | ✅ FIXED: MOC link validation | P3 | Doctor warns when MOCs have zero links | `src/commands/doctor/content.rs:376-407`, tests in `src/commands/doctor/content/tests.rs:263-324` |
-| `distribution.md` | ✅ FIXED: Homebrew formula updated | P3 | Formula updated to v0.3.8; tap repo creation is future infrastructure | `distribution/homebrew-qipu/Formula/qipu.rb` |
+| `distribution.md` | ✅ FIXED: Homebrew formula updated | P3 | Formula updated to v0.3.26; tap repo creation is future infrastructure | `distribution/homebrew-qipu/Formula/qipu.rb` |
 | `progressive-indexing.md` | ✅ FIXED: All indexing flags | P3 | --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent, --batch all implemented and tested | `src/commands/index.rs`, `tests/cli/index.rs` |
 | `records-output.md` | ✅ FIXED: S-prefix semantic tests | P2 | Tests exist; spec documentation updated | `tests/cli/records/` |
 | `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |

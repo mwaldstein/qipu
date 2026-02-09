@@ -170,6 +170,6 @@ The database should handle concurrent reads well. For writes:
 
 ## Open Questions
 
-- Should search include attachment content (PDFs, etc.)?
+- ~~Should search include attachment content (PDFs, etc.)?~~ **Resolved**: No - attachment content is not indexed. Search covers note title, body, and tags only. Rationale: avoid scope creep, reduce attack surface from binary parsing, maintain performance. Users can describe attachments in note body for searchability.
 - Should we track query statistics for optimization?
 - Should `qipu doctor` report database size/stats?

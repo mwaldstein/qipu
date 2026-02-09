@@ -42,7 +42,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-01-30*
+*Last audited: 2026-02-08*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
@@ -66,7 +66,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `structured-logging.md` | ✅ | ✅ | ⚠️ | Logs correctly route to stderr; missing TRACE tests; structured fields not validated |
 | `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
-| `distribution.md` | ⚠️ | ⚠️ | ❌ | Install scripts work; release workflow disabled; SHA256SUMS format incorrect |
+| `distribution.md` | ⚠️ | ✅ | ❌ | Install scripts work; release workflow configured; SHA256SUMS format fixed; missing tests |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
 | `telemetry.md` | ✅ | ❌ | ❌ | Approved; remote endpoint pending |
 
@@ -91,8 +91,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `operational-database.md` | ✅ FIXED: Corruption detection and auto-rebuild implemented with tests | `crates/qipu-core/src/db/mod.rs:46-91` |
 | `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
 | `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |
-| `distribution.md` | Release workflow disabled with incorrect triggers (not `v*` tags) | `.github/workflows/release.yml:3-13` |
-| `distribution.md` | SHA256SUMS file format incorrect (individual files instead of combined) | `.github/workflows/release.yml:99-152` |
+
 
 ### P2/P3: Missing Coverage or Features
 

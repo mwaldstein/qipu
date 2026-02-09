@@ -39,3 +39,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+
+# keep local for now
+.agents

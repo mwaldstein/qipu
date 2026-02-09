@@ -26,9 +26,15 @@ Issues: Use `bd` commands to manage tasks
 For each spec:
 1. Read spec requirements
 2. Search code for implementation (grep patterns, function names)
-3. Check test coverage exists and passes
+3. Check test coverage exists, passes, and evaluate gaps (see TEST COVERAGE EVALUATION)
 4. Compare actual behavior vs spec claims
 5. Note gaps with file:line references
+
+After auditing specs, evaluate ALL already-implemented functionality for test coverage gaps:
+- Run `cargo test --coverage` or `cargo t` and analyze output
+- Map every public function to its test coverage
+- Create beads for missing unit, integration, and e2e tests
+- Label by type: `test-unit`, `test-integration`, `test-e2e`
 
 Before creating new issues, review blocked beads for stale dependencies:
 - Run `bd list --label blocked --limit 0` and verify each is still truly blocked
@@ -61,6 +67,20 @@ As you learn new facts during the audit, continuously maintain the backlog:
 - Strategy/option not wired through
 - Empty match arms or unreachable branches
 - Panics/unwraps hiding incomplete error handling
+
+## TEST COVERAGE EVALUATION
+
+For each implementation found during audit:
+1. Identify what tests exist: unit (`*_test.go` in same package), integration (cross-package/component), e2e (full pipeline)
+2. Check test coverage: run `cargo test` or check test output
+3. Map functionality to test files - every public function should have tests
+4. Create beads for missing coverage:
+   - Unit tests: test individual functions/components in isolation
+   - Integration tests: test component interactions (DB, queue, LLM, external APIs)
+   - E2E tests: test full request flows through the system
+5. Use `--priority 2` for all coverage gaps
+6. Label by test type: `test-unit`, `test-integration`, `test-e2e`
+7. Include function names and file refs in issue body
 
 ## PRIORITY DEFINITIONS
 

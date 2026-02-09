@@ -42,7 +42,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 **Impl Status**: Is the implementation complete per the spec?
 **Test Status**: Is test coverage adequate?
 
-*Last audited: 2026-02-08*
+*Last audited: 2026-02-09*
 
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
@@ -56,19 +56,19 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
 | `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
 | `llm-context.md` | ✅ | ✅ | ✅ | Character budgeting implemented (4000-8000 chars); tests complete; `--max-tokens` intentionally removed |
-| `llm-user-validation.md` | ✅ | ⚠️ | ⚠️ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
-| `progressive-indexing.md` | ⚠️ | ⚠️ | ~70% complete; missing file watching, background mode, explicit --basic/--full flags |
+| `llm-user-validation.md` | ✅ | ✅ | ✅ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
+| `progressive-indexing.md` | ✅ | ⚠️ | ✅ | Core features (quick, resume, progress, selective) implemented; missing --basic/--full flags, --modified-since |
 | `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
 | `compaction.md` | ✅ | ✅ | ✅ | Link JSON includes `via` annotation; truncation markers ARE present |
 | `pack.md` | ✅ | ✅ | ✅ | Value/custom correctly preserved; merge-links restricted to newly loaded notes |
 | `workspaces.md` | ✅ | ✅ | ✅ | All features implemented; link rewriting tested; file reference handling only gap |
-| `structured-logging.md` | ✅ | ✅ | ⚠️ | Core logging complete; missing TRACE usage; no resource usage metrics |
+| `structured-logging.md` | ✅ | ✅ | ✅ | Core logging complete; all 5 levels supported; resource metrics P4 feature |
 | `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
-| `distribution.md` | ⚠️ | ✅ | ⚠️ | Install scripts work; release workflow configured; missing PowerShell tests (tracked in qipu-vvhz) |
+| `distribution.md` | ✅ | ⚠️ | ✅ | Release workflow + install scripts work; Homebrew formula outdated (v0.2.43 vs 0.3.0); needs tap repo creation |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
-| `telemetry.md` | ✅ | ⚠️ | ⚠️ | Local collection complete; remote endpoint stubbed; missing `telemetry show` command |
+| `telemetry.md` | ✅ | ✅ | ✅ | Local collection complete; `telemetry show` implemented; remote endpoint stubbed pending infrastructure |
 
 ## Legend
 
@@ -89,33 +89,35 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
 | `operational-database.md` | ✅ FIXED: Consistency check result now triggers incremental repair when auto_repair is enabled | `crates/qipu-core/src/db/mod.rs:138-141` |
 | `operational-database.md` | ✅ FIXED: Corruption detection and auto-rebuild implemented with tests | `crates/qipu-core/src/db/mod.rs:46-91` |
-| `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | `crates/llm-tool-test/src/adapter/*.rs` |
-| `llm-user-validation.md` | Budget warning doesn't enforce limits | `crates/llm-tool-test/src/run.rs:417-424` |
+| `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | External: `llm-tool-test/src/adapter/*.rs` |
+| `llm-user-validation.md` | Budget warning doesn't enforce limits | External: `llm-tool-test/src/run.rs:417-424` |
+| `distribution.md` | Homebrew formula outdated (v0.2.43 vs current 0.3.0) | `distribution/homebrew-qipu/Formula/qipu.rb:4-5` |
 
 
 ### P2/P3: Missing Coverage or Features
 
 | Spec | Gap | Notes |
 | --- | --- | --- |
-| `cli-tool.md` | ✅ FIXED: Test coverage complete | Tests: `tests/cli/misc.rs` (duplicate format), `tests/performance_tests.rs` |
+| `cli-tool.md` | ✅ Test coverage complete | Tests: `tests/cli/misc.rs`, `tests/performance_tests.rs` |
 | `storage-format.md` | Test coverage | Missing security tests for discovery boundary with parent store; malicious attachment paths |
 | `cli-interface.md` | Test coverage | Missing tests asserting JSON schema compliance (required fields present) |
-| `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case; no direct 2-hop neighborhood CLI tests |
-| `semantic-graph.md` | Test coverage | Missing tests for `show --links --no-semantic-inversion`; sparse inversion tests for context walk/dump |
-| `graph-traversal.md` | Test coverage | Missing tests for max-fanout limit behavior; records format edge cases |
-| `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries; tests don't validate actual weight values |
-| `records-output.md` | Test coverage | Missing tests for S prefix semantic distinction; truncation flags |
-| `llm-context.md` | ✅ FIXED | Tests exist for `qipu prime --format json/records`; `--max-tokens` removed per spec |
-| `pack.md` | Test coverage | Missing tests for `--tag`/`--moc`/`--query` selectors in dump; graph traversal options; link preservation |
-| `workspaces.md` | ✅ FIXED | Tests exist for rename link rewriting (`tests/workspace/rename/`) and delete_source |
-| `structured-logging.md` | Test coverage | Missing TRACE level tests; structured field validation; span/trace relationship tests |
-| `operational-database.md` | Test coverage | No FTS5 field weight tests; no performance benchmarks; no WAL concurrent read tests |
-| `value-model.md` | Test coverage | Missing tests for compaction suggest + value; context `--min-value` edge cases; search sort-by-value defaults |
-| `export.md` | Test coverage | Missing tests for outline with typed/markdown links; PDF edge cases; BibTeX/CSL-JSON edge cases |
-| `compaction.md` | Test coverage | Missing `via` annotation tests for link commands; multi-level compaction chains |
-| `provenance.md` | Test coverage | ✅ DONE: Tests exist for `source` field; notes with both `source` and `sources[]` — see `tests/cli/export/bibliography.rs:325,359` |
-| `llm-user-validation.md` | Test coverage | Missing tests for transcript report; event logging; human review; CLI commands; LLM judge; link parsing |
-| `distribution.md` | Test coverage | No install script tests; release workflow tests; checksum verification; version consistency; cross-platform binary tests |
+| `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case |
+| `semantic-graph.md` | Test coverage | Sparse inversion tests for context walk/dump |
+| `graph-traversal.md` | path command limits | --max-nodes, --max-edges, --max-fanout not wired in `dispatch/link.rs:114-128` |
+| `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries |
+| `records-output.md` | ✅ Test coverage complete | S-prefix tests exist; via tests exist; truncation tests exist |
+| `llm-context.md` | ✅ Test coverage complete | Tests for prime/context all formats, custom filters, budgets |
+| `pack.md` | ✅ Test coverage complete | 39 tests covering all selectors, strategies, traversal |
+| `workspaces.md` | ✅ Test coverage complete | 43 tests covering all commands and strategies |
+| `structured-logging.md` | ✅ Test coverage complete | 17 CLI tests for all log levels and JSON output |
+| `operational-database.md` | Test coverage | No FTS5 field weight tests; no WAL concurrent read tests |
+| `value-model.md` | ✅ Test coverage complete | 55+ tests covering all value features |
+| `export.md` | ✅ Test coverage complete | 19 test files, ~2878 lines covering all modes/formats |
+| `compaction.md` | ✅ Test coverage complete | 14 test files covering all commands and annotations |
+| `provenance.md` | ✅ Test coverage complete | 25+ tests across bibliography, formats, CLI |
+| `custom-metadata.md` | ✅ Test coverage complete | 53 tests covering all commands and formats |
+| `progressive-indexing.md` | Missing features | --basic/--full flags, --modified-since, --batch override |
+| `distribution.md` | Infrastructure | Homebrew tap repository creation needed on GitHub |
 
 ### Not Applicable
 
@@ -123,17 +125,15 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- |
 | `knowledge-model.md` tag aliases | Optional per spec - implemented but not required |
 
-### New Gaps Identified (2026-02-08 Audit)
+### New Gaps Identified (2026-02-09 Audit)
 
 | Spec | Gap | Priority | Notes |
 | --- | --- | --- | --- |
 | `knowledge-model.md` | MOC link validation | P3 | Doctor should warn when MOCs have zero links |
-| `telemetry.md` | `telemetry show` command | P3 | Spec requirement for transparency - display what would be uploaded |
-| `telemetry.md` | Session stats collection | P3 | `record_session_stats()` exists but never called |
-| `progressive-indexing.md` | File watching (--watch) | P3 | Spec requirement for 5k+ note repos |
-| `progressive-indexing.md` | Background mode | P3 | Flag exists but not implemented |
-| `progressive-indexing.md` | --basic/--full flags | P3 | Explicit two-level indexing not exposed |
-| `records-output.md` | S-prefix semantic tests | P2 | Tests for truncation vs summary distinction |
-| `structured-logging.md` | TRACE level usage | P3 | Infrastructure exists but trace!() never called |
-| `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented |
-| `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten |
+| `distribution.md` | Homebrew formula update | P3 | Formula at v0.2.43, needs v0.3.0 + SHA256 + tap repo creation |
+| `progressive-indexing.md` | --basic/--full flags | P3 | Explicit two-level indexing not exposed in CLI |
+| `progressive-indexing.md` | --modified-since flag | P3 | Selective indexing by modification time not implemented |
+| `records-output.md` | S-prefix semantic tests | P2 | Tests exist but spec documentation gap on mode-specific semantics |
+| `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |
+| `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten on workspace operations |
+| `graph-traversal.md` | path command limits | P3 | --max-nodes, --max-edges, --max-fanout not passed to path command |

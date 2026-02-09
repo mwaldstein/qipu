@@ -129,7 +129,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 
 | Spec | Gap | Priority | Notes |
 | --- | --- | --- | --- |
-| `knowledge-model.md` | MOC link validation | P3 | Doctor should warn when MOCs have zero links |
+| `knowledge-model.md` | ✅ FIXED: MOC link validation | P3 | Doctor warns when MOCs have zero links | `src/commands/doctor/content.rs:376-407`, tests in `src/commands/doctor/content/tests.rs:263-324` |
 | `distribution.md` | Homebrew formula update | P3 | Formula at v0.2.43, needs v0.3.0 + SHA256 + tap repo creation |
 | `progressive-indexing.md` | --basic/--full flags | P3 | Explicit two-level indexing not exposed in CLI |
 | `progressive-indexing.md` | --modified-since flag | P3 | Selective indexing by modification time not implemented |

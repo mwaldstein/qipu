@@ -7,6 +7,14 @@ Guidance: `docs/*` (non-spec examples)
 Shared lib: `src/lib/*`
 Issues: Use `bd` commands to manage tasks
 
+## BLIBIO CONTEXT
+
+- Go service + CLI (`cmd/blibio/main.go`).
+- Most code in `internal/*`; public surface (if any) in `pkg/*`.
+- Runtime concerns: config, database/migrations, queue/worker, HTTP server/handlers, preprocess, llm, qipu, otel.
+- Frontend assets in `web/static/*`.
+- Prefer `make test` / `go test ./...` for verification.
+
 ## TRUST HIERARCHY
 
 1. Code is truth. Specs/docs may be stale or wrong.
@@ -22,15 +30,26 @@ For each spec:
 4. Compare actual behavior vs spec claims
 5. Note gaps with file:line references
 
-Before creating new issues, review deferred beads for readiness:
-- Run `bd list --status deferred --limit 0` and decide if any should move to open (or stay deferred)
-- If moving to open, update labels/priority so it shows up in `bd ready`
+Before creating new issues, review blocked beads for stale dependencies:
+- Run `bd list --label blocked --limit 0` and verify each is still truly blocked
 
-Use subagents in parallel - one per spec. Each must:
+Also review blocked work for stale deps:
+- Run `bd blocked` and verify each blocker still exists and is the real constraint
+- If a blocker is resolved or no longer relevant, remove/replace the dependency link and update labels/status
+
+Only audit **active** specs (`docs/specs/*.md`). Skip `docs/specs/planned/` — those are drafts with open questions, not implementation targets. If a planned spec becomes actionable, move it to `docs/specs/` first.
+
+Use subagents in parallel - one per active spec. Each must:
 - Read the spec file
 - Search src/ for implementation
 - Search tests/ for coverage
 - Report: implemented (with refs) | partial (what's missing) | not implemented
+
+As you learn new facts during the audit, continuously maintain the backlog:
+- Reprioritize when impact changes (`bd update <id> --priority ...`)
+- Fix stale status/labels: unblock when deps resolved; block when real deps discovered
+- Keep dependency graph current (add/remove blockers) so `bd ready` matches reality
+- **Remove stale/invalid issues**: close with `bd close <id>` when a task is obsolete, duplicated, or no longer applies (spec removed, feature dropped, superseded by different approach). Add a brief reason.
 
 ## WHAT TO LOOK FOR
 
@@ -47,39 +66,61 @@ Use subagents in parallel - one per spec. Each must:
 
 - **P1: Correctness bugs** - Code exists but doesn't match spec behavior
 - **P2: Missing test coverage** - Feature works but lacks tests
-- **P3: Unimplemented but ready** - Spec is clear, implementation can proceed
+- **P3: Feature work** - New capability / enhancement (impact-based; not about readiness)
+- **P4: Idea / low-urgency** - Nice-to-have / polish / speculative
+
+## STATUS VS PRIORITY (DON'T MIX)
+
+Priority answers "how important/urgent?". Status/labels answer "can we do it now?".
+
+- **blocked**: not actionable due to explicit dependency (human decision, external setup, infra).
+- **P3/P4**: priority levels, not synonyms for blocked.
 
 ## CATEGORIZATION
 
 Every spec item must be in exactly one place:
 1. **Code** - Implemented and tested
 2. **Beads (P1-P2)** - Ready to implement (use `bd create`)
-3. **Beads (P3, usually deferred, with blocked/design/draft/etc labels)** - Not implementation-ready
+3. **Beads (P3-P4)** - Anything not already shipped/tested
 
-Items get P3 priority when:
-- Spec marks as optional/future/v2
-- Spec is ambiguous and needs clarification (label: design)
-- Depends on unimplemented infrastructure (label: blocked)
-- Requires design decisions not yet made (label: design)
-- Open questions in spec not resolved (label: design)
+Sequencing/readiness lives in status/labels:
+- Spec says optional/future/v2: label `future` + use dependencies if blocked (priority still P3/P4 by value)
+- Spec ambiguous: label `design`/`clarify` and `blocked` (dependency: decision)
+- Depends on infra/external: label `infra`/`external` and `blocked` with explicit deps
 
-Default handling for P3/non-ready items:
-- Create/keep them as beads but set status `deferred` (so they don't appear in `bd ready`)
-- Use labels like `design`, `clarify`, `draft`, `blocked`, `future`, `distribution`, `infra`
-- When they become actionable, `bd undefer <id>` (or reopen) and adjust priority/labels
+Default handling (separate concepts):
+- **Blocked**: keep issue open, add explicit dependency (so it stays out of `bd ready`)
+- Labels to express why: `design`, `clarify`, `draft`, `blocked`, `external`, `future`, `distribution`, `infra`
+- When it becomes actionable: resolve/unblock deps and update labels as needed
+
+## DEPENDENCY CLASSIFICATION
+
+When filing issues, explicitly model blockers so `bd ready` stays clean.
+
+- **Human decision** (design/UX/API): create a separate issue labeled `design`/`blocked` and link it as a blocker.
+- **External setup** (accounts/credentials/infra): create a separate issue labeled `external`/`infra`/`blocked` and link it as a blocker.
+
+Link with:
+
+```bash
+bd dep add <blocker-id> --blocks <impl-id>
+```
+
+If a dependency relationship is wrong/stale, update it (remove/replace blockers) so `bd ready` reflects reality.
 
 ## OUTPUT
 
 Create beads issues using `bd create`:
 - Use `--priority 1` for P1 correctness bugs
 - Use `--priority 2` for P2 test coverage gaps
-- Use `--priority 3` for P3 future/design work
+- Use `--priority 3` for P3 feature work
+- Use `--priority 4` for P4 future/ideas (if unsupported, use priority 3 + label `future`)
 - Use `--label blocked` for items with dependencies
 - Use `--label design` for items needing design work
 - Include file:line refs in issue body
 - Use `bd dep add <issue-id> --blocks <blocked-issue-id>` for dependencies
 
-Use `bd defer <id>` (or `bd create --defer ...`) for P3 items that should not be worked now.
+For P3 items that should not be worked now: add a dependency that blocks them, or label them `future` to indicate they're not yet actionable.
 
 Update @specs/README.md status table:
 - Spec/Impl/Tests columns with ✅/⚠️/❌
@@ -93,13 +134,14 @@ Run `bd sync` to save changes to git.
 - Plan only. No code changes.
 - Never trust docs. Always verify in code.
 - Never assume missing; confirm with code search first.
-- Include file:line refs in issue bodies.
+- Include file:line refs for all claims.
 - Use `bd create` to track all gaps found during audit.
 - Check existing issues with `bd list` before creating duplicates.
+- Close issues that are obsolete, duplicated, or no longer relevant (`bd close <id>`). Pruning stale work is as important as filing new work.
 - If a needed feature has no spec, create specs/FILENAME.md first.
 - Prefer shared utilities in `src/lib/` over ad-hoc implementations.
 - Every spec requirement must be tracked: code or beads issue.
 - Update issue priority/labels with `bd update` as readiness changes.
 - Run `bd sync` after creating issues.
 
-If no changes required: COMPLETE
+**COMPLETE**: Emit exactly one line: `COMPLETE` (uppercase, no punctuation, no surrounding text) ONLY when the audit finds zero gaps, zero stale issues, zero plan/backlog updates, and this run made zero file changes. Finishing a planning pass is a successful run, not COMPLETE.

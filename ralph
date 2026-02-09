@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # ralph - Agentic iteration loop runner
 #
-# VERSION: 0.2.0
+# VERSION: 0.4.0
 # CHANGELOG:
+#   0.4.0 - Require consecutive COMPLETE detections before stopping (--complete-after)
+#   0.3.0 - Add cleanup mode using prompts/cleanup.txt
 #   0.2.0 - Fix second SIGINT to properly kill opencode process group
 #   0.1.0 - Initial version with vision-expand, reorg, plan, build modes
 #
@@ -18,6 +20,8 @@ MODEL=""
 PROMPT_FILE=""
 DRY_RUN=false
 DELAY=5
+COMPLETE_AFTER=""
+COMPLETE_COUNT=0
 STOP_REQUESTED=false
 OPENCODE_PID=""
 
@@ -46,10 +50,11 @@ MODE:
   vision-reorg  | reorg     Reorganize/prune core docs
   plan                     Create/update implementation plan
   build                    Implement specs; build/test loop
-  cleanup                  Code cleanup and refactoring
+  cleanup                  Atomic cleanup/refactor loop
 
 OPTIONS:
   --max-iterations N        Maximum iterations before stopping
+  --complete-after N        Consecutive COMPLETEs required to stop (default: 2-3 per mode)
   --dry-run                 Print prompt + config, then exit
   --no-commit               Disable auto-commit
   --prompt-file FILE        Use a custom prompt file
@@ -113,31 +118,36 @@ case "$MODE" in
     vision-expand|expand)
         MODE="vision-expand"
         MAX_ITERATIONS="${MAX_ITERATIONS:-50}"
+        COMPLETE_AFTER="${COMPLETE_AFTER:-2}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/vision-expansion.txt}"
         ;;
     vision-reorg|reorg)
         MODE="vision-reorg"
         MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
+        COMPLETE_AFTER="${COMPLETE_AFTER:-2}"
         MODEL="${MODEL:-opencode/claude-sonnet-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/vision-reorg.txt}"
         ;;
     plan)
         MODE="plan"
         MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
+        COMPLETE_AFTER="${COMPLETE_AFTER:-2}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/plan.txt}"
         ;;
     build)
         MODE="build"
         MAX_ITERATIONS="${MAX_ITERATIONS:-200}"
+        COMPLETE_AFTER="${COMPLETE_AFTER:-3}"
         MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/build.txt}"
         ;;
     cleanup)
         MODE="cleanup"
-        MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
-        MODEL="${MODEL:-opencode/claude-sonnet-4-5}"
+        MAX_ITERATIONS="${MAX_ITERATIONS:-200}"
+        COMPLETE_AFTER="${COMPLETE_AFTER:-3}"
+        MODEL="${MODEL:-opencode/claude-opus-4-5}"
         PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompts/cleanup.txt}"
         ;;
     *)
@@ -151,6 +161,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --max-iterations)
             MAX_ITERATIONS="$2"
+            shift 2
+            ;;
+        --complete-after)
+            COMPLETE_AFTER="$2"
             shift 2
             ;;
         --dry-run)
@@ -210,6 +224,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
     log "Dry run mode"
     log "Mode: $MODE"
     log "Max iterations: $MAX_ITERATIONS"
+    log "Complete after: $COMPLETE_AFTER consecutive"
     [[ -n "$MODEL" ]] && log "Model: $MODEL"
     log "Prompt: $PROMPT_LABEL"
     [[ "$AUTO_COMMIT" == "true" ]] && log "Auto-commit: enabled" || log "Auto-commit: disabled"
@@ -297,6 +312,7 @@ working_tree_changed() {
 
 log "Starting loop"
 log "Max iterations: $MAX_ITERATIONS"
+log "Complete after: $COMPLETE_AFTER consecutive"
 log "Prompt: $PROMPT_LABEL"
 log "Logs will be saved to: $LOG_DIR"
 [[ -n "$MODEL" ]] && log "Model: $MODEL"
@@ -343,24 +359,30 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
         auto_commit_iteration "$ITERATION"
 
         if grep -q "^COMPLETE$" "$TEMP_OUTPUT"; then
-            if [[ "$HAS_CHANGES" == "false" ]]; then
-                log_success "COMPLETE detected"
-                rm -f "$TEMP_OUTPUT"
-                exit 0
-            fi
+            if [[ "$HAS_CHANGES" == "true" ]]; then
+                COMPLETE_COUNT=0
+                log_warn "COMPLETE detected but changes were made - resetting count"
+            else
+                COMPLETE_COUNT=$((COMPLETE_COUNT + 1))
+                log_success "COMPLETE detected ($COMPLETE_COUNT/$COMPLETE_AFTER)"
 
-            if [[ "$HAS_CHANGES" == "unknown" ]]; then
-                log_warn "COMPLETE detected but change detection unavailable; stopping"
-                rm -f "$TEMP_OUTPUT"
-                exit 0
+                if [[ $COMPLETE_COUNT -ge $COMPLETE_AFTER ]]; then
+                    log_success "Consecutive COMPLETE threshold reached"
+                    rm -f "$TEMP_OUTPUT"
+                    exit 0
+                fi
             fi
-
-            log_warn "COMPLETE detected but changes were made - continuing"
+        else
+            if [[ $COMPLETE_COUNT -gt 0 ]]; then
+                log_warn "COMPLETE streak broken - resetting count"
+            fi
+            COMPLETE_COUNT=0
         fi
     else
         STATUS=$?
         log_warn "opencode failed (exit $STATUS); continuing"
         cp "$TEMP_OUTPUT" "$LOG_FILE" || true
+        COMPLETE_COUNT=0
     fi
 
     rm -f "$TEMP_OUTPUT"

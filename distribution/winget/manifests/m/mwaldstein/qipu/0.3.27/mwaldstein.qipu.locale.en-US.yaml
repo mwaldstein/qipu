@@ -1,0 +1,30 @@
+# Created using wingetcreate 1.6.1.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: mwaldstein.qipu
+PackageVersion: 0.3.27
+PackageLocale: en-US
+Publisher: Micah J Waldstein
+PublisherUrl: https://github.com/mwaldstein
+PublisherSupportUrl: https://github.com/mwaldstein/qipu/issues
+Author: Micah J Waldstein
+PackageName: qipu
+PackageUrl: https://github.com/mwaldstein/qipu
+License: MIT
+LicenseUrl: https://github.com/mwaldstein/qipu/blob/main/LICENSE
+Copyright: Copyright (c) 2024 Micah J Waldstein
+ShortDescription: A Zettelkasten-inspired knowledge management CLI
+Description: |
+  Qipu is a Zettelkasten-inspired knowledge management CLI for capturing
+  and navigating research. It provides note creation, linking, search,
+  and graph traversal capabilities.
+Moniker: qipu
+Tags:
+  - zettelkasten
+  - knowledge-management
+  - cli
+  - notes
+  - note-taking
+ReleaseNotesUrl: https://github.com/mwaldstein/qipu/releases/tag/v0.3.27
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -218,12 +218,25 @@ This should follow beads' recipe approach:
 At minimum, support the AGENTS.md standard (cross-tool compatible).
 
 ### `qipu sync`
-Optional convenience command for multi-agent workflows.
+Convenience command for multi-agent workflows. Synchronizes indexes and optionally manages git commits.
 
-Proposed responsibilities:
-- ensure derived indexes are up to date (`qipu index`)
-- optionally run validations (`qipu doctor`)
-- if branch/automation mode is configured, optionally commit/push qipu changes
+Responsibilities:
+- Ensure derived indexes are up to date (`qipu index`)
+- Optionally run validations (`qipu doctor --validate`)
+- If branch workflow is configured, optionally commit/push qipu changes
+
+Flags:
+- `--validate`: run doctor validation after syncing
+- `--fix`: auto-repair issues if validation is enabled  
+- `--commit`: commit changes to git (requires `--branch` configured via `qipu init`)
+- `--push`: push changes to remote (requires `--branch` configured and `--commit`)
+
+Git Integration Design:
+- **Opt-in via `--branch`**: Store must be initialized with `qipu init --branch <name>` to enable git automation
+- **Explicit action required**: `--commit` and `--push` flags must be explicitly passed; sync never auto-commits
+- **Branch isolation**: Uses orphan branch workflow (notes branch has no shared history with code branches)
+- **Non-destructive**: Always returns to original branch after operations
+- **Idempotent**: Safe to run multiple times; only commits if changes exist
 
 ### `qipu doctor`
 Validate store invariants.
@@ -248,4 +261,3 @@ At minimum, each note entry includes:
 
 ## Open questions
 - Should qipu support interactive pickers (fzf-style) as optional UX sugar?
-- Should `qipu sync` manage git commits/pushes, or stay index/validate-only?

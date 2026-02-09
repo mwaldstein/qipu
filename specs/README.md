@@ -99,7 +99,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Gap | Notes |
 | --- | --- | --- |
 | `cli-tool.md` | ✅ Test coverage complete | Tests: `tests/cli/misc.rs`, `tests/performance_tests.rs` |
-| `storage-format.md` | Test coverage | Missing security tests for discovery boundary with parent store; malicious attachment paths |
+| `storage-format.md` | ✅ Test coverage complete | Security tests: discovery boundary (all project markers), malicious attachment paths |
 | `cli-interface.md` | Test coverage | Missing tests asserting JSON schema compliance (required fields present) |
 | `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case |
 | `semantic-graph.md` | Test coverage | Sparse inversion tests for context walk/dump |

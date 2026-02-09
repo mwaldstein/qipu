@@ -201,6 +201,40 @@ Notes:
   - `inline`: extracted from markdown body
   - `virtual`: semantically inverted inbound link (only appears when semantic inversion is enabled)
 
+### `qipu link path --format json` shape
+
+`qipu link path <from> <to> --format json` returns a single JSON object describing the path finding result:
+
+```json
+{
+  "from": "qp-a1b2",
+  "to": "qp-f14c3",
+  "direction": "both",
+  "found": true,
+  "path_length": 2,
+  "notes": [
+    {"id": "qp-a1b2", "title": "…", "type": "…", "tags": ["…"]},
+    {"id": "qp-x9y8", "title": "…", "type": "…", "tags": ["…"]},
+    {"id": "qp-f14c3", "title": "…", "type": "…", "tags": ["…"]}
+  ],
+  "links": [
+    {"from": "qp-a1b2", "to": "qp-x9y8", "type": "supports", "source": "typed"},
+    {"from": "qp-x9y8", "to": "qp-f14c3", "type": "related", "source": "inline"}
+  ]
+}
+```
+
+Fields:
+- `from`: The starting note ID (query parameter)
+- `to`: The target note ID (query parameter)
+- `direction`: The direction searched (`out`, `in`, or `both`)
+- `found`: Boolean indicating whether a path was found
+- `path_length`: Number of edges in the path (0 if `found` is false)
+- `notes`: Array of notes in the path, ordered from `from` to `to`
+- `links`: Array of edges connecting the notes, ordered from `from` to `to`
+
+When `found` is false, `notes` and `links` are empty arrays.
+
 ## Integration with `qipu context`
 Traversal results should compose cleanly into context bundles:
 - users/tools can traverse with `qipu link tree --format json`, select a subset of `notes[]`, and then call `qipu context --note …`

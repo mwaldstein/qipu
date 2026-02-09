@@ -456,3 +456,176 @@ fn test_index_full_and_basic_mutually_exclusive() {
         .failure()
         .stderr(predicate::str::contains("mutually exclusive"));
 }
+
+#[test]
+fn test_index_modified_since_relative_time() {
+    let dir = setup_test_dir();
+
+    // Create first note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Old Note"])
+        .assert()
+        .success();
+
+    // Create second note immediately
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Recent Note"])
+        .assert()
+        .success();
+
+    // Index with --modified-since "1 minute ago" should index both
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "1 minute ago"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 2 notes"));
+}
+
+#[test]
+fn test_index_modified_since_filters_old_files() {
+    let dir = setup_test_dir();
+
+    // Create an old note
+    let notes_dir = dir.path().join(".qipu/notes");
+    fs::create_dir_all(&notes_dir).unwrap();
+    let old_note_content = r#"---
+id: qp-01abcdef123456789
+---
+# Old Note
+
+This is an old note.
+"#;
+    fs::write(
+        notes_dir.join("qp-01abcdef123456789-old.md"),
+        old_note_content,
+    )
+    .unwrap();
+
+    // Set its mtime to 2 days ago
+    let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 24 * 60 * 60);
+    let old_path = notes_dir.join("qp-01abcdef123456789-old.md");
+    let file_times = std::fs::FileTimes::new().set_modified(old_time);
+    fs::File::open(&old_path)
+        .unwrap()
+        .set_times(file_times)
+        .unwrap();
+
+    // Create a recent note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Recent Note"])
+        .assert()
+        .success();
+
+    // Index with --modified-since "1 day ago" should catch only the recent note
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "1 day ago"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+}
+
+#[test]
+fn test_index_modified_since_various_formats() {
+    let dir = setup_test_dir();
+
+    // Create a note
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .assert()
+        .success();
+
+    // Test "24 hours ago" format
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "24 hours ago"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+
+    // Test "7 days ago" format
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "7 days ago"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+
+    // Test "2 weeks ago" format
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "2 weeks ago"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 1 notes"));
+}
+
+#[test]
+fn test_index_modified_since_invalid_format() {
+    let dir = setup_test_dir();
+
+    // Try invalid time format
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--modified-since", "not a valid time"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Cannot parse time"));
+}
+
+#[test]
+fn test_index_batch_flag_accepts_custom_size() {
+    let dir = setup_test_dir();
+
+    // Create multiple notes
+    for i in 1..=5 {
+        qipu()
+            .current_dir(dir.path())
+            .args(["create", &format!("Note {}", i)])
+            .assert()
+            .success();
+    }
+
+    // Index with custom batch size
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--batch", "3"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 5 notes"));
+}
+
+#[test]
+fn test_index_batch_with_rebuild_and_resume() {
+    let dir = setup_test_dir();
+
+    // Create multiple notes
+    for i in 1..=10 {
+        qipu()
+            .current_dir(dir.path())
+            .args(["create", &format!("Note {}", i)])
+            .assert()
+            .success();
+    }
+
+    // Rebuild with small batch size
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild", "--batch", "5"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 10 notes"));
+
+    // Resume with same batch size
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--resume", "--batch", "5"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Indexed 10 notes"));
+}

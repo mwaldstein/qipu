@@ -47,6 +47,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "json", "fmt"] }
 tracing-attributes = "0.1"
 
+# HTTP client for telemetry (minimal, synchronous)
+ureq = { version = "2", default-features = false, features = ["tls"] }
+
 # Text stemming
 rust-stemmers = "1.2"
 

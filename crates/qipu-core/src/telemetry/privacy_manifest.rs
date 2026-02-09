@@ -62,7 +62,22 @@ Local Storage:
 - After successful upload: deleted from local storage
 
 Remote Storage:
-- TBD (will be documented when endpoint is available)
+- Aggregated data only (counts, never individual events)
+- No PII or content ever transmitted
+- Endpoint requires explicit opt-in via environment variable
+
+ENDPOINT CONFIGURATION
+----------------------
+
+To enable remote telemetry upload, set the endpoint URL:
+  export QIPU_TELEMETRY_ENDPOINT="https://telemetry.example.com/v1/batch"
+
+Optional configuration:
+  QIPU_TELEMETRY_TIMEOUT=30     # Request timeout in seconds (5-300)
+  QIPU_TELEMETRY_RETRIES=3      # Retry attempts for failed uploads (0-10)
+
+Until an endpoint is configured via QIPU_TELEMETRY_ENDPOINT, all data
+remains local and is never transmitted.
 
 HOW TO DISABLE TELEMETRY
 --------------------------
@@ -155,8 +170,9 @@ impl Default for PrivacyManifest {
                 .to_string(),
             opt_out_methods: vec![
                 "Environment variable: QIPU_NO_TELEMETRY=1".to_string(),
-                "CLI command: qipu telemetry disable (future)".to_string(),
-                "Config file: telemetry_enabled = false (future)".to_string(),
+                "CLI command: qipu telemetry disable".to_string(),
+                "Config file: telemetry_enabled = false".to_string(),
+                "No endpoint configured: data never leaves device".to_string(),
             ],
         }
     }

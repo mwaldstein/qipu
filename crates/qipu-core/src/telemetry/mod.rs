@@ -2,6 +2,7 @@
 
 mod aggregation;
 mod collector;
+mod endpoint;
 mod events;
 mod privacy_manifest;
 mod uploader;
@@ -10,6 +11,7 @@ pub use aggregation::{
     AggregatedSession, CommandStats, SessionAggregator, UploadBatch, UploadMetadata,
 };
 pub use collector::{TelemetryCollector, TelemetryConfig};
+pub use endpoint::{EndpointClient, EndpointConfig};
 pub use events::{
     CommandName, DurationBucket, ErrorType, NoteCountBucket, TelemetryEvent, WorkspaceCountBucket,
 };

@@ -1,23 +1,36 @@
-//! Telemetry uploader stub for future endpoint integration
+//! Telemetry uploader with endpoint infrastructure
 
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use super::collector::TelemetryCollector;
-use super::events::TelemetryEvent;
+use super::endpoint::{EndpointClient, EndpointConfig};
+use super::SessionAggregator;
 
 pub struct TelemetryUploader {
     collector: Arc<TelemetryCollector>,
+    endpoint: EndpointClient,
 }
 
 impl TelemetryUploader {
     pub fn new(collector: Arc<TelemetryCollector>) -> Self {
-        Self { collector }
+        let endpoint_config = EndpointConfig::from_env();
+        let endpoint = EndpointClient::new(endpoint_config);
+
+        Self {
+            collector,
+            endpoint,
+        }
     }
 
+    /// Start background upload process
+    ///
+    /// This aggregates pending events and uploads them to the configured endpoint.
+    /// If no endpoint is configured, events are simply persisted to disk for later.
     pub fn start_background_upload(&self) {
         let collector = Arc::clone(&self.collector);
+        let endpoint = EndpointClient::new(self.endpoint.config.clone());
 
         thread::spawn(move || {
             if !collector.is_enabled() {
@@ -31,12 +44,24 @@ impl TelemetryUploader {
 
             thread::sleep(Duration::from_millis(100));
 
-            let _ = Self::upload_events_stub(&events);
+            let batch = SessionAggregator::aggregate_events(events);
+
+            if batch.is_empty() {
+                return;
+            }
+
+            if endpoint.config.is_configured() {
+                let _ = endpoint.upload_with_retry(&batch);
+            }
+
+            let _ = collector.persist_to_disk();
+            collector.clear_events();
         });
     }
 
-    fn upload_events_stub(_events: &[TelemetryEvent]) -> Result<(), UploadError> {
-        Ok(())
+    /// Check if endpoint is configured for upload
+    pub fn is_endpoint_configured(&self) -> bool {
+        self.endpoint.config.is_configured()
     }
 }
 

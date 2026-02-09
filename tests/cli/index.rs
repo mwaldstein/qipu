@@ -193,6 +193,88 @@ fn test_index_extracts_relative_path_markdown_links() {
 }
 
 #[test]
+fn test_index_extracts_relative_path_markdown_links_cross_directory_reverse() {
+    use std::fs;
+
+    let dir = setup_test_dir();
+
+    // Create a note in notes/
+    let result = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Target Note"])
+        .assert()
+        .success();
+    let output = String::from_utf8_lossy(&result.get_output().stdout);
+    let target_id = output
+        .lines()
+        .find(|line| line.contains("qp-"))
+        .and_then(|line| line.split_whitespace().find(|word| word.starts_with("qp-")))
+        .unwrap();
+
+    // Create a MOC in mocs/
+    let result = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--type", "moc", "Source MOC"])
+        .assert()
+        .success();
+    let output = String::from_utf8_lossy(&result.get_output().stdout);
+    let source_id = output
+        .lines()
+        .find(|line| line.contains("qp-"))
+        .and_then(|line| line.split_whitespace().find(|word| word.starts_with("qp-")))
+        .unwrap();
+
+    // Find the source MOC file
+    let mocs_dir = dir.path().join(".qipu/mocs");
+    let source_file = fs::read_dir(&mocs_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .find(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with(&format!("{}-", source_id))
+        })
+        .map(|e| e.path())
+        .unwrap();
+
+    // Find the target note file name
+    let notes_dir = dir.path().join(".qipu/notes");
+    let target_file_name = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .find(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with(&format!("{}-", target_id))
+        })
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .unwrap();
+
+    // Update source MOC to add a relative markdown link to the target (reverse direction)
+    let mut source_content = fs::read_to_string(&source_file).unwrap();
+    source_content.push_str(&format!(
+        "\n\n[Link to Note](../notes/{})",
+        target_file_name
+    ));
+    fs::write(&source_file, source_content).unwrap();
+
+    // Rebuild index to pick up the link
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    // Verify the link was extracted by checking if we can traverse from source to target
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "list", source_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(target_id));
+}
+
+#[test]
 fn test_index_stemming_can_be_disabled() {
     let dir = setup_test_dir();
 

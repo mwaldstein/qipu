@@ -158,7 +158,14 @@ A recommended agent workflow:
 
 This is analogous to "retrieve a small index, then expand" patterns used in RAG systems.
 
+## Body inclusion control
+
+**Default behavior**: Records output defaults to summaries only (`S` lines).
+
+**To include full bodies**: Use `--with-body` flag to emit `B` lines with raw markdown content.
+
+This supports progressive disclosure workflows where agents first retrieve a lightweight index (summaries), then selectively expand notes of interest by re-querying with `--with-body`.
+
 ## Open questions
 - Should records output allow selecting a format version (e.g., `records=1` in the header) for stability?
 - Should records output include edges by default, or only with `--with-edges`?
-- Should records output default to summaries only, requiring `--with-body` to include full content?

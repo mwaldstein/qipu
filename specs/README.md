@@ -57,7 +57,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
 | `llm-context.md` | ✅ | ✅ | ✅ | Character budgeting implemented (4000-8000 chars); tests complete; `--max-tokens` intentionally removed |
 | `llm-user-validation.md` | ✅ | ✅ | ✅ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
-| `progressive-indexing.md` | ✅ | ⚠️ | ✅ | Core features (quick, resume, progress, selective) implemented; missing --basic/--full flags, --modified-since |
+| `progressive-indexing.md` | ✅ | ✅ | ✅ | All features implemented: --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent |
 | `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
 | `compaction.md` | ✅ | ✅ | ✅ | Link JSON includes `via` annotation; truncation markers ARE present |
@@ -116,7 +116,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `compaction.md` | ✅ Test coverage complete | 14 test files covering all commands and annotations |
 | `provenance.md` | ✅ Test coverage complete | 25+ tests across bibliography, formats, CLI |
 | `custom-metadata.md` | ✅ Test coverage complete | 53 tests covering all commands and formats |
-| `progressive-indexing.md` | Missing features | --basic/--full flags, --modified-since, --batch override |
+| `progressive-indexing.md` | ✅ All features complete | --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent, --batch all implemented |
 | `distribution.md` | Infrastructure | Homebrew tap repository creation needed on GitHub |
 
 ### Not Applicable
@@ -131,8 +131,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | --- | --- | --- | --- |
 | `knowledge-model.md` | ✅ FIXED: MOC link validation | P3 | Doctor warns when MOCs have zero links | `src/commands/doctor/content.rs:376-407`, tests in `src/commands/doctor/content/tests.rs:263-324` |
 | `distribution.md` | Homebrew formula update | P3 | Formula at v0.2.43, needs v0.3.0 + SHA256 + tap repo creation |
-| `progressive-indexing.md` | --basic/--full flags | P3 | Explicit two-level indexing not exposed in CLI |
-| `progressive-indexing.md` | --modified-since flag | P3 | Selective indexing by modification time not implemented |
+| `progressive-indexing.md` | ✅ FIXED: All indexing flags | P3 | --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent, --batch all implemented and tested | `src/commands/index.rs`, `tests/cli/index.rs` |
 | `records-output.md` | S-prefix semantic tests | P2 | Tests exist but spec documentation gap on mode-specific semantics |
 | `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |
 | `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten on workspace operations |

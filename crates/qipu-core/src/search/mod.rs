@@ -2,6 +2,7 @@
 
 use crate::compaction::CompactionContext;
 use crate::index::SearchResult;
+use crate::logging::ResourceMetrics;
 
 use crate::store::Store;
 use std::collections::HashMap;
@@ -18,6 +19,7 @@ pub fn process_search_results(
     exclude_mocs: bool,
     sort: Option<&str>,
 ) -> (Vec<SearchResult>, HashMap<String, crate::note::Note>, usize) {
+    let metrics = ResourceMetrics::new();
     let mut results = results;
 
     let mut compacts_count = 0;
@@ -89,13 +91,21 @@ pub fn process_search_results(
         for result in &results {
             let count = ctx.get_compacts_count(&result.id);
             compacts_count += count;
-            if count > 0 && !notes_cache.contains_key(&result.id) {
-                if let Ok(note) = store.get_note(&result.id) {
-                    notes_cache.insert(result.id.clone(), note);
+            if count > 0 {
+                if notes_cache.contains_key(&result.id) {
+                    metrics.record_cache_hit();
+                } else {
+                    metrics.record_cache_miss();
+                    if let Ok(note) = store.get_note(&result.id) {
+                        notes_cache.insert(result.id.clone(), note);
+                    }
                 }
             }
         }
     }
+
+    // Log resource metrics for the search operation
+    crate::log_resource_metrics!(&metrics, "process_search_results");
 
     (results, notes_cache, compacts_count)
 }

@@ -235,6 +235,84 @@ jobs:
           asset_name: SHA256SUMS
           asset_content_type: text/plain
 
+  build-deb:
+    name: Build Debian Package
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+      
+      - name: Install cross
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cargo install cross --git https://github.com/cross-rs/cross
+      
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+      
+      - name: Build release binary
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+      
+      - name: Build .deb package
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            cross deb --target ${{ matrix.target }} --no-build
+          else
+            cargo deb --target ${{ matrix.target }} --no-build
+          fi
+      
+      - name: Upload .deb to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./target/${{ matrix.target }}/debian/qipu_${{ needs.create-release.outputs.version }}_*.deb
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+  build-rpm:
+    name: Build RPM Package
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          dnf install -y rust cargo rpm-build rpmdevtools gcc gcc-c++ openssl-devel
+      
+      - name: Install cargo-rpm
+        run: cargo install cargo-rpm
+      
+      - name: Build RPM package
+        run: cargo rpm build --release
+      
+      - name: Upload RPM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./target/release/rpmbuild/RPMS/x86_64/qipu-*.rpm
+          asset_name: qipu-${{ needs.create-release.outputs.version }}-x86_64.rpm
+          asset_content_type: application/x-rpm
+
   publish-crates:
     name: Publish to crates.io
     needs: [create-release, build-release]

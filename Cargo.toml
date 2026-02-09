@@ -77,3 +77,28 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+
+# Debian package configuration (cargo-deb)
+[package.metadata.deb]
+name = "qipu"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/qipu", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/qipu/README", "644"],
+    ["LICENSE", "usr/share/doc/qipu/LICENSE", "644"],
+]
+extended-description = """Qipu is a Zettelkasten-inspired knowledge management CLI for capturing
+and navigating research. It provides note creation, linking, search,
+and graph traversal capabilities."""
+
+# RPM package configuration (cargo-rpm)
+[package.metadata.rpm]
+name = "qipu"
+version = "0.3.18"
+license = "MIT"
+summary = "Zettelkasten-inspired knowledge management CLI"
+group = "Applications/System"
+
+[package.metadata.rpm.targets]
+qipu = { path = "/usr/bin/qipu" }

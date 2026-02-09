@@ -269,7 +269,19 @@ With `--with-compaction-ids`:
 With `--expand-compaction`:
 - traversal/context outputs may include compacted source notes, depth-limited by `--compaction-depth`.
 
+## Note classification
+
+For reporting and tree visualization, qipu distinguishes three categories of notes in the compaction hierarchy:
+
+- **Standalone**: Not involved in compaction (not compacted, doesn't compact others)
+- **Leaf source**: Compacted by a digest but doesn't compact any notes itself
+- **Intermediate digest**: Digests that compact other notes (may also be compacted by higher-level digests)
+
+This classification is available via `CompactionContext::classify_note()` and is used internally for:
+- Compaction tree structure reporting
+- Metrics that distinguish tree depth and branching
+- Future filtering capabilities (e.g., "show only leaf sources")
+
 ## Open questions
 - Should qipu support "inactive" compaction edges for history (versioning), or only one active mapping?
 - Should compaction suggestions default to excluding MOCs/spec notes, or treat them like normal notes?
-- Should there be a first-class concept of "leaf source" vs "intermediate digest" in outputs?

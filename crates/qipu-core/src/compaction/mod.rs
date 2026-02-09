@@ -8,7 +8,7 @@ mod expansion;
 mod suggestion;
 mod validation;
 
-pub use context::CompactionContext;
+pub use context::{CompactionContext, NoteCategory};
 pub use suggestion::CompactionCandidate;
 
 /// Size basis for note size estimation

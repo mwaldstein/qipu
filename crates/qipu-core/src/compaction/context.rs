@@ -5,6 +5,17 @@ use std::collections::{HashMap, HashSet};
 use crate::error::{QipuError, Result};
 use crate::note::Note;
 
+/// Classification of a note's role in the compaction hierarchy
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteCategory {
+    /// Not involved in compaction (not compacted, doesn't compact others)
+    Standalone,
+    /// Compacted by a digest but doesn't compact any notes itself
+    LeafSource,
+    /// Digests that compact other notes (may also be compacted)
+    IntermediateDigest,
+}
+
 /// Compaction context - tracks which notes compact which
 #[derive(Debug, Clone)]
 pub struct CompactionContext {
@@ -117,6 +128,19 @@ impl CompactionContext {
         self.get_compacted_notes(digest_id)
             .map(|notes| notes.len())
             .unwrap_or(0)
+    }
+
+    /// Classify a note's role in the compaction hierarchy
+    /// Returns the NoteCategory for the given note ID
+    pub fn classify_note(&self, note_id: &str) -> NoteCategory {
+        let is_compacted = self.is_compacted(note_id);
+        let is_digest = self.get_compacted_notes(note_id).is_some();
+
+        match (is_compacted, is_digest) {
+            (false, false) => NoteCategory::Standalone,
+            (true, false) => NoteCategory::LeafSource,
+            (_, true) => NoteCategory::IntermediateDigest,
+        }
     }
 }
 
@@ -264,5 +288,118 @@ mod tests {
 
         let result = CompactionContext::build(&notes);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_classify_note_standalone() {
+        let notes = vec![Note {
+            frontmatter: NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+            body: String::new(),
+            path: None,
+        }];
+
+        let ctx = CompactionContext::build(&notes).unwrap();
+        assert_eq!(ctx.classify_note("qp-1"), NoteCategory::Standalone);
+    }
+
+    #[test]
+    fn test_classify_note_leaf_source() {
+        let mut digest = NoteFrontmatter::new("qp-digest".to_string(), "Digest".to_string());
+        digest.compacts = vec!["qp-1".to_string()];
+
+        let notes = vec![
+            Note {
+                frontmatter: NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                body: String::new(),
+                path: None,
+            },
+            Note {
+                frontmatter: digest,
+                body: String::new(),
+                path: None,
+            },
+        ];
+
+        let ctx = CompactionContext::build(&notes).unwrap();
+        assert_eq!(ctx.classify_note("qp-1"), NoteCategory::LeafSource);
+        assert_eq!(
+            ctx.classify_note("qp-digest"),
+            NoteCategory::IntermediateDigest
+        );
+    }
+
+    #[test]
+    fn test_classify_note_intermediate_digest() {
+        let mut digest = NoteFrontmatter::new("qp-digest".to_string(), "Digest".to_string());
+        digest.compacts = vec!["qp-1".to_string(), "qp-2".to_string()];
+
+        let notes = vec![
+            Note {
+                frontmatter: NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                body: String::new(),
+                path: None,
+            },
+            Note {
+                frontmatter: NoteFrontmatter::new("qp-2".to_string(), "Note 2".to_string()),
+                body: String::new(),
+                path: None,
+            },
+            Note {
+                frontmatter: digest,
+                body: String::new(),
+                path: None,
+            },
+        ];
+
+        let ctx = CompactionContext::build(&notes).unwrap();
+        assert_eq!(ctx.classify_note("qp-1"), NoteCategory::LeafSource);
+        assert_eq!(ctx.classify_note("qp-2"), NoteCategory::LeafSource);
+        assert_eq!(
+            ctx.classify_note("qp-digest"),
+            NoteCategory::IntermediateDigest
+        );
+    }
+
+    #[test]
+    fn test_classify_note_chained_digest() {
+        // Digest 1 compacts leaf notes
+        let mut digest1 = NoteFrontmatter::new("qp-digest1".to_string(), "Digest 1".to_string());
+        digest1.compacts = vec!["qp-1".to_string()];
+
+        // Digest 2 compacts Digest 1 (creating a chain)
+        let mut digest2 = NoteFrontmatter::new("qp-digest2".to_string(), "Digest 2".to_string());
+        digest2.compacts = vec!["qp-digest1".to_string()];
+
+        let notes = vec![
+            Note {
+                frontmatter: NoteFrontmatter::new("qp-1".to_string(), "Note 1".to_string()),
+                body: String::new(),
+                path: None,
+            },
+            Note {
+                frontmatter: digest1,
+                body: String::new(),
+                path: None,
+            },
+            Note {
+                frontmatter: digest2,
+                body: String::new(),
+                path: None,
+            },
+        ];
+
+        let ctx = CompactionContext::build(&notes).unwrap();
+        // Leaf source: compacted but doesn't compact others
+        assert_eq!(ctx.classify_note("qp-1"), NoteCategory::LeafSource);
+        // Intermediate digest: compacts others AND is compacted
+        assert_eq!(
+            ctx.classify_note("qp-digest1"),
+            NoteCategory::IntermediateDigest
+        );
+        // Intermediate digest: compacts others (even though not compacted itself)
+        assert_eq!(
+            ctx.classify_note("qp-digest2"),
+            NoteCategory::IntermediateDigest
+        );
     }
 }

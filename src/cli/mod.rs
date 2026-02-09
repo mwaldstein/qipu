@@ -8,6 +8,7 @@ pub mod commands;
 pub mod compact;
 pub mod custom;
 pub mod format;
+pub mod hooks;
 pub mod link;
 pub mod ontology;
 pub mod output;

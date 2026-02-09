@@ -33,6 +33,7 @@ Commands:
   store      Manage the qipu store
   ontology   Manage and display ontology configuration
   telemetry  Manage anonymous usage analytics
+  hooks      Manage git hooks for automatic store sync
   help       Print this message or the help of the given subcommand(s)
 
 Options:

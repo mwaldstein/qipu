@@ -7,6 +7,7 @@ pub mod data;
 pub mod meta;
 
 use crate::cli::args::CreateArgs;
+use crate::cli::hooks::HooksSubcommand;
 use core::*;
 use data::*;
 use meta::*;
@@ -108,4 +109,7 @@ pub enum Commands {
 
     /// Manage anonymous usage analytics
     Telemetry(TelemetrySubcommand),
+
+    /// Manage git hooks for automatic store sync
+    Hooks(HooksSubcommand),
 }

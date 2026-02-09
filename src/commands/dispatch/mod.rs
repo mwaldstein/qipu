@@ -123,5 +123,6 @@ fn command_to_name(cmd: &crate::cli::Commands) -> CommandName {
         Commands::Store(_) => CommandName::Store,
         Commands::Ontology(_) => CommandName::Ontology,
         Commands::Telemetry(_) => CommandName::Telemetry,
+        Commands::Hooks(_) => CommandName::Hooks,
     }
 }

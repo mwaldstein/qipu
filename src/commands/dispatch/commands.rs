@@ -67,6 +67,7 @@ pub(super) mod dispatch_command {
                 handlers::execute_ontology_dispatch(ctx.cli, ctx.root, &subcmd.command, ctx.start)
             }
             Commands::Telemetry(subcmd) => execute_telemetry(ctx.cli, ctx.root, &subcmd.command),
+            Commands::Hooks(subcmd) => crate::commands::hooks::execute(ctx.cli, &subcmd.command),
         }
     }
 

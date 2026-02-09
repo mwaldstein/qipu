@@ -12,6 +12,7 @@ pub mod edit;
 pub mod export;
 pub mod format;
 pub mod helpers;
+pub mod hooks;
 pub mod index;
 pub mod init;
 pub mod json_builders;

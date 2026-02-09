@@ -110,6 +110,7 @@ pub enum CommandName {
     Store,
     Ontology,
     Telemetry,
+    Hooks,
 }
 
 impl CommandName {
@@ -146,6 +147,7 @@ impl CommandName {
             Self::Store => "store",
             Self::Ontology => "ontology",
             Self::Telemetry => "telemetry",
+            Self::Hooks => "hooks",
         }
     }
 }

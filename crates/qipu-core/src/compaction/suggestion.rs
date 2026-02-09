@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use crate::error::Result;
 
 use super::context::CompactionContext;
-use super::estimate_note_size;
+use super::{estimate_note_size, SizeBasis};
 
 /// A compaction candidate cluster
 #[derive(Debug, Clone)]
@@ -170,7 +170,7 @@ impl CompactionContext {
 
         for node_id in cluster {
             if let Ok(note) = store.get_note(node_id) {
-                estimated_size += estimate_note_size(&note);
+                estimated_size += estimate_note_size(&note, SizeBasis::default());
                 if let Some(v) = note.frontmatter.value {
                     total_value += v as u32;
                     value_count += 1;

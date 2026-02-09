@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use crate::note::Note;
 
 use super::context::CompactionContext;
-use super::estimate_note_size;
+use super::{estimate_note_size, SizeBasis};
 
 impl CompactionContext {
     /// Get all compacted IDs for a digest with depth traversal
@@ -113,14 +113,14 @@ impl CompactionContext {
             return None;
         }
 
-        // Calculate digest size using summary
-        let digest_size = estimate_note_size(digest);
+        // Calculate digest size using default (summary) basis
+        let digest_size = estimate_note_size(digest, SizeBasis::default());
 
         // Calculate expanded size (sum of direct sources)
         let mut expanded_size = 0usize;
         for source_id in compacted_ids {
             if let Some(note) = note_map.get(source_id.as_str()) {
-                expanded_size += estimate_note_size(note);
+                expanded_size += estimate_note_size(note, SizeBasis::default());
             }
         }
 

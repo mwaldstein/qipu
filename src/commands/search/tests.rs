@@ -28,7 +28,7 @@ fn test_search_empty_query() {
         command: None,
     };
 
-    let result = execute(&cli, &store, "", None, None, false, None, None);
+    let result = execute(&cli, &store, "", None, None, false, None, None, false);
     assert!(result.is_ok(), "Empty query should not error");
 }
 
@@ -59,7 +59,17 @@ fn test_search_no_results() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "nonexistent", None, None, false, None, None);
+    let result = execute(
+        &cli,
+        &store,
+        "nonexistent",
+        None,
+        None,
+        false,
+        None,
+        None,
+        false,
+    );
     assert!(result.is_ok(), "Search with no results should succeed");
 }
 
@@ -96,6 +106,7 @@ fn test_search_with_type_filter() {
         false,
         None,
         None,
+        false,
     );
     assert!(result.is_ok(), "Search with type filter should succeed");
 }
@@ -112,7 +123,17 @@ fn test_search_with_tag_filter() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "note", None, Some("rust"), false, None, None);
+    let result = execute(
+        &cli,
+        &store,
+        "note",
+        None,
+        Some("rust"),
+        false,
+        None,
+        None,
+        false,
+    );
     assert!(result.is_ok(), "Search with tag filter should succeed");
 }
 
@@ -135,7 +156,7 @@ fn test_search_exclude_mocs() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "note", None, None, true, None, None);
+    let result = execute(&cli, &store, "note", None, None, true, None, None, false);
     assert!(result.is_ok(), "Search with MOC exclusion should succeed");
 }
 
@@ -151,7 +172,7 @@ fn test_search_json_format() {
     let mut cli = make_default_cli();
     cli.format = crate::cli::OutputFormat::Json;
 
-    let result = execute(&cli, &store, "test", None, None, false, None, None);
+    let result = execute(&cli, &store, "test", None, None, false, None, None, false);
     assert!(result.is_ok(), "Search with JSON format should succeed");
 }
 
@@ -167,7 +188,7 @@ fn test_search_records_format() {
     let mut cli = make_default_cli();
     cli.format = crate::cli::OutputFormat::Records;
 
-    let result = execute(&cli, &store, "test", None, None, false, None, None);
+    let result = execute(&cli, &store, "test", None, None, false, None, None, false);
     assert!(result.is_ok(), "Search with records format should succeed");
 }
 
@@ -179,7 +200,17 @@ fn test_search_quiet_no_results() {
     let mut cli = make_default_cli();
     cli.quiet = true;
 
-    let result = execute(&cli, &store, "nonexistent", None, None, false, None, None);
+    let result = execute(
+        &cli,
+        &store,
+        "nonexistent",
+        None,
+        None,
+        false,
+        None,
+        None,
+        false,
+    );
     assert!(
         result.is_ok(),
         "Quiet search with no results should succeed"
@@ -196,7 +227,7 @@ fn test_search_verbose_output() {
     let mut cli = make_default_cli();
     cli.verbose = true;
 
-    let result = execute(&cli, &store, "test", None, None, false, None, None);
+    let result = execute(&cli, &store, "test", None, None, false, None, None, false);
     assert!(result.is_ok(), "Verbose search should succeed");
 }
 
@@ -215,7 +246,7 @@ fn test_search_compaction_resolution() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "digest", None, None, false, None, None);
+    let result = execute(&cli, &store, "digest", None, None, false, None, None, false);
     assert!(
         result.is_ok(),
         "Search with compaction resolution should succeed"
@@ -232,7 +263,7 @@ fn test_search_no_resolve_compaction() {
     let mut cli = make_default_cli();
     cli.no_resolve_compaction = true;
 
-    let result = execute(&cli, &store, "test", None, None, false, None, None);
+    let result = execute(&cli, &store, "test", None, None, false, None, None, false);
     assert!(
         result.is_ok(),
         "Search without compaction resolution should succeed"
@@ -252,7 +283,7 @@ fn test_search_with_compaction_ids() {
     cli.with_compaction_ids = true;
     cli.compaction_depth = Some(1);
 
-    let result = execute(&cli, &store, "digest", None, None, false, None, None);
+    let result = execute(&cli, &store, "digest", None, None, false, None, None, false);
     assert!(result.is_ok(), "Search with compaction IDs should succeed");
 }
 
@@ -269,7 +300,7 @@ fn test_search_multiple_results() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "note", None, None, false, None, None);
+    let result = execute(&cli, &store, "note", None, None, false, None, None, false);
     assert!(
         result.is_ok(),
         "Search with multiple results should succeed"
@@ -301,7 +332,17 @@ fn test_search_with_min_value_filter() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "note", None, None, false, Some(50), None);
+    let result = execute(
+        &cli,
+        &store,
+        "note",
+        None,
+        None,
+        false,
+        Some(50),
+        None,
+        false,
+    );
     assert!(
         result.is_ok(),
         "Search with min-value filter should succeed"
@@ -333,6 +374,16 @@ fn test_search_sort_by_value() {
 
     let cli = make_default_cli();
 
-    let result = execute(&cli, &store, "note", None, None, false, None, Some("value"));
+    let result = execute(
+        &cli,
+        &store,
+        "note",
+        None,
+        None,
+        false,
+        None,
+        Some("value"),
+        false,
+    );
     assert!(result.is_ok(), "Search with --sort value should succeed");
 }

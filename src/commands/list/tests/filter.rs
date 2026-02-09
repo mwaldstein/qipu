@@ -29,6 +29,7 @@ fn test_list_filter_by_tag() {
         None,
         None,
         false,
+        false,
     );
     assert!(result.is_ok());
 }
@@ -49,6 +50,7 @@ fn test_list_filter_by_tag_none_matching() {
         None,
         None,
         None,
+        false,
         false,
     );
     assert!(result.is_ok());
@@ -77,6 +79,7 @@ fn test_list_filter_by_type() {
         None,
         None,
         false,
+        false,
     );
     assert!(result.is_ok());
 }
@@ -95,7 +98,17 @@ fn test_list_filter_by_since() {
 
     let cli = create_cli(OutputFormat::Human, false);
     let since = Utc::now() - Duration::days(5);
-    let result = list::execute(&cli, &store, None, None, Some(since), None, None, false);
+    let result = list::execute(
+        &cli,
+        &store,
+        None,
+        None,
+        Some(since),
+        None,
+        None,
+        false,
+        false,
+    );
     assert!(result.is_ok());
 }
 
@@ -116,7 +129,7 @@ fn test_list_filter_by_min_value_all_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false, false);
     assert!(result.is_ok());
 }
 
@@ -137,7 +150,7 @@ fn test_list_filter_by_min_value_some_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false, false);
     assert!(result.is_ok());
 }
 
@@ -158,7 +171,7 @@ fn test_list_filter_by_min_value_none_match() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false, false);
     assert!(result.is_ok());
 }
 
@@ -177,7 +190,7 @@ fn test_list_filter_by_min_value_with_defaults() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(40), None, false);
+    let result = list::execute(&cli, &store, None, None, None, Some(40), None, false, false);
     assert!(result.is_ok());
 }
 
@@ -198,6 +211,6 @@ fn test_list_filter_by_min_value_exact() {
     store.save_note(&mut note2).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false);
+    let result = list::execute(&cli, &store, None, None, None, Some(50), None, false, false);
     assert!(result.is_ok());
 }

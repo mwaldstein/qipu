@@ -6,12 +6,14 @@
 //! - `--since` filter
 //! - Deterministic ordering (by created, then id)
 //! - Compaction visibility (specs/compaction.md): hide compacted notes by default
+//! - `--interactive` - fzf-style picker for selecting a note
 
 pub mod format;
 
 use chrono::{DateTime, Utc};
 
 use crate::cli::{Cli, OutputFormat};
+use crate::commands::picker::{pick_single, PickerItem};
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
@@ -31,6 +33,7 @@ pub fn execute(
     min_value: Option<u8>,
     custom: Option<&str>,
     show_custom: bool,
+    interactive: bool,
 ) -> Result<()> {
     let all_notes = store.list_notes()?;
 
@@ -54,6 +57,24 @@ pub fn execute(
         .filter(|n| filter.matches(n, &compaction_ctx))
         .cloned()
         .collect();
+
+    // Handle interactive picker mode
+    if interactive {
+        if notes.is_empty() {
+            if !cli.quiet {
+                println!("No notes found");
+            }
+            return Ok(());
+        }
+
+        let items: Vec<PickerItem> = notes.iter().map(PickerItem::from_note).collect();
+
+        if let Some(selected_id) = pick_single(&items, "Select a note")? {
+            // Output just the selected ID for piping to other commands
+            println!("{}", selected_id);
+        }
+        return Ok(());
+    }
 
     match cli.format {
         OutputFormat::Json => {

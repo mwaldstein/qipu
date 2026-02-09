@@ -21,6 +21,7 @@ pub mod list;
 pub mod load;
 pub mod merge;
 pub mod ontology;
+pub mod picker;
 pub mod prime;
 pub mod provenance;
 pub mod quickstart;

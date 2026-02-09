@@ -50,6 +50,10 @@ walkdir = "2"
 # Slug generation
 slug = "0.1"
 
+# Interactive prompts (fzf-style pickers)
+inquire = { version = "0.9", default-features = false, features = ["termion"] }
+atty = "0.2"
+
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"

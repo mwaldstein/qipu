@@ -59,6 +59,10 @@ pub struct ListArgs {
     /// Include custom metadata in output (opt-in)
     #[arg(long)]
     pub show_custom: bool,
+
+    /// Interactive picker mode (fzf-style selection)
+    #[arg(long, short = 'i')]
+    pub interactive: bool,
 }
 
 /// Arguments for the show command.
@@ -82,6 +86,10 @@ pub struct InboxArgs {
     /// Exclude notes already linked into a MOC
     #[arg(long)]
     pub exclude_linked: bool,
+
+    /// Interactive picker mode (fzf-style selection)
+    #[arg(long, short = 'i')]
+    pub interactive: bool,
 }
 
 /// Arguments for the capture command.
@@ -209,6 +217,10 @@ pub struct SearchArgs {
     /// Sort results by field: 'relevance' (default) or 'value'
     #[arg(long)]
     pub sort: Option<String>,
+
+    /// Interactive picker mode (fzf-style selection)
+    #[arg(long, short = 'i')]
+    pub interactive: bool,
 }
 
 /// Arguments for the edit command.

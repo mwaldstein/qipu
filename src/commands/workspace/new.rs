@@ -129,7 +129,7 @@ pub fn execute(
 
 fn copy_notes(src: &Store, dst: &Store) -> Result<()> {
     for note in src.list_notes()? {
-        copy_note(&note, dst)?;
+        copy_note_with_attachments(&note, src, dst)?;
     }
     Ok(())
 }
@@ -155,6 +155,19 @@ fn copy_note(note: &qipu_core::note::Note, dst: &Store) -> Result<()> {
     Ok(())
 }
 
+fn copy_note_with_attachments(
+    note: &qipu_core::note::Note,
+    src: &Store,
+    dst: &Store,
+) -> Result<()> {
+    copy_note(note, dst)?;
+
+    // Copy any referenced attachments
+    crate::commands::helpers::copy_note_attachments(&note.body, src, dst)?;
+
+    Ok(())
+}
+
 fn copy_graph_slice(src: &Store, index: &Index, root_ids: &[String], dst: &Store) -> Result<()> {
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<(String, u32)> = VecDeque::new();
@@ -173,7 +186,7 @@ fn copy_graph_slice(src: &Store, index: &Index, root_ids: &[String], dst: &Store
         // Copy the current note
         match src.get_note(&current_id) {
             Ok(note) => {
-                copy_note(&note, dst)?;
+                copy_note_with_attachments(&note, src, dst)?;
             }
             Err(_) => {
                 return Err(qipu_core::error::QipuError::NoteNotFound {

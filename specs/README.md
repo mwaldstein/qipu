@@ -134,5 +134,5 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `progressive-indexing.md` | ✅ FIXED: All indexing flags | P3 | --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent, --batch all implemented and tested | `src/commands/index.rs`, `tests/cli/index.rs` |
 | `records-output.md` | ✅ FIXED: S-prefix semantic tests | P2 | Tests exist; spec documentation updated | `tests/cli/records/` |
 | `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |
-| `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten on workspace operations |
+| `workspaces.md` | ✅ FIXED: File reference integrity | P3 | Attachments referenced in note bodies now copied during workspace new/merge operations | `src/commands/helpers.rs:17-75`, `tests/workspace/attachments.rs` |
 | `graph-traversal.md` | ✅ FIXED: path command limits | P3 | --max-nodes, --max-edges, --max-fanout now passed to path command | `src/cli/link.rs`, `src/commands/dispatch/link.rs`, `crates/qipu-core/src/graph/bfs.rs` |

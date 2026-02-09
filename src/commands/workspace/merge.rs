@@ -88,7 +88,7 @@ pub fn execute(
             if target_notes_ids.contains(&id) {
                 let new_id = id_mappings.get(&id).unwrap();
                 additions.push(new_id.clone());
-                copy_note_with_rename(note, &target_store, new_id, &id_mappings)?;
+                copy_note_with_rename(note, &source_store, &target_store, new_id, &id_mappings)?;
             }
         }
         // Process non-conflicting notes second
@@ -96,7 +96,7 @@ pub fn execute(
             let id: String = note.id().to_string();
             if !target_notes_ids.contains(&id) {
                 additions.push(id.clone());
-                copy_note(note, &target_store, &id_mappings)?;
+                copy_note(note, &source_store, &target_store, &id_mappings)?;
             }
         }
     } else {
@@ -115,7 +115,7 @@ pub fn execute(
                             if let Some(path) = target_note.path {
                                 let _ = std::fs::remove_file(path);
                             }
-                            copy_note(note, &target_store, &id_mappings)?;
+                            copy_note(note, &source_store, &target_store, &id_mappings)?;
                         }
                         "merge-links" => {
                             let mut target_note = target_store.get_note(&id)?;
@@ -135,7 +135,7 @@ pub fn execute(
             } else {
                 additions.push(id.clone());
                 if !dry_run {
-                    copy_note(note, &target_store, &id_mappings)?;
+                    copy_note(note, &source_store, &target_store, &id_mappings)?;
                 }
             }
         }
@@ -219,6 +219,7 @@ pub fn execute(
 
 fn copy_note(
     note: &qipu_core::note::Note,
+    src: &Store,
     dst: &Store,
     id_mappings: &HashMap<String, String>,
 ) -> Result<()> {
@@ -249,11 +250,16 @@ fn copy_note(
     new_note.path = Some(file_path);
 
     dst.save_note(&mut new_note)?;
+
+    // Copy any referenced attachments from source to destination
+    crate::commands::helpers::copy_note_attachments(&note.body, src, dst)?;
+
     Ok(())
 }
 
 fn copy_note_with_rename(
     note: &qipu_core::note::Note,
+    src: &Store,
     dst: &Store,
     new_id: &str,
     id_mappings: &HashMap<String, String>,
@@ -288,6 +294,10 @@ fn copy_note_with_rename(
     new_note.path = Some(file_path);
 
     dst.save_note(&mut new_note)?;
+
+    // Copy any referenced attachments from source to destination
+    crate::commands::helpers::copy_note_attachments(&note.body, src, dst)?;
+
     Ok(())
 }
 

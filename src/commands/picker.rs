@@ -12,6 +12,7 @@ use qipu_core::note::Note;
 pub struct PickerItem {
     pub id: String,
     pub display: String,
+    #[allow(dead_code)]
     pub note_type: String,
 }
 
@@ -92,6 +93,7 @@ pub fn pick_single(items: &[PickerItem], prompt: &str) -> Result<Option<String>>
 /// Check if stdin is a TTY (interactive terminal)
 ///
 /// Returns false if running in a non-interactive environment (CI, pipe, etc.)
+#[allow(dead_code)]
 pub fn is_interactive() -> bool {
     atty::is(atty::Stream::Stdin)
 }

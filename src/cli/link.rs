@@ -169,4 +169,22 @@ pub enum LinkCommands {
         #[arg(long, alias = "unweighted", default_value = "false")]
         ignore_value: bool,
     },
+
+    /// Materialize inline links into typed frontmatter links
+    Materialize {
+        /// Note ID or file path
+        id_or_path: String,
+
+        /// Link type for materialized links (default: related)
+        #[arg(long, short = 'T', value_parser = parse_link_type, default_value = "related")]
+        r#type: LinkType,
+
+        /// Dry run - show what would be materialized without modifying
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Remove inline links from body after materializing
+        #[arg(long)]
+        remove_inline: bool,
+    },
 }

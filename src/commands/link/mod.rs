@@ -11,6 +11,7 @@ pub mod add;
 pub mod human;
 pub mod json;
 pub mod list;
+pub mod materialize;
 pub mod path;
 pub mod records;
 pub mod records_tree;

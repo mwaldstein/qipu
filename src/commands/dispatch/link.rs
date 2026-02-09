@@ -133,5 +133,22 @@ pub(super) fn handle_link(
             trace_command!(cli, start, "execute_command");
             Ok(())
         }
+        LinkCommands::Materialize {
+            id_or_path,
+            r#type,
+            dry_run,
+            remove_inline,
+        } => {
+            commands::link::materialize::execute(
+                cli,
+                &store,
+                id_or_path,
+                r#type.clone(),
+                *dry_run,
+                *remove_inline,
+            )?;
+            trace_command!(cli, start, "execute_command");
+            Ok(())
+        }
     }
 }

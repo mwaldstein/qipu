@@ -7,12 +7,14 @@ use std::sync::Arc;
 use std::time::Instant;
 
 /// Tracks timing and results for a database query
+#[allow(dead_code)]
 pub struct QueryTimer {
     start: Instant,
     query_type: QueryType,
     telemetry: Option<Arc<TelemetryCollector>>,
 }
 
+#[allow(dead_code)]
 impl QueryTimer {
     /// Start timing a query with optional telemetry
     pub fn new(query_type: QueryType, telemetry: Option<Arc<TelemetryCollector>>) -> Self {

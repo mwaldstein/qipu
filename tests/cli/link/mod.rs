@@ -3,6 +3,7 @@ mod add;
 mod compaction;
 mod ignore_value;
 mod list;
+mod materialize;
 mod path;
 mod path_expand_compaction;
 mod remove;

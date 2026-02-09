@@ -1,6 +1,6 @@
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-/// Helper macro for logging elapsed time at debug level.
+/// Helper macro for logging elapsed time at trace level.
 ///
 /// Usage:
 /// ```rust,ignore
@@ -13,10 +13,10 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 #[macro_export]
 macro_rules! trace_time {
     ($start:expr, $name:expr) => {
-        tracing::debug!(elapsed = ?$start.elapsed(), $name);
+        tracing::trace!(elapsed = ?$start.elapsed(), $name);
     };
     ($start:expr, $name:expr $(, $field:ident = $value:expr)*) => {
-        tracing::debug!(elapsed = ?$start.elapsed(), $($field = $value),*, $name);
+        tracing::trace!(elapsed = ?$start.elapsed(), $($field = $value),*, $name);
     };
 }
 

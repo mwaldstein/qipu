@@ -231,6 +231,9 @@ fn copy_note(
         }
     }
 
+    // Rewrite file references in body based on ID mappings
+    new_note.body = rewrite_body_file_references(&new_note.body, id_mappings);
+
     // Determine target directory
     let target_dir = if new_note.note_type().is_moc() {
         dst.mocs_dir()
@@ -267,6 +270,9 @@ fn copy_note_with_rename(
         }
     }
 
+    // Rewrite file references in body based on ID mappings
+    new_note.body = rewrite_body_file_references(&new_note.body, id_mappings);
+
     // Determine target directory
     let target_dir = if new_note.note_type().is_moc() {
         dst.mocs_dir()
@@ -283,4 +289,72 @@ fn copy_note_with_rename(
 
     dst.save_note(&mut new_note)?;
     Ok(())
+}
+
+/// Rewrite markdown file references in note body when IDs are renamed.
+/// Handles patterns like:
+/// - Direct ID: [text](qp-xxxx)
+/// - Path with ID: [text](./qp-xxxx-slug.md) or [text](../other/qp-xxxx-slug.md)
+fn rewrite_body_file_references(body: &str, id_mappings: &HashMap<String, String>) -> String {
+    use regex::Regex;
+
+    let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
+        Ok(re) => re,
+        Err(_) => return body.to_string(),
+    };
+
+    md_link_re
+        .replace_all(body, |caps: &regex::Captures| {
+            let label = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+            let target = caps.get(2).map(|m| m.as_str()).unwrap_or("").trim();
+
+            // Skip external URLs and anchors
+            if target.starts_with("http://")
+                || target.starts_with("https://")
+                || target.starts_with('#')
+            {
+                return caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string();
+            }
+
+            // Try to find and rewrite ID in the target
+            let new_target = rewrite_target_id(target, id_mappings);
+
+            if new_target != target {
+                format!("[{}]({})", label, new_target)
+            } else {
+                caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string()
+            }
+        })
+        .to_string()
+}
+
+/// Rewrite an ID within a target path if it matches a mapping.
+/// Handles: qp-xxxx, ./qp-xxxx-slug.md, ../other/qp-xxxx-slug.md
+fn rewrite_target_id(target: &str, id_mappings: &HashMap<String, String>) -> String {
+    // Try to extract ID from the target
+    let id = if target.starts_with("qp-") {
+        // Direct ID: qp-xxxx
+        target.split('-').take(2).collect::<Vec<_>>().join("-")
+    } else if let Some(start) = target.find("qp-") {
+        // Path containing ID: ./qp-xxxx-slug.md or ../other/qp-xxxx-slug.md
+        let rest = &target[start..];
+        // Extract the ID portion (qp-xxxx)
+        let end = rest
+            .find('-')
+            .and_then(|first| rest[first + 1..].find('-').map(|second| first + 1 + second));
+        match end {
+            Some(end) => rest[..end].to_string(),
+            None => rest.trim_end_matches(".md").to_string(),
+        }
+    } else {
+        return target.to_string();
+    };
+
+    // If this ID is being renamed, rewrite the target
+    if let Some(new_id) = id_mappings.get(&id) {
+        // Replace the old ID with the new one
+        target.replace(&id, new_id)
+    } else {
+        target.to_string()
+    }
 }

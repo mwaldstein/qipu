@@ -147,7 +147,10 @@ pub fn parse_custom_filter_expression(
     let target_value: f64 = value.parse().map_err(|_| {
         QipuError::invalid_value(
             &format!("custom filter expression '{}'", expr),
-            format!("invalid numeric or date value '{}' (dates must be YYYY-MM-DD)", value),
+            format!(
+                "invalid numeric or date value '{}' (dates must be YYYY-MM-DD)",
+                value
+            ),
         )
     })?;
 

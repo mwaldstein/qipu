@@ -3,174 +3,22 @@
 //! Per spec (specs/cli-interface.md, specs/indexing-search.md):
 //! - `qipu index` - build/refresh indexes
 //! - `qipu index --rebuild` - drop and regenerate
-//!
+//! //!
 #![allow(clippy::if_same_then_else)]
 
+mod filters;
+mod formatters;
+mod progress;
+
 use crate::cli::Cli;
-use crate::commands::format::{dispatch_format, FormatDispatcher};
+use crate::commands::format::dispatch_format;
+use filters::{filter_by_moc, filter_by_recent, filter_quick_index, parse_modified_since};
+use formatters::{IndexFormatter, IndexStatusFormatter};
+use progress::ProgressTracker;
 use qipu_core::error::{QipuError, Result};
 use qipu_core::index::links;
 use qipu_core::note::{Note, NoteType};
 use qipu_core::store::Store;
-use std::time::Instant;
-
-struct IndexFormatter<'a> {
-    store: &'a Store,
-    notes_count: usize,
-}
-
-impl<'a> FormatDispatcher for IndexFormatter<'a> {
-    fn output_json(&self) -> Result<()> {
-        let output = serde_json::json!({
-            "status": "ok",
-            "notes_indexed": self.notes_count,
-        });
-        println!("{}", serde_json::to_string_pretty(&output)?);
-        Ok(())
-    }
-
-    fn output_human(&self) {
-        println!("Indexed {} notes", self.notes_count);
-    }
-
-    fn output_records(&self) {
-        println!(
-            "H qipu=1 records=1 store={} mode=index notes={}",
-            self.store.root().display(),
-            self.notes_count
-        );
-    }
-}
-
-struct IndexStatusFormatter<'a> {
-    store: &'a Store,
-    db_count: i64,
-    basic_count: i64,
-    full_count: i64,
-}
-
-impl<'a> FormatDispatcher for IndexStatusFormatter<'a> {
-    fn output_json(&self) -> Result<()> {
-        let output = serde_json::json!({
-            "total_notes": self.db_count,
-            "basic_indexed": self.basic_count,
-            "full_indexed": self.full_count,
-        });
-        println!("{}", serde_json::to_string_pretty(&output)?);
-        Ok(())
-    }
-
-    fn output_human(&self) {
-        println!("Index Status");
-        println!("-------------");
-        println!("Total notes: {}", self.db_count);
-        println!(
-            "Basic indexed: {} ({})",
-            self.basic_count,
-            if self.db_count > 0 {
-                format!(
-                    "{:.0}%",
-                    (self.basic_count as f64) / (self.db_count as f64) * 100.0
-                )
-            } else {
-                "N/A".to_string()
-            }
-        );
-        println!(
-            "Full-text indexed: {} ({})",
-            self.full_count,
-            if self.db_count > 0 {
-                format!(
-                    "{:.0}%",
-                    (self.full_count as f64) / (self.db_count as f64) * 100.0
-                )
-            } else {
-                "N/A".to_string()
-            }
-        );
-    }
-
-    fn output_records(&self) {
-        println!(
-            "H qipu=1 records=1 store={} mode=status total={} basic={} full={}",
-            self.store.root().display(),
-            self.db_count,
-            self.basic_count,
-            self.full_count
-        );
-    }
-}
-
-/// Progress tracker for indexing operations
-struct ProgressTracker {
-    first_update_time: Option<Instant>,
-    last_update_time: Option<Instant>,
-    last_indexed: usize,
-    notes_per_sec: f64,
-}
-
-impl ProgressTracker {
-    fn new() -> Self {
-        Self {
-            first_update_time: None,
-            last_update_time: None,
-            last_indexed: 0,
-            notes_per_sec: 0.0,
-        }
-    }
-
-    fn update(&mut self, indexed: usize, total: usize, note: &Note) {
-        let now = Instant::now();
-
-        if self.first_update_time.is_none() {
-            self.first_update_time = Some(now);
-        }
-
-        if let Some(last_time) = self.last_update_time {
-            let elapsed = now.duration_since(last_time).as_secs_f64();
-            let indexed_delta = indexed - self.last_indexed;
-
-            if elapsed > 0.0 && indexed_delta > 0 {
-                self.notes_per_sec = indexed_delta as f64 / elapsed;
-            }
-        }
-
-        self.last_update_time = Some(now);
-        self.last_indexed = indexed;
-
-        let percent = (indexed as f64 / total as f64) * 100.0;
-        let remaining = total - indexed;
-
-        let eta_str = if self.notes_per_sec > 0.0 {
-            let eta_secs = remaining as f64 / self.notes_per_sec;
-            if eta_secs < 1.0 {
-                "1s".to_string()
-            } else if eta_secs < 60.0 {
-                format!("{:.0}s", eta_secs.ceil())
-            } else {
-                format!("{:.0}m {:.0}s", (eta_secs / 60.0).floor(), eta_secs % 60.0)
-            }
-        } else {
-            "---".to_string()
-        };
-
-        let bar_width = 30;
-        let filled = (bar_width as f64 * percent / 100.0) as usize;
-        let filled = filled.min(bar_width);
-        let bar = "█".repeat(filled) + &"░".repeat(bar_width - filled);
-
-        eprintln!(
-            "  [{}] {:.0}% ({} / {}) {:.0} notes/sec",
-            bar, percent, indexed, total, self.notes_per_sec
-        );
-        eprintln!(
-            "  ETA: {}  Last: {} \"{}\"",
-            eta_str,
-            note.id(),
-            note.title()
-        );
-    }
-}
 
 /// Execute index command
 #[allow(clippy::too_many_arguments)]
@@ -351,7 +199,9 @@ fn selective_index(
     moc: Option<&str>,
     modified_since: Option<&str>,
 ) -> Result<()> {
-    let mut notes = store.list_notes()?;
+    use qipu_core::note::Note;
+
+    let mut notes: Vec<Note> = store.list_notes()?;
 
     if quick {
         notes = filter_quick_index(store, &notes);
@@ -396,133 +246,4 @@ fn selective_index(
     }
 
     Ok(())
-}
-
-/// Parse a time string like "24 hours ago", "2 days ago", "1 week ago", or ISO 8601 timestamp
-fn parse_modified_since(s: &str) -> Result<std::time::SystemTime> {
-    use std::time::{Duration, SystemTime};
-
-    let now = SystemTime::now();
-    let s_lower = s.to_lowercase();
-
-    // Try to parse relative time expressions
-    if s_lower.ends_with(" ago") {
-        let parts: Vec<&str> = s_lower
-            .trim_end_matches(" ago")
-            .split_whitespace()
-            .collect();
-        if parts.len() == 2 {
-            if let Ok(amount) = parts[0].parse::<u64>() {
-                let duration = match parts[1] {
-                    "second" | "seconds" => Duration::from_secs(amount),
-                    "minute" | "minutes" => Duration::from_secs(amount * 60),
-                    "hour" | "hours" => Duration::from_secs(amount * 60 * 60),
-                    "day" | "days" => Duration::from_secs(amount * 24 * 60 * 60),
-                    "week" | "weeks" => Duration::from_secs(amount * 7 * 24 * 60 * 60),
-                    _ => {
-                        return Err(QipuError::Other(format!(
-                            "Unknown time unit: {}. Use seconds, minutes, hours, days, or weeks",
-                            parts[1]
-                        )));
-                    }
-                };
-                return now.checked_sub(duration).ok_or_else(|| {
-                    QipuError::Other("Invalid time duration: too far in the past".to_string())
-                });
-            }
-        }
-    }
-
-    // Try ISO 8601 format
-    if let Ok(datetime) = chrono::DateTime::parse_from_rfc3339(s) {
-        return Ok(datetime.into());
-    }
-
-    // Try simpler ISO format (2024-01-15T10:30:00)
-    if let Ok(datetime) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S") {
-        return Ok(
-            SystemTime::UNIX_EPOCH + Duration::from_secs(datetime.and_utc().timestamp() as u64)
-        );
-    }
-
-    // Try date-only format (2024-01-15)
-    if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-        let datetime = date.and_hms_opt(0, 0, 0).unwrap();
-        return Ok(
-            SystemTime::UNIX_EPOCH + Duration::from_secs(datetime.and_utc().timestamp() as u64)
-        );
-    }
-
-    Err(QipuError::Other(format!(
-        "Cannot parse time: '{}'. Use formats like '24 hours ago', '2 days ago', '2024-01-15', or ISO 8601",
-        s
-    )))
-}
-
-fn filter_quick_index(
-    _store: &Store,
-    notes: &[qipu_core::note::Note],
-) -> Vec<qipu_core::note::Note> {
-    let mut mocs = Vec::new();
-    let mut others: Vec<(std::time::SystemTime, qipu_core::note::Note)> = Vec::new();
-
-    for note in notes {
-        if note.note_type().is_moc() {
-            mocs.push(note.clone());
-        } else if let Some(path) = &note.path {
-            if let Ok(mtime) = std::fs::metadata(path).and_then(|m| m.modified()) {
-                others.push((mtime, note.clone()));
-            }
-        }
-    }
-
-    others.sort_by(|a, b| b.0.cmp(&a.0));
-
-    let mut result = mocs;
-    for (_, note) in others.into_iter().take(100) {
-        result.push(note);
-    }
-
-    result
-}
-
-fn filter_by_moc(
-    store: &Store,
-    notes: &[qipu_core::note::Note],
-    moc_id: &str,
-) -> Vec<qipu_core::note::Note> {
-    let mut result = Vec::new();
-
-    let moc = notes.iter().find(|n| n.id() == moc_id);
-    if let Some(m) = moc {
-        result.push(m.clone());
-
-        let outbound_edges = store.db().get_outbound_edges(moc_id).unwrap_or_default();
-        for edge in outbound_edges {
-            if let Some(note) = notes.iter().find(|n| n.id() == edge.to) {
-                result.push(note.clone());
-            }
-        }
-    }
-
-    result
-}
-
-fn filter_by_recent(notes: &[qipu_core::note::Note], n: usize) -> Vec<qipu_core::note::Note> {
-    let mut notes_with_mtime: Vec<(std::time::SystemTime, qipu_core::note::Note)> = Vec::new();
-
-    for note in notes {
-        if let Some(path) = &note.path {
-            if let Ok(mtime) = std::fs::metadata(path).and_then(|m| m.modified()) {
-                notes_with_mtime.push((mtime, note.clone()));
-            }
-        }
-    }
-
-    notes_with_mtime.sort_by(|a, b| b.0.cmp(&a.0));
-    notes_with_mtime
-        .into_iter()
-        .take(n)
-        .map(|(_, note)| note)
-        .collect()
 }

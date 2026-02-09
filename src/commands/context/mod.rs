@@ -47,25 +47,29 @@ pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
     }
 }
 
+fn log_context_params(options: &ContextOptions) {
+    tracing::debug!(
+        note_ids_count = options.selection.note_ids.len(),
+        tag = options.selection.tag,
+        moc_id = options.selection.moc_id,
+        query = options.selection.query,
+        max_chars = options.output.max_chars,
+        transitive = options.expansion.transitive,
+        with_body = options.output.with_body,
+        safety_banner = options.output.safety_banner,
+        related_threshold = options.expansion.related_threshold,
+        backlinks = options.expansion.backlinks,
+        min_value = options.selection.min_value,
+        "context_params"
+    );
+}
+
 /// Execute the context command
 pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> {
     let start = Instant::now();
 
     if cli.verbose {
-        tracing::debug!(
-            note_ids_count = options.selection.note_ids.len(),
-            tag = options.selection.tag,
-            moc_id = options.selection.moc_id,
-            query = options.selection.query,
-            max_chars = options.output.max_chars,
-            transitive = options.expansion.transitive,
-            with_body = options.output.with_body,
-            safety_banner = options.output.safety_banner,
-            related_threshold = options.expansion.related_threshold,
-            backlinks = options.expansion.backlinks,
-            min_value = options.selection.min_value,
-            "context_params"
-        );
+        log_context_params(&options);
     }
 
     let all_notes = store.list_notes()?;

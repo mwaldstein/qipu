@@ -4,7 +4,11 @@
 //! - 0: Success
 //! - 1: Generic failure
 //! - 2: Usage error (bad flags/args)
-//! - 3: Data/store error (invalid frontmatter, missing store, etc.)
+//! - 3: Data/store error (missing store, invalid frontmatter, etc.)
+
+mod macros;
+
+pub use macros::*;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -470,37 +474,3 @@ impl QipuError {
 
 /// Result type alias for qipu operations
 pub type Result<T> = std::result::Result<T, QipuError>;
-
-/// Macro for creating invalid value errors
-#[macro_export]
-macro_rules! bail_invalid {
-    ($context:expr, $value:expr) => {
-        return Err($crate::error::QipuError::invalid_value($context, $value))
-    };
-}
-
-/// Macro for creating usage errors
-#[macro_export]
-macro_rules! bail_usage {
-    ($msg:expr) => {
-        return Err($crate::error::QipuError::UsageError($msg.to_string()))
-    };
-}
-
-/// Macro for creating unsupported errors
-#[macro_export]
-macro_rules! bail_unsupported {
-    ($context:expr, $value:expr, $supported:expr) => {
-        return Err($crate::error::QipuError::unsupported(
-            $context, $value, $supported,
-        ))
-    };
-}
-
-/// Macro for mapping database errors
-#[macro_export]
-macro_rules! map_db_err {
-    ($op:expr, $error:expr) => {
-        $crate::error::QipuError::db_operation($op, $error)
-    };
-}

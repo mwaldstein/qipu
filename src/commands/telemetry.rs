@@ -68,6 +68,111 @@ pub fn handle_status(start: Instant) -> Result<()> {
     Ok(())
 }
 
+fn format_timestamp(ts: i64) -> String {
+    chrono::DateTime::from_timestamp(ts, 0)
+        .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+        .unwrap_or_else(|| ts.to_string())
+}
+
+fn print_command_event(
+    idx: usize,
+    timestamp: &i64,
+    command: &qipu_core::telemetry::CommandName,
+    success: &bool,
+    duration: &qipu_core::telemetry::DurationBucket,
+    error: &Option<qipu_core::telemetry::ErrorType>,
+) {
+    let dt = format_timestamp(*timestamp);
+    let status = if *success {
+        "✓ success"
+    } else {
+        "✗ failed"
+    };
+    let err_str = error
+        .as_ref()
+        .map(|e| format!(" [{}]", format!("{:?}", e).to_lowercase()))
+        .unwrap_or_default();
+
+    println!(
+        "{}. [{}] Command: {} - {} (duration: {:?}){}",
+        idx,
+        dt,
+        command.as_str(),
+        status,
+        duration,
+        err_str
+    );
+}
+
+fn print_session_stats_event(
+    idx: usize,
+    timestamp: &i64,
+    os_platform: &str,
+    app_version: &str,
+    workspace_count: &qipu_core::telemetry::WorkspaceCountBucket,
+    note_count: &qipu_core::telemetry::NoteCountBucket,
+) {
+    let dt = format_timestamp(*timestamp);
+    println!(
+        "{}. [{}] Session stats - OS: {}, Version: {}, Workspaces: {:?}, Notes: {:?}",
+        idx, dt, os_platform, app_version, workspace_count, note_count
+    );
+}
+
+fn print_query_stats_event(
+    idx: usize,
+    timestamp: &i64,
+    query_type: &qipu_core::telemetry::QueryType,
+    duration: &qipu_core::telemetry::DurationBucket,
+    result_count: &qipu_core::telemetry::ResultCountBucket,
+    success: &bool,
+) {
+    let dt = format_timestamp(*timestamp);
+    let status = if *success { "✓" } else { "✗" };
+    println!(
+        "{}. [{}] Query: {} - {} (duration: {:?}, results: {:?})",
+        idx,
+        dt,
+        query_type.as_str(),
+        status,
+        duration,
+        result_count
+    );
+}
+
+fn print_event(idx: usize, event: &TelemetryEvent) {
+    match event {
+        TelemetryEvent::CommandExecuted {
+            timestamp,
+            command,
+            success,
+            duration,
+            error,
+        } => print_command_event(idx, timestamp, command, success, duration, error),
+        TelemetryEvent::SessionStats {
+            timestamp,
+            os_platform,
+            app_version,
+            workspace_count,
+            note_count,
+        } => print_session_stats_event(
+            idx,
+            timestamp,
+            os_platform,
+            app_version,
+            workspace_count,
+            note_count,
+        ),
+        TelemetryEvent::QueryStats {
+            timestamp,
+            query_type,
+            duration,
+            result_count,
+            success,
+        } => print_query_stats_event(idx, timestamp, query_type, duration, result_count, success),
+    }
+}
+
 pub fn handle_show(start: Instant) -> Result<()> {
     let config = TelemetryConfig::default();
     let collector = TelemetryCollector::new(config.clone());
@@ -81,15 +186,12 @@ pub fn handle_show(start: Instant) -> Result<()> {
         }
     );
 
-    // Load events from disk
     let events_dir = &config.events_dir;
     let events_file = events_dir.join("events.jsonl");
-
     let mut all_events: Vec<TelemetryEvent> = Vec::new();
 
     if events_file.exists() {
         let content = fs::read_to_string(&events_file).map_err(qipu_core::error::QipuError::Io)?;
-
         for line in content.lines() {
             if let Ok(event) = serde_json::from_str::<TelemetryEvent>(line) {
                 all_events.push(event);
@@ -97,7 +199,6 @@ pub fn handle_show(start: Instant) -> Result<()> {
         }
     }
 
-    // Also add in-memory events
     let pending = collector.get_pending_events();
     all_events.extend(pending);
 
@@ -110,82 +211,7 @@ pub fn handle_show(start: Instant) -> Result<()> {
     println!("{}", "=".repeat(50));
 
     for (i, event) in all_events.iter().enumerate() {
-        match event {
-            TelemetryEvent::CommandExecuted {
-                timestamp,
-                command,
-                success,
-                duration,
-                error,
-            } => {
-                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
-                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
-                    .unwrap_or_else(|| timestamp.to_string());
-
-                let status = if *success {
-                    "✓ success"
-                } else {
-                    "✗ failed"
-                };
-                let err_str = error
-                    .map(|e| format!(" [{}]", format!("{:?}", e).to_lowercase()))
-                    .unwrap_or_default();
-
-                println!(
-                    "{}. [{}] Command: {} - {} (duration: {:?}){}",
-                    i + 1,
-                    dt,
-                    command.as_str(),
-                    status,
-                    duration,
-                    err_str
-                );
-            }
-            TelemetryEvent::SessionStats {
-                timestamp,
-                os_platform,
-                app_version,
-                workspace_count,
-                note_count,
-            } => {
-                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
-                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
-                    .unwrap_or_else(|| timestamp.to_string());
-
-                println!(
-                    "{}. [{}] Session stats - OS: {}, Version: {}, Workspaces: {:?}, Notes: {:?}",
-                    i + 1,
-                    dt,
-                    os_platform,
-                    app_version,
-                    workspace_count,
-                    note_count
-                );
-            }
-            TelemetryEvent::QueryStats {
-                timestamp,
-                query_type,
-                duration,
-                result_count,
-                success,
-            } => {
-                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
-                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
-                    .unwrap_or_else(|| timestamp.to_string());
-
-                let status = if *success { "✓" } else { "✗" };
-
-                println!(
-                    "{}. [{}] Query: {} - {} (duration: {:?}, results: {:?})",
-                    i + 1,
-                    dt,
-                    query_type.as_str(),
-                    status,
-                    duration,
-                    result_count
-                );
-            }
-        }
+        print_event(i + 1, event);
     }
 
     println!("\n{}", "=".repeat(50));

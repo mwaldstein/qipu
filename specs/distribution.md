@@ -68,6 +68,18 @@ Requires:
 - A Homebrew tap repository (`homebrew-qipu`)
 - Formula that downloads pre-built binaries or builds from source
 
+### Nix (NixOS / macOS with nix-darwin)
+
+```bash
+# Run directly from the flake
+nix run github:mwaldstein/qipu
+
+# Or install to your profile
+nix profile install github:mwaldstein/qipu
+
+# Or add to your flake.nix inputs
+```
+
 ### Package Managers (Future)
 
 Candidates for future support:
@@ -75,7 +87,7 @@ Candidates for future support:
 | Manager | Platform | Priority |
 |---------|----------|----------|
 | AUR     | Arch Linux | Medium |
-| Nix     | NixOS/macOS | Medium |
+| Nix     | NixOS/macOS | **Implemented** ✓ |
 | winget  | Windows | Low |
 | Scoop   | Windows | Low |
 | deb/rpm | Debian/RHEL | Low |

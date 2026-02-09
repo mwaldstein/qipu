@@ -223,6 +223,106 @@ fn test_discovery_stops_at_cargo_toml_boundary() {
         .stderr(predicate::str::contains("store not found"));
 }
 
+fn setup_parent_store(parent_dir: &std::path::Path) {
+    let parent_store = parent_dir.join(".qipu");
+    std::fs::create_dir_all(&parent_store).unwrap();
+    std::fs::create_dir_all(parent_store.join("notes")).unwrap();
+    std::fs::create_dir_all(parent_store.join("mocs")).unwrap();
+    std::fs::create_dir_all(parent_store.join("attachments")).unwrap();
+    std::fs::create_dir_all(parent_store.join("templates")).unwrap();
+    std::fs::write(parent_store.join("config.toml"), "# Parent store config\n").unwrap();
+}
+
+fn assert_discovery_stops_at_boundary(project_dir: &std::path::Path, temp_dir: &std::path::Path) {
+    let nonexistent_store = temp_dir.join("nonexistent-store");
+    qipu()
+        .current_dir(project_dir)
+        .env("QIPU_STORE", &nonexistent_store)
+        .arg("list")
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("store not found"));
+}
+
+#[test]
+fn test_discovery_stops_at_hg_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/hg_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    setup_parent_store(&parent_dir);
+
+    // Create Mercurial marker
+    std::fs::create_dir_all(project_dir.join(".hg")).unwrap();
+
+    assert_discovery_stops_at_boundary(&project_dir, dir.path());
+}
+
+#[test]
+fn test_discovery_stops_at_svn_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/svn_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    setup_parent_store(&parent_dir);
+
+    // Create Subversion marker
+    std::fs::create_dir_all(project_dir.join(".svn")).unwrap();
+
+    assert_discovery_stops_at_boundary(&project_dir, dir.path());
+}
+
+#[test]
+fn test_discovery_stops_at_package_json_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/node_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    setup_parent_store(&parent_dir);
+
+    // Create package.json as project marker
+    std::fs::write(project_dir.join("package.json"), r#"{"name": "test"}"#).unwrap();
+
+    assert_discovery_stops_at_boundary(&project_dir, dir.path());
+}
+
+#[test]
+fn test_discovery_stops_at_go_mod_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/go_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    setup_parent_store(&parent_dir);
+
+    // Create go.mod as project marker
+    std::fs::write(project_dir.join("go.mod"), "module test\n").unwrap();
+
+    assert_discovery_stops_at_boundary(&project_dir, dir.path());
+}
+
+#[test]
+fn test_discovery_stops_at_pyproject_toml_boundary() {
+    let dir = tempdir().unwrap();
+    let parent_dir = dir.path().join("parent");
+    let project_dir = dir.path().join("parent/python_project");
+    std::fs::create_dir_all(&project_dir).unwrap();
+
+    setup_parent_store(&parent_dir);
+
+    // Create pyproject.toml as project marker
+    std::fs::write(
+        project_dir.join("pyproject.toml"),
+        "[project]\nname = \"test\"\n",
+    )
+    .unwrap();
+
+    assert_discovery_stops_at_boundary(&project_dir, dir.path());
+}
+
 #[test]
 fn test_relative_store_resolved_against_root() {
     let dir = tempdir().unwrap();

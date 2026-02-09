@@ -1,17 +1,11 @@
 name: CI
 
-# =============================================================================
-# WORKFLOW DISABLED - Runs only on manual trigger
-# =============================================================================
-# To enable automatic runs, add push/pull_request triggers:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
-# =============================================================================
-
 on:
-  workflow_dispatch: # Manual trigger only
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Manual trigger also available
 
 env:
   CARGO_TERM_COLOR: always

@@ -83,9 +83,14 @@ fn has_mcp_settings_file() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Static mutex to ensure env var tests run serially (they modify global state)
+    static ENV_TEST_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_detect_mcp_mode_explicit_true() {
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
         env::remove_var("QIPU_MCP_MODE");
         env::set_var("QIPU_MCP_MODE", "1");
         for var in ["MCP_SERVER", "CLAUDE_MCP", "MCP_CONTEXT"] {
@@ -97,6 +102,7 @@ mod tests {
 
     #[test]
     fn test_detect_mcp_mode_explicit_false() {
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
         env::remove_var("QIPU_MCP_MODE");
         env::set_var("QIPU_MCP_MODE", "0");
         for var in ["MCP_SERVER", "CLAUDE_MCP", "MCP_CONTEXT"] {
@@ -108,6 +114,7 @@ mod tests {
 
     #[test]
     fn test_detect_mcp_mode_env_var() {
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
         env::remove_var("QIPU_MCP_MODE");
         env::set_var("MCP_SERVER", "some-value");
         assert!(detect_mcp_mode());
@@ -116,6 +123,7 @@ mod tests {
 
     #[test]
     fn test_detect_mcp_mode_no_env() {
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
         // Clear all MCP-related env vars
         for var in ["QIPU_MCP_MODE", "MCP_SERVER", "CLAUDE_MCP", "MCP_CONTEXT"] {
             env::remove_var(var);

@@ -145,6 +145,18 @@ pub enum LinkCommands {
         #[arg(long)]
         inline_only: bool,
 
+        /// Maximum nodes to visit during path search
+        #[arg(long)]
+        max_nodes: Option<usize>,
+
+        /// Maximum edges to consider during path search
+        #[arg(long)]
+        max_edges: Option<usize>,
+
+        /// Maximum neighbors per node to consider
+        #[arg(long)]
+        max_fanout: Option<usize>,
+
         /// Maximum output characters (exact budget, records format only)
         #[arg(long)]
         max_chars: Option<usize>,

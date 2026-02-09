@@ -164,9 +164,23 @@ fn bfs_search(
             continue;
         }
 
+        // Check max_nodes limit before expanding
+        if let Some(max_nodes) = opts.max_nodes {
+            if visited.len() >= max_nodes {
+                break;
+            }
+        }
+
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
-        for (neighbor_id, edge) in neighbors {
+        // Apply max_fanout to limit neighbors processed
+        let neighbors_to_process = if let Some(max_fanout) = opts.max_fanout {
+            neighbors.into_iter().take(max_fanout).collect::<Vec<_>>()
+        } else {
+            neighbors
+        };
+
+        for (neighbor_id, edge) in neighbors_to_process {
             let Some(processed) = canonicalize_edge(&edge, &neighbor_id, compaction_ctx) else {
                 continue;
             };
@@ -178,6 +192,13 @@ fn bfs_search(
                 opts.min_value,
             ) {
                 continue;
+            }
+
+            // Check max_nodes limit before adding new node
+            if let Some(max_nodes) = opts.max_nodes {
+                if visited.len() >= max_nodes {
+                    break;
+                }
             }
 
             let canonical_neighbor = processed.canonical_neighbor;
@@ -264,9 +285,23 @@ fn dijkstra_search(
             continue;
         }
 
+        // Check max_nodes limit before expanding
+        if let Some(max_nodes) = opts.max_nodes {
+            if visited.len() >= max_nodes {
+                break;
+            }
+        }
+
         let neighbors = collect_neighbors(provider, store, &current_id, opts, equivalence_map);
 
-        for (neighbor_id, edge) in neighbors {
+        // Apply max_fanout to limit neighbors processed
+        let neighbors_to_process = if let Some(max_fanout) = opts.max_fanout {
+            neighbors.into_iter().take(max_fanout).collect::<Vec<_>>()
+        } else {
+            neighbors
+        };
+
+        for (neighbor_id, edge) in neighbors_to_process {
             let Some(processed) = canonicalize_edge(&edge, &neighbor_id, compaction_ctx) else {
                 continue;
             };
@@ -296,7 +331,14 @@ fn dijkstra_search(
             if should_visit {
                 let canonical_neighbor = processed.canonical_neighbor;
                 let is_new = !visited.contains(&canonical_neighbor);
+
+                // Check max_nodes limit before adding new node
                 if is_new {
+                    if let Some(max_nodes) = opts.max_nodes {
+                        if visited.len() >= max_nodes {
+                            break;
+                        }
+                    }
                     visited.insert(canonical_neighbor.clone());
                 }
 

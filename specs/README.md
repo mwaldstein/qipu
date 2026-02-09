@@ -136,4 +136,4 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `records-output.md` | S-prefix semantic tests | P2 | Tests exist but spec documentation gap on mode-specific semantics |
 | `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |
 | `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten on workspace operations |
-| `graph-traversal.md` | path command limits | P3 | --max-nodes, --max-edges, --max-fanout not passed to path command |
+| `graph-traversal.md` | ✅ FIXED: path command limits | P3 | --max-nodes, --max-edges, --max-fanout now passed to path command | `src/cli/link.rs`, `src/commands/dispatch/link.rs`, `crates/qipu-core/src/graph/bfs.rs` |

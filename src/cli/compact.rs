@@ -47,7 +47,11 @@ pub enum CompactCommands {
     },
 
     /// Suggest compaction candidates
-    Suggest,
+    Suggest {
+        /// Include MOCs in compaction suggestions (default: exclude MOCs)
+        #[arg(long)]
+        include_mocs: bool,
+    },
 
     /// Print compaction guidance for LLM agents
     Guide,

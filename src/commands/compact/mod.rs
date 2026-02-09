@@ -29,7 +29,7 @@ pub fn execute(cli: &Cli, root: &Path, command: &CompactCommands) -> Result<()> 
         } => show::execute(cli, root, digest_id, *compaction_depth),
         CompactCommands::Status { id } => status::execute(cli, root, id),
         CompactCommands::Report { digest_id } => report::execute(cli, root, digest_id),
-        CompactCommands::Suggest => suggest::execute(cli, root),
+        CompactCommands::Suggest { include_mocs } => suggest::execute(cli, root, *include_mocs),
         CompactCommands::Guide => guide::execute(cli, root),
     }
 }

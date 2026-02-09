@@ -34,17 +34,35 @@ impl CompactionContext {
         &self,
         store: &crate::store::Store,
         index: &crate::index::Index,
+        include_mocs: bool,
     ) -> Result<Vec<CompactionCandidate>> {
         // Build adjacency list for clustering
         let mut adjacency: HashMap<String, HashSet<String>> = HashMap::new();
 
-        // Add all notes as nodes
-        for note_id in index.metadata.keys() {
+        // Add all notes as nodes (excluding MOCs unless include_mocs is true)
+        for (note_id, metadata) in &index.metadata {
+            if !include_mocs && metadata.note_type.is_moc() {
+                continue;
+            }
             adjacency.entry(note_id.clone()).or_default();
         }
 
         // Add edges (make undirected for clustering)
+        // Skip edges that connect to MOCs unless include_mocs is true
         for edge in &index.edges {
+            if !include_mocs {
+                // Skip if either end is a MOC
+                if let Some(from_meta) = index.metadata.get(&edge.from) {
+                    if from_meta.note_type.is_moc() {
+                        continue;
+                    }
+                }
+                if let Some(to_meta) = index.metadata.get(&edge.to) {
+                    if to_meta.note_type.is_moc() {
+                        continue;
+                    }
+                }
+            }
             adjacency
                 .entry(edge.from.clone())
                 .or_default()

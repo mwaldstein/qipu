@@ -212,8 +212,11 @@ Recommended outputs:
 - "staleness" indicator (sources updated after digest)
 - conflicts/cycles (if present)
 
-### `qipu compact suggest`
+### `qipu compact suggest [--include-mocs]`
 Suggest candidate groups that may benefit from compaction.
+
+By default, MOCs are excluded from suggestions (see "MOC Treatment in Compaction" section above).
+Use `--include-mocs` to consider MOCs as compaction candidates.
 
 Constraints:
 - must be deterministic for the same underlying graph
@@ -221,6 +224,7 @@ Constraints:
 
 Recommended approach:
 - use graph methods to find dense, relatively self-contained clumps (community/clump detection)
+- exclude MOCs from clustering (they serve organizational purposes)
 - rank candidates by a combination of:
   - estimated total size (chars)
   - node count
@@ -282,6 +286,30 @@ This classification is available via `CompactionContext::classify_note()` and is
 - Metrics that distinguish tree depth and branching
 - Future filtering capabilities (e.g., "show only leaf sources")
 
+## MOC Treatment in Compaction
+
+MOCs (Maps of Content) are **excluded from compaction suggestions by default**.
+
+### Rationale
+
+1. **Structural purpose**: MOCs are organizational/navigation hubs meant to surface and structure content. Compacting them would hide their organizational structure, defeating their primary purpose.
+
+2. **Value alignment**: Per the value model (value-model.md), high-quality MOCs typically warrant high value (≥80). The compaction scoring algorithm already penalizes high-value notes, making MOCs poor compaction candidates.
+
+3. **Navigation preservation**: Compacting a MOC would break navigation paths that users/LLMs rely on for exploration. The `qipu prime` command specifically surfaces key MOCs as starting points.
+
+### Implementation
+
+- **`qipu compact suggest`**: Excludes MOCs by default from candidate clusters
+- **`qipu compact suggest --include-mocs`**: Opt-in flag to include MOCs in suggestions (rarely needed)
+- **`qipu compact apply`**: No restriction - users can still manually compact a MOC if they explicitly choose to
+
+### When to Compact MOCs
+
+Manual compaction of MOCs may be appropriate in rare cases:
+- An experimental/draft MOC that was superseded by a better-organized one
+- A MOC that has been fully subsumed by a digest covering the same domain
+- Cleanup of abandoned organizational attempts
+
 ## Open questions
 - Should qipu support "inactive" compaction edges for history (versioning), or only one active mapping?
-- Should compaction suggestions default to excluding MOCs/spec notes, or treat them like normal notes?

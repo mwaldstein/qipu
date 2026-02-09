@@ -102,10 +102,10 @@ fn output_records(candidates: &[CompactionCandidate]) {
 }
 
 /// Execute `qipu compact suggest`
-pub fn execute(cli: &Cli, root: &Path) -> Result<()> {
+pub fn execute(cli: &Cli, root: &Path, include_mocs: bool) -> Result<()> {
     let start = Instant::now();
     if cli.verbose {
-        debug!("suggest_params");
+        debug!(suggest_params = ?include_mocs);
     }
 
     let store = discover_compact_store(cli, root)?;
@@ -123,7 +123,7 @@ pub fn execute(cli: &Cli, root: &Path) -> Result<()> {
         debug!(note_count = all_notes.len(), "build_compaction_context");
     }
 
-    let candidates = ctx.suggest(&store, &index)?;
+    let candidates = ctx.suggest(&store, &index, include_mocs)?;
 
     if cli.verbose {
         debug!(

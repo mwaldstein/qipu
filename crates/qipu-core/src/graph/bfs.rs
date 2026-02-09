@@ -4,8 +4,8 @@ use crate::compaction::CompactionContext;
 use crate::error::Result;
 use crate::graph::algos::dijkstra::HeapEntry;
 use crate::graph::types::{
-    filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, PathResult, TreeLink,
-    TreeNote, TreeOptions, DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
+    filter_edge, get_edge_cost, get_link_type_cost, Direction, HopCost, PathResult, TreeOptions,
+    DIRECTION_BOTH, DIRECTION_IN, DIRECTION_OUT,
 };
 use crate::graph::GraphProvider;
 use crate::index::Edge;

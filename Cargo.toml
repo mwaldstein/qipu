@@ -51,7 +51,7 @@ walkdir = "2"
 slug = "0.1"
 
 # Interactive prompts (fzf-style pickers)
-inquire = { version = "0.9", default-features = false, features = ["termion"] }
+inquire = { version = "0.9", default-features = false, features = ["crossterm"] }
 atty = "0.2"
 
 [dev-dependencies]

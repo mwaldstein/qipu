@@ -3,7 +3,6 @@
 //! Per spec (specs/cli-interface.md, specs/indexing-search.md):
 //! - `qipu index` - build/refresh indexes
 //! - `qipu index --rebuild` - drop and regenerate
-//! //!
 #![allow(clippy::if_same_then_else)]
 
 mod filters;

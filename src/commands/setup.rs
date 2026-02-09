@@ -35,15 +35,11 @@ fn get_agents_md_path(cli: &Cli) -> PathBuf {
     }
 }
 
-fn validate_tool_name(tool: &str) -> Result<&str, QipuError> {
-    let normalized = tool.to_lowercase().replace('_', "-");
-    if normalized != "agents-md" {
-        bail_usage!(format!(
-            "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
-            tool
-        ));
+fn get_cursor_rules_path(cli: &Cli) -> PathBuf {
+    match &cli.root {
+        Some(root) => root.join(".cursor").join("rules").join("qipu.mdc"),
+        None => PathBuf::from(".cursor").join("rules").join("qipu.mdc"),
     }
-    Ok(tool)
 }
 
 const AGENTS_MD_CONTENT: &str = r#"# Qipu Agent Integration
@@ -133,7 +129,7 @@ qipu inbox --exclude-linked
 Add to your project's `AGENTS.md` file (this file is automatically loaded by these tools).
 
 ### Cursor
-Add to your `.cursorrules` file or project instructions.
+Install cursor rules: `qipu setup cursor`
 
 ### Other Agent Tools
 Refer to your tool's documentation for adding custom instructions or tool integrations.
@@ -150,6 +146,91 @@ For stealth mode (gitignored): `qipu init --stealth`
 
 Run `qipu --help` for complete command reference.
 Visit the qipu repository for full documentation.
+"#;
+
+const CURSOR_RULES_CONTENT: &str = r#"---
+description: Qipu Knowledge Management Integration
+glob: "**/*"
+---
+
+# Qipu Knowledge Management
+
+You have access to qipu, a Zettelkasten-inspired knowledge management CLI for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
+
+## Critical: Always Use the CLI
+
+**Never directly read files from `.qipu/notes/` or `.qipu/mocs/`.** Always use the qipu CLI commands:
+
+- The CLI provides consistent formatting (human, json, records)
+- Budget control with `--max-chars` ensures you stay within context limits
+- Graph context is preserved (links, tags, relationships are resolved correctly)
+- Compaction and other internal features work correctly via CLI queries
+
+## Core Commands
+
+- `qipu prime` - Get a session-start primer (store overview, key MOCs, recent notes)
+- `qipu create <title>` - Create a new note
+- `qipu capture` - Capture note from stdin
+- `qipu list` - List notes (filter by --tag, --type, --since)
+- `qipu show <id>` - Display a note
+- `qipu search <query>` - Search notes by title and body
+- `qipu inbox` - Show unprocessed notes (fleeting/literature)
+- `qipu context` - Build context bundle for LLM (use --note, --tag, --moc, or --query to select)
+- `qipu link list <id>` - List links for a note
+- `qipu link tree <id>` - Show link tree (graph neighborhood)
+- `qipu link path <from> <to>` - Find path between notes
+
+## Output Formats
+
+All commands support `--format <human|json|records>`:
+- `human` - Human-readable (default)
+- `json` - Machine-readable structured output
+- `records` - Line-oriented format optimized for context injection
+
+## Example Workflows
+
+**Session Start:**
+```bash
+qipu prime --format records
+```
+
+**Capture Research:**
+```bash
+qipu create "Paper: XYZ" --type literature --tag paper
+echo "Key findings..." | qipu capture --title "Insights from XYZ"
+```
+
+**Build Context for a Task:**
+```bash
+# Get overview first
+qipu link tree <topic-note-id> --max-hops 2 --format records --max-chars 8000
+
+# Then fetch full content for selected notes
+qipu context --note <id1> --note <id2> --format records --with-body --max-chars 16000
+```
+
+**Explore Knowledge:**
+```bash
+qipu search "compaction" --format json
+qipu link list <id> --direction both --format json
+qipu inbox --exclude-linked
+```
+
+## Best Practices
+
+1. **Progressive Disclosure**: Use `qipu link tree` with `--max-chars` to get summaries, then `qipu context --with-body` for details
+2. **Deterministic Output**: All commands produce stable, deterministic output for reproducible workflows
+3. **Budgeting**: Use `--max-chars` to fit within context limits
+4. **Types**: Use note types (fleeting, literature, permanent, moc) to organize knowledge lifecycle
+5. **Links**: Use typed links (derived-from, supports, contradicts, part-of) for explicit relationships
+
+## Store Location
+
+Qipu stores are discovered by walking up from the current directory looking for `.qipu/` or `qipu/`.
+
+To create a store: `qipu init`
+
+For stealth mode (gitignored): `qipu init --stealth`
 "#;
 
 /// Execute the setup command
@@ -173,13 +254,33 @@ pub fn execute(
 
     // Handle <tool> with optional --check or --remove
     if let Some(tool_name) = tool {
+        let normalized = tool_name.to_lowercase().replace('_', "-");
+        let valid = ["agents-md", "cursor"];
+        if !valid.contains(&normalized.as_str()) {
+            bail_usage!(format!(
+                "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
+                tool_name
+            ));
+        }
         if check {
-            return execute_check(cli, tool_name);
+            return match normalized.as_str() {
+                "agents-md" => execute_check_agents_md(cli),
+                "cursor" => execute_check_cursor(cli),
+                _ => unreachable!(),
+            };
         }
         if remove {
-            return execute_remove(cli, tool_name);
+            return match normalized.as_str() {
+                "agents-md" => execute_remove_agents_md(cli),
+                "cursor" => execute_remove_cursor(cli),
+                _ => unreachable!(),
+            };
         }
-        return execute_install(cli, tool_name);
+        return match normalized.as_str() {
+            "agents-md" => execute_install_agents_md(cli),
+            "cursor" => execute_install_cursor(cli),
+            _ => unreachable!(),
+        };
     }
 
     // No flags specified - show usage
@@ -213,11 +314,18 @@ pub fn execute_onboard(cli: &Cli) -> Result<(), QipuError> {
 fn execute_list(cli: &Cli) -> Result<(), QipuError> {
     output_by_format!(cli.format,
         json => {
-            let integrations = vec![serde_json::json!({
-                "name": "agents-md",
-                "description": "AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)",
-                "status": "available"
-            })];
+            let integrations = vec![
+                serde_json::json!({
+                    "name": "agents-md",
+                    "description": "AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)",
+                    "status": "available"
+                }),
+                serde_json::json!({
+                    "name": "cursor",
+                    "description": "Cursor IDE rules (.cursor/rules/qipu.mdc)",
+                    "status": "available"
+                }),
+            ];
             println!("{}", serde_json::to_string_pretty(&integrations)?);
         },
         human => {
@@ -229,11 +337,16 @@ fn execute_list(cli: &Cli) -> Result<(), QipuError> {
             );
             println!("    Usage: qipu setup agents-md");
             println!();
+            println!("  cursor");
+            println!("    Cursor IDE project rules");
+            println!("    Usage: qipu setup cursor");
+            println!();
             println!("Run `qipu setup <integration>` to install.");
         },
         records => {
-            println!("H qipu=1 records=1 mode=setup.list integrations=1");
+            println!("H qipu=1 records=1 mode=setup.list integrations=2");
             println!("D integration name=agents-md description=\"AGENTS.md standard (OpenCode, Cline, Roo-Cline, etc.)\" status=available");
+            println!("D integration name=cursor description=\"Cursor IDE rules (.cursor/rules/qipu.mdc)\" status=available");
         }
     );
     Ok(())
@@ -241,6 +354,7 @@ fn execute_list(cli: &Cli) -> Result<(), QipuError> {
 
 /// Print integration instructions to stdout
 fn execute_print(cli: &Cli) -> Result<(), QipuError> {
+    // Default to agents-md content for --print flag
     output_by_format!(cli.format,
         json => {
             let output = serde_json::json!({
@@ -260,10 +374,8 @@ fn execute_print(cli: &Cli) -> Result<(), QipuError> {
     Ok(())
 }
 
-/// Install integration for a specific tool
-fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    validate_tool_name(tool)?;
-
+/// Install AGENTS.md integration
+fn execute_install_agents_md(cli: &Cli) -> Result<(), QipuError> {
     let agents_md_path = get_agents_md_path(cli);
     if agents_md_path.exists() {
         return output_by_format!(cli.format,
@@ -317,10 +429,70 @@ fn execute_install(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     )
 }
 
-/// Check if integration is installed
-fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    validate_tool_name(tool)?;
+/// Install Cursor rules integration
+fn execute_install_cursor(cli: &Cli) -> Result<(), QipuError> {
+    let cursor_rules_path = get_cursor_rules_path(cli);
 
+    // Create .cursor/rules directory if it doesn't exist
+    let rules_dir = cursor_rules_path.parent().unwrap();
+    if !rules_dir.exists() {
+        std::fs::create_dir_all(rules_dir)?;
+    }
+
+    if cursor_rules_path.exists() {
+        return output_by_format!(cli.format,
+            json => {
+                print_json_status(
+                    "exists",
+                    Some("Cursor rules already exist. Use `cat .cursor/rules/qipu.mdc` to see the current content."),
+                    &[("path", serde_json::json!(".cursor/rules/qipu.mdc"))],
+                )
+            },
+            human => {
+                println!("Cursor rules already exist (.cursor/rules/qipu.mdc).");
+                println!();
+                println!("To see the content, run:");
+                println!("  cat .cursor/rules/qipu.mdc");
+                println!();
+                println!("To update, manually edit the file or remove it and reinstall.");
+                Ok(())
+            },
+            records => {
+                print_records_header("setup.install", &[("integration", "cursor"), ("status", "exists")]);
+                print_records_data("message", "Cursor rules already exist (.cursor/rules/qipu.mdc).");
+                Ok(())
+            }
+        );
+    }
+
+    std::fs::write(&cursor_rules_path, CURSOR_RULES_CONTENT)?;
+
+    output_by_format_result!(cli.format,
+        json => print_json_status(
+            "installed",
+            Some("Cursor rules created successfully"),
+            &[("path", serde_json::json!(".cursor/rules/qipu.mdc"))],
+        ),
+        human => {
+            println!("✓ Created .cursor/rules/qipu.mdc");
+            println!();
+            println!("Integration complete! Cursor will automatically apply these rules");
+            println!("when working in this directory.");
+            println!();
+            println!("Try running: qipu prime");
+        },
+        records => {
+            print_records_header(
+                "setup.install",
+                &[("integration", "cursor"), ("status", "installed")],
+            );
+            print_records_data("path", ".cursor/rules/qipu.mdc");
+        }
+    )
+}
+
+/// Check if AGENTS.md integration is installed
+fn execute_check_agents_md(cli: &Cli) -> Result<(), QipuError> {
     let agents_md_path = get_agents_md_path(cli);
     let exists = agents_md_path.exists();
 
@@ -357,10 +529,46 @@ fn execute_check(cli: &Cli, tool: &str) -> Result<(), QipuError> {
     )
 }
 
-/// Remove integration
-fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
-    validate_tool_name(tool)?;
+/// Check if Cursor rules integration is installed
+fn execute_check_cursor(cli: &Cli) -> Result<(), QipuError> {
+    let cursor_rules_path = get_cursor_rules_path(cli);
+    let exists = cursor_rules_path.exists();
 
+    output_by_format_result!(cli.format,
+        json => {
+            let output = serde_json::json!({
+                "integration": "cursor",
+                "installed": exists,
+                "path": if exists { Some(cursor_rules_path.display().to_string()) } else { None }
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok(())
+        },
+        human => {
+            if exists {
+                println!("✓ Cursor rules integration is installed");
+                println!("  Path: .cursor/rules/qipu.mdc");
+            } else {
+                println!("✗ Cursor rules integration is not installed");
+                println!();
+                println!("Run `qipu setup cursor` to install.");
+            }
+        },
+        records => {
+            let status = if exists { "installed" } else { "not-installed" };
+            print_records_header(
+                "setup.check",
+                &[("integration", "cursor"), ("status", status)],
+            );
+            if exists {
+                print_records_data("path", ".cursor/rules/qipu.mdc");
+            }
+        }
+    )
+}
+
+/// Remove AGENTS.md integration
+fn execute_remove_agents_md(cli: &Cli) -> Result<(), QipuError> {
     let agents_md_path = get_agents_md_path(cli);
 
     if !agents_md_path.exists() {
@@ -394,6 +602,46 @@ fn execute_remove(cli: &Cli, tool: &str) -> Result<(), QipuError> {
             print_records_header(
                 "setup.remove",
                 &[("integration", "agents-md"), ("status", "removed")],
+            );
+        }
+    )
+}
+
+/// Remove Cursor rules integration
+fn execute_remove_cursor(cli: &Cli) -> Result<(), QipuError> {
+    let cursor_rules_path = get_cursor_rules_path(cli);
+
+    if !cursor_rules_path.exists() {
+        return output_by_format!(cli.format,
+            json => {
+                print_json_status("not-found", Some("Cursor rules do not exist"), &[])
+            },
+            human => {
+                println!("Cursor rules do not exist (nothing to remove).");
+                Ok(())
+            },
+            records => {
+                print_records_header(
+                    "setup.remove",
+                    &[("integration", "cursor"), ("status", "not-found")],
+                );
+                Ok(())
+            }
+        );
+    }
+
+    // Remove cursor rules file
+    std::fs::remove_file(&cursor_rules_path)?;
+
+    output_by_format_result!(cli.format,
+        json => print_json_status("removed", Some("Cursor rules removed successfully"), &[]),
+        human => {
+            println!("✓ Removed .cursor/rules/qipu.mdc");
+        },
+        records => {
+            print_records_header(
+                "setup.remove",
+                &[("integration", "cursor"), ("status", "removed")],
             );
         }
     )

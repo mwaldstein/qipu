@@ -166,6 +166,13 @@ This is analogous to "retrieve a small index, then expand" patterns used in RAG 
 
 This supports progressive disclosure workflows where agents first retrieve a lightweight index (summaries), then selectively expand notes of interest by re-querying with `--with-body`.
 
+## Edge inclusion control
+
+**Link commands** (`link tree`, `link path`, `link list`): Edges are **included by default** via `E` lines because the primary purpose of these commands is to show relationships between notes. The edge lines follow the `N` and `S` lines for each connected note.
+
+**Non-link commands** (`context`, `prime`, etc.): Edges are **not included** because these commands focus on note content rather than graph structure.
+
+**No `--with-edges` flag exists**: Link commands always include edges in records output. If a use case emerges for link output without edges, a `--without-edges` flag could be added.
+
 ## Open questions
 - Should records output allow selecting a format version (e.g., `records=1` in the header) for stability?
-- Should records output include edges by default, or only with `--with-edges`?

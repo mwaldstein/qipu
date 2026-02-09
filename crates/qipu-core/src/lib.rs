@@ -6,6 +6,9 @@
 //! indexing, and search functionality. It can be used independently or as part of
 //! the qipu CLI application.
 
+// QipuError is intentionally rich with context; errors are exceptional paths
+#![allow(clippy::result_large_err)]
+
 pub mod compaction;
 pub mod config;
 pub mod db;

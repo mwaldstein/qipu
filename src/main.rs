@@ -3,6 +3,9 @@
 //! A command-line tool for capturing research, distilling insights,
 //! and navigating knowledge via links, tags, and Maps of Content.
 
+// QipuError is intentionally rich with context; errors are exceptional paths
+#![allow(clippy::result_large_err)]
+
 mod cli;
 mod commands;
 

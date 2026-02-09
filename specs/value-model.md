@@ -185,4 +185,16 @@ This preserves the link-type cost extension point while adding value-based weigh
 
 ## Open Questions
 - Should `value` influence search ranking by default, or only when explicitly sorted by value?
-- Should digest notes automatically receive a value boost (e.g., `min(80, value)`) during indexing?
+
+## Clarifications
+
+### Digest notes do NOT receive automatic value boost
+**Decision:** Digest notes do NOT automatically receive a value boost during indexing.
+
+**Rationale:**
+1. **Explicit over implicit**: The `value` field is designed as a manual "God mode" override. Silent automatic modification violates qipu's principle of explicit control.
+2. **Use case diversity**: Not all digests are high-value (e.g., draft digests, experimental summaries, or intentionally low-priority collections).
+3. **User agency**: The spec states digests "typically warrant high value (≥80)"—this is guidance for authors, not a rule for the system. Users should explicitly set digest values to signal importance.
+4. **Predictability**: Automatic boosting would surprise users who intentionally set low values on digest notes.
+
+**Recommendation:** When creating digests, authors should manually set `value: 80` or higher to signal that the digest represents distilled knowledge worthy of priority in traversals.

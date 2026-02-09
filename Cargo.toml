@@ -13,7 +13,7 @@ keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-qipu-core = { path = "crates/qipu-core" }
+qipu-core = { version = "0.3.27", path = "crates/qipu-core" }
 
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }

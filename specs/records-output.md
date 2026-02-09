@@ -99,12 +99,15 @@ B-END
 
 #### S-prefix mode-specific semantics
 
-The `S` prefix has different meanings depending on the output mode:
+The `S` prefix has different meanings depending on the output mode. This is intentional—the same letter represents semantically similar concepts ("stuff related to the note") that are mode-appropriate:
 
 | Mode | S-prefix meaning | Example |
 |------|------------------|---------|
-| `context`, `link` | Summary (first paragraph of note body) | `S qp-a1b2 First paragraph from body` |
+| `context`, `link`, `search`, `export` | Summary (first paragraph of note body) | `S qp-a1b2 First paragraph from body` |
 | `dump` (pack format) | Sources (bibliographic references) | `S qp-a1b2 url=https://example.com/paper` |
+| `materialize` | Skipped (link already exists) | `S qp-a1b2 supports qp-3e7a` |
+
+**Rationale for mode-specific semantics**: Records output is optimized for context injection, not serialization. The consuming tool always knows which command produced the output (via `mode=` in the header), so the meaning of `S` is unambiguous in context. Using the same prefix for conceptually similar data (note-related metadata) keeps the format concise while remaining human-debuggable.
 
 ### Extended prefixes (mode-specific)
 

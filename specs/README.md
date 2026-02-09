@@ -47,14 +47,14 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Spec | Impl | Tests | Notes |
 | --- | --- | --- | --- | --- |
 | `cli-tool.md` | ✅ | ✅ | ✅ | All tests implemented including performance tests |
-| `knowledge-model.md` | ✅ | ✅ | ⚠️ | All features working; missing MOC link validation (doctor should warn on empty MOCs) |
+| `knowledge-model.md` | ✅ | ✅ | ✅ | All features working; MOC link validation implemented (doctor warns on empty MOCs) |
 | `storage-format.md` | ✅ | ✅ | ✅ | All features implemented with path traversal protection |
 | `cli-interface.md` | ✅ | ✅ | ✅ | Exit codes correct per spec |
 | `indexing-search.md` | ✅ | ✅ | ✅ | Field weights correct (2.0/1.5/1.0); AND semantics working |
 | `semantic-graph.md` | ✅ | ✅ | ✅ | `show --links` correctly handles `--no-semantic-inversion`; tests complete |
 | `graph-traversal.md` | ✅ | ✅ | ✅ | Tree view correctly uses spanning_tree; hop limit is cost budget (spec ambiguity) |
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
-| `records-output.md` | ✅ | ✅ | ⚠️ | `via` annotation present; missing truncation/S-prefix tests |
+| `records-output.md` | ✅ | ✅ | ✅ | `via` annotation present; truncation/S-prefix tests complete |
 | `llm-context.md` | ✅ | ✅ | ✅ | Character budgeting implemented (4000-8000 chars); tests complete; `--max-tokens` intentionally removed |
 | `llm-user-validation.md` | ✅ | ✅ | ✅ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
 | `progressive-indexing.md` | ✅ | ✅ | ✅ | All features implemented: --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent |
@@ -66,7 +66,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `structured-logging.md` | ✅ | ✅ | ✅ | Core logging complete; all 5 levels supported; resource metrics P4 feature |
 | `operational-database.md` | ✅ | ✅ | ✅ | All features implemented; corruption detection + auto-rebuild working; auto-repair triggers incremental repair |
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
-| `distribution.md` | ✅ | ⚠️ | ✅ | Release workflow + install scripts work; Homebrew formula outdated (v0.2.43 vs 0.3.0); needs tap repo creation |
+| `distribution.md` | ✅ | ✅ | ✅ | Release workflow + install scripts work; Homebrew formula current (v0.3.8); tap repo creation is future infrastructure |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
 | `telemetry.md` | ✅ | ✅ | ✅ | Local collection complete; `telemetry show` implemented; remote endpoint stubbed pending infrastructure |
 
@@ -101,16 +101,16 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `cli-tool.md` | ✅ Test coverage complete | Tests: `tests/cli/misc.rs`, `tests/performance_tests.rs` |
 | `storage-format.md` | ✅ Test coverage complete | Security tests: discovery boundary (all project markers), malicious attachment paths |
 | `cli-interface.md` | ✅ Test coverage | JSON schema compliance tests for `update` and `inbox` commands added |
-| `indexing-search.md` | Test coverage | Missing test for relative `.md` links cross-directory edge case |
-| `semantic-graph.md` | Test coverage | Sparse inversion tests for context walk/dump |
-| `graph-traversal.md` | path command limits | --max-nodes, --max-edges, --max-fanout not wired in `dispatch/link.rs:114-128` |
-| `similarity-ranking.md` | Test coverage | Missing integration test for multi-word search queries |
+| `indexing-search.md` | ✅ Test coverage complete | Cross-directory relative `.md` link tests exist: `test_index_extracts_relative_path_markdown_links*()` |
+| `semantic-graph.md` | ✅ Test coverage complete | Semantic inversion tests for `show`, `context --walk`, and `dump` commands |
+| `graph-traversal.md` | ✅ Implementation complete | --max-nodes, --max-edges, --max-fanout wired in link path command |
+| `similarity-ranking.md` | ✅ Test coverage complete | Multi-word search test exists: `test_search_multi_word_and_semantics()` |
 | `records-output.md` | ✅ Test coverage complete | S-prefix tests exist; via tests exist; truncation tests exist |
 | `llm-context.md` | ✅ Test coverage complete | Tests for prime/context all formats, custom filters, budgets |
 | `pack.md` | ✅ Test coverage complete | 39 tests covering all selectors, strategies, traversal |
 | `workspaces.md` | ✅ Test coverage complete | 43 tests covering all commands and strategies |
 | `structured-logging.md` | ✅ Test coverage complete | 17 CLI tests for all log levels and JSON output |
-| `operational-database.md` | Test coverage | No FTS5 field weight tests; no WAL concurrent read tests |
+| `operational-database.md` | ✅ Test coverage complete | FTS5 field weight tests: `test_search_field_weighting_*()`; WAL tests: `test_wal_*()` |
 | `value-model.md` | ✅ Test coverage complete | 55+ tests covering all value features |
 | `export.md` | ✅ Test coverage complete | 19 test files, ~2878 lines covering all modes/formats |
 | `compaction.md` | ✅ Test coverage complete | 14 test files covering all commands and annotations |
@@ -130,9 +130,9 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | Spec | Gap | Priority | Notes |
 | --- | --- | --- | --- |
 | `knowledge-model.md` | ✅ FIXED: MOC link validation | P3 | Doctor warns when MOCs have zero links | `src/commands/doctor/content.rs:376-407`, tests in `src/commands/doctor/content/tests.rs:263-324` |
-| `distribution.md` | Homebrew formula update | P3 | Formula at v0.2.43, needs v0.3.0 + SHA256 + tap repo creation |
+| `distribution.md` | ✅ FIXED: Homebrew formula updated | P3 | Formula updated to v0.3.8; tap repo creation is future infrastructure | `distribution/homebrew-qipu/Formula/qipu.rb` |
 | `progressive-indexing.md` | ✅ FIXED: All indexing flags | P3 | --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent, --batch all implemented and tested | `src/commands/index.rs`, `tests/cli/index.rs` |
-| `records-output.md` | S-prefix semantic tests | P2 | Tests exist but spec documentation gap on mode-specific semantics |
+| `records-output.md` | ✅ FIXED: S-prefix semantic tests | P2 | Tests exist; spec documentation updated | `tests/cli/records/` |
 | `structured-logging.md` | Resource metrics | P4 | Memory/cache metrics not implemented (spec open question) |
 | `workspaces.md` | File reference integrity | P3 | External file links in note body not rewritten on workspace operations |
 | `graph-traversal.md` | ✅ FIXED: path command limits | P3 | --max-nodes, --max-edges, --max-fanout now passed to path command | `src/cli/link.rs`, `src/commands/dispatch/link.rs`, `crates/qipu-core/src/graph/bfs.rs` |

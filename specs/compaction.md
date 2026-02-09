@@ -311,5 +311,20 @@ Manual compaction of MOCs may be appropriate in rare cases:
 - A MOC that has been fully subsumed by a digest covering the same domain
 - Cleanup of abandoned organizational attempts
 
-## Open questions
-- Should qipu support "inactive" compaction edges for history (versioning), or only one active mapping?
+## Design Decisions
+
+### Compaction versioning/history: Single active mapping only
+
+**Decision**: Qipu maintains exactly one active compaction relationship per note. "Inactive" edges for versioning are not supported.
+
+**Rationale**:
+- **Simplicity**: Current frontmatter-based storage (`compacted: [ids]`) is unambiguous
+- **Determinism**: Canonicalization `canon(id)` follows a single chain without ambiguity
+- **YAGNI**: No concrete use case for historical tracking; compaction is already lossless (sources remain)
+- **Existing history**: Git tracks frontmatter changes; sources aren't deleted
+
+**If future need arises**, options include:
+1. Soft-delete with status flags in frontmatter
+2. Separate append-only compaction journal in `.qipu/`
+
+**Related**: "At most one active compactor per note" invariant (see Required invariants section).

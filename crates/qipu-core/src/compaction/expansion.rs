@@ -133,4 +133,69 @@ impl CompactionContext {
         let ratio = digest_size as f32 / expanded_size as f32;
         Some(100.0 * (1.0 - ratio))
     }
+
+    /// Calculate depth-aware compaction percentage for a digest
+    /// Returns compaction percentage considering all sources up to specified depth
+    /// Based on spec lines 175-176 in specs/compaction.md (optional depth-aware metrics)
+    /// Returns None if not a digest or expanded_size is 0
+    pub fn get_compaction_pct_at_depth(
+        &self,
+        digest: &Note,
+        note_map: &HashMap<&str, &Note>,
+        depth: u32,
+    ) -> Option<f32> {
+        // Check if this is a digest (has compacted notes)
+        self.get_compacted_notes(&digest.frontmatter.id)?;
+
+        // Calculate digest size using default (summary) basis
+        let digest_size = estimate_note_size(digest, SizeBasis::default());
+
+        // Get all compacted IDs up to specified depth
+        let (compacted_ids, _) = self.get_compacted_ids(&digest.frontmatter.id, depth, None)?;
+
+        // Calculate expanded size (sum of all sources up to depth)
+        let mut expanded_size = 0usize;
+        for source_id in &compacted_ids {
+            if let Some(note) = note_map.get(source_id.as_str()) {
+                expanded_size += estimate_note_size(note, SizeBasis::default());
+            }
+        }
+
+        // If expanded_size is 0, treat as 0% per spec
+        if expanded_size == 0 {
+            return Some(0.0);
+        }
+
+        // compaction_pct = 100 * (1 - digest_size / expanded_size)
+        let ratio = digest_size as f32 / expanded_size as f32;
+        Some(100.0 * (1.0 - ratio))
+    }
+
+    /// Calculate compaction metrics at multiple depths
+    /// Returns a map of depth -> compaction percentage
+    /// Useful for showing how compaction efficiency changes with depth
+    pub fn get_compaction_metrics_by_depth(
+        &self,
+        digest: &Note,
+        note_map: &HashMap<&str, &Note>,
+        max_depth: u32,
+    ) -> Option<HashMap<u32, f32>> {
+        // Check if this is a digest
+        self.get_compacted_notes(&digest.frontmatter.id)?;
+
+        let mut metrics = HashMap::new();
+
+        // Calculate metrics for each depth from 1 to max_depth
+        for depth in 1..=max_depth {
+            if let Some(pct) = self.get_compaction_pct_at_depth(digest, note_map, depth) {
+                metrics.insert(depth, pct);
+            }
+        }
+
+        if metrics.is_empty() {
+            None
+        } else {
+            Some(metrics)
+        }
+    }
 }

@@ -40,24 +40,38 @@ fn handle_empty_compaction(cli: &Cli, digest_id: &str) -> Result<()> {
 }
 
 /// Calculate compaction metrics (size reduction percentage)
+/// When depth > 1, calculates depth-aware metrics including all nested sources
 fn compute_compaction_metrics(
     store: &Store,
+    ctx: &CompactionContext,
     digest_id: &str,
     direct_compacts: &[String],
+    depth: u32,
 ) -> Result<f64> {
     let digest_note = store.get_note(digest_id)?;
-    let digest_size = estimate_size(&digest_note);
-    let mut expanded_size = 0;
-    for source_id in direct_compacts {
-        if let Ok(note) = store.get_note(source_id) {
-            expanded_size += estimate_size(&note);
+
+    if depth <= 1 {
+        // Original behavior: only direct sources
+        let digest_size = estimate_size(&digest_note);
+        let mut expanded_size = 0;
+        for source_id in direct_compacts {
+            if let Ok(note) = store.get_note(source_id) {
+                expanded_size += estimate_size(&note);
+            }
         }
-    }
-    Ok(if expanded_size > 0 {
-        100.0 * (1.0 - (digest_size as f64 / expanded_size as f64))
+        Ok(if expanded_size > 0 {
+            100.0 * (1.0 - (digest_size as f64 / expanded_size as f64))
+        } else {
+            0.0
+        })
     } else {
-        0.0
-    })
+        // Depth-aware metrics: include all sources up to specified depth
+        let all_notes = store.list_notes()?;
+        let note_map = CompactionContext::build_note_map(&all_notes);
+        Ok(ctx
+            .get_compaction_pct_at_depth(&digest_note, &note_map, depth)
+            .unwrap_or(0.0) as f64)
+    }
 }
 
 /// Build depth tree if depth > 1, with optional node limit
@@ -244,7 +258,8 @@ pub fn execute(cli: &Cli, root: &Path, digest_id: &str, depth: u32) -> Result<()
         return handle_empty_compaction(cli, digest_id);
     }
 
-    let compaction_pct = compute_compaction_metrics(&store, digest_id, &direct_compacts)?;
+    let compaction_pct =
+        compute_compaction_metrics(&store, &ctx, digest_id, &direct_compacts, depth)?;
     let depth_tree =
         build_depth_tree_if_needed(&store, &ctx, digest_id, depth, cli.compaction_max_nodes)?;
 

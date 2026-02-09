@@ -176,6 +176,40 @@ fn test_telemetry_status_respects_no_telemetry_env() {
 }
 
 // =============================================================================
+// Telemetry show command
+// =============================================================================
+
+#[test]
+fn test_telemetry_show_shows_status_when_disabled() {
+    let config_dir = tempdir().unwrap();
+
+    qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .args(["telemetry", "show"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Telemetry status: disabled"))
+        .stdout(predicate::str::contains("No pending telemetry events"));
+}
+
+#[test]
+fn test_telemetry_show_shows_status_when_enabled() {
+    let config_dir = tempdir().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+
+    // Create config with telemetry enabled
+    fs::write(&config_path, "telemetry_enabled = true\n").unwrap();
+
+    qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .args(["telemetry", "show"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Telemetry status: enabled"))
+        .stdout(predicate::str::contains("No pending telemetry events"));
+}
+
+// =============================================================================
 // Integration: full enable/disable/status cycle
 // =============================================================================
 

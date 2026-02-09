@@ -2,6 +2,8 @@
 
 use qipu_core::config::GlobalConfig;
 use qipu_core::error::Result;
+use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig, TelemetryEvent};
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub enum TelemetrySource {
@@ -57,6 +59,110 @@ pub fn handle_status() -> Result<()> {
         TelemetrySource::Default => "default (disabled)".to_string(),
     };
     println!("Source: {}", source_str);
+
+    Ok(())
+}
+
+pub fn handle_show() -> Result<()> {
+    let config = TelemetryConfig::default();
+    let collector = TelemetryCollector::new(config.clone());
+
+    println!(
+        "Telemetry status: {}\n",
+        if config.enabled {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+
+    // Load events from disk
+    let events_dir = &config.events_dir;
+    let events_file = events_dir.join("events.jsonl");
+
+    let mut all_events: Vec<TelemetryEvent> = Vec::new();
+
+    if events_file.exists() {
+        let content =
+            fs::read_to_string(&events_file).map_err(|e| qipu_core::error::QipuError::Io(e))?;
+
+        for line in content.lines() {
+            if let Ok(event) = serde_json::from_str::<TelemetryEvent>(line) {
+                all_events.push(event);
+            }
+        }
+    }
+
+    // Also add in-memory events
+    let pending = collector.get_pending_events();
+    all_events.extend(pending);
+
+    if all_events.is_empty() {
+        println!("No pending telemetry events.");
+        return Ok(());
+    }
+
+    println!("Pending telemetry events ({}):", all_events.len());
+    println!("{}", "=".repeat(50));
+
+    for (i, event) in all_events.iter().enumerate() {
+        match event {
+            TelemetryEvent::CommandExecuted {
+                timestamp,
+                command,
+                success,
+                duration,
+                error,
+            } => {
+                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
+                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                    .unwrap_or_else(|| timestamp.to_string());
+
+                let status = if *success {
+                    "✓ success"
+                } else {
+                    "✗ failed"
+                };
+                let err_str = error
+                    .map(|e| format!(" [{}]", format!("{:?}", e).to_lowercase()))
+                    .unwrap_or_default();
+
+                println!(
+                    "{}. [{}] Command: {} - {} (duration: {:?}){}",
+                    i + 1,
+                    dt,
+                    command.as_str(),
+                    status,
+                    duration,
+                    err_str
+                );
+            }
+            TelemetryEvent::SessionStats {
+                timestamp,
+                os_platform,
+                app_version,
+                workspace_count,
+                note_count,
+            } => {
+                let dt = chrono::DateTime::from_timestamp(*timestamp, 0)
+                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                    .unwrap_or_else(|| timestamp.to_string());
+
+                println!(
+                    "{}. [{}] Session stats - OS: {}, Version: {}, Workspaces: {:?}, Notes: {:?}",
+                    i + 1,
+                    dt,
+                    os_platform,
+                    app_version,
+                    workspace_count,
+                    note_count
+                );
+            }
+        }
+    }
+
+    println!("\n{}", "=".repeat(50));
+    println!("Total events ready for upload: {}", all_events.len());
 
     Ok(())
 }

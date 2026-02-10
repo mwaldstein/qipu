@@ -1,50 +1,46 @@
 # Build Task
 
-Execute exactly ONE atomic change from beads.
+Execute exactly ONE atomic change from beads. Refer to AGENTS.md for commands, conventions, and style.
 
 ## Phase 1: Select ONE Task
 
-Run `bd ready` to find unblocked work and choose the **first applicable** item:
-1. **P1** correctness issues (first unfinished)
-2. **P2** test coverage gaps (first untested area)
-3. **P3** spec-implementation gaps (first unimplemented item)
+Run `bd ready` and choose the **first applicable** item:
+1. **P1** correctness issues
+2. **P2** test coverage gaps
+3. **P3** spec-implementation gaps
 
-**Declare your selection**: State the exact task before proceeding (e.g., "TASK: qipu-abc - Add capture command tests").
+**Declare your selection** before proceeding (e.g., "TASK: qipu-abc - Add capture command tests").
 
 ## Phase 2: Implement
-1. Search codebase first—don't assume unimplemented
-2. If spec clarification needed, read relevant `specs/*.md` file
-3. Implement completely—no stubs or placeholders
-4. Run `cargo test` to verify—all tests must pass before proceeding
+1. Implement completely—no stubs or placeholders
+2. Run `cargo test` to verify
 
-If `cargo test` reports any failures:
-- If failures are caused by your change: fix them immediately before doing anything else.
-- If failures appear unrelated: use `bd create` to create a P1 task capturing the failures so they are tracked.
-  - Include: failing test names/count, suspected cause if known, and a short plan to resolve.
+**If tests fail: STOP.** Do not proceed to Phase 3.
+- Failures caused by your change: fix them, re-run tests
+- Failures unrelated to your change: `bd create` a P1 capturing the failures (test names, suspected cause, resolution plan). Do not continue—the build is broken.
 
 ## Phase 3: Finalize
-1. Close completed task:
-   ```bash
-   bd close <issue-id>
-   ```
-2. If all tests pass:
+1. `bd close <issue-id>`
+2. Commit, sync, push:
    ```bash
    git add -A && git commit -m "<type>: <description>"
    bd sync
    git push
    ```
-   Commit types: `fix`, `feat`, `test`, `docs`, `refactor`
-3. If `cargo test` shows zero failures AND no P1 items remain (`bd list --priority 1`):
-   - Get last tag: `git describe --tags --abbrev=0 2>/dev/null || echo "none"`
-   - Create next tag: increment patch (or start at `v0.0.1`)
+3. **Consider tagging a release** — review the following before deciding:
+   - `bd list --priority 1` — any open P1s? If yes, do NOT tag.
+   - `bd list` — review open ticket volume and priorities
+   - `git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline` — review work since last tag
+   - Look ahead: if remaining open tickets would complete an epic or feature shortly, it may be better to wait and ship a cohesive release (e.g., 3 of 5 search-rewrite tasks done — wait for the last 2 rather than tagging a partial).
+   - Tag only if: no P1s, meaningful user-facing changes accumulated, and the tree is stable.
+   - Increment patch (or start at `v0.0.1`).
 
 ---
 
 ## Rules
-- **One task per run**: Complete one item fully before stopping
-- **No stubs**: Every implementation must be functional
-- **Fix what you break**: If your change causes test failures, fix them
-- **Use bd**: `bd ready` to find work, `bd close` when done, `bd sync` before push
-- **AGENTS.md**: Commands only; timeless operational facts
-- **Specs wrong?**: Update `specs/*.md` directly
+- **One task per run**: complete one item fully before stopping
+- **No stubs**: every implementation must be functional
+- **Fix what you break**: if your change causes test failures, fix them
+- **Broken build = stop**: never finalize or tag with failing tests
+- **Specs wrong?**: update `specs/*.md` directly
 - **If no changes required:** COMPLETE

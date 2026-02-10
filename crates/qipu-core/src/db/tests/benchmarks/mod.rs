@@ -73,10 +73,10 @@ pub fn find_note_by_title(store: &Store, title_pattern: &str) -> Option<String> 
 }
 
 #[cfg(test)]
-mod search;
+mod backlinks;
 #[cfg(test)]
 mod list;
 #[cfg(test)]
-mod backlinks;
+mod search;
 #[cfg(test)]
 mod traversal;

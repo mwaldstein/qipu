@@ -11,7 +11,10 @@ pub fn build_link_maps(notes: &[Note]) -> (HashMap<String, String>, HashMap<Stri
         let path = note
             .path
             .as_ref()
-            .map(|p| p.display().to_string())
+            .map(|p| {
+                // Use forward slashes for cross-platform markdown compatibility
+                p.to_string_lossy().replace('\\', "/")
+            })
             .unwrap_or_else(|| format!("{}.md", id));
         let anchor = format!("#note-{}", id);
         body_map.insert(id.clone(), path);

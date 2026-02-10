@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.32] - 2026-02-10
+
 ### Removed
 
 - **BREAKING**: Removed interactive picker (`--interactive` / `-i` flag) from `list`, `search`, and `inbox` commands. This feature was undocumented, untested, and violated the spec-first principle. Users relying on fzf-style selection should use external tools like `fzf` piped with the JSON output format instead:

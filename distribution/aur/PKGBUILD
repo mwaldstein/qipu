@@ -1,6 +1,6 @@
 # Maintainer: Micah Waldstein <micah@waldstein.dev>
 pkgname=qipu-bin
-pkgver=0.3.27
+pkgver=0.3.32
 pkgrel=1
 pkgdesc="A Zettelkasten-inspired knowledge management CLI"
 arch=('x86_64' 'aarch64')

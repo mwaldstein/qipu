@@ -9,22 +9,65 @@ Step-by-step guide for publishing a qipu release. Current state is partially aut
 git checkout main
 git pull origin main
 
-# 2. Version bump - edit Cargo.toml version fields in both crates
-#    - qipu/Cargo.toml
-#    - crates/qipu-core/Cargo.toml
+# 2. Determine next version from tags/releases (do this first)
+#    - git tag --sort=-v:refname | head
+#    - git ls-remote --tags origin
+#    - gh release list --limit 10
+#    - next = latest released/tagged patch + 1
 
-# 3. Update CHANGELOG.md
+# 3. Version bump - update all version locations (see checklist below)
 
-# 4. Commit version bump
+# 4. Update CHANGELOG.md
+
+# 5. Commit version bump
 git add .
 git commit -m "chore: bump version to X.Y.Z"
 
-# 5. Tag and push
+# 6. Tag and push
 git tag vX.Y.Z
 git push origin main
 git push origin vX.Y.Z
 
-# 6. Push tag, wait for release workflow, then update all manifests (see sections below)
+# 7. Push tag, wait for release workflow, then update hashes/manifests (see sections below)
+```
+
+## Pre-Bump Version Check Checklist
+
+Before editing files:
+
+- [ ] `git tag --sort=-v:refname | head -n 20` to inspect latest local semver tags
+- [ ] `git ls-remote --tags origin | grep -E 'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'` to inspect remote tags
+- [ ] `gh release list --limit 20` to inspect latest GitHub releases (published + drafts)
+- [ ] Pick `X.Y.Z` from latest published/tagged release line, not from local working files
+
+## Version Change Locations Checklist
+
+For each release `X.Y.Z`, update all of these:
+
+- [ ] `Cargo.toml` (`[package].version`, `qipu-core` dependency version, `[package.metadata.rpm].version`)
+- [ ] `crates/qipu-core/Cargo.toml` (`[package].version`)
+- [ ] `Cargo.lock` (`qipu` + `qipu-core` package entries; regenerate via `cargo build`/`cargo test`)
+- [ ] `CHANGELOG.md` (new release heading/date)
+- [ ] `tests/golden/version.txt`
+- [ ] `distribution/homebrew-qipu/Formula/qipu.rb` (version, URLs, SHA256)
+- [ ] `distribution/aur/PKGBUILD` (`pkgver`, sources, SHA256)
+- [ ] `distribution/aur/.SRCINFO` (regenerate from `PKGBUILD`)
+- [ ] `distribution/scoop/qipu.json` (version, URL, hash)
+- [ ] `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.installer.yaml`
+- [ ] `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.locale.en-US.yaml`
+- [ ] `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.yaml`
+
+Validation commands:
+
+```bash
+# Ensure target version appears where expected
+grep -R "X.Y.Z" Cargo.toml crates/qipu-core/Cargo.toml CHANGELOG.md tests/golden/version.txt distribution
+
+# Ensure prior release version does not remain in active manifests
+grep -R "OLD.X.Y" distribution/homebrew-qipu distribution/aur distribution/scoop
+
+# Winget keeps historical dirs. Confirm new one exists:
+ls distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z
 ```
 
 ## Automated Steps (GitHub Actions)

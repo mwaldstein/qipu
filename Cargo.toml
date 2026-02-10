@@ -3,7 +3,7 @@ members = [".", "crates/qipu-core"]
 
 [package]
 name = "qipu"
-version = "0.3.27"
+version = "0.3.32"
 edition = "2021"
 description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
 authors = ["Qipu Contributors"]
@@ -13,7 +13,7 @@ keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-qipu-core = { version = "0.3.27", path = "crates/qipu-core" }
+qipu-core = { version = "0.3.32", path = "crates/qipu-core" }
 
 # CLI argument parsing
 clap = { version = "4", features = ["derive", "env"] }
@@ -93,7 +93,7 @@ and graph traversal capabilities."""
 # RPM package configuration (cargo-rpm)
 [package.metadata.rpm]
 name = "qipu"
-version = "0.3.27"
+version = "0.3.32"
 license = "MIT"
 summary = "Zettelkasten-inspired knowledge management CLI"
 group = "Applications/System"

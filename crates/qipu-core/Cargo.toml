@@ -1,6 +1,6 @@
 [package]
 name = "qipu-core"
-version = "0.3.27"
+version = "0.3.32"
 edition = "2021"
 description = "Core domain logic for Qipu knowledge management system"
 authors = ["Qipu Contributors"]

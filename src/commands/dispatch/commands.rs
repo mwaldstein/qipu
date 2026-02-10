@@ -107,7 +107,6 @@ pub(super) mod dispatch_command {
                 min_value: args.min_value,
                 custom: args.custom.as_deref(),
                 show_custom: args.show_custom,
-                interactive: args.interactive,
                 start: ctx.start,
             },
         )
@@ -125,13 +124,7 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_inbox(ctx: &CommandContext, args: &InboxArgs) -> Result<()> {
-        notes::handle_inbox(
-            ctx.cli,
-            ctx.root,
-            args.exclude_linked,
-            args.interactive,
-            ctx.start,
-        )
+        notes::handle_inbox(ctx.cli, ctx.root, args.exclude_linked, ctx.start)
     }
 
     fn execute_capture(ctx: &CommandContext, args: &CaptureArgs) -> Result<()> {
@@ -169,7 +162,6 @@ pub(super) mod dispatch_command {
             args.exclude_mocs,
             args.min_value,
             args.sort.as_deref(),
-            args.interactive,
             ctx.start,
         )
     }

@@ -19,7 +19,7 @@ fn test_list_with_compaction_resolved() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -40,7 +40,7 @@ fn test_list_with_compaction_disabled() {
     let mut cli = create_cli(OutputFormat::Human, false);
     cli.no_resolve_compaction = true;
 
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -65,7 +65,7 @@ fn test_list_with_compaction_ids() {
     let mut cli = create_cli(OutputFormat::Human, false);
     cli.with_compaction_ids = true;
 
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -86,7 +86,7 @@ fn test_list_with_compaction_ids_depth() {
     cli.with_compaction_ids = true;
     cli.compaction_depth = Some(2);
 
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -121,7 +121,7 @@ fn test_list_compaction_annotations_human() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Human, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -145,7 +145,7 @@ fn test_list_compaction_annotations_json() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Json, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -169,7 +169,7 @@ fn test_list_compaction_annotations_records() {
     store.save_note(&mut digest).unwrap();
 
     let cli = create_cli(OutputFormat::Records, false);
-    let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+    let result = list::execute(&cli, &store, None, None, None, None, None, false);
     assert!(result.is_ok());
 }
 
@@ -193,7 +193,7 @@ fn test_list_all_formats_compaction_with_ids() {
     ] {
         let mut cli = create_cli(format, false);
         cli.with_compaction_ids = true;
-        let result = list::execute(&cli, &store, None, None, None, None, None, false, false);
+        let result = list::execute(&cli, &store, None, None, None, None, None, false);
         assert!(result.is_ok());
     }
 }

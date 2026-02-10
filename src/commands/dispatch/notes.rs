@@ -7,7 +7,6 @@ use chrono::DateTime;
 
 use crate::cli::{Cli, OutputFormat};
 use crate::commands;
-use crate::commands::picker::{pick_single, PickerItem};
 use qipu_core::error::{QipuError, Result};
 use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
@@ -49,7 +48,6 @@ pub struct ListOptions<'a> {
     pub min_value: Option<u8>,
     pub custom: Option<&'a str>,
     pub show_custom: bool,
-    pub interactive: bool,
     pub start: Instant,
 }
 
@@ -75,7 +73,6 @@ pub(super) fn handle_list(cli: &Cli, root: &Path, opts: ListOptions<'_>) -> Resu
         opts.min_value,
         opts.custom,
         opts.show_custom,
-        opts.interactive,
     )?;
     trace_command!(cli, opts.start, "execute_command");
     Ok(())
@@ -100,7 +97,6 @@ pub(super) fn handle_inbox(
     cli: &Cli,
     root: &Path,
     exclude_linked: bool,
-    interactive: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -142,24 +138,6 @@ pub(super) fn handle_inbox(
             }
         }
         inbox_notes.retain(|n| !linked_from_mocs.contains(n.id()));
-    }
-
-    // Handle interactive picker mode
-    if interactive {
-        if inbox_notes.is_empty() {
-            if !cli.quiet {
-                println!("No notes in inbox");
-            }
-            return Ok(());
-        }
-
-        let items: Vec<PickerItem> = inbox_notes.iter().map(PickerItem::from_note).collect();
-
-        if let Some(selected_id) = pick_single(&items, "Select a note from inbox")? {
-            // Output just the selected ID for piping to other commands
-            println!("{}", selected_id);
-        }
-        return Ok(());
     }
 
     output_inbox_notes(cli, &store, &inbox_notes)?;
@@ -342,7 +320,6 @@ pub(super) fn handle_search(
     exclude_mocs: bool,
     min_value: Option<u8>,
     sort: Option<&str>,
-    interactive: bool,
     start: Instant,
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
@@ -356,7 +333,6 @@ pub(super) fn handle_search(
         exclude_mocs,
         min_value,
         sort,
-        interactive,
     )?;
     trace_command!(cli, start, "execute_command");
     Ok(())

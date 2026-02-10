@@ -6,7 +6,6 @@
 //! - `--tag` filter
 //! - Result ranking: title > exact tag > body, recency boost
 //! - Compaction resolution (specs/compaction.md): show canonical digests with via= annotations
-//! - `--interactive` - fzf-style picker for selecting from results
 
 pub mod format;
 
@@ -15,7 +14,6 @@ use std::time::Instant;
 use tracing::debug;
 
 use crate::cli::Cli;
-use crate::commands::picker::{pick_single, PickerItem};
 use qipu_core::compaction::CompactionContext;
 use qipu_core::error::Result;
 use qipu_core::note::NoteType;
@@ -35,7 +33,6 @@ pub fn execute(
     exclude_mocs: bool,
     min_value: Option<u8>,
     sort: Option<&str>,
-    interactive: bool,
 ) -> Result<()> {
     let start = Instant::now();
 
@@ -104,25 +101,6 @@ pub fn execute(
         exclude_mocs,
         sort,
     );
-
-    // Handle interactive picker mode
-    if interactive {
-        let items: Vec<PickerItem> = results.iter().map(PickerItem::from_search_result).collect();
-
-        if items.is_empty() {
-            if !cli.quiet {
-                println!("No results found for '{}'", query);
-            }
-            return Ok(());
-        }
-
-        let prompt = format!("Select a note for '{}'", query);
-        if let Some(selected_id) = pick_single(&items, &prompt)? {
-            // Output just the selected ID for piping to other commands
-            println!("{}", selected_id);
-        }
-        return Ok(());
-    }
 
     match cli.format {
         crate::cli::OutputFormat::Json => {

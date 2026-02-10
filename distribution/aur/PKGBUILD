@@ -12,8 +12,8 @@ source_x86_64=("${url}/releases/download/v${pkgver}/qipu-${pkgver}-x86_64-unknow
 source_aarch64=("${url}/releases/download/v${pkgver}/qipu-${pkgver}-aarch64-unknown-linux-gnu.tar.gz")
 # Arch Linux is glibc-based; use -unknown-linux-gnu release assets.
 # TODO: Update hashes after release assets are published (see qipu-oc7r)
-sha256sums_x86_64=('0000000000000000000000000000000000000000000000000000000000000000')
-sha256sums_aarch64=('0000000000000000000000000000000000000000000000000000000000000000')
+sha256sums_x86_64=('91badae61138491b60f482d0970a88d85efa65021370e9a9d718547bc2475521')
+sha256sums_aarch64=('1d5ee83cfc9dfb0ea2f4dc81640fbc15ce711fc65ae101e73c4843d32229618f')
 
 package() {
     install -Dm755 qipu "${pkgdir}/usr/bin/qipu"

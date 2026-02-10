@@ -10,7 +10,7 @@ pkgbase = qipu-bin
 	conflicts = qipu
 	source_x86_64 = https://github.com/mwaldstein/qipu/releases/download/v0.3.32/qipu-0.3.32-x86_64-unknown-linux-gnu.tar.gz
 	source_aarch64 = https://github.com/mwaldstein/qipu/releases/download/v0.3.32/qipu-0.3.32-aarch64-unknown-linux-gnu.tar.gz
-	sha256sums_x86_64 = 0000000000000000000000000000000000000000000000000000000000000000
-	sha256sums_aarch64 = 0000000000000000000000000000000000000000000000000000000000000000
+	sha256sums_x86_64 = 91badae61138491b60f482d0970a88d85efa65021370e9a9d718547bc2475521
+	sha256sums_aarch64 = 1d5ee83cfc9dfb0ea2f4dc81640fbc15ce711fc65ae101e73c4843d32229618f
 
 pkgname = qipu-bin

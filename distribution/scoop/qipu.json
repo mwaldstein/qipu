@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/mwaldstein/qipu/releases/download/v0.3.32/qipu-0.3.32-x86_64-pc-windows-msvc.zip",
-            "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+            "hash": "1efdd9f8d1c1b62a8eca96436e740981620c397e6cb3b8c22c5d70c5a9b2454a"
         }
     },
     "bin": "qipu.exe",

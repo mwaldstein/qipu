@@ -10,7 +10,7 @@ NestedInstallerFiles:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/mwaldstein/qipu/releases/download/v0.3.32/qipu-0.3.32-x86_64-pc-windows-msvc.zip
-    InstallerSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    InstallerSha256: "1efdd9f8d1c1b62a8eca96436e740981620c397e6cb3b8c22c5d70c5a9b2454a"
 ManifestType: installer
 ManifestVersion: 1.6.0
 # TODO: Update InstallerSha256 after release assets are published (see qipu-j013)

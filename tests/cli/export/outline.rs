@@ -105,6 +105,36 @@ fn test_export_bundle_rewrites_links_to_anchors() {
 }
 
 #[test]
+fn test_export_bundle_rewrites_windows_style_markdown_paths_to_anchors() {
+    let dir = setup_test_dir();
+
+    let note_a_path = dir.path().join(".qipu/notes/qp-aaaa-note-a.md");
+    fs::write(&note_a_path, "---\nid: qp-aaaa\ntitle: Note A\n---\nBody A").unwrap();
+
+    let note_b_path = dir.path().join(".qipu/notes/qp-bbbb-note-b.md");
+    fs::write(
+        &note_b_path,
+        "---\nid: qp-bbbb\ntitle: Note B\n---\nSee [ref](.qipu\\notes\\qp-aaaa-note-a.md)",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "export",
+            "--note",
+            "qp-bbbb",
+            "--note",
+            "qp-aaaa",
+            "--link-mode",
+            "anchors",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("See [ref](#note-qp-aaaa)"));
+}
+
+#[test]
 fn test_export_bundle_preserves_moc_order() {
     let dir = setup_test_dir();
 

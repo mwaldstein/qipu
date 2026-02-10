@@ -102,13 +102,15 @@ fn find_note_id_in_target(target: &str, body_map: &HashMap<String, String>) -> O
     if target.starts_with("qp-") {
         return Some(target.split('-').take(2).collect::<Vec<_>>().join("-"));
     }
+    let normalized_target = normalize_path_separators(target);
     for (id, path) in body_map {
-        if target.ends_with(path) {
+        let normalized_path = normalize_path_separators(path);
+        if normalized_target.ends_with(&normalized_path) {
             return Some(id.clone());
         }
     }
-    if let Some(start) = target.find("qp-") {
-        let rest = &target[start..];
+    if let Some(start) = normalized_target.find("qp-") {
+        let rest = &normalized_target[start..];
         if let Some(end) = rest.find('-') {
             let after = &rest[end + 1..];
             if let Some(next_dash) = after.find('-') {
@@ -118,4 +120,8 @@ fn find_note_id_in_target(target: &str, body_map: &HashMap<String, String>) -> O
         return Some(rest.trim_end_matches(".md").to_string());
     }
     None
+}
+
+fn normalize_path_separators(path: &str) -> String {
+    path.replace('\\', "/")
 }

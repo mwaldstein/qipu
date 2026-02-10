@@ -508,7 +508,9 @@ This is an old note.
     let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 24 * 60 * 60);
     let old_path = notes_dir.join("qp-01abcdef123456789-old.md");
     let file_times = std::fs::FileTimes::new().set_modified(old_time);
-    fs::File::open(&old_path)
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&old_path)
         .unwrap()
         .set_times(file_times)
         .unwrap();

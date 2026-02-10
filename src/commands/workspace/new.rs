@@ -68,7 +68,11 @@ pub fn execute(
             let project_gitignore = project_root.join(GITIGNORE_FILE);
             let workspace_relative_path = workspace_path
                 .strip_prefix(project_root)
-                .map(|p| format!("{}/", p.display()))
+                .map(|p| {
+                    // Use forward slashes for gitignore (cross-platform)
+                    let path_str = p.to_string_lossy().replace('\\', "/");
+                    format!("{}/", path_str)
+                })
                 .unwrap_or_else(|_| format!("{}/{}/{}/", ".qipu", WORKSPACES_DIR, name));
             config::ensure_project_gitignore_entry(&project_gitignore, &workspace_relative_path)?;
         }

@@ -171,15 +171,15 @@ git push origin master
 
 **After release:**
 ```bash
-# Download Windows release and get SHA256
-curl -sL -o qipu.zip "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/qipu-X.Y.Z-x86_64-pc-windows-msvc.zip"
-shasum -a 256 qipu.zip
-rm qipu.zip
+# Get SHA256 from release SHA256SUMS (single source of truth)
+WINDOWS_SHA=$(curl -sL "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS" \
+  | grep "qipu-X.Y.Z-x86_64-pc-windows-msvc.zip" \
+  | cut -d' ' -f1)
 
 # Edit distribution/scoop/qipu.json:
 #   - Update "version" to "X.Y.Z"
 #   - Update "url" to new release URL
-#   - Update "hash" to the SHA256
+#   - Update "hash" to ${WINDOWS_SHA}
 
 git add distribution/scoop/qipu.json
 git commit -m "chore: update scoop manifest to vX.Y.Z"

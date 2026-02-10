@@ -156,16 +156,30 @@ check_path() {
     fi
 }
 
-# Verify installation
+# Verify installation - returns 0 on success, 1 on failure
 verify_installation() {
-    if [ -x "$INSTALL_DIR/${BINARY_NAME}" ]; then
+    if [ -x "$INSTALL_DIR/${BINARY_NAME}" ] && "$INSTALL_DIR/${BINARY_NAME}" --version >/dev/null 2>&1; then
         local installed_version=$("$INSTALL_DIR/${BINARY_NAME}" --version 2>/dev/null | head -1 || echo "unknown")
         echo ""
         echo -e "${GREEN}Installation verified: ${installed_version}${NC}"
-    else
-        echo -e "${RED}Error: Installation verification failed${NC}"
-        exit 1
+        return 0
     fi
+    return 1
+}
+
+# Fallback: retry with musl if glibc binary fails to run
+try_musl_fallback() {
+    if echo "$TARGET" | grep -q "linux-gnu"; then
+        echo ""
+        echo -e "${YELLOW}glibc binary failed to run, retrying with musl binary...${NC}"
+        TARGET="${ARCH}-unknown-linux-musl"
+        download_binary
+        install_binary
+        if verify_installation; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 # Main installation flow
@@ -178,7 +192,12 @@ main() {
     get_latest_version
     download_binary
     install_binary
-    verify_installation
+    if ! verify_installation; then
+        if ! try_musl_fallback; then
+            echo -e "${RED}Error: Installation verification failed${NC}"
+            exit 1
+        fi
+    fi
     check_path
 }
 

@@ -15,6 +15,24 @@ REPO="mwaldstein/qipu"
 BINARY_NAME="qipu"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
+detect_linux_target_env() {
+    if command -v ldd >/dev/null 2>&1; then
+        local ldd_version
+        ldd_version="$(ldd --version 2>&1 || true)"
+        if echo "$ldd_version" | grep -qi musl; then
+            echo "unknown-linux-musl"
+            return
+        fi
+    fi
+
+    if [ -e "/lib/ld-musl-x86_64.so.1" ] || [ -e "/lib/ld-musl-aarch64.so.1" ]; then
+        echo "unknown-linux-musl"
+        return
+    fi
+
+    echo "unknown-linux-gnu"
+}
+
 # Detect platform and architecture
 detect_platform() {
     local os="$(uname -s)"
@@ -22,7 +40,7 @@ detect_platform() {
     
     case "$os" in
         Linux*)
-            OS="unknown-linux-gnu"
+            OS="$(detect_linux_target_env)"
             ;;
         Darwin*)
             OS="apple-darwin"

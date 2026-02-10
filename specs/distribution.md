@@ -23,7 +23,8 @@ Each tagged release publishes pre-built binaries for:
 | Platform | Architecture |
 |----------|--------------|
 | macOS    | x86_64, aarch64 |
-| Linux    | x86_64, aarch64 |
+| Linux (glibc) | x86_64, aarch64 |
+| Linux (musl) | x86_64, aarch64 |
 | Windows  | x86_64 |
 
 Binary naming convention: `qipu-<version>-<target>.tar.gz` (or `.zip` for Windows).
@@ -111,6 +112,8 @@ Use Rust cross-compilation targets:
 - `aarch64-apple-darwin`
 - `x86_64-unknown-linux-gnu`
 - `aarch64-unknown-linux-gnu`
+- `x86_64-unknown-linux-musl`
+- `aarch64-unknown-linux-musl`
 - `x86_64-pc-windows-msvc`
 
 ### Versioning

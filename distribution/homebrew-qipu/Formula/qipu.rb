@@ -1,6 +1,6 @@
 class Qipu < Formula
   desc "Zettelkasten-inspired knowledge management CLI"
-  homepage "https://github.com/mwaldstein/homebrew-qipu"
+  homepage "https://github.com/mwaldstein/qipu"
   version "0.3.27"
   license "MIT"
 

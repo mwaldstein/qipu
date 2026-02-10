@@ -20,7 +20,7 @@ After a new release is published:
 Or use wingetcreate:
 
 ```powershell
-wingetcreate update mwaldstein.qipu --version 0.3.19 --urls "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/qipu-0.3.19-x86_64-pc-windows-msvc.zip|x64"
+wingetcreate update mwaldstein.qipu --version X.Y.Z --urls "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/qipu-X.Y.Z-x86_64-pc-windows-msvc.zip|x64"
 ```
 
 ### Manual Installation via Winget
@@ -60,7 +60,7 @@ To get the correct hash after a release:
 
 ```powershell
 # Download the release
-Invoke-WebRequest -Uri "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/qipu-0.3.19-x86_64-pc-windows-msvc.zip" -OutFile qipu.zip
+Invoke-WebRequest -Uri "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/qipu-X.Y.Z-x86_64-pc-windows-msvc.zip" -OutFile qipu.zip
 
 # Calculate SHA256
 Get-FileHash -Path qipu.zip -Algorithm SHA256
@@ -103,8 +103,8 @@ To update hashes from the release SHA256SUMS file:
 
 ```bash
 # Download release artifacts
-curl -sL "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/SHA256SUMS" | grep "x86_64-unknown-linux-gnu"
-curl -sL "https://github.com/mwaldstein/qipu/releases/download/v0.3.19/SHA256SUMS" | grep "aarch64-unknown-linux-gnu"
+curl -sL "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS" | grep "x86_64-unknown-linux-gnu"
+curl -sL "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS" | grep "aarch64-unknown-linux-gnu"
 ```
 
 **Note**: The AUR package is `qipu-bin` since it uses pre-built binaries. A source-only `qipu` package could be added in the future for those who prefer building from source.

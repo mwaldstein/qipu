@@ -11,7 +11,7 @@ git pull origin main
 
 # 2. Version bump - edit Cargo.toml version fields in both crates
 #    - qipu/Cargo.toml
-#    - qipu-core/Cargo.toml
+#    - crates/qipu-core/Cargo.toml
 
 # 3. Update CHANGELOG.md
 
@@ -24,7 +24,7 @@ git tag vX.Y.Z
 git push origin main
 git push origin vX.Y.Z
 
-# 6. Wait for CI, then update manifests (see sections below)
+# 6. Push tag, wait for release workflow, then update all manifests (see sections below)
 ```
 
 ## Automated Steps (GitHub Actions)
@@ -33,7 +33,7 @@ The release workflow (`.github/workflows/release.yml`) handles:
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Build binaries (all platforms) | ✅ Automated | macOS x86_64/aarch64, Linux x86_64/aarch64, Windows x86_64 |
+| Build binaries (all platforms) | ✅ Automated | macOS x86_64/aarch64, Linux glibc x86_64/aarch64, Linux musl x86_64/aarch64, Windows x86_64 |
 | Create GitHub release | ✅ Automated | Attaches all binaries |
 | Generate SHA256SUMS | ✅ Automated | Combined checksums file |
 | Sign binaries (cosign) | ✅ Automated | Uses Sigstore OIDC |
@@ -49,6 +49,20 @@ The release workflow (`.github/workflows/release.yml`) handles:
 
 After the GitHub release is published, update external package managers:
 
+### 0. Manifest update checklist (required)
+
+Update every in-repo distribution manifest for `X.Y.Z`:
+
+- `distribution/homebrew-qipu/Formula/qipu.rb`
+- `distribution/aur/PKGBUILD`
+- `distribution/aur/.SRCINFO`
+- `distribution/scoop/qipu.json`
+- `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.installer.yaml`
+- `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.locale.en-US.yaml`
+- `distribution/winget/manifests/m/mwaldstein/qipu/X.Y.Z/mwaldstein.qipu.yaml`
+
+Use `SHA256SUMS` from the GitHub release as source of truth.
+
 ### 1. Homebrew (macOS/Linux)
 
 **Status:** ✅ Formula ready, ❌ Tap repo not created
@@ -56,13 +70,17 @@ After the GitHub release is published, update external package managers:
 **Current State:**
 - Formula exists: `distribution/homebrew-qipu/Formula/qipu.rb`
 - Need to create repo: `mwaldstein/homebrew-qipu`
-- Uses source build (no binary downloads needed)
+- Uses release binary download (not source build)
 
 **After release:**
 ```bash
 cd distribution/homebrew-qipu
-# Edit Formula/qipu.rb - update version
-# Get SHA256: curl -sL "https://github.com/mwaldstein/qipu/archive/refs/tags/vX.Y.Z.tar.gz" | shasum -a 256
+# Edit Formula/qipu.rb:
+#   - version
+#   - Intel URL + SHA256 (x86_64-apple-darwin)
+#   - Apple Silicon URL + SHA256 (aarch64-apple-darwin)
+# Get hashes from release:
+#   curl -sL "https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS" | grep apple-darwin
 git add .
 git commit -m "qipu X.Y.Z"
 git push origin main
@@ -82,6 +100,7 @@ cd distribution/aur
 # Update PKGBUILD:
 #   - pkgver=X.Y.Z
 #   - pkgrel=1 (reset to 1 on version change)
+#   - keep source URLs on -unknown-linux-gnu (Arch uses glibc)
 #   - sha256sums_x86_64=$(curl -sL https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS | grep x86_64-unknown-linux-gnu | cut -d' ' -f1)
 #   - sha256sums_aarch64=$(curl -sL https://github.com/mwaldstein/qipu/releases/download/vX.Y.Z/SHA256SUMS | grep aarch64-unknown-linux-gnu | cut -d' ' -f1)
 

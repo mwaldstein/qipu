@@ -1,6 +1,7 @@
 use crate::support::{qipu, setup_test_dir};
 use predicates::prelude::*;
 use std::fs;
+use std::path::PathBuf;
 
 #[test]
 fn test_export_link_mode_preserve() {
@@ -88,7 +89,10 @@ fn test_export_link_mode_markdown_basic() {
 
     // Verify wiki links are converted to markdown links with file paths
     assert!(output.contains("[qp-bbbb]("));
-    assert!(output.contains(".qipu/notes/qp-bbbb-note-b.md)"));
+    let expected_path_b = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-bbbb-note-b.md");
+    assert!(output.contains(&format!("{})", expected_path_b.to_string_lossy())));
     assert!(output.contains("for details"));
     assert!(!output.contains("[[qp-bbbb]]"));
 }
@@ -138,9 +142,15 @@ fn test_export_link_mode_markdown_with_labels() {
 
     // Check that labels are preserved and wiki links are converted to markdown
     assert!(output.contains("[Note B]("));
-    assert!(output.contains(".qipu/notes/qp-bbbb-note-b.md)"));
+    let expected_path_b = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-bbbb-note-b.md");
+    let expected_path_c = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-cccc-note-c.md");
+    assert!(output.contains(&format!("{})", expected_path_b.to_string_lossy())));
     assert!(output.contains("[the third note]("));
-    assert!(output.contains(".qipu/notes/qp-cccc-note-c.md)"));
+    assert!(output.contains(&format!("{})", expected_path_c.to_string_lossy())));
     assert!(!output.contains("[[qp-bbbb"));
     assert!(!output.contains("[[qp-cccc"));
 }
@@ -198,11 +208,20 @@ fn test_export_link_mode_markdown_multiple_notes() {
 
     // Verify all links are converted to markdown format with paths
     assert!(output.contains("[qp-bbbb]("));
-    assert!(output.contains(".qipu/notes/qp-bbbb-note-b.md)"));
+    let expected_path_b = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-bbbb-note-b.md");
+    let expected_path_a = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-aaaa-note-a.md");
+    let expected_path_c = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-cccc-note-c.md");
+    assert!(output.contains(&format!("{})", expected_path_b.to_string_lossy())));
     assert!(output.contains("[qp-aaaa]("));
-    assert!(output.contains(".qipu/notes/qp-aaaa-note-a.md)"));
+    assert!(output.contains(&format!("{})", expected_path_a.to_string_lossy())));
     assert!(output.contains("[qp-cccc]("));
-    assert!(output.contains(".qipu/notes/qp-cccc-note-c.md)"));
+    assert!(output.contains(&format!("{})", expected_path_c.to_string_lossy())));
     assert!(output.contains("[B]("));
     // No wiki links should remain
     assert!(!output.contains("[[qp-aaaa"));
@@ -305,6 +324,9 @@ fn test_export_link_mode_markdown_with_moc() {
 
     // Verify wiki links are converted to markdown with paths
     assert!(output.contains("See [Note B]("));
-    assert!(output.contains(".qipu/notes/qp-bbbb-note-b.md)"));
+    let expected_path_b = PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-bbbb-note-b.md");
+    assert!(output.contains(&format!("{})", expected_path_b.to_string_lossy())));
     assert!(!output.contains("See [[qp-bbbb"));
 }

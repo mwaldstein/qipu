@@ -228,39 +228,24 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         let note_path = store.path_for_note("test.md");
-        assert!(note_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("notes/test.md"));
+        let path_str = note_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("notes") && path_str.contains("test.md"));
 
         let moc_path = store.path_for_moc("overview.md");
-        assert!(moc_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("mocs/overview.md"));
+        let path_str = moc_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("mocs") && path_str.contains("overview.md"));
 
         let attachment_path = store.path_for_attachment("image.png");
-        assert!(attachment_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("attachments/image.png"));
+        let path_str = attachment_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("attachments") && path_str.contains("image.png"));
 
         let template_path = store.path_for_template("default.md");
-        assert!(template_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("templates/default.md"));
+        let path_str = template_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("templates") && path_str.contains("default.md"));
 
         let workspace_path = store.path_for_workspace("myworkspace");
-        assert!(workspace_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("workspaces/myworkspace"));
+        let path_str = workspace_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("workspaces") && path_str.contains("myworkspace"));
     }
 
     #[test]
@@ -272,7 +257,8 @@ mod tests {
 
         // Test Into<PathBuf>
         let path_buf: PathBuf = note_path.clone().into();
-        assert!(path_buf.to_str().unwrap().contains("notes/test.md"));
+        let path_str = path_buf.to_str().unwrap();
+        assert!(path_str.contains("notes") && path_str.contains("test.md"));
 
         // Test AsRef<Path>
         let _path_ref: &Path = note_path.as_ref();
@@ -300,11 +286,8 @@ mod tests {
         let store = Store::init(dir.path(), InitOptions::default()).unwrap();
 
         let note_path = store.path_for_note("subdir/file.md");
-        assert!(note_path
-            .as_path()
-            .to_str()
-            .unwrap()
-            .contains("subdir/file.md"));
+        let path_str = note_path.as_path().to_str().unwrap();
+        assert!(path_str.contains("subdir") && path_str.contains("file.md"));
 
         // Test join
         let joined = note_path.join("extra.txt");

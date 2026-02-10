@@ -343,8 +343,17 @@ fn test_export_outline_preserves_markdown_links() {
         .success();
 
     let output = String::from_utf8_lossy(&result.get_output().stdout);
-    assert!(output.contains("See [custom link](.qipu/notes/qp-bbbb-note-b.md)"));
+    let expected_path_b = std::path::PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-bbbb-note-b.md");
+    let expected_path_c = std::path::PathBuf::from(".qipu")
+        .join("notes")
+        .join("qp-cccc-note-c.md");
+    assert!(output.contains(&format!(
+        "See [custom link]({})",
+        expected_path_b.to_string_lossy()
+    )));
     assert!(output.contains("and [qp-cccc]("));
-    assert!(output.contains(".qipu/notes/qp-cccc-note-c.md)"));
+    assert!(output.contains(&format!("{})", expected_path_c.to_string_lossy())));
     assert!(output.contains("Body C with [external](https://example.com)"));
 }

@@ -228,7 +228,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          dnf install -y rust cargo rpm-build rpmdevtools gcc gcc-c++ openssl-devel
+          dnf install -y git rust cargo rpm-build rpmdevtools gcc gcc-c++ openssl-devel
       
       - name: Install cargo-rpm
         run: cargo install cargo-rpm

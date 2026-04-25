@@ -1,10 +1,23 @@
-# Beads LLM Bootstrapping Research
+# Beads vs Qipu: LLM Bootstrapping Comparison
 
-Research on how beads (bd) bootstraps LLMs into effective tool usage.
+Research on how beads (bd) bootstraps LLMs into effective tool usage, and how qipu compares.
+
+> **Last updated**: 2026-02-11
+
+## Scale Comparison
+
+| Metric | Beads | Qipu |
+|--------|-------|------|
+| Total commands | 93 | 33 |
+| Global flags | 13 | 12 |
+| Setup recipes | 10 | 2 |
+| Help text style | Verbose with examples | Concise |
 
 ## Key Commands
 
-### `bd init`
+### `init`
+
+#### Beads `bd init`
 
 **Purpose**: Initialize beads in a project directory.
 
@@ -16,8 +29,9 @@ Research on how beads (bd) bootstraps LLMs into effective tool usage.
 - Auto-installs git hooks (pre-commit, post-merge, pre-push, post-checkout)
 - Auto-installs merge driver for conflict resolution
 - Auto-detects prefix from directory name or existing issues
-- Runs `bd doctor` diagnostics at end to catch setup issues
 - Adds "landing the plane" instructions to AGENTS.md
+- `--backend dolt` for version-controlled storage
+- `--from-jsonl` to import from file instead of git history
 
 **After init outputs**:
 ```
@@ -30,33 +44,177 @@ bd initialized successfully!
 Run `bd quickstart` to get started.
 ```
 
-### `bd setup <recipe>`
-
-**Purpose**: Install integration files for specific editors/agents.
-
-**Recipes supported**:
-- `cursor` - .cursor/rules/beads.mdc
-- `claude` - Claude Code hooks (SessionStart, PreCompact)
-- `gemini` - Gemini-specific integration
-- `codex` - Updates AGENTS.md
-- `aider` - .aider.conf.yml
-- `windsurf`, `cody`, `kilocode`, `junie`, `factory`
-
-**Key insight**: Uses a recipe system with TOML config for extensibility:
-```bash
-bd setup --list                    # List all recipes
-bd setup --add myeditor path.md    # Add custom recipe
-bd setup cursor --check            # Verify installation
-bd setup cursor --remove           # Uninstall
+**Flags** (7 command-specific, plus 13 global):
+```
+--backend, -b, --branch, --contributor, --force, --from-jsonl, -p, --prefix, -q, 
+--server, --server-host, --server-port, --server-user, --setup-exclude, --skip-hooks, 
+--skip-merge-driver, --stealth, --team
 ```
 
-### `bd onboard`
+#### Qipu `qipu init`
 
-**Purpose**: Display minimal snippet for AGENTS.md (informational only, does not modify files).
+**Purpose**: Initialize a new qipu store.
 
-**Philosophy**: Keep AGENTS.md lean, point to `bd prime` for dynamic context.
+**Key features**:
+- `--visible` flag for non-hidden store (qipu/ instead of .qipu/)
+- `--stealth` mode - add store to .gitignore
+- `--branch` for protected branch workflow
+- `--agents-md` to write qipu section to AGENTS.md
+- `--no-index` to skip automatic indexing
+- `--index-strategy` override (adaptive, full, incremental, quick)
 
-**Output** (~10 lines):
+**Flags** (7 command-specific, plus 12 global):
+```
+--root, --visible, --stealth, --store, --branch, --format, --no-index, -q, 
+--index-strategy, -v, --agents-md, --log-level, --log-json
+```
+
+**Gap analysis**: 
+- Beads auto-modifies AGENTS.md; qipu requires `--agents-md` flag
+- Beads shows next command; qipu doesn't
+- Beads auto-installs hooks; qipu has separate `hooks` command
+
+---
+
+### `prime`
+
+#### Beads `bd prime`
+
+**Purpose**: Output AI-optimized workflow context (~80 lines, ~1.5k tokens).
+
+**Output structure**:
+```
+# Beads Workflow Context
+> Context Recovery note
+# SESSION CLOSE PROTOCOL (prominent with emojis)
+**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+[ ] 1. git status
+[ ] 2. git add <files>
+[ ] 3. bd sync
+[ ] 4. git commit
+[ ] 5. bd sync
+[ ] 6. git push
+## Core Rules
+- Use beads for ALL task tracking
+- Prohibited: TodoWrite, TaskCreate, markdown files
+- "Persistence you don't need beats lost context"
+## Essential Commands
+[... categorized by: Finding Work, Creating & Updating, Dependencies, Sync, Health ...]
+## Common Workflows
+[... bash code blocks with examples ...]
+```
+
+**Key features**:
+1. **Adaptive output**: MCP mode (~50 tokens) vs CLI mode (~1.5k tokens)
+2. **Environment detection**: ephemeral branches, daemon status, local-only repos
+3. **Custom override**: `.beads/PRIME.md` replaces default output
+4. **Config option**: `no-git-ops` for stealth mode
+
+**Flags**:
+```
+--export, --full, -h, --mcp, --stealth
+```
+
+#### Qipu `qipu prime`
+
+**Purpose**: Output session-start primer for LLM agents.
+
+**Output structure**:
+```
+# Qipu Knowledge Store Primer
+## About Qipu
+## Quick Reference
+[8 commands with brief descriptions]
+## Session Protocol
+**Before ending session:**
+1. Capture any new insights
+2. Link new notes to existing knowledge
+3. Commit changes
+**Why this matters:** Knowledge not committed is knowledge lost.
+## Ontology
+[note types, link types with inverses]
+## Key Maps of Content
+[recent MOCs with tags]
+## Recently Updated Notes
+```
+
+**Key features**:
+1. **Adaptive output**: `--mcp` for minimal (~50 tokens), `--full` for CLI
+2. **Compact mode**: `--compact` omits MOCs and recent notes
+3. **Minimal mode**: `--minimal` only ontology and commands
+4. **Custom override**: `--use-prime-md` to use `.qipu/PRIME.md`
+
+**Flags**:
+```
+--compact, --minimal, --full, --mcp, --use-prime-md
+```
+
+**Gap analysis**:
+- Beads has more emphatic session close protocol (emojis, "CRITICAL", "NEVER")
+- Beads includes "Prohibited" section (what NOT to do)
+- Beads includes categorized commands and workflow examples
+- Qipu includes store-specific content (ontology, MOCs, recent notes)
+- Both now have MCP detection and custom override
+
+---
+
+### `setup`
+
+#### Beads `bd setup`
+
+**Purpose**: Install integration files for AI editors and coding assistants.
+
+**Available recipes** (10):
+- `aider` - Aider config and instruction files
+- `claude` - Claude Code hooks (SessionStart, PreCompact)
+- `codex` - Codex CLI AGENTS.md section
+- `cody` - Cody AI rules file
+- `cursor` - Cursor IDE rules file
+- `factory` - Factory Droid AGENTS.md section
+- `gemini` - Gemini CLI hooks (SessionStart, PreCompress)
+- `junie` - Junie guidelines and MCP configuration
+- `kilocode` - Kilo Code rules file
+- `windsurf` - Windsurf editor rules file
+
+**Features**:
+```
+--add <name> <path>   Add custom recipe
+--check               Verify installation
+--list                List all recipes
+--output, -o          Write to custom path
+--print               Print to stdout
+--project             Project-only install (claude/gemini)
+--remove              Uninstall
+--stealth             Stealth mode
+```
+
+#### Qipu `qipu setup`
+
+**Purpose**: Install qipu integration instructions for agent tools.
+
+**Available integrations** (2):
+- `agents-md` - AGENTS.md standard for OpenCode, Cline, Roo-Cline
+- `cursor` - Cursor IDE project rules
+
+**Features**:
+```
+--list, --print, --check, --remove
+```
+
+**Gap analysis**:
+- Beads has 5x more integrations
+- Beads supports custom recipe system (`--add`)
+- Beads has hooks-based integrations (claude, gemini)
+
+---
+
+### `onboard`
+
+#### Beads `bd onboard`
+
+**Purpose**: Display minimal AGENTS.md snippet (display only, no file modification).
+
+**Output** (~15 lines):
 ```markdown
 ## Issue Tracking
 
@@ -72,520 +230,699 @@ Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for a
 For full workflow details: `bd prime`
 ```
 
-### AGENTS.md Modification (in `bd init`)
+Also includes GitHub Copilot instructions.
 
-**Key distinction**: `bd init` automatically modifies AGENTS.md, while `bd onboard` only displays content.
+#### Qipu `qipu onboard`
 
-**What `bd init` writes to AGENTS.md** (via `addLandingThePlaneInstructions`):
+**Purpose**: Display minimal AGENTS.md snippet for agent integration.
 
-If AGENTS.md **doesn't exist**, creates it with:
+**Output** (~11 lines):
 ```markdown
-# Agent Instructions
+## Qipu Knowledge
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
-
-## Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
-```
-
-## Landing the Plane (Session Completion)
-[... full landing the plane section ...]
-```
-
-If AGENTS.md **exists but lacks "Landing the Plane"**, appends the section.
-
-**The "Landing the Plane" section** (~30 lines):
-```markdown
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-```
-
-**Why two approaches?**
-
-| Command | Modifies Files? | When Used |
-|---------|----------------|-----------|
-| `bd init` | Yes - creates/updates AGENTS.md | Project setup (runs once) |
-| `bd onboard` | No - display only | Manual reference, understanding |
-
-The init-time modification ensures:
-1. Every initialized project has "landing the plane" instructions
-2. LLMs see these instructions automatically (AGENTS.md is loaded by most tools)
-3. No manual step required to set up agent instructions
-
-The onboard command exists for:
-1. Understanding what to add manually (if init didn't run)
-2. Showing recommended content for other files (copilot-instructions.md)
-3. Reference documentation
-
-### `bd prime`
-
-**Purpose**: Output AI-optimized workflow context (~1-2k tokens).
-
-**Key features**:
-1. **Adaptive output based on environment**:
-   - Detects MCP mode (checks ~/.claude/settings.json for beads server)
-   - MCP mode: ~50 tokens (brief reminders)
-   - CLI mode: ~1-2k tokens (full command reference)
-
-2. **Adaptive based on git workflow**:
-   - Detects ephemeral branches (no upstream)
-   - Detects daemon auto-sync status
-   - Detects local-only repos (no remote)
-   - Adjusts session close protocol accordingly
-
-3. **Custom override**: `.beads/PRIME.md` replaces default output entirely
-
-4. **Session Close Protocol** (CRITICAL):
-   ```
-   [ ] 1. git status              (check what changed)
-   [ ] 2. git add <files>         (stage code changes)
-   [ ] 3. bd sync                 (commit beads changes)
-   [ ] 4. git commit -m "..."     (commit code)
-   [ ] 5. bd sync                 (commit any new beads changes)
-   [ ] 6. git push                (push to remote)
-   ```
-   
-5. **Core Rules emphasized**:
-   - Use beads for ALL task tracking (never TodoWrite, TaskCreate, markdown)
-   - Create issue BEFORE writing code
-   - Mark in_progress when starting
-   - "Persistence you don't need beats lost context"
-
-6. **Flags**:
-   - `--full` - Force full CLI output (ignore MCP detection)
-   - `--mcp` - Force minimal MCP output
-   - `--stealth` - No git operations in close protocol
-   - `--export` - Output default content (ignores PRIME.md override)
-
-### `bd quickstart`
-
-**Purpose**: Interactive quick start guide showing common workflows.
-
-Shows: init, create, view, dependencies, ready work, updating, closing, database location, agent integration, git workflow.
-
-### `bd hooks install`
-
-**Purpose**: Install git hooks for automatic sync.
-
-Hooks installed:
-- **pre-commit**: Flush pending changes before commit
-- **post-merge**: Import updated JSONL after pull/merge
-- **pre-push**: Export database to JSONL before push
-- **post-checkout**: Import JSONL after branch checkout
-
-## Design Patterns
-
-### 1. Minimal AGENTS.md, Dynamic Prime
-
-AGENTS.md contains ~10 lines pointing to `bd prime`. The prime command provides:
-- Always-current workflow details
-- Context-aware protocol (git state, MCP mode, etc.)
-- Avoids stale instructions when bd upgrades
-
-### 2. Session Close Protocol
-
-Critical insight: LLMs need explicit checklists to "land the plane". Beads emphasizes:
-- NEVER say "done" without completing the checklist
-- NEVER skip git push
-- Push is NON-NEGOTIABLE
-
-### 3. Hooks for Auto-injection
-
-Claude Code hooks (SessionStart, PreCompact) auto-call `bd prime`:
-- Prevents agents from forgetting workflow after context compaction
-- No manual intervention needed
-
-### 4. Adaptive Context
-
-Prime detects environment and adjusts:
-- MCP vs CLI mode
-- Ephemeral vs tracked branches
-- Daemon auto-sync vs manual
-- Local-only vs remote repos
-
-### 5. Recipe System for Integrations
-
-Extensible recipe system:
-- Built-in recipes for major editors
-- User-defined recipes via TOML config
-- Common template shared across file-based recipes
-
-## Comparison: Beads vs Current Qipu
-
-| Aspect | Beads | Qipu |
-|--------|-------|------|
-| Init modifies AGENTS.md | Yes - adds "landing the plane" | No |
-| Init message | Shows next command (`bd quickstart`) | Shows nothing specific |
-| Setup recipes | Multiple editors (cursor, claude, aider, etc.) | Only agents-md |
-| Prime adaptive | Yes (MCP detection, git state, daemon status) | No |
-| Session close protocol | Explicit checklist with emphasis | Not present |
-| Custom prime override | `.beads/PRIME.md` | Not present |
-| Git hooks | Auto-installed on init | Not present |
-| Onboard purpose | Display-only (reference) | Creates/checks AGENTS.md |
-
-## Recommendations for Qipu
-
-### High Priority
-
-1. **Add session close protocol to prime output**
-   - Explicit checklist for "landing the plane"
-   - Emphasize git operations are non-negotiable
-   - Adapt based on git state (branch tracking, remote existence)
-
-2. **Make init more helpful**
-   - Show next command to run
-   - Optionally run diagnostics
-   - Auto-add qipu instructions to AGENTS.md
-
-3. **Support custom PRIME.md override**
-   - Allow `.qipu/PRIME.md` to replace default output
-   - Enables project-specific workflow customization
-
-4. **Trim onboard snippet**
-   - Current ~40 lines is too much for AGENTS.md
-   - Target ~10 lines pointing to `qipu prime`
-   - Full details live in prime output
-
-### Medium Priority
-
-5. **Add more setup recipes**
-   - cursor (.cursor/rules/)
-   - claude (hooks)
-   - aider (.aider.conf.yml)
-   - Use recipe system for extensibility
-
-6. **Add quickstart command**
-   - Interactive guide showing common workflows
-   - Bridges gap between init and productive use
-
-7. **Adaptive prime output**
-   - Detect if store is empty vs populated
-   - Adjust guidance accordingly
-
-### Lower Priority
-
-8. **Git hooks integration**
-   - Auto-sync on commit/merge
-   - Would require significant infrastructure
-
-9. **MCP detection**
-   - Detect if running via MCP server
-   - Adjust output verbosity
-
-## Key Insights
-
-### 1. "Persistence you don't need beats lost context"
-
-LLMs have goldfish memory. The solution isn't just providing tools, but ensuring:
-- Tools are used (via explicit instructions)
-- Work is saved (via session close protocol)
-- Context survives compaction (via hooks/auto-injection)
-
-### 2. The Closed-Loop Bootstrapping Flow
-
-```
-init -> setup <editor> -> [hooks auto-inject prime] -> prime guides session -> close protocol saves work
-         ^                                                                              |
-         └──────────────────────────────────────────────────────────────────────────────┘
-```
-
-Each step reinforces the next. The session close protocol feeds back into the next session via git sync.
-
-### 3. Session Close Protocol is Critical
-
-LLMs need explicit checklists. Without them:
-- Work gets "done" but not committed
-- Changes sit in local state
-- Next session starts from stale state
-- Multi-agent coordination breaks
-
-The checklist must be:
-- Visible in prime output
-- Non-negotiable ("NEVER skip git push")
-- Adaptive to environment (ephemeral branches, local-only repos)
-
-### 4. Minimal Static, Dynamic Runtime
-
-AGENTS.md should be ~10 lines pointing to `prime`. Why:
-- Static instructions get stale when tool upgrades
-- Dynamic output can adapt to environment
-- Saves tokens in agent context
-- Single source of truth for workflow
-
-### 5. Knowledge vs Task Tracking Differ
-
-Beads tracks *tasks* (discrete work items with status, priority, dependencies).
-Qipu tracks *knowledge* (notes with types, links, value scores).
-
-Different domains need different session protocols:
-- Beads: "close issues, sync, push"
-- Qipu: "capture insights, link notes, commit knowledge"
-
-### 6. The "Why" Matters More Than "How"
-
-Beads prime output explains *why* to use the tool:
-- "Persistence you don't need beats lost context"
-- "Create issue BEFORE writing code"
-
-Commands are secondary to motivation. An LLM that understands *why* will use tools correctly even with incomplete instructions.
-
----
-
-## Qipu Implementation Recommendations
-
-### High Priority
-
-#### 1. Add Session Protocol to Prime
-
-Current qipu prime focuses on "what" (commands, MOCs, recent notes).
-Add "how to end session" protocol:
-
-```markdown
-## Session Protocol
-
-**Before ending session:**
-1. Capture any new insights: `qipu capture --title "..."`
-2. Link new notes to existing knowledge: `qipu link add <new> <existing> --type <t>`
-3. Commit changes: `git add .qipu && git commit -m "knowledge: ..."`
-
-**Why this matters:** Knowledge not committed is knowledge lost. The graph only grows if you save your work.
-```
-
-#### 2. Init Should Modify AGENTS.md Automatically
-
-**Key insight from beads**: `bd init` automatically creates/updates AGENTS.md with "landing the plane" instructions. This ensures every project has proper agent guidance without manual steps.
-
-Qipu should do the same:
-
-```rust
-// In init command, after store creation:
-fn add_qipu_to_agents_md(verbose: bool) -> Result<()> {
-    let agents_md = PathBuf::from("AGENTS.md");
-    
-    if !agents_md.exists() {
-        // Create with full qipu section
-        fs::write(&agents_md, QIPU_AGENTS_CONTENT)?;
-        if verbose {
-            println!("  Created AGENTS.md with qipu instructions");
-        }
-    } else {
-        // Append if "qipu" section not present
-        let content = fs::read_to_string(&agents_md)?;
-        if !content.contains("## Qipu Knowledge") {
-            let mut file = fs::OpenOptions::new().append(true).open(&agents_md)?;
-            writeln!(file, "\n{}", QIPU_AGENTS_SECTION)?;
-            if verbose {
-                println!("  Added qipu section to AGENTS.md");
-            }
-        }
-    }
-    Ok(())
-}
-```
-
-The AGENTS.md section should include:
-1. What qipu is (1-2 lines)
-2. Session start: `qipu prime`
-3. Quick reference (4-5 commands)
-4. Session end protocol (commit knowledge)
-
-#### 3. Improve Init Output
-
-Current: Creates store, shows nothing actionable.
-Proposed:
-```
-qipu initialized successfully!
-  Store: .qipu/
-  Added qipu instructions to AGENTS.md
-  
-Run `qipu prime` for workflow context.
-Run `qipu quickstart` for a guided tour.
-```
-
-#### 3. Support .qipu/PRIME.md Override
-
-Allow projects to customize prime output entirely:
-```rust
-// In prime.rs execute()
-let custom_prime = store.root().join("PRIME.md");
-if custom_prime.exists() {
-    print!("{}", fs::read_to_string(custom_prime)?);
-    return Ok(());
-}
-```
-
-#### 4. Clarify Onboard vs Init Roles
-
-**Beads pattern:**
-- `bd init` - Modifies AGENTS.md (creates or appends)
-- `bd onboard` - Display-only (shows what SHOULD be in AGENTS.md)
-
-**Current qipu pattern:**
-- `qipu init` - Does NOT modify AGENTS.md
-- `qipu setup agents-md` - Creates AGENTS.md if missing
-- `qipu onboard` - Displays snippet
-
-**Recommended qipu pattern:**
-- `qipu init` - Creates/updates AGENTS.md with qipu section (like beads)
-- `qipu onboard` - Display-only reference (like beads)
-- `qipu setup <recipe>` - For non-AGENTS.md integrations (cursor, claude, etc.)
-
-The onboard output should be trimmed to ~10 lines:
-
-```markdown
-## Qipu Knowledge Graph
-
+This project uses **qipu** for knowledge management.
 Run `qipu prime` for workflow context.
 
 **Quick reference:**
-- `qipu capture` - Quick capture from stdin
-- `qipu link add <from> <to>` - Create typed link
-- `qipu search <query>` - Search notes
-- `qipu context` - Build LLM context bundle
+- `qipu prime` - Get store overview
+- `qipu create` - Create note
+- `qipu capture` - Quick capture
+- `qipu search` - Search notes
+- `qipu context` - Build LLM context
 
 For full workflow: `qipu prime`
 ```
 
-### Medium Priority
-
-#### 5. Add Quickstart Command
-
-New command showing common workflows:
-```
-qipu quickstart
-
-# Qipu Quick Start
-
-## Capturing Knowledge
-  qipu capture --title "TIL: ..."     Capture quick insight
-  qipu create "Topic X" --type lit    Create literature note
-
-## Building the Graph
-  qipu link add <from> <to> --type derived-from
-  qipu link tree <id>                 Visualize connections
-
-## Finding Knowledge
-  qipu search "error handling"
-  qipu context --tag rust --max-chars 8000
-
-## Session Workflow
-  1. qipu prime                       Load context at session start
-  2. Work, capturing insights
-  3. Link new notes to existing
-  4. git commit                       Save your knowledge
-```
-
-#### 6. Add More Setup Recipes
-
-Extend setup command:
-```rust
-// recipes: cursor, claude, aider, opencode
-match recipe {
-    "cursor" => write(".cursor/rules/qipu.mdc", TEMPLATE),
-    "claude" => install_claude_hooks(),
-    "aider" => write(".aider.conf.yml", AIDER_TEMPLATE),
-    "opencode" => write("AGENTS.md", AGENTS_TEMPLATE),
-}
-```
-
-#### 7. Adaptive Prime Based on Store State
-
-```rust
-let notes = store.list_notes()?;
-if notes.is_empty() {
-    output_empty_store_primer();  // Focus on "how to start"
-} else {
-    output_populated_primer();    // Focus on "what's here"
-}
-```
-
-### Lower Priority
-
-#### 8. Git Hooks for Auto-Sync
-
-Would require:
-- Hook installation in init
-- Pre-commit: rebuild index
-- Post-merge: reindex
-- Significant complexity for knowledge (vs task) tracking
-
-#### 9. MCP Mode Detection
-
-Detect MCP environment, output minimal primer:
-```rust
-if is_mcp_active() {
-    println!("Use qipu for knowledge. Run `qipu context` for relevant notes.");
-    return Ok(());
-}
-```
+**Gap analysis**: Both now follow the same pattern - minimal snippet pointing to prime.
 
 ---
 
-## Summary
+### `quickstart`
 
-The core insight from beads: bootstrapping LLMs requires a **closed loop** where each step reinforces the next. For qipu:
+#### Beads `bd quickstart`
 
-1. **Init** should modify AGENTS.md automatically (not just create the store)
-2. **Prime** should explain why + how to end session
-3. **Session protocol** should ensure knowledge is committed
-4. **Onboard** should be display-only reference, not the primary setup mechanism
+**Output sections**:
+- GETTING STARTED (init examples)
+- CREATING ISSUES (with flags examples)
+- VIEWING ISSUES (list, show)
+- MANAGING DEPENDENCIES (dep commands)
+- DEPENDENCY TYPES (blocks, related, parent-child, discovered-from)
+- READY WORK (bd ready)
+- UPDATING ISSUES (update examples)
+- CLOSING ISSUES (close examples)
+- DATABASE LOCATION (discovery hierarchy)
+- AGENT INTEGRATION (design philosophy)
+- DATABASE EXTENSION (link to docs)
+- GIT WORKFLOW (auto-sync explanation)
 
-### The Init vs Onboard Distinction
+#### Qipu `qipu quickstart`
 
-This is crucial for qipu's design:
+**Output sections**:
+- Capturing Knowledge (capture, create)
+- Building the Graph (link add, tree, path)
+- Finding Knowledge (search, list, inbox)
+- Building Context (context command)
+- Session Workflow (prime, capture, link, commit)
+- Next Steps (pointers)
 
-| Aspect | `init` | `onboard` |
-|--------|--------|-----------|
-| Runs when | Project setup (once) | Manual reference (anytime) |
-| Modifies files | Yes (AGENTS.md) | No (display only) |
-| Purpose | Ensure every project has agent instructions | Show what instructions look like |
-| User action | Automatic | Informational |
+**Gap analysis**: 
+- Beads focuses on task tracking workflows
+- Qipu focuses on knowledge graph workflows
+- Both appropriate to their domains
 
-**Why this matters:**
+---
 
-If `init` doesn't modify AGENTS.md, users must:
-1. Run `init`
-2. Remember to run `setup agents-md`
-3. Or manually add qipu instructions
+### `hooks`
 
-Most won't do steps 2-3. Result: LLMs don't know about qipu.
+#### Beads `bd hooks`
 
-If `init` DOES modify AGENTS.md:
-1. Every initialized project has qipu instructions
-2. LLMs automatically learn about qipu
-3. Zero manual steps required
+**Subcommands**: `install`, `list`, `run`, `uninstall`
 
-Beads chose the second path. Qipu should too.
+**Hooks managed**:
+- pre-commit: Flushes pending changes to JSONL before commit
+- post-merge: Imports updated JSONL after pull/merge
+- pre-push: Prevents pushing stale JSONL
+- post-checkout: Imports JSONL after branch checkout
+- prepare-commit-msg: Adds agent identity trailers
 
-### The Goal
+#### Qipu `qipu hooks`
 
-An LLM that understands *why* to use qipu will build better knowledge graphs than one that just knows the commands. The bootstrapping flow ensures this understanding is present in every session.
+**Subcommands**: `install`, `run`, `list`, `uninstall`, `status`
+
+**Gap analysis**: Both have hooks support. Beads auto-installs on init; qipu requires explicit `hooks install`.
+
+---
+
+### `doctor`
+
+#### Beads `bd doctor`
+
+**Checks performed**:
+- .beads/ directory exists
+- Database version and migration status
+- Schema compatibility
+- CLI version currency
+- Claude plugin currency
+- Multiple database/JSONL files
+- Daemon health
+- Database-JSONL sync status
+- File permissions
+- Circular dependencies
+- Git hooks installed
+- .beads/.gitignore up to date
+
+**Modes**:
+- `--perf` - Performance diagnostics with timing
+- `--output` - Save to JSON for historical analysis
+- `--check <name>` - Run specific check (pollution, validate)
+- `--deep` - Full graph integrity validation
+
+#### Qipu `qipu doctor`
+
+**Checks performed**:
+- Store invariants
+- Near-duplicate notes (with `--duplicates`)
+- Ontology validation (with `--check ontology`)
+
+**Options**:
+- `--fix` - Auto-repair
+- `--threshold` - Similarity threshold for duplicates
+
+**Gap analysis**: Beads doctor is more comprehensive (version checks, daemon health, git hooks). Qipu focuses on data integrity.
+
+---
+
+### `human` (Beads only)
+
+**Purpose**: Show essential commands for human users (subset of full command list).
+
+**Output**: ~35 commands organized by category (Working With Issues, Finding Work, Dependencies, Setup & Sync, Getting Help) plus quick examples.
+
+**Qipu equivalent**: None. All 33 commands shown in `--help`.
+
+---
+
+## Current State Comparison
+
+| Aspect | Beads | Qipu | Status |
+|--------|-------|------|--------|
+| Commands | 93 | 33 | Beads is feature-complete; qipu is focused |
+| Init modifies AGENTS.md | Yes (automatic) | Via `--agents-md` flag | Qipu improved, not automatic |
+| Init shows next command | Yes (`bd quickstart`) | No | Gap remains |
+| Setup recipes | 10 | 2 | Gap remains |
+| Prime adaptive | Yes (MCP, git state, daemon) | Yes (MCP, compact modes) | Qipu improved |
+| Prime has session close protocol | Yes (emphatic with emojis) | Yes (calm version) | Both have it |
+| Prime has custom override | `.beads/PRIME.md` | `.qipu/PRIME.md` via flag | Qipu improved |
+| Prime has prohibited section | Yes ("never TodoWrite") | No | Gap remains |
+| Git hooks | Auto-installed on init | Separate `hooks` command | Different approaches |
+| Onboard display-only | Yes | Yes | Same pattern |
+| Quickstart command | Yes | Yes | Both have it |
+| Human-focused help | `bd human` command | No | Gap remains |
+| Doctor comprehensive | Yes (versions, daemon, perf) | Basic (data integrity) | Different focus |
+
+## Recommendations
+
+### Already Implemented (from original research)
+
+- [x] Session close protocol in prime
+- [x] Quickstart command
+- [x] Custom PRIME.md override
+- [x] MCP detection in prime
+- [x] Trimmed onboard output
+- [x] Git hooks command
+- [x] Cursor setup recipe
+
+### Remaining Gaps
+
+1. **Init should auto-modify AGENTS.md** (not require `--agents-md`)
+2. **Init should show next command** (point to `qipu quickstart`)
+3. **Add "Prohibited" section to prime** (what NOT to do)
+4. **Add more setup recipes** (claude hooks, aider, gemini)
+5. **Consider `bd human` equivalent** for essential commands only
+6. **Make prime session protocol more emphatic** (optional - design choice)
+
+## Key Insights
+
+### 1. Guidance Philosophy
+
+**Beads**: Prescriptive with strong opinions
+- "NEVER skip git push"
+- "Prohibited: TodoWrite, TaskCreate"
+- Emojis for emphasis
+- Explicit "do this, don't do that"
+
+**Qipu**: Informative with gentle nudges
+- "Why this matters: Knowledge not committed is knowledge lost"
+- No prohibited section
+- Calm, documentation-style
+
+Both are valid. Beads targets task coordination where mistakes are costly. Qipu targets knowledge accumulation where gradual improvement is fine.
+
+### 2. Help Text Approach
+
+**Beads**: Verbose help with examples inline
+```
+With --stealth: configures per-repository git settings for invisible beads usage:
+  • .git/info/exclude to prevent beads files from being committed
+  • Claude Code settings with bd onboard instruction
+  Perfect for personal use without affecting repo collaborators.
+```
+
+**Qipu**: Concise flags with brief descriptions
+```
+--stealth    Stealth mode - add store to .gitignore
+```
+
+Beads prioritizes discoverability; qipu prioritizes brevity.
+
+### 3. Command Surface
+
+Beads has 93 commands because it solves:
+- Task tracking (create, update, close, dependencies)
+- Multiple backends (sqlite, dolt)
+- Multiple integrations (jira, linear, gitlab)
+- Agent coordination (swarm, molecule, gates)
+- Federation (peer-to-peer sync)
+
+Qipu has 33 commands because it focuses on:
+- Note management (create, capture, list, search)
+- Graph traversal (link, context)
+- Store health (doctor, sync)
+
+The gap is primarily scope, not completeness within scope.
+
+### 4. Right Action Guidance
+
+**Beads**: Multiple paths to right action
+- `bd ready` - Shows unblocked work (primary path)
+- `bd prime` - Session context (secondary path)
+- `bd quickstart` - Learning path
+- `bd human` - Essential commands
+- Hooks auto-inject context
+
+**Qipu**: Single path to right action
+- `qipu prime` - Session context (primary path)
+- `qipu quickstart` - Learning path
+- No hooks auto-injection
+
+Beads provides more "nudges" toward correct usage. Qipu assumes users will find `qipu prime`.
+
+---
+
+## Progressive Disclosure Patterns
+
+### Overview
+
+Beads uses several techniques to avoid information dumps and reveal information incrementally as needed. This is critical for LLM agents who have limited context windows.
+
+### Pattern 1: Tiered Help (Human vs Full)
+
+**Beads**:
+- `bd human` - ~35 essential commands organized by category (for humans)
+- `bd --help` - 93 commands in grouped categories (full reference)
+
+**Qipu**:
+- `qipu --help` - 33 commands (single tier)
+- No "essential commands only" view
+
+**Insight**: When command count grows, provide a filtered view for common usage. This reduces cognitive load without hiding power-user features.
+
+### Pattern 2: Summary → Detail Drill-Down
+
+**Beads**:
+```
+bd status          # Overview: counts, health, sync status
+bd list            # Summary: one-line per issue
+bd list --long     # Detail: multi-line per issue
+bd show <id>       # Full: all fields, description, audit trail
+bd show --short    # Compact: one-line for scripting
+```
+
+**Qipu**:
+```
+qipu list          # Summary: one-line per note
+qipu show <id>     # Full: YAML with body
+# No intermediate detail level
+# No overview/status command
+```
+
+**Insight**: Provide multiple levels of detail. Overview → List → Show creates a clear drill-down path. Qipu lacks the overview level.
+
+### Pattern 3: Adaptive Prime Output
+
+**Beads**:
+- `bd prime` - Full CLI output (~83 lines, ~1.5k tokens)
+- `bd prime --mcp` - Minimal for MCP mode (~13 lines, ~50 tokens)
+- MCP mode auto-detected by checking `~/.claude/settings.json`
+- Adaptive to git state (ephemeral branches, daemon status)
+
+**Qipu**:
+- `qipu prime` - Full output (~89 lines)
+- `qipu prime --mcp` - Minimal (~2 lines)
+- `qipu prime --compact` - Omit MOCs and recent notes
+- `qipu prime --minimal` - Only ontology and commands
+
+**Insight**: Both now have MCP modes. Beads does more environment detection (daemon, branch state) to adapt content.
+
+### Pattern 4: Grouped Command Help
+
+**Beads** `bd --help` output:
+```
+Maintenance:
+  rename-prefix, repair, resolve-conflicts
+
+Integrations & Advanced:
+  [empty group header - visual separator]
+
+Working With Issues:
+  children, close, comments, create, edit, ...
+
+Views & Reports:
+  activity, count, diff, history, lint, ...
+
+Dependencies & Structure:
+  dep, duplicate, epic, graph, ...
+
+Sync & Data:
+  branch, daemon, export, import, sync, ...
+
+Setup & Configuration:
+  backend, config, hooks, init, ...
+```
+
+**Qipu** `qipu --help` output:
+```
+Commands:
+  init, create, new, list, show, inbox, capture, index, search, ...
+  [flat list, no grouping]
+```
+
+**Insight**: Grouping commands by category helps users discover related functionality without reading all 33+ commands. Beads organizes by workflow stage.
+
+### Pattern 5: Limit and Pagination
+
+**Beads**:
+- `bd list` - Default 50 items with `--limit` control
+- `bd list --limit 5` - Shows count and hints: "Showing 5 issues (use --limit 0 for all)"
+- `bd ready --limit 10` - Default 10, respects user's attention
+
+**Qipu**:
+- `qipu list` - Shows all items (no pagination)
+- No `--limit` flag
+
+**Insight**: Limits prevent overwhelming output. The hint text teaches users how to get more.
+
+### Pattern 6: Information Density Control
+
+**Beads**:
+- `bd list` - One line per issue: `○ qipu-fshe [● P0] [bug] - title`
+- `bd list --long` - Multi-line with description preview
+- `bd list --pretty` - Tree format with visual hierarchy
+- `bd show --short` - Compact for scripting
+
+**Qipu**:
+- `qipu list` - One line per note: `qp-29b1 [P] title compacts=2`
+- `qipu show` - Full YAML output
+- No intermediate detail level
+
+**Insight**: Multiple output formats let users choose density. Scripts need compact; humans scanning need moderate; detail review needs full.
+
+### Pattern 7: Context-Sensitive Defaults
+
+**Beads**:
+- `bd ready` - Filters to actionable work (open, no blockers)
+- `bd list` - Shows open by default (excludes closed)
+- `bd prime` in MCP mode - Minimal because agent already knows context
+
+**Qipu**:
+- `qipu list` - Shows all notes (no status filtering)
+- `qipu inbox` - Filters to unprocessed (fleeting/literature without links)
+
+**Insight**: Default to the most common use case. "Show me what I can work on" (ready) vs "show me everything" (list all).
+
+### Pattern 8: Explicit Next Steps
+
+**Beads** `bd status` output ends with:
+```
+For more details, use 'bd list' to see individual issues.
+```
+
+**Beads** `bd init` output:
+```
+Run `bd quickstart` to get started.
+```
+
+**Qipu** `qipu init` output:
+```
+# No next-step guidance
+```
+
+**Insight**: Tell users what to do next. Reduces decision paralysis after successful setup.
+
+---
+
+## Recommendations for Qipu
+
+### High Impact
+
+1. **Add status/overview command**
+   - `qipu status` showing: note counts by type, recent activity, health checks
+   - Creates drill-down entry point: status → list → show
+
+2. **Add --limit to list commands**
+   - `qipu list --limit 10`
+   - Show hint when truncated: "Showing 10 notes (use --limit 0 for all)"
+
+3. **Group commands in --help**
+   - Categories: Knowledge Capture, Navigation, Graph, Store, Setup
+   - Reduces cognitive load for new users
+
+4. **Add next-step hints**
+   - `qipu init` → "Run `qipu quickstart` to get started"
+   - `qipu status` → "Run `qipu list` for details"
+
+### Medium Impact
+
+5. **Add intermediate detail level to list**
+   - `qipu list --long` or `qipu list --verbose` for multi-line per note
+   - Include first line of body, tags, link count
+
+6. **Create human-focused command subset**
+   - `qipu essentials` or document in AGENTS.md
+   - 10-15 commands covering 80% of use cases
+
+7. **Improve show output modes**
+   - `qipu show --short` for one-line compact output
+   - Useful for scripting and quick reference
+
+### Lower Impact
+
+8. **Environment detection in prime**
+   - Detect if store is empty vs populated
+   - Adjust guidance accordingly
+   - Already have `--compact` and `--minimal` modes
+
+9. **Pretty/tree output for graph**
+   - `qipu link tree` exists, extend pattern
+   - `qipu list --tree` for type hierarchy
+
+---
+
+## Error Handling & Intent Inference
+
+### Overview
+
+How tools handle mistakes reveals their design philosophy. Good error handling:
+1. Identifies what went wrong
+2. Suggests the correct action
+3. Teaches the user for next time
+4. Sometimes infers intent and offers alternatives
+
+### Pattern Comparison
+
+#### 1. Command Typos
+
+**Beads**:
+```
+$ bd creat "Test"
+Error: unknown command "creat" for "bd"
+
+Did you mean this?
+	create
+	create-form
+```
+
+**Qipu**:
+```
+$ qipu creat "Test"
+error: unrecognized subcommand 'creat'
+
+  tip: a similar subcommand exists: 'create'
+```
+
+**Analysis**: Both use Levenshtein distance to suggest alternatives. Beads shows multiple matches; qipu shows the single best match.
+
+#### 2. Flag Typos
+
+**Beads**:
+```
+$ bd update qipu-fshe --statu in_progress
+Error: unknown flag: --statu
+Usage:
+  bd update [id...] [flags]
+
+Flags:
+      --acceptance string      Acceptance criteria
+      ...
+```
+*Shows full usage + all flags*
+
+**Qipu**:
+```
+$ qipu create "Test" --typo permanent
+error: unexpected argument '--typo' found
+
+  tip: a similar argument exists: '--type'
+```
+*Suggests correct flag, minimal usage*
+
+**Analysis**: Qipu is more helpful for typos - suggests the correct flag. Beads dumps full help which can overwhelm. Qipu wins here.
+
+#### 3. Missing Required Arguments
+
+**Beads**:
+```
+$ bd create
+Error: title required (or use --file to create from markdown)
+```
+*Explains what's needed AND offers alternative*
+
+```
+$ bd dep add qipu-fshe
+Error: requires 2 arg(s), only received 1 (or use --blocked-by/--depends-on flag)
+Usage:
+  bd dep add [issue-id] [depends-on-id] [flags]
+...
+```
+*Shows missing count AND alternative flags*
+
+**Qipu**:
+```
+$ qipu create
+error: the following required arguments were not provided:
+  <TITLE>
+
+Usage: qipu create <TITLE>
+```
+
+**Analysis**: Beads offers alternatives (`--file`, `--blocked-by`). This is valuable - it teaches users about related features.
+
+#### 4. Invalid Values
+
+**Beads**:
+```
+$ bd create "Test" --priority high
+Error: invalid priority "high" (expected 0-4 or P0-P4, not words like high/medium/low)
+```
+*Explains expected format AND what NOT to use*
+
+```
+$ bd create "Test" --type invalid_type
+Error: operation failed: failed to create issue: validation failed: invalid issue type: invalid_type
+```
+*Could be improved - doesn't list valid types*
+
+**Qipu**:
+```
+$ qipu create "Test" --type invalid
+error: Invalid note type: 'invalid'. Valid types: fleeting, literature, moc, permanent
+```
+*Lists all valid values*
+
+**Analysis**: Qipu wins on invalid value errors - it lists valid options. Beads priority error is good (explains format), but type error lacks the list.
+
+#### 5. Domain-Specific Mistakes
+
+**Beads**:
+```
+$ bd create "Test" --priority 2
+⚠ Creating issue with 'Test' prefix in production database.
+  For testing, consider using: BEADS_DB=/tmp/test.db ./bd create "Test issue"
+✓ Created issue: ...
+```
+*Proactive warning about test data in production*
+
+```
+$ bd dep add qipu-fshe qipu-fshe
+Error: operation failed: failed to add dependency: issue cannot depend on itself
+```
+*Domain rule enforced*
+
+**Qipu**: No equivalent proactive warnings (could warn about empty captures, type demotion)
+
+**Analysis**: Beads is proactive about common mistakes (test data in prod). This is valuable for preventing data pollution.
+
+#### 6. Non-Existent Resources
+
+**Beads**:
+```
+$ bd show nonexistent-xyz
+Error: resolving ID nonexistent-xyz: operation failed: failed to resolve ID: no issue found matching "nonexistent-xyz"
+```
+
+**Qipu**:
+```
+$ qipu show nonexistent
+error: note not found: nonexistent
+```
+
+**Analysis**: Qipu is more concise. Beads includes more context about the failure path. Both work.
+
+#### 7. Doctor/Health Checks
+
+**Beads** `bd doctor`:
+```
+bd doctor v0.49.6  ──────────────────────────────────────────  ✓ 73 passed  ⚠ 4 warnings  ✖ 1 errors
+
+  ✖  1. Sync Divergence: 3 sync divergence issue(s) detected
+        JSONL file differs from git HEAD: issues.jsonl                                         
+        Uncommitted .beads/ changes (1 file(s))                                                
+        └─ git add .beads/ && git commit -m 'sync beads' OR bd sync --import-only OR bd sync
+  ⚠  2. Claude Integration: Not configured
+        Claude can use bd more effectively with the beads plugin
+        └─ Set up Claude integration:
+            Option 1: Install the beads plugin (recommended)
+            ...
+```
+*Each issue has: problem description + specific fix commands*
+
+**Qipu** `qipu doctor`:
+- Checks invariants
+- Optional `--duplicates` check
+- `--fix` for auto-repair
+- No guidance text, just pass/fail
+
+**Analysis**: Beads doctor is prescriptive - it tells you exactly what to run. Qipu is diagnostic - it reports status but doesn't guide fixes.
+
+---
+
+## Recommendations for Qipu Error Handling
+
+### High Impact
+
+1. **List valid values in error messages**
+   ```rust
+   // Current
+   error: Invalid note type: 'invalid'
+   
+   // Better
+   error: Invalid note type: 'invalid'. Valid types: fleeting, literature, moc, permanent
+   ```
+   *Already doing this for note types - extend to all enum values*
+
+2. **Add proactive warnings**
+   ```rust
+   // Warn about empty captures
+   $ qipu capture --title "Empty" < /dev/null
+   ⚠ Capture has empty body. Consider adding content or using 'qipu create'.
+   
+   // Warn about type demotion
+   $ qipu update qp-xxx --type fleeting  # was permanent
+   ⚠ Demoting from permanent to fleeting. This may affect knowledge retention.
+   ```
+
+3. **Offer alternatives in missing-arg errors**
+   ```rust
+   // Current
+   error: the following required arguments were not provided: <TITLE>
+   
+   // Better
+   error: title required (or use --file to create from markdown, or pipe body to 'qipu capture')
+   ```
+
+### Medium Impact
+
+4. **Add fix commands to doctor output**
+   ```rust
+   // Current
+   Found 2 unlinked notes: qp-abc, qp-def
+   
+   // Better
+   ⚠ Unlinked Notes: 2 notes have no incoming links
+        qp-abc, qp-def
+        └─ Run 'qipu link suggest' to find related notes
+        └─ Or ignore if these are starting points
+   ```
+
+5. **Improve validation error messages**
+   ```rust
+   // Current (from update destroying body)
+   [silently destroys body]
+   
+   // Better
+   Error: update with --tag/--type/--value requires body via stdin
+        To update metadata only: echo "" | qipu update <id> --tag foo
+        To update body: cat new_body.md | qipu update <id>
+   ```
+
+### Lower Impact
+
+6. **Suggest similar commands for typos** (already good)
+7. **Group related commands in usage** (already discussed)
+
+---
+
+## Key Insight: Error Messages as Teaching Moments
+
+Beads uses errors to teach:
+- "not words like high/medium/low" - explains why the input was wrong
+- "For testing, consider using: BEADS_DB=/tmp/test.db" - teaches about test isolation
+- "OR bd sync --import-only OR bd sync" - shows multiple solutions
+
+Qipu is more matter-of-fact:
+- "note not found: nonexistent" - what happened, not what to do
+
+For LLM agents, prescriptive errors are valuable because:
+1. Agents can't "figure out" the fix through experimentation
+2. Each error is a token cost - precise fixes minimize retries
+3. Teaching in errors reduces need for documentation lookup

@@ -13,7 +13,7 @@ use std::time::Instant;
 
 const QUICKSTART_CONTENT: &str = r#"# Qipu Quick Start Guide
 
-Welcome to qipu - a Zettelkasten-inspired knowledge management CLI.
+Welcome to qipu - a knowledge graph CLI for scripts and agents.
 
 ## Capturing Knowledge
 

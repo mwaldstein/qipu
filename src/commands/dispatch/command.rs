@@ -53,7 +53,7 @@ impl Command for NoCommand {
     fn execute(&self, _ctx: &CommandContext) -> Result<()> {
         println!("qipu {}", env!("CARGO_PKG_VERSION"));
         println!();
-        println!("A Zettelkasten-inspired knowledge management CLI.");
+        println!("Knowledge graph CLI for scripts and agents.");
         println!();
         println!("Run `qipu --help` for usage information.");
         Ok(())

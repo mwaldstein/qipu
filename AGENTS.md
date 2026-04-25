@@ -1,6 +1,6 @@
 # Qipu Agent Operations Guide
 
-Qipu is a Rust CLI for Zettelkasten-inspired knowledge management. This guide helps coding agents work effectively in this codebase.
+Qipu is a Rust CLI for knowledge graph management. This guide helps coding agents work effectively in this codebase.
 
 > **AI Skills Integration**: Qipu provides skill definitions for [Claude Desktop (MCP)](skills/INSTALL.md#model-context-protocol-mcp), [Cursor IDE](skills/INSTALL.md#model-context-protocol-mcp), [GitHub Copilot Extensions](skills/INSTALL.md#github-copilot-extensions), and [OpenCode](skills/INSTALL.md#opencode). See [skills/INSTALL.md](skills/INSTALL.md) for installation instructions.
 

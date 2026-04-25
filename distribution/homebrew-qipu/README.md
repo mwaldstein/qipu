@@ -32,6 +32,6 @@ brew untap mwaldstein/qipu
 
 ## About
 
-This tap provides the `qipu` CLI tool, a Zettelkasten-inspired knowledge management system for capturing and navigating research.
+This tap provides the `qipu` CLI tool, a knowledge graph CLI designed for scripts and agents.
 
 For more information, visit the [qipu repository](https://github.com/mwaldstein/qipu).

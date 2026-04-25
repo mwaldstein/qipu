@@ -54,7 +54,7 @@ pub fn assert_install_agents_md_success(format: OutputFormat, verify_content: bo
 
     if verify_content {
         let content = fs::read_to_string(&agents_md_path).unwrap();
-        assert!(content.contains("Qipu is a Zettelkasten-inspired"));
+        assert!(content.contains("Qipu is a knowledge graph CLI"));
         assert!(content.contains("Quick Start"));
     }
 

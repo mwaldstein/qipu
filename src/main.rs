@@ -1,4 +1,4 @@
-//! Qipu - Zettelkasten-inspired knowledge management CLI
+//! Qipu - Knowledge graph CLI for scripts and agents
 //!
 //! A command-line tool for capturing research, distilling insights,
 //! and navigating knowledge via links, tags, and Maps of Content.

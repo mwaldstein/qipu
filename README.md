@@ -1,6 +1,6 @@
 # Qipu
 
-**Local-first knowledge graph CLI for humans and AI agents.**
+**Knowledge graph CLI designed for scripts and agents.**
 
 <!-- Badges (uncomment when available)
 [![License](https://img.shields.io/github/license/USER/qipu)](LICENSE)
@@ -10,7 +10,7 @@
 
 > *Sometimes it's ok to give your LLM a graph knowledgebase, as a treat.*
 
-Qipu is a local-first CLI for building a **persistent knowledge graph** that both you and your AI coding agents can query. Think Zettelkasten meets `man pages` meets "please stop re-researching this every session."
+Qipu is a CLI for building a **persistent knowledge graph** designed primarily for programmatic access by scripts and LLM agents. Think `man pages` meets "please stop re-researching this every session."
 
 **The problem**: Your LLM agent is brilliant at searching the current codebase but has the long-term memory of a goldfish. Every session, it rediscovers the same APIs, re-reads the same docs, and forgets that clever pattern you found last week.
 
@@ -181,7 +181,11 @@ You could dump everything in `docs/` and `grep` your way through. We've tried it
 
 The graph structure isn't academic—it's how you answer "what do I know about X?" without reading everything.
 
-Qipu is also inspired by [beads](https://github.com/steveyegge/beads)—a similar project focused on moving tasks out of `progress.md` files and enabling context sharing between multiple LLMs.
+## Inspirations
+
+- **[Zettelkasten](https://zettelkasten.de/)** — The note-linking methodology behind qipu's typed notes (fleeting, literature, permanent, MOC) and semantic links. We don't enforce atomic notes or slip-box metaphor, but the core insight—ideas compound when connected—is foundational.
+
+- **[beads](https://github.com/steveyegge/beads)** — A task-tracking system for LLM agents that pioneered the `prime` workflow (session bootstrap context) and git-backed context sharing between multiple LLMs. Qipu applies similar patterns to knowledge graphs.
 
 ## Development
 

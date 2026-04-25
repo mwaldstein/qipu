@@ -5,11 +5,11 @@ members = [".", "crates/qipu-core"]
 name = "qipu"
 version = "0.3.32"
 edition = "2021"
-description = "A Zettelkasten-inspired knowledge management CLI for capturing and navigating research"
+description = "Knowledge graph CLI designed for scripts and agents"
 authors = ["Qipu Contributors"]
 license = "MIT"
 repository = "https://github.com/mwaldstein/qipu"
-keywords = ["zettelkasten", "knowledge-management", "cli", "notes"]
+keywords = ["knowledge-graph", "knowledge-management", "cli", "llm", "agents"]
 categories = ["command-line-utilities"]
 
 [dependencies]
@@ -86,16 +86,16 @@ assets = [
     ["README.md", "usr/share/doc/qipu/README", "644"],
     ["LICENSE", "usr/share/doc/qipu/LICENSE", "644"],
 ]
-extended-description = """Qipu is a Zettelkasten-inspired knowledge management CLI for capturing
-and navigating research. It provides note creation, linking, search,
-and graph traversal capabilities."""
+extended-description = """Qipu is a knowledge graph CLI designed for scripts and agents.
+It provides note creation, linking, search, and graph traversal capabilities
+with programmatic output formats."""
 
 # RPM package configuration (cargo-rpm)
 [package.metadata.rpm]
 name = "qipu"
 version = "0.3.32"
 license = "MIT"
-summary = "Zettelkasten-inspired knowledge management CLI"
+summary = "Knowledge graph CLI for scripts and agents"
 group = "Applications/System"
 
 [package.metadata.rpm.targets]

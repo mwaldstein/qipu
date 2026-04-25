@@ -46,7 +46,7 @@ pub use tags::TagsCommands;
 pub use value::ValueCommands;
 pub use workspace::WorkspaceCommands;
 
-/// Qipu - Zettelkasten-inspired knowledge management CLI
+/// Qipu - Knowledge graph CLI for scripts and agents
 #[derive(Parser, Debug)]
 #[command(name = "qipu")]
 #[command(author, version, about, long_about = None)]

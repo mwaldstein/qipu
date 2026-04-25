@@ -17,7 +17,7 @@ For full workflow: `qipu prime`
 
 pub const AGENTS_MD_CONTENT: &str = r#"# Qipu Agent Integration
 
-Qipu is a Zettelkasten-inspired knowledge management system designed for agent workflows.
+Qipu is a knowledge graph CLI designed for scripts and agents.
 
 ## Quick Start
 
@@ -128,7 +128,7 @@ glob: "**/*"
 
 # Qipu Knowledge Management
 
-You have access to qipu, a Zettelkasten-inspired knowledge management CLI for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
+You have access to qipu, a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
 
 ## Critical: Always Use the CLI
 

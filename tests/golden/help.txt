@@ -1,4 +1,4 @@
-A Zettelkasten-inspired knowledge management CLI for capturing and navigating research
+Knowledge graph CLI designed for scripts and agents
 
 Usage: qipu [OPTIONS] [COMMAND]
 

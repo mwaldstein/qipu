@@ -117,3 +117,22 @@ fn test_unknown_type_fallback_inversion() {
         .failure()
         .stderr(predicate::str::contains("Invalid link type"));
 }
+
+#[test]
+fn test_link_add_rejects_self_link() {
+    let dir = setup_test_dir();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Self Note"])
+        .output()
+        .unwrap();
+    let id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &id, &id, "--type", "related"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("self-link"));
+}

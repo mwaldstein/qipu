@@ -416,10 +416,11 @@ fn test_update_multiple_fields() {
 fn test_update_preserves_body_when_no_stdin() {
     let dir = setup_test_dir();
 
-    // Create a note
+    // Create a note with body via capture
     let output = qipu()
         .current_dir(dir.path())
-        .args(["create", "Test Note"])
+        .args(["capture", "--title", "Test Note"])
+        .write_stdin("Original body content")
         .output()
         .unwrap();
     let id = extract_id(&output);
@@ -439,6 +440,14 @@ fn test_update_preserves_body_when_no_stdin() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"title\": \"Updated Title\""));
+
+    // Verify body was preserved by reading the note file directly
+    qipu()
+        .current_dir(dir.path())
+        .args(["show", &id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Original body content"));
 }
 
 #[test]

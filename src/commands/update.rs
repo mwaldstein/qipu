@@ -189,8 +189,10 @@ pub fn execute(
                 operation: "read from stdin".to_string(),
                 reason: e.to_string(),
             })?;
-        note.body = body;
-        modified = true;
+        if !body.is_empty() {
+            note.body = body;
+            modified = true;
+        }
     }
 
     if !modified {

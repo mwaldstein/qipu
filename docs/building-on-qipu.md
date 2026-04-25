@@ -2,7 +2,7 @@
 
 This guide is for developers building applications, agents, and tools that use qipu as a knowledge graph foundation.
 
-Up to date as of qipu version `0.1.100`.
+Up to date as of qipu version `0.3.32`.
 
 ## Overview
 
@@ -779,7 +779,7 @@ Operational guidance for integrations:
 - Always pass an explicit log level in wrappers (e.g. `--log-level error`) rather than relying on implicit defaults.
 - ANSI should be auto-disabled when qipu is not writing to a TTY; do not rely on colored output for integration.
 
-Implementation note (qipu `0.1.100`): not every subcommand currently honors `--format json`. If you need reliable machine-readable output today, prefer `qipu context --format records` / `qipu context --format json` and treat other commands as human-oriented until they are made consistent.
+Implementation note (qipu `0.3.32`): `--format json` is supported on all commands where programmatic output is relevant. `qipu context --format records` / `qipu context --format json` remain the most stable interfaces for agent integration.
 
 Example (Python pseudocode):
 

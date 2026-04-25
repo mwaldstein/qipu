@@ -1,6 +1,6 @@
 //! Link add command
 use crate::cli::{Cli, OutputFormat};
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::note::{LinkType, TypedLink};
 use qipu_core::store::Store;
 
@@ -22,6 +22,13 @@ pub fn execute(
     // Resolve note IDs
     let from_resolved = resolve_note_id(store, from_id)?;
     let to_resolved = resolve_note_id(store, to_id)?;
+
+    // Reject self-links
+    if from_resolved == to_resolved {
+        return Err(QipuError::UsageError(
+            "cannot create self-link: source and target are the same note".to_string(),
+        ));
+    }
 
     // Load and verify both notes exist
     let mut from_note = store.get_note(&from_resolved)?;

@@ -3,8 +3,8 @@
 **Knowledge graph CLI designed for scripts and agents.**
 
 <!-- Badges (uncomment when available)
-[![License](https://img.shields.io/github/license/USER/qipu)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/USER/qipu/ci.yml)](https://github.com/USER/qipu/actions)
+[![License](https://img.shields.io/github/license/mwaldstein/qipu)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/mwaldstein/qipu/ci.yml)](https://github.com/mwaldstein/qipu/actions)
 [![Crates.io](https://img.shields.io/crates/v/qipu)](https://crates.io/crates/qipu)
 -->
 
@@ -56,20 +56,33 @@ qipu link add qp-01J5B qp-01J5A --type refines
 qipu link tree qp-01J5A
 ```
 
-<!-- Installation options (uncomment when available)
 ## Installation
 
+### Pre-built binaries (recommended)
+
 ```bash
-# Cargo (crates.io)
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/mwaldstein/qipu/main/scripts/install.sh | bash
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/mwaldstein/qipu/main/scripts/install.ps1 | iex
+```
+
+Binaries are also available on [GitHub Releases](https://github.com/mwaldstein/qipu/releases) for all supported platforms.
+
+### Cargo (crates.io)
+
+```bash
 cargo install qipu
+```
 
-# Homebrew
-brew install qipu
+### From source
 
-# From source
+```bash
+git clone https://github.com/mwaldstein/qipu.git
+cd qipu
 cargo install --path .
 ```
--->
 
 ## Essential Commands
 
@@ -181,6 +194,19 @@ You could dump everything in `docs/` and `grep` your way through. We've tried it
 
 The graph structure isn't academic—it's how you answer "what do I know about X?" without reading everything.
 
+## Telemetry
+
+Qipu collects **opt-in anonymous usage analytics** to help improve the tool. Telemetry is **disabled by default**.
+
+```bash
+qipu telemetry status    # Check if telemetry is enabled
+qipu telemetry enable    # Opt in to anonymous analytics
+qipu telemetry disable   # Opt out (default)
+qipu telemetry show      # View what would be uploaded (dry run)
+```
+
+When enabled, telemetry collects: command name, execution duration, error type (if any), and store size. No note content, titles, tags, or queries are ever collected. Data is held locally until you run `qipu telemetry upload` with a configured endpoint.
+
 ## Inspirations
 
 - **[Zettelkasten](https://zettelkasten.de/)** — The note-linking methodology behind qipu's typed notes (fleeting, literature, permanent, MOC) and semantic links. We don't enforce atomic notes or slip-box metaphor, but the core insight—ideas compound when connected—is foundational.
@@ -217,4 +243,4 @@ See `docs/llm-testing.md` for detailed usage instructions.
 
 ## Documentation
 
-[Specs](specs/README.md) | [Agent Guide](AGENTS.md) | [Usage Patterns](docs/usage-patterns.md) | [Building on Qipu](docs/building-on-qipu.md) | [AI Skills Integration](skills/README.md)
+[Specs](specs/README.md) | [Agent Guide](AGENTS.md) | [Usage Patterns](docs/usage-patterns.md) | [Building on Qipu](docs/building-on-qipu.md)

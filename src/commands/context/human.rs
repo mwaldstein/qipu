@@ -210,6 +210,11 @@ fn build_human_output(view: &ContextBundleView) -> String {
 
     output.push('\n');
 
+    if view.notes.is_empty() {
+        output.push_str("No notes matched selection.\n");
+        return output;
+    }
+
     for note_view in &view.notes {
         if let Some(budget) = view.max_chars {
             if used_chars >= budget {

@@ -63,6 +63,24 @@ fn test_context_by_tag() {
 }
 
 #[test]
+fn test_context_tag_no_matches_is_successful_empty_bundle() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "research", "Research Note"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["context", "--tag", "missing-tag"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes matched selection"));
+}
+
+#[test]
 fn test_context_by_query() {
     let dir = setup_test_dir();
 
@@ -91,6 +109,72 @@ fn test_context_by_query() {
         .success()
         .stdout(predicate::str::contains("Rust Programming"))
         .stdout(predicate::str::contains("Python Scripts").not());
+}
+
+#[test]
+fn test_context_query_no_matches_is_successful_empty_bundle() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Rust Programming"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--query",
+            "definitely-no-match",
+            "--related",
+            "0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No notes matched selection"));
+}
+
+#[test]
+fn test_context_query_no_matches_json_reports_zero_notes() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Rust Programming"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--query",
+            "definitely-no-match",
+            "--related",
+            "0",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["notes_count"], 0);
+    assert_eq!(json["notes"].as_array().unwrap().len(), 0);
 }
 
 #[test]
@@ -153,6 +237,57 @@ fn test_context_by_moc() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Linked Note"));
     assert!(stdout.contains("Topic Map"));
+}
+
+#[test]
+fn test_context_moc_selector_accepts_any_existing_note_root() {
+    let dir = setup_test_dir();
+
+    let note_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Regular Root"])
+        .output()
+        .unwrap();
+    let root_id = extract_id(&note_output);
+
+    let child_output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Linked Child"])
+        .output()
+        .unwrap();
+    let child_id = extract_id(&child_output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", &root_id, &child_id, "--type", "related"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["context", "--moc", &root_id])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Regular Root"))
+        .stdout(predicate::str::contains("Linked Child"));
+}
+
+#[test]
+fn test_context_nonexistent_moc_is_data_error() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["context", "--moc", "qp-does-not-exist"])
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("note not found"));
 }
 
 #[test]

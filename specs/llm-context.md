@@ -46,7 +46,9 @@ Output formats:
 Selection methods (composable):
 - explicit: `--note <id>`
 - by tag: `--tag <tag>`
-- by MOC: `--moc <id>` (include links listed in that MOC)
+- by linked collection root: `--moc <id>` (include links listed from that
+  root note; named for the standard `moc` type but usable with custom
+  ontology outline/index types)
 - by search: `--query <text>`
 
 Additional selectors/filters:
@@ -70,6 +72,23 @@ Multiple `--custom-filter` flags are combined with AND semantics.
 
 Notes:
 - For MOCs, qipu should support both "direct list" and "transitive closure" modes.
+
+### Empty selections and selector errors
+`qipu context` distinguishes selectors that name concrete graph objects from
+selectors that search or filter the graph:
+
+- `--note <id>`, `--moc <id>`, and `--walk <id>` name concrete note roots.
+  Missing roots are data errors. `--moc <id>` uses the resolved note as a
+  linked-collection root rather than requiring the note's type to literally be
+  `moc`, so replacement ontologies can use domain-specific outline/index types.
+- `--query <text>`, `--tag <tag>`, `--min-value <n>`, and
+  `--custom-filter <expr>` are retrieval/filter selectors. Matching zero notes
+  is a successful empty result, not an error.
+
+Empty successful results must be explicit in output. Human output should state
+that no notes matched selection. JSON output should include `notes_count: 0`
+with an empty `notes` array. Records output exposes the same state through the
+header's `notes=0` field.
 
 ## Bundle output format (markdown)
 Proposed format:
@@ -103,6 +122,7 @@ For integration with tools, `qipu context --format json` should emit:
 ```json
 {
   "store": "…",
+  "notes_count": 1,
   "notes": [
     {
       "id": "…",

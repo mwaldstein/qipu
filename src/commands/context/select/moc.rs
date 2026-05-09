@@ -68,7 +68,8 @@ pub fn collect_from_moc<'a>(
         return Ok(());
     };
 
-    let linked_ids = get_moc_linked_ids(store.db(), moc, options.expansion.transitive)?;
+    let resolved_moc = resolve_id(moc)?;
+    let linked_ids = get_moc_linked_ids(store.db(), &resolved_moc, options.expansion.transitive)?;
     for (id, link_type) in linked_ids {
         let resolved_id = resolve_id(&id)?;
         state.add_note(&id, resolved_id, note_map, None, link_type)?;

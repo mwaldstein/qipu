@@ -96,6 +96,7 @@ fn build_json_output(view: &ContextBundleView) -> serde_json::Value {
     let mut output = serde_json::json!({
         "store": view.store_path,
         "truncated": view.truncated || actual_truncated,
+        "notes_count": json_notes.len(),
         "notes": json_notes,
     });
 

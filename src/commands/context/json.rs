@@ -1,30 +1,30 @@
-use super::types::{BuildNoteJsonParams, ContextOutputParams};
+use super::view::{ContextBundleView, ContextNoteView};
 use qipu_core::error::Result;
 use qipu_core::note::Note;
 use std::time::Instant;
 use tracing::debug;
 
 /// Output in JSON format
-pub fn output_json(params: ContextOutputParams) -> Result<()> {
+pub fn output_json(view: &ContextBundleView) -> Result<()> {
     let start = Instant::now();
 
-    if params.cli.verbose {
+    if view.cli.verbose {
         debug!(
-            notes_count = params.notes.len(),
-            truncated = params.truncated,
-            with_body = params.with_body,
-            max_chars = params.max_chars,
-            include_custom = params.include_custom,
-            include_ontology = params.include_ontology,
+            notes_count = view.notes.len(),
+            truncated = view.truncated,
+            with_body = view.with_body,
+            max_chars = view.max_chars,
+            include_custom = view.include_custom,
+            include_ontology = view.include_ontology,
             "output_json"
         );
     }
 
-    let output = build_json_output(&params);
+    let output = build_json_output(view);
 
     println!("{}", serde_json::to_string_pretty(&output)?);
 
-    if params.cli.verbose {
+    if view.cli.verbose {
         debug!(elapsed = ?start.elapsed(), "output_json_complete");
     }
     Ok(())
@@ -46,51 +46,27 @@ fn truncate_note_content(content: &str, note_size: usize, remaining: usize) -> (
     }
 }
 
-fn build_json_output(params: &ContextOutputParams) -> serde_json::Value {
+fn build_json_output(view: &ContextBundleView) -> serde_json::Value {
     let mut json_notes: Vec<serde_json::Value> = Vec::new();
     let mut actual_truncated = false;
-    let mut estimated_size = params.store_path.len() + 50;
+    let mut estimated_size = view.store_path.len() + 50;
 
-    for selected in params.notes.iter() {
-        let note = selected.note;
-        let content = if params.with_body {
-            note.body.clone()
-        } else {
-            note.summary()
-        };
-
-        let note_json_obj = build_note_json(BuildNoteJsonParams {
-            cli: params.cli,
-            note,
-            selected,
-            compaction_ctx: params.compaction_ctx,
-            note_map: params.note_map,
-            all_notes: params.all_notes,
-            include_custom: params.include_custom,
-            content: &content,
-        });
+    for note_view in &view.notes {
+        let note_json_obj = build_note_json(note_view, &note_view.content, view.include_custom);
 
         let note_json_str = serde_json::to_string(&note_json_obj).unwrap_or_default();
         let note_size = note_json_str.len() + 10;
 
-        if let Some(budget) = params.max_chars {
+        if let Some(budget) = view.max_chars {
             let remaining = budget.saturating_sub(estimated_size);
 
-            if params.truncated || note_size > remaining {
+            if view.truncated || note_size > remaining {
                 actual_truncated = true;
                 let (final_content, content_truncated) =
-                    truncate_note_content(&content, note_size, remaining);
+                    truncate_note_content(&note_view.content, note_size, remaining);
 
-                let mut truncated_note_json = build_note_json(BuildNoteJsonParams {
-                    cli: params.cli,
-                    note,
-                    selected,
-                    compaction_ctx: params.compaction_ctx,
-                    note_map: params.note_map,
-                    all_notes: params.all_notes,
-                    include_custom: params.include_custom,
-                    content: &final_content,
-                });
+                let mut truncated_note_json =
+                    build_note_json(note_view, &final_content, view.include_custom);
 
                 if let Some(obj) = truncated_note_json.as_object_mut() {
                     obj.insert(
@@ -118,16 +94,16 @@ fn build_json_output(params: &ContextOutputParams) -> serde_json::Value {
     }
 
     let mut output = serde_json::json!({
-        "store": params.store_path,
-        "truncated": params.truncated || actual_truncated,
+        "store": view.store_path,
+        "truncated": view.truncated || actual_truncated,
         "notes": json_notes,
     });
 
-    if params.include_ontology {
+    if view.include_ontology {
         if let Some(obj) = output.as_object_mut() {
             obj.insert(
                 "ontology".to_string(),
-                crate::commands::json_builders::build_ontology_json(params.store),
+                crate::commands::json_builders::build_ontology_json(view.store),
             );
         }
     }
@@ -171,14 +147,10 @@ fn build_compacted_note_json(note: &Note, include_custom: bool) -> serde_json::V
 }
 
 fn build_compaction_info_json(
-    cli: &crate::cli::Cli,
-    note: &Note,
-    compaction_ctx: &qipu_core::compaction::CompactionContext,
-    note_map: &std::collections::HashMap<&str, &Note>,
-    all_notes: &[Note],
+    note_view: &ContextNoteView,
     include_custom: bool,
 ) -> Option<serde_json::Value> {
-    let compacts_count = compaction_ctx.get_compacts_count(&note.frontmatter.id);
+    let compacts_count = note_view.compacts_count;
     if compacts_count == 0 {
         return None;
     }
@@ -187,82 +159,68 @@ fn build_compaction_info_json(
         "compacts": compacts_count,
     });
 
-    if let Some(pct) = compaction_ctx.get_compaction_pct(note, note_map) {
+    if let Some(pct) = note_view.compaction_pct {
         obj["compaction_pct"] = serde_json::json!(format!("{:.1}", pct));
     }
 
-    if cli.with_compaction_ids {
-        let depth = cli.compaction_depth.unwrap_or(1);
-        if let Some((ids, truncated)) =
-            compaction_ctx.get_compacted_ids(&note.frontmatter.id, depth, cli.compaction_max_nodes)
-        {
-            obj["compacted_ids"] = serde_json::json!(ids);
-            if truncated {
-                obj["compacted_ids_truncated"] = serde_json::json!(true);
-            }
+    if let Some(compacted_ids) = &note_view.compacted_ids {
+        obj["compacted_ids"] = serde_json::json!(&compacted_ids.ids);
+        if compacted_ids.truncated {
+            obj["compacted_ids_truncated"] = serde_json::json!(true);
         }
     }
 
-    if cli.expand_compaction {
-        let depth = cli.compaction_depth.unwrap_or(1);
-        if let Some((compacted_notes, truncated)) = compaction_ctx.get_compacted_notes_expanded(
-            &note.frontmatter.id,
-            depth,
-            cli.compaction_max_nodes,
-            all_notes,
-        ) {
-            obj["compacted_notes"] = serde_json::json!(compacted_notes
-                .iter()
-                .map(|n| build_compacted_note_json(n, include_custom))
-                .collect::<Vec<_>>());
-            if truncated {
-                obj["compacted_notes_truncated"] = serde_json::json!(true);
-            }
+    if !note_view.compacted_notes.is_empty() {
+        obj["compacted_notes"] = serde_json::json!(note_view
+            .compacted_notes
+            .iter()
+            .map(|n| build_compacted_note_json(n, include_custom))
+            .collect::<Vec<_>>());
+        if note_view.compacted_notes_truncated {
+            obj["compacted_notes_truncated"] = serde_json::json!(true);
         }
     }
 
     Some(obj)
 }
 
-fn build_note_json(params: BuildNoteJsonParams) -> serde_json::Value {
+fn build_note_json(
+    note_view: &ContextNoteView,
+    content: &str,
+    include_custom: bool,
+) -> serde_json::Value {
+    let note = note_view.note;
     let mut json = serde_json::json!({
-        "id": params.note.id(),
-        "title": params.note.title(),
-        "type": params.note.note_type().to_string(),
-        "tags": params.note.frontmatter.tags,
-        "content": params.content,
+        "id": note.id(),
+        "title": note.title(),
+        "type": note.note_type().to_string(),
+        "tags": note.frontmatter.tags,
+        "content": content,
         "content_truncated": false,
-        "sources": crate::commands::json_builders::build_sources_json(&params.note.frontmatter.sources),
-        "source": params.note.frontmatter.source,
-        "author": params.note.frontmatter.author,
-        "generated_by": params.note.frontmatter.generated_by,
-        "prompt_hash": params.note.frontmatter.prompt_hash,
-        "verified": params.note.frontmatter.verified,
+        "sources": crate::commands::json_builders::build_sources_json(&note.frontmatter.sources),
+        "source": note.frontmatter.source,
+        "author": note.frontmatter.author,
+        "generated_by": note.frontmatter.generated_by,
+        "prompt_hash": note.frontmatter.prompt_hash,
+        "verified": note.frontmatter.verified,
     });
 
-    if params.include_custom && !params.note.frontmatter.custom.is_empty() {
+    if include_custom && !note.frontmatter.custom.is_empty() {
         if let Some(obj) = json.as_object_mut() {
             obj.insert(
                 "custom".to_string(),
-                build_custom_json(&params.note.frontmatter.custom),
+                build_custom_json(&note.frontmatter.custom),
             );
         }
     }
 
-    if let Some(via) = &params.selected.via {
+    if let Some(via) = note_view.via {
         if let Some(obj) = json.as_object_mut() {
             obj.insert("via".to_string(), serde_json::json!(via));
         }
     }
 
-    if let Some(compaction_info) = build_compaction_info_json(
-        params.cli,
-        params.note,
-        params.compaction_ctx,
-        params.note_map,
-        params.all_notes,
-        params.include_custom,
-    ) {
+    if let Some(compaction_info) = build_compaction_info_json(note_view, include_custom) {
         if let Some(obj) = json.as_object_mut() {
             for (key, value) in compaction_info.as_object().unwrap() {
                 obj.insert(key.clone(), value.clone());

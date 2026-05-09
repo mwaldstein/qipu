@@ -15,6 +15,7 @@ pub mod output;
 pub mod records;
 pub mod select;
 pub mod types;
+pub mod view;
 pub mod walk;
 
 use std::time::Instant;
@@ -29,11 +30,8 @@ use crate::cli::commands::data::ContextArgs;
 use crate::commands::dispatch::command::discover_or_open_store;
 
 use select::{collect_selected_notes, filter_and_sort_selected_notes};
-pub use types::{ContextOptions, HumanOutputParams, RecordsParams};
-use types::{
-    ContextOutputParams, ExpansionOptions, OutputOptions, RecordsOutputConfig, SelectionOptions,
-    WalkOptions,
-};
+pub use types::ContextOptions;
+use types::{ExpansionOptions, OutputOptions, SelectionOptions, WalkOptions};
 
 /// Convert an absolute path to a path relative to the current working directory
 pub fn path_relative_to_cwd(path: &std::path::Path) -> String {
@@ -91,60 +89,31 @@ pub fn execute(cli: &Cli, store: &Store, options: ContextOptions) -> Result<()> 
     };
 
     let store_path = path_relative_to_cwd(store.root());
+    let render_view = view::ContextBundleView::build(view::ContextBundleInput {
+        cli,
+        store,
+        store_path: &store_path,
+        notes: &notes_to_output,
+        compaction_ctx: &compaction_ctx,
+        note_map: &note_map,
+        all_notes: &all_notes,
+        include_custom: options.output.include_custom,
+        include_ontology: options.output.include_ontology,
+        truncated,
+        with_body: options.output.with_body,
+        safety_banner: options.output.safety_banner,
+        max_chars: options.output.max_chars,
+    });
 
     match cli.format {
         OutputFormat::Json => {
-            output::output_json(ContextOutputParams {
-                cli,
-                store,
-                store_path: &store_path,
-                notes: &notes_to_output,
-                compaction_ctx: &compaction_ctx,
-                note_map: &note_map,
-                all_notes: &all_notes,
-                include_custom: options.output.include_custom,
-                include_ontology: options.output.include_ontology,
-                truncated,
-                with_body: options.output.with_body,
-                max_chars: options.output.max_chars,
-            })?;
+            output::output_json(&render_view)?;
         }
         OutputFormat::Human => {
-            output::output_human(HumanOutputParams {
-                cli,
-                store,
-                store_path: &store_path,
-                notes: &notes_to_output,
-                compaction_ctx: &compaction_ctx,
-                note_map: &note_map,
-                all_notes: &all_notes,
-                include_custom: options.output.include_custom,
-                include_ontology: options.output.include_ontology,
-                truncated,
-                with_body: options.output.with_body,
-                safety_banner: options.output.safety_banner,
-                max_chars: options.output.max_chars,
-            });
+            output::output_human(&render_view);
         }
         OutputFormat::Records => {
-            let config = RecordsOutputConfig {
-                truncated,
-                with_body: options.output.with_body,
-                safety_banner: options.output.safety_banner,
-                max_chars: options.output.max_chars,
-            };
-            output::output_records(RecordsParams {
-                cli,
-                store,
-                store_path: &store_path,
-                notes: &notes_to_output,
-                config: &config,
-                compaction_ctx: &compaction_ctx,
-                note_map: &note_map,
-                all_notes: &all_notes,
-                include_custom: options.output.include_custom,
-                include_ontology: options.output.include_ontology,
-            });
+            output::output_records(&render_view);
         }
     }
 

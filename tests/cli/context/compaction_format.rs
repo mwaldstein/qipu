@@ -206,6 +206,93 @@ fn test_context_expand_compaction_json_format() {
 }
 
 #[test]
+fn test_context_expand_compaction_json_reports_truncated_notes() {
+    use std::fs;
+
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Source Note A"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Source Note B"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Digest Note"])
+        .output()
+        .unwrap();
+    let digest_id = extract_id(&output);
+
+    let list_output = qipu()
+        .current_dir(dir.path())
+        .args(["list", "--format", "json"])
+        .output()
+        .unwrap();
+    let list_json: serde_json::Value =
+        serde_json::from_str(&String::from_utf8_lossy(&list_output.stdout)).unwrap();
+
+    let notes = list_json.as_array().unwrap();
+    let source_ids: Vec<String> = notes
+        .iter()
+        .filter(|n| n["title"].as_str().unwrap().starts_with("Source"))
+        .map(|n| n["id"].as_str().unwrap().to_string())
+        .collect();
+
+    let notes_dir = dir.path().join(".qipu").join("notes");
+    for entry in fs::read_dir(notes_dir).unwrap() {
+        let entry = entry.unwrap();
+        let note_path = entry.path();
+        let note_content = fs::read_to_string(&note_path).unwrap();
+        if note_content.contains(&format!("id: {}", digest_id)) {
+            let new_content = note_content.replace(
+                &format!("id: {}", digest_id),
+                &format!(
+                    "id: {}\ncompacts:\n  - {}\n  - {}",
+                    digest_id, source_ids[0], source_ids[1]
+                ),
+            );
+            fs::write(note_path, new_content).unwrap();
+            break;
+        }
+    }
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["index", "--rebuild"])
+        .assert()
+        .success();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args([
+            "context",
+            "--note",
+            &digest_id,
+            "--expand-compaction",
+            "--compaction-max-nodes",
+            "1",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let digest_note = &json["notes"].as_array().unwrap()[0];
+
+    assert_eq!(digest_note["compacted_notes"].as_array().unwrap().len(), 1);
+    assert_eq!(digest_note["compacted_notes_truncated"], true);
+}
+
+#[test]
 fn test_context_expand_compaction_records_format() {
     use std::fs;
 

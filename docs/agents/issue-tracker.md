@@ -11,7 +11,9 @@ Issues and PRDs for this repo live in bd / beads. Use the `bd` CLI for issue ope
 - **List issues**: `bd list`
 - **Update an issue**: `bd update <id> ...`
 - **Close an issue**: `bd close <id>`
-- **Sync issue state**: `bd sync`
+- **Export issue state for git**: installed hooks run `bd hooks run pre-commit`
+- **Commit issue state in Dolt**: `bd dolt commit` when auto-commit is off
+- **Push issue state to Dolt remote**: `bd dolt push` when a remote is configured
 
 Issue IDs use the beads format already present in this repo, such as `qipu-xnlu`.
 
@@ -33,4 +35,14 @@ Run `bd show <id>`. If the work queue is needed, run `bd ready` first and then i
 
 ## Session-End Sync
 
-When completing issue work, close the issue and run `bd sync` before making a final commit so the beads state lands with the code changes.
+This repo is on `bd` 1.0+ with the Dolt backend. There is no top-level `bd sync`
+command. Complete issue work before the git commit:
+
+1. Run `bd close <id>` for completed work.
+2. Let the installed pre-commit hook export `.beads/issues.jsonl`.
+3. If Dolt auto-commit is off and issue changes are pending, run `bd dolt commit`.
+4. Include the resulting tracked `.beads/*` changes in the same git commit as the code.
+
+Use `bd hooks list` to verify hooks. Refresh local hooks with
+`bd hooks install --force`, or use `bd hooks install --beads` for Dolt-backed
+hook storage under `.beads/hooks/`.

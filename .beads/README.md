@@ -24,16 +24,19 @@ bd show <issue-id>
 
 # Update issue status
 bd update <issue-id> --status in_progress
-bd update <issue-id> --status done
+bd close <issue-id>
 
-# Sync with git remote
-bd sync
+# Commit issue changes in Dolt when needed
+bd dolt commit
+
+# Push issue commits to a configured Dolt remote
+bd dolt push
 ```
 
 ### Working with Issues
 
 Issues in Beads are:
-- **Git-native**: Stored in `.beads/issues.jsonl` and synced like code
+- **Git-native**: Exported to `.beads/issues.jsonl` and committed like code
 - **AI-friendly**: CLI-first design works perfectly with AI coding agents
 - **Branch-aware**: Issues can follow your branch workflow
 - **Always in sync**: Auto-syncs with your commits

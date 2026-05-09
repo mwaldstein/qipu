@@ -153,11 +153,13 @@ Notes use ULID-based IDs prefixed with `qp-`: `qp-01HYX3...`
 
 ## Implementation Workflow
 
-1. Use `bd ready` to find unblocked work (P1 bugs, P2 tech debt)
-2. Read relevant spec in `specs/*.md` before implementing
-3. Search codebase before assuming something is unimplemented
-4. Run `cargo test` after changes - all 812 tests must pass
-5. Use `bd close <id>` when completing tasks, then `bd sync`
+1. Run `bd prime` after a fresh session or compaction to load current workflow context.
+2. Use `bd ready` to find unblocked work, then `bd show <id>` to inspect details.
+3. Claim work with `bd update <id> --claim` before editing.
+4. Read relevant specs in `specs/*.md` before implementing.
+5. Search the codebase before assuming something is unimplemented.
+6. Run `cargo test` after changes - all 812 tests must pass.
+7. Close completed work with `bd close <id>` before the git commit; hooks export `.beads/issues.jsonl`.
 
 ## Commit Style
 
@@ -178,12 +180,20 @@ Types: `fix`, `feat`, `test`, `docs`, `refactor`
 ## Issue Tracking
 
 This project uses **bd (beads)** for issue tracking.
-Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for auto-injection.
+Run `bd prime` for workflow context. Install or refresh hooks with `bd hooks install --force`
+(`bd hooks install --beads` is recommended for Dolt-backed repos when you want
+hooks under `.beads/hooks/`).
 
 **Quick reference:**
 - `bd ready` - Find unblocked work
+- `bd show <id>` - Read issue details and dependencies
 - `bd create "Title" --type task --priority 2` - Create issue
+- `bd update <id> --claim` - Claim work and mark it in progress
 - `bd close <id>` - Complete work
-- `bd sync` - Sync with git (run at session end)
+- `bd dolt commit` - Commit pending issue changes in Dolt if auto-commit is off
+- `bd dolt push` - Push Dolt issue commits when a Dolt remote is configured
+
+Do not use `bd edit`; it opens an interactive editor and blocks agents. Use
+`bd update ...` flags instead.
 
 For full workflow details: `bd prime`

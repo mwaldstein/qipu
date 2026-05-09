@@ -5,6 +5,8 @@ template_folder: qipu
 tags: [setup, smoke]
 target:
   binary: qipu
+  env:
+    QIPU_STORE: ".qipu"
 task:
   prompt: "Initialize qipu if needed. Create one note titled 'Setup Commands Note' that says the setup command test ran."
 evaluation:

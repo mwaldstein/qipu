@@ -23,10 +23,12 @@ pub(super) fn handle_create(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     trace_command!(cli, start, "discover_store");
+    let title = resolve_create_title(cli, args)?;
     commands::create::execute(
         cli,
         &store,
-        &args.title,
+        &title,
+        args.body.as_deref(),
         args.r#type.as_ref(),
         &args.tag,
         args.open,
@@ -39,6 +41,27 @@ pub(super) fn handle_create(
     )?;
     trace_command!(cli, start, "execute_command");
     Ok(())
+}
+
+fn resolve_create_title(cli: &Cli, args: &crate::cli::CreateArgs) -> Result<String> {
+    match (&args.title, &args.title_alias) {
+        (Some(title), None) => Ok(title.clone()),
+        (None, Some(title)) => {
+            if !cli.quiet {
+                eprintln!(
+                    "warning: prefer `qipu create \"...\" --body \"...\"` for new notes with inline body text"
+                );
+            }
+            Ok(title.clone())
+        }
+        (Some(_), Some(_)) => Err(QipuError::UsageError(
+            "create received two title values; use `qipu create \"...\" --body \"...\"`"
+                .to_string(),
+        )),
+        (None, None) => Err(QipuError::UsageError(
+            "create requires a title: qipu create \"...\"".to_string(),
+        )),
+    }
 }
 
 pub struct ListOptions<'a> {

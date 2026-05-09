@@ -42,6 +42,101 @@ fn test_create_with_tags() {
 }
 
 #[test]
+fn test_create_with_short_body_content() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Body Note", "-c", "Inline body content"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "Inline body content"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Body Note"));
+}
+
+#[test]
+fn test_create_with_body_flag() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Body Flag Note", "--body", "Body flag content"])
+        .assert()
+        .success();
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    let note_files: Vec<_> = fs::read_dir(&notes_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(note_files.len(), 1);
+    let content = fs::read_to_string(note_files[0].path()).unwrap();
+    assert!(content.contains("Body flag content"));
+}
+
+#[test]
+fn test_create_with_content_alias() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Content Alias Note", "--content", "Alias body"])
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "Alias body"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Content Alias Note"));
+}
+
+#[test]
+fn test_create_hidden_title_alias_warns() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args([
+            "create",
+            "--title",
+            "Alias Title Note",
+            "--body",
+            "Alias title body",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains(
+            "warning: prefer `qipu create \"...\" --body \"...\"`",
+        ));
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "Alias title body"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Alias Title Note"));
+}
+
+#[test]
+fn test_create_rejects_positional_and_title_alias() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Positional", "--title", "Alias"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("create received two title values"));
+}
+
+#[test]
 fn test_create_json_format() {
     let dir = setup_test_dir();
 

@@ -5,6 +5,8 @@ tier: 0
 tags: [capture, smoke]
 target:
   binary: qipu
+  env:
+    QIPU_STORE: ".qipu"
 task:
   prompt: "Initialize qipu if needed. Create a note with the title 'Test Note' and content 'This is a test note for smoke testing.' Then verify you can find it."
 evaluation:

@@ -144,7 +144,7 @@ mod tests {
     fn test_parse_create() {
         let cli = Cli::try_parse_from(["qipu", "create", "My Note"]).unwrap();
         if let Some(Commands::Create(args)) = cli.command {
-            assert_eq!(args.title, "My Note");
+            assert_eq!(args.title.as_deref(), Some("My Note"));
         } else {
             panic!("Expected Create command");
         }
@@ -165,7 +165,7 @@ mod tests {
         ])
         .unwrap();
         if let Some(Commands::Create(args)) = cli.command {
-            assert_eq!(args.title, "My Note");
+            assert_eq!(args.title.as_deref(), Some("My Note"));
             assert_eq!(args.r#type, Some(NoteType::from(NoteType::PERMANENT)));
             assert_eq!(args.tag, vec!["test", "demo"]);
         } else {

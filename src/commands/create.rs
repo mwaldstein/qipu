@@ -73,6 +73,7 @@ pub fn execute(
     cli: &Cli,
     store: &Store,
     title: &str,
+    body: Option<&str>,
     note_type: Option<&NoteType>,
     tags: &[String],
     open: bool,
@@ -94,7 +95,11 @@ pub fn execute(
         store.config().validate_note_type(nt.as_str())?;
     }
 
-    let mut note = store.create_note(title, note_type.cloned(), tags, id)?;
+    let mut note = if let Some(body) = body {
+        store.create_note_with_content(title, note_type.cloned(), tags, body.trim_end(), id)?
+    } else {
+        store.create_note(title, note_type.cloned(), tags, id)?
+    };
 
     if cli.verbose {
         debug!(note_id = note.id(), elapsed = ?start.elapsed(), "create_note");
@@ -110,7 +115,7 @@ pub fn execute(
             prompt_hash,
             verified,
         },
-        false,
+        body.is_some(),
     )?;
 
     if cli.verbose {

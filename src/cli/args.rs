@@ -9,7 +9,16 @@ use qipu_core::note::NoteType;
 #[derive(Args, Debug, Clone)]
 pub struct CreateArgs {
     /// Note title
-    pub title: String,
+    pub title: Option<String>,
+
+    /// Hidden compatibility alias for common agent mistakes.
+    /// Documented in ADR 0006; do not expose in user-facing help.
+    #[arg(long = "title", hide = true)]
+    pub title_alias: Option<String>,
+
+    /// Note body content
+    #[arg(long, short = 'c', visible_alias = "content")]
+    pub body: Option<String>,
 
     /// Note type
     #[arg(long, short = 'T', value_parser = parse_note_type)]

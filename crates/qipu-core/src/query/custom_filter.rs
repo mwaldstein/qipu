@@ -1,23 +1,26 @@
-//! Custom filter expression parsing for context command
-//!
-//! Supports:
-//! - Equality: `key=value`
-//! - Existence: `key` (present), `!key` (absent)
-//! - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
-//! - Date comparisons: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
+//! Custom metadata filter expression parsing.
 
-use qipu_core::bail_invalid;
-use qipu_core::error::{QipuError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Check if a string is an ISO-8601 date (YYYY-MM-DD format)
+use crate::bail_invalid;
+use crate::error::{QipuError, Result};
+
+pub type CustomFilterPredicate = Arc<dyn Fn(&HashMap<String, serde_yaml::Value>) -> bool + 'static>;
+
+#[derive(Debug, Clone)]
+enum ComparisonOp {
+    GreaterEqual,
+    Greater,
+    LessEqual,
+    Less,
+}
+
 fn is_iso_date(s: &str) -> bool {
     if s.len() != 10 {
         return false;
     }
     let bytes = s.as_bytes();
-    // Check format: YYYY-MM-DD
     bytes[4] == b'-'
         && bytes[7] == b'-'
         && bytes[0..4].iter().all(|b| b.is_ascii_digit())
@@ -25,29 +28,16 @@ fn is_iso_date(s: &str) -> bool {
         && bytes[8..10].iter().all(|b| b.is_ascii_digit())
 }
 
-/// Comparison operators for custom filter expressions
-#[derive(Debug, Clone)]
-pub enum ComparisonOp {
-    GreaterEqual,
-    Greater,
-    LessEqual,
-    Less,
-}
-
-/// Parse a custom filter expression and return a predicate function
+/// Parse a custom filter expression and return a predicate function.
 ///
 /// Supported formats:
 /// - Equality: `key=value`
 /// - Existence: `key` (present), `!key` (absent)
 /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
 /// - Date comparisons: `key>YYYY-MM-DD`, `key>=YYYY-MM-DD`, `key<YYYY-MM-DD`, `key<=YYYY-MM-DD`
-#[allow(clippy::type_complexity)]
-pub fn parse_custom_filter_expression(
-    expr: &str,
-) -> Result<Arc<dyn Fn(&HashMap<String, serde_yaml::Value>) -> bool + 'static>> {
+pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicate> {
     let expr = expr.trim();
 
-    // Check for absence (!key)
     if let Some(key) = expr.strip_prefix('!') {
         let key = key.trim().to_string();
         if key.is_empty() {
@@ -60,17 +50,15 @@ pub fn parse_custom_filter_expression(
         ));
     }
 
-    // Check for numeric comparisons (key>n, key>=n, key<n, key<=n) - must be checked before equality!
     let (_op_str, op, key, value) = if let Some((k, v)) = expr.split_once(">=") {
         (">=", ComparisonOp::GreaterEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once(">") {
+    } else if let Some((k, v)) = expr.split_once('>') {
         (">", ComparisonOp::Greater, k.trim(), v.trim())
     } else if let Some((k, v)) = expr.split_once("<=") {
         ("<=", ComparisonOp::LessEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once("<") {
+    } else if let Some((k, v)) = expr.split_once('<') {
         ("<", ComparisonOp::Less, k.trim(), v.trim())
     } else if let Some((k, v)) = expr.split_once('=') {
-        // Equality check (key=value)
         let key = k.trim().to_string();
         let value = v.trim().to_string();
         if key.is_empty() {
@@ -92,7 +80,6 @@ pub fn parse_custom_filter_expression(
             },
         ));
     } else {
-        // No comparison operator found, check for existence
         let key = expr.trim().to_string();
         if key.is_empty() {
             return Err(QipuError::Other(
@@ -120,7 +107,6 @@ pub fn parse_custom_filter_expression(
         );
     }
 
-    // Check if comparing dates (ISO-8601 format: YYYY-MM-DD)
     if is_iso_date(&value) {
         let compare_fn: fn(&str, &str) -> bool = match op {
             ComparisonOp::GreaterEqual => |a, b| a >= b,
@@ -143,7 +129,6 @@ pub fn parse_custom_filter_expression(
         ));
     }
 
-    // Numeric comparison
     let target_value: f64 = value.parse().map_err(|_| {
         QipuError::invalid_value(
             &format!("custom filter expression '{}'", expr),
@@ -175,4 +160,48 @@ pub fn parse_custom_filter_expression(
                 .unwrap_or(false)
         },
     ))
+}
+
+pub fn matches_custom_filter(custom: &HashMap<String, serde_yaml::Value>, expr: &str) -> bool {
+    parse_custom_filter_expression(expr)
+        .map(|filter| filter(custom))
+        .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn custom(fields: &[(&str, serde_yaml::Value)]) -> HashMap<String, serde_yaml::Value> {
+        fields
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), v.clone()))
+            .collect()
+    }
+
+    #[test]
+    fn matches_date_comparisons() {
+        let custom = custom(&[(
+            "publication_date",
+            serde_yaml::Value::String("2024-06-20".to_string()),
+        )]);
+
+        assert!(matches_custom_filter(
+            &custom,
+            "publication_date>=2024-06-01"
+        ));
+        assert!(matches_custom_filter(
+            &custom,
+            "publication_date<2024-07-01"
+        ));
+        assert!(!matches_custom_filter(
+            &custom,
+            "publication_date<2024-06-01"
+        ));
+    }
+
+    #[test]
+    fn invalid_numeric_comparison_is_parse_error() {
+        assert!(parse_custom_filter_expression("priority>high").is_err());
+    }
 }

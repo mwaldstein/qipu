@@ -2,8 +2,8 @@
 
 use crate::compaction::CompactionContext;
 use crate::note::NoteType;
+use crate::query::custom_filter::matches_custom_filter;
 use chrono::{DateTime, Utc};
-use serde_yaml::Value;
 
 /// Filter configuration for notes
 #[derive(Debug, Clone)]
@@ -184,96 +184,9 @@ impl<'a> NoteFilter<'a> {
     /// - Numeric comparisons: `key>n`, `key>=n`, `key<n`, `key<=n`
     fn matches_custom(&self, note: &crate::note::Note) -> bool {
         if let Some(custom_filter) = self.custom {
-            let expr = custom_filter.trim();
-
-            // Check for absence (!key)
-            if let Some(key) = expr.strip_prefix('!') {
-                let key = key.trim();
-                return !key.is_empty() && !note.frontmatter.custom.contains_key(key);
-            }
-
-            // Check for numeric comparisons (key>n, key>=n, key<n, key<=n) - must be checked before equality!
-            if let Some((k, v)) = expr.split_once(">=") {
-                let key = k.trim();
-                let value = v.trim();
-                !key.is_empty()
-                    && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a >= b)
-            } else if let Some((k, v)) = expr.split_once('>') {
-                let key = k.trim();
-                let value = v.trim();
-                !key.is_empty()
-                    && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a > b)
-            } else if let Some((k, v)) = expr.split_once("<=") {
-                let key = k.trim();
-                let value = v.trim();
-                !key.is_empty()
-                    && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a <= b)
-            } else if let Some((k, v)) = expr.split_once('<') {
-                let key = k.trim();
-                let value = v.trim();
-                !key.is_empty()
-                    && !value.is_empty()
-                    && self.match_numeric_comparison(note, key, value, |a, b| a < b)
-            } else if let Some((key, value)) = expr.split_once('=') {
-                // Equality check (key=value)
-                let key = key.trim();
-                let value = value.trim();
-                !key.is_empty()
-                    && note
-                        .frontmatter
-                        .custom
-                        .get(key)
-                        .map(|v| self.match_custom_value(v, value))
-                        .unwrap_or(false)
-            } else {
-                // No comparison operator found, check for existence
-                let key = expr.trim();
-                !key.is_empty() && note.frontmatter.custom.contains_key(key)
-            }
+            matches_custom_filter(&note.frontmatter.custom, custom_filter)
         } else {
             true
         }
-    }
-
-    /// Match a custom value against the filter value
-    fn match_custom_value(&self, yaml_value: &Value, filter_value: &str) -> bool {
-        match yaml_value {
-            Value::String(s) => s == filter_value,
-            Value::Number(num) => num.to_string() == filter_value,
-            Value::Bool(b) => b.to_string() == filter_value,
-            _ => false,
-        }
-    }
-
-    /// Match a numeric comparison against a custom field
-    fn match_numeric_comparison<F>(
-        &self,
-        note: &crate::note::Note,
-        key: &str,
-        value: &str,
-        compare_fn: F,
-    ) -> bool
-    where
-        F: Fn(f64, f64) -> bool,
-    {
-        let target_value: f64 = match value.parse() {
-            Ok(v) => v,
-            Err(_) => return false,
-        };
-
-        note.frontmatter
-            .custom
-            .get(key)
-            .and_then(|v| match v {
-                Value::Number(num) => num.as_f64(),
-                Value::String(s) => s.parse::<f64>().ok(),
-                Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-                _ => None,
-            })
-            .map(|actual_value| compare_fn(actual_value, target_value))
-            .unwrap_or(false)
     }
 }

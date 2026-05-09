@@ -1,11 +1,8 @@
 use crate::cli::Cli;
 use crate::commands::context::types::{ContextOptions, SelectedNote};
 use qipu_core::note::LinkType;
-use std::collections::HashMap;
-use std::sync::Arc;
+use qipu_core::query::{parse_custom_filter_expression, CustomFilterPredicate};
 use tracing::debug;
-
-type CustomFilter = Arc<dyn Fn(&HashMap<String, serde_yaml::Value>) -> bool>;
 
 /// Filter and sort selected notes based on min-value, custom filters, and sorting criteria
 pub fn filter_and_sort_selected_notes(
@@ -35,13 +32,11 @@ pub fn filter_and_sort_selected_notes(
     if !options.selection.custom_filter.is_empty() {
         let before_count = selected_notes.len();
 
-        let filters: Vec<CustomFilter> = options
+        let filters: Vec<CustomFilterPredicate> = options
             .selection
             .custom_filter
             .iter()
-            .map(|filter_expr| {
-                crate::commands::context::filter::parse_custom_filter_expression(filter_expr)
-            })
+            .map(|filter_expr| parse_custom_filter_expression(filter_expr))
             .collect::<Result<_, _>>()
             .unwrap();
 

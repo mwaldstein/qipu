@@ -12,7 +12,7 @@ Beads has "compaction" (memory decay) to keep agent context small. In qipu, expo
 Exports can be driven by:
 - explicit notes (`--note`)
 - a tag (`--tag`)
-- a MOC (`--moc`)
+- a linked collection root (`--moc`; legacy name from the standard `moc` type)
 - a query (`--query`)
 
 ## Export modes
@@ -20,9 +20,11 @@ Exports can be driven by:
 - Produces a single markdown file containing selected notes.
 - Includes metadata headers per note.
 
-### 2) Outline export (MOC-first)
-- Uses a MOC as the outline.
-- Follows the MOC's ordering.
+### 2) Outline export (linked-root first)
+- Uses the `--moc` root note as the outline.
+- Follows the root note's linked-note ordering.
+- The root note does not need literal `type: moc`; custom ontology users may
+  use domain-specific outline/index/root note types.
 
 ### 3) Bibliography export
 - Extracts `sources` from notes.
@@ -30,7 +32,7 @@ Exports can be driven by:
 
 ## Deterministic ordering
 Exports must be deterministic:
-- For MOC-driven exports: follow MOC ordering.
+- For `--moc` driven exports: follow linked-root ordering.
 - For tag/query-driven exports: sort by `(created_at, id)`.
 
 ## Link handling
@@ -45,7 +47,7 @@ Keep defaults conservative to avoid rewriting user content unexpectedly.
 When using anchor mode, note links are rewritten to explicit section anchors:
 - Each note gets an HTML anchor element: `<a id="note-<note-id>"></a>` (placed before the note header)
 - Links to notes are rewritten to point to these anchors: `#note-<note-id>`
-- Anchor format is explicit (`#note-qp-xxx`), not derived from heading text
+- Anchor format is explicit (`#note-<note-id>`), not derived from heading text
 - This ensures deterministic linking regardless of note title changes
 
 ## Attachments

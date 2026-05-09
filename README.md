@@ -145,12 +145,14 @@ qipu link path <from> <to>             # Find path between notes (--min-value, -
 
 ```bash
 qipu prime                 # Primer for agent session start
-qipu context --moc <id>    # Context bundle from a map of content
+qipu context --moc <id>    # Context from a linked collection root
 qipu context --query <q>   # Context bundle from search
 qipu context --tag <t>     # Context bundle by tag
 ```
 
-Note: `context` command supports `--min-value` to filter by note quality.
+Note: `--moc` is a legacy flag name for linked collection roots. With custom
+ontologies, pass the ID of your own outline/index/root note type.
+`context` also supports `--min-value` to filter by note quality.
 
 ### Maintenance
 

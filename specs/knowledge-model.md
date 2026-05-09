@@ -94,7 +94,12 @@ This lifecycle is qipu's version of beads' "ready queue": it makes the backlog o
 
 ## Design Decisions
 
-**Note types are a closed enum.** Qipu enforces a fixed type taxonomy (`fleeting`, `literature`, `permanent`, `moc`). Unknown type values are rejected with an error. This ensures consistent filtering, prevents typos, and keeps the model simple. Link types, by contrast, are open strings to allow domain-specific semantics.
+**Note types are ontology-defined strings.** The standard ontology provides
+`fleeting`, `literature`, `permanent`, and `moc`, and custom ontology modes can
+extend or replace that set. Link types follow the same ontology mechanism.
+Legacy CLI names such as `--moc` continue to work as linked collection root
+selectors even when replacement ontologies use domain-specific terms like
+`outline` or `index`.
 
 ## Open questions
 - Which typed link set is the minimal useful set?

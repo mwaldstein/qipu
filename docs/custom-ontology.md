@@ -95,6 +95,13 @@ usage = "Use when one idea improves or refines another"
 - You must define all types you need
 - Useful for complete domain-specific implementations
 
+MOC-related CLI flags are compatibility terminology. In replacement mode, you
+can still use `qipu context --moc <id>`, `qipu export --moc <id>`, and
+`qipu dump --moc <id>` with a custom linked collection root type such as
+`outline`, `index`, or `project-map`. You only need a literal `moc` type if your
+ontology wants that term. New notes with custom root types live under
+`.qipu/notes/`; only literal `type: moc` notes are stored under `.qipu/mocs/`.
+
 ### Configuration Fields
 
 #### Note Type Configuration
@@ -511,6 +518,9 @@ The `graph.types` field will be deprecated in a future version. Migrate to `onto
 5. **Use tags** for categorization instead of creating many similar note types
 6. **Provide usage guidance** in the `usage` field for LLM integration
 7. **Document your ontology** for team members and future maintainers
+
+8. **Name collection roots in your domain language** (`outline`, `index`,
+   `project-map`) and use their IDs with the legacy `--moc` selectors.
 
 ## Common Pitfalls
 

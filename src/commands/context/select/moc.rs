@@ -8,8 +8,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::Instant;
 use tracing::debug;
 
-/// Get note IDs linked from a MOC (including the MOC itself) with their link types
-/// Returns (note_id, link_type) pairs. For the MOC itself, link_type is None.
+/// Get note IDs linked from a collection root, including the root itself.
+/// `--moc` is a legacy flag name; the root does not need literal `type: moc`.
+/// Returns (note_id, link_type) pairs. For the root itself, link_type is None.
 pub fn get_moc_linked_ids(
     db: &Database,
     moc_id: &str,

@@ -61,7 +61,7 @@ pub struct ContextArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a MOC
+    /// Select notes linked from a collection root (legacy name: MOC)
     #[arg(long, short = 'm')]
     pub moc: Option<String>,
 
@@ -130,7 +130,7 @@ pub struct DumpArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a MOC
+    /// Select notes linked from a collection root (legacy name: MOC)
     #[arg(long, short = 'm')]
     pub moc: Option<String>,
 
@@ -177,7 +177,7 @@ pub struct ExportArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a MOC
+    /// Select notes linked from a collection root (legacy name: MOC)
     #[arg(long, short = 'm')]
     pub moc: Option<String>,
 

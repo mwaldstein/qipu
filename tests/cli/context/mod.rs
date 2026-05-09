@@ -5,6 +5,7 @@ mod basic;
 mod budget;
 mod compaction_depth;
 mod compaction_format;
+mod custom_ontology_selection;
 mod expansion;
 mod filtering_custom;
 mod filtering_value;

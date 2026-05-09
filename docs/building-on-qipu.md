@@ -43,7 +43,7 @@ During task execution, provide the LLM with relevant knowledge:
 # By topic/tag
 qipu context --tag authentication --max-chars 8000
 
-# By MOC (curated collection)
+# By linked collection root (legacy flag name: MOC)
 qipu context --moc qp-oauth-research --max-chars 12000
 
 # By search query
@@ -292,6 +292,24 @@ Custom ontology allows your application to extend qipu's core type system with d
 
 For detailed configuration guidance, see `docs/custom-ontology.md`.
 
+### Linked Collection Roots and MOCs
+
+Several CLI flags use the legacy name `--moc` because qipu's standard ontology
+calls curated outline notes "maps of content." The selector itself is more
+general: it resolves the supplied note ID as a linked collection root and follows
+links from that note.
+
+If you use replacement ontology mode, you do not need to define a literal `moc`
+note type for `qipu context --moc`, `qipu export --moc`, or `qipu dump --moc`.
+Define domain types such as `outline`, `index`, `collection`, or `project-map`,
+then pass that note's ID to `--moc`.
+
+Current nuance: `qipu context --moc <id>` includes the root note in the context
+bundle. `qipu export --moc <id>` and `qipu dump --moc <id>` select the root's
+linked child notes; outline export uses the root's title and body as the outline
+introduction. Transitive context traversal currently recurses through nested
+literal `moc` notes only.
+
 ### Programmatic Ontology Inspection
 
 Use `qipu ontology show` to inspect the active ontology configuration:
@@ -418,7 +436,7 @@ usage = "Use when one idea improves or refines another"
 
 **Considerations for integrators:**
 - You must define all necessary types
-- Existing qipu workflows that depend on standard types will break
+- Workflows that filter for literal standard types will not match replacement types
 - Suitable for highly specialized domains with established terminologies
 
 **Recommendation:** Start with extended mode unless your domain has specific requirements that conflict with qipu's standard types.

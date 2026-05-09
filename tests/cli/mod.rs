@@ -11,6 +11,7 @@ mod export;
 mod inbox;
 mod index;
 mod init;
+mod init_stealth_guard;
 mod json_schema;
 mod json_schema_query;
 mod link;

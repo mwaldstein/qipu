@@ -10,7 +10,9 @@ use std::path::Path;
 
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
+use qipu_core::error::QipuError;
 use qipu_core::error::Result;
+use qipu_core::store::paths::{CONFIG_FILE, MOCS_DIR, NOTES_DIR};
 use qipu_core::store::{InitOptions as StoreInitOptions, Store};
 
 /// Minimal qipu section for AGENTS.md
@@ -58,6 +60,12 @@ fn write_agents_md(root: &Path, verbose: bool) -> Result<()> {
     Ok(())
 }
 
+fn is_store_root(path: &Path) -> bool {
+    path.join(CONFIG_FILE).is_file()
+        && path.join(NOTES_DIR).is_dir()
+        && path.join(MOCS_DIR).is_dir()
+}
+
 /// Execute the init command
 #[allow(clippy::too_many_arguments)]
 pub fn execute(
@@ -70,6 +78,12 @@ pub fn execute(
     index_strategy: Option<String>,
     agents_md: bool,
 ) -> Result<()> {
+    if stealth && cli.store.is_none() && is_store_root(root) {
+        return Err(QipuError::UsageError(
+            "refusing to initialize a nested stealth store from inside an existing qipu store; run `qipu init --stealth` from the project root".to_string(),
+        ));
+    }
+
     let options = StoreInitOptions {
         visible,
         stealth,

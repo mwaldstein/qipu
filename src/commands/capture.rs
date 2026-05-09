@@ -10,7 +10,7 @@
 //! - `pbpaste | qipu capture --type fleeting --tag docs`
 //! - `qipu capture --title "Thoughts on indexing" < notes.txt`
 
-use std::io::{self, Read};
+use std::io::{self, IsTerminal, Read};
 use std::time::Instant;
 
 use tracing::debug;
@@ -18,7 +18,7 @@ use tracing::debug;
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
 use crate::commands::provenance::{update_provenance_if_provided, ProvenanceUpdate};
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::note::NoteType;
 use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
@@ -37,15 +37,26 @@ pub fn execute(
     prompt_hash: Option<&str>,
     verified: Option<bool>,
     id: Option<&str>,
+    allow_empty: bool,
 ) -> Result<()> {
     let start = Instant::now();
 
     // Read content from stdin
     let mut content = String::new();
-    io::stdin().read_to_string(&mut content)?;
+    let mut stdin = io::stdin();
+    if stdin.is_terminal() {
+        if !allow_empty {
+            return Err(empty_capture_error());
+        }
+    } else {
+        stdin.read_to_string(&mut content)?;
+    }
 
     // Trim trailing whitespace but preserve internal formatting
     let content = content.trim_end();
+    if content.trim().is_empty() && !allow_empty {
+        return Err(empty_capture_error());
+    }
 
     if cli.verbose {
         debug!(content_len = content.len(), "read_stdin");
@@ -141,6 +152,12 @@ pub fn execute(
     }
 
     Ok(())
+}
+
+fn empty_capture_error() -> QipuError {
+    QipuError::UsageError(
+        "capture received no content; pipe text into stdin or pass --allow-empty".to_string(),
+    )
 }
 
 /// Generate a title from the content

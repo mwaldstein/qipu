@@ -122,6 +122,10 @@ pub struct CaptureArgs {
     /// Note ID (for testing and advanced use cases)
     #[arg(long)]
     pub id: Option<String>,
+
+    /// Allow creating a note with an empty body
+    #[arg(long)]
+    pub allow_empty: bool,
 }
 
 /// Arguments for the index command.

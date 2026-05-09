@@ -133,6 +133,49 @@ fn test_capture_empty_content() {
         .args(["capture", "--title", "Empty Note"])
         .write_stdin("")
         .assert()
+        .failure()
+        .stderr(predicate::str::contains("capture received no content"));
+}
+
+#[test]
+fn test_capture_empty_content_requires_allow_empty() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--title", "Empty Note", "--allow-empty"])
+        .write_stdin("")
+        .assert()
         .success()
         .stdout(predicate::str::starts_with("qp-"));
+}
+
+#[test]
+fn test_capture_whitespace_content_fails() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--title", "Whitespace Note"])
+        .write_stdin(" \n\t\n")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("capture received no content"));
+}
+
+#[test]
+fn test_capture_without_stdin_fails() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("capture")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("capture received no content"));
+
+    let notes_count = std::fs::read_dir(dir.path().join(".qipu").join("notes"))
+        .unwrap()
+        .count();
+    assert_eq!(notes_count, 0, "empty capture must not create a note");
 }

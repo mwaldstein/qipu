@@ -225,6 +225,7 @@ pub struct CaptureOptions<'a> {
     pub prompt_hash: Option<&'a str>,
     pub verified: Option<bool>,
     pub id: Option<&'a str>,
+    pub allow_empty: bool,
     pub start: Instant,
 }
 
@@ -243,6 +244,7 @@ pub(super) fn handle_capture<'a>(cli: &Cli, root: &Path, opts: CaptureOptions<'a
         opts.prompt_hash,
         opts.verified,
         opts.id,
+        opts.allow_empty,
     )?;
     trace_command!(cli, opts.start, "execute_command");
     Ok(())
@@ -267,6 +269,7 @@ pub(super) fn execute_capture_from_args(
             prompt_hash: args.prompt_hash.as_deref(),
             verified: args.verified,
             id: args.id.as_deref(),
+            allow_empty: args.allow_empty,
             start,
         },
     )

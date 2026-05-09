@@ -38,7 +38,7 @@ fn test_capture_auto_title_empty_content() {
 
     let output = qipu()
         .current_dir(dir.path())
-        .args(["--format", "json", "capture"])
+        .args(["--format", "json", "capture", "--allow-empty"])
         .write_stdin("")
         .output()
         .unwrap()

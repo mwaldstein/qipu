@@ -4,11 +4,9 @@
 //! a starting note and bundles all traversed notes.
 
 use crate::cli::Cli;
-use qipu_core::bail_unsupported;
-use qipu_core::compaction::CompactionContext;
-use qipu_core::error::{QipuError, Result};
-use qipu_core::graph::{Direction, HopCost, TreeOptions};
-use qipu_core::index::IndexBuilder;
+use crate::commands::traversal;
+use qipu_core::error::Result;
+use qipu_core::graph::{HopCost, TreeOptions};
 use qipu_core::store::Store;
 
 /// Perform graph walk from a starting note and return the list of note IDs
@@ -29,52 +27,8 @@ pub fn walk_for_context(
     walk_min_value: Option<u8>,
     walk_ignore_value: bool,
 ) -> Result<Vec<String>> {
-    // Resolve note ID (reuse link module's resolver)
-    let note_id = crate::commands::link::resolve_note_id(store, walk_id)?;
-
-    // Load or build the index
-    let index = IndexBuilder::new(store).build()?;
-
-    let all_notes = store.list_notes()?;
-
-    // Build compaction context if needed
-    let compaction_ctx = if !cli.no_resolve_compaction {
-        Some(CompactionContext::build(&all_notes)?)
-    } else {
-        None
-    };
-
-    let equivalence_map = if let Some(ref ctx) = compaction_ctx {
-        Some(ctx.build_equivalence_map(&all_notes)?)
-    } else {
-        None
-    };
-
-    // Canonicalize the root note ID
-    let canonical_id = if let Some(ref ctx) = compaction_ctx {
-        ctx.canon(&note_id)?
-    } else {
-        note_id.clone()
-    };
-
-    // Verify note exists
-    if !index.contains(&canonical_id) {
-        return Err(QipuError::NoteNotFound {
-            id: canonical_id.clone(),
-        });
-    }
-
-    // Parse direction
-    let direction = match walk_direction.to_lowercase().as_str() {
-        "out" => Direction::Out,
-        "in" => Direction::In,
-        "both" => Direction::Both,
-        _ => bail_unsupported!("direction", walk_direction, "out, in, both"),
-    };
-
-    // Build tree options
     let tree_opts = TreeOptions {
-        direction,
+        direction: traversal::parse_direction(walk_direction)?,
         max_hops: HopCost::from(walk_max_hops),
         type_include: walk_type,
         type_exclude: walk_exclude_type.to_vec(),
@@ -89,29 +43,9 @@ pub fn walk_for_context(
         max_chars: None,
     };
 
-    // Perform traversal
-    let result = if walk_ignore_value {
-        qipu_core::graph::bfs_traverse(
-            &index,
-            store,
-            &canonical_id,
-            &tree_opts,
-            compaction_ctx.as_ref(),
-            equivalence_map.as_ref(),
-        )?
-    } else {
-        qipu_core::graph::dijkstra_traverse(
-            &index,
-            store,
-            &canonical_id,
-            &tree_opts,
-            compaction_ctx.as_ref(),
-            equivalence_map.as_ref(),
-        )?
-    };
+    let traversal_ctx = traversal::build_context(cli, store, walk_id)?;
+    let result = traversal::run_tree(cli, store, &traversal_ctx, &tree_opts)?;
 
-    // Extract note IDs from traversal result
     let note_ids: Vec<String> = result.notes.into_iter().map(|n| n.id).collect();
-
     Ok(note_ids)
 }

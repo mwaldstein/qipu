@@ -31,6 +31,7 @@ pub mod show;
 pub mod store;
 pub mod sync;
 pub mod telemetry;
+pub mod traversal;
 pub mod update;
 pub mod verify;
 pub mod workspace;

@@ -71,7 +71,7 @@ impl Note {
 
     /// Serialize the note to markdown
     pub fn to_markdown(&self) -> Result<String> {
-        let yaml = serde_yaml::to_string(&self.frontmatter)?;
+        let yaml = normalize_frontmatter_yaml(serde_yaml::to_string(&self.frontmatter)?);
         Ok(format!("---\n{}---\n\n{}", yaml, self.body))
     }
 
@@ -92,6 +92,25 @@ impl Note {
         // 3. Fall back to first paragraph
         parse::extract_first_paragraph(&self.body).unwrap_or_default()
     }
+}
+
+fn normalize_frontmatter_yaml(yaml: String) -> String {
+    yaml.lines()
+        .map(|line| {
+            for field in ["created", "updated"] {
+                let prefix = format!("{field}: '");
+                if let Some(value) = line
+                    .strip_prefix(&prefix)
+                    .and_then(|s| s.strip_suffix('\''))
+                {
+                    return format!("{field}: {value}");
+                }
+            }
+            line.to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
 }
 
 #[cfg(test)]
@@ -168,6 +187,8 @@ This is the body.
         let md = note.to_markdown().unwrap();
         assert!(md.contains("id: qp-test"));
         assert!(md.contains("title: Test"));
+        assert!(md.contains("created: "));
+        assert!(!md.contains("created: '"));
         assert!(md.contains("Body content."));
     }
 

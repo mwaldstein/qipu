@@ -116,15 +116,17 @@ impl EndpointClient {
         let timeout = Duration::from_secs(self.config.timeout_seconds);
 
         let response = ureq::post(&self.config.url)
-            .set("Content-Type", "application/json")
-            .set("User-Agent", &self.user_agent)
-            .set("X-Qipu-Telemetry-Version", "1.0")
-            .timeout(timeout)
-            .send_string(&json_payload);
+            .content_type("application/json")
+            .header("User-Agent", &self.user_agent)
+            .header("X-Qipu-Telemetry-Version", "1.0")
+            .config()
+            .timeout_global(Some(timeout))
+            .build()
+            .send(&json_payload);
 
         match response {
             Ok(res) => {
-                let status = res.status();
+                let status = res.status().as_u16();
                 if (200..300).contains(&status) {
                     Ok(())
                 } else if (400..500).contains(&status) {
@@ -136,16 +138,14 @@ impl EndpointClient {
                     )))
                 }
             }
-            Err(ureq::Error::Transport(e)) => {
-                Err(UploadError::NetworkError(format!("Transport error: {}", e)))
-            }
-            Err(ureq::Error::Status(code, _)) => {
+            Err(ureq::Error::StatusCode(code)) => {
                 if (400..500).contains(&code) {
                     Err(UploadError::EndpointUnavailable)
                 } else {
                     Err(UploadError::NetworkError(format!("HTTP {}", code)))
                 }
             }
+            Err(e) => Err(UploadError::NetworkError(e.to_string())),
         }
     }
 

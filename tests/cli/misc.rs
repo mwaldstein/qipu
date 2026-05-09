@@ -51,7 +51,7 @@ fn test_version_flag() {
 #[test]
 fn test_version_consistency() {
     let cargo_toml_content = std::fs::read_to_string("Cargo.toml").unwrap();
-    let cargo_version: toml::Value = cargo_toml_content.parse().unwrap();
+    let cargo_version: toml::Value = toml::from_str(&cargo_toml_content).unwrap();
     let expected_version = cargo_version["package"]["version"].as_str().unwrap();
 
     let output = qipu()

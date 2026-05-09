@@ -175,6 +175,25 @@ fn test_telemetry_status_respects_no_telemetry_env() {
         ));
 }
 
+#[test]
+fn test_telemetry_status_json_format() {
+    let config_dir = tempdir().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+    fs::write(&config_path, "telemetry_enabled = true\n").unwrap();
+
+    let output = qipu()
+        .env(TEST_CONFIG_DIR_ENV, config_dir.path())
+        .args(["--format", "json", "telemetry", "status"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["enabled"], true);
+    assert_eq!(json["source_kind"], "config");
+    assert_eq!(json["source"], "custom config directory");
+}
+
 // =============================================================================
 // Telemetry show command
 // =============================================================================

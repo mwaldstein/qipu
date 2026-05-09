@@ -779,7 +779,17 @@ Operational guidance for integrations:
 - Always pass an explicit log level in wrappers (e.g. `--log-level error`) rather than relying on implicit defaults.
 - ANSI should be auto-disabled when qipu is not writing to a TTY; do not rely on colored output for integration.
 
-Implementation note (qipu `0.3.32`): `--format json` is supported on all commands where programmatic output is relevant. `qipu context --format records` / `qipu context --format json` remain the most stable interfaces for agent integration.
+Implementation note (qipu `0.3.32`): `--format json` is supported for
+programmatic data/status commands, including `init`, `create`, `capture`,
+`update`, `edit`, `list`, `show`, `inbox`, `search`, `context`, `dump`,
+`export`, `load`, `prime`, `verify`, `value`, `tags`, `custom`, `link`,
+`setup`, `doctor`, `sync`, `compact apply/show/status/report/suggest`, `store`,
+`ontology`, `telemetry`, `hooks`, and note `merge`. Guide-style output remains
+human-oriented (`qipu compact guide`, invoking `qipu` with no subcommand), and
+workspace mutation commands (`workspace new/delete/merge`) currently emit human
+status text; `workspace list --format json` is structured. For agent
+integration, `qipu context --format records` / `qipu context --format json`
+remain the most stable interfaces.
 
 Example (Python pseudocode):
 

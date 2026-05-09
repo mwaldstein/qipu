@@ -1,8 +1,10 @@
 //! Telemetry command handlers
 
+use crate::cli::Cli;
 use crate::commands::dispatch::trace_command_always;
+use crate::commands::format::output_by_format_result;
 use qipu_core::config::GlobalConfig;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::telemetry::{TelemetryCollector, TelemetryConfig, TelemetryEvent};
 use std::fs;
 use std::time::Instant;
@@ -14,25 +16,61 @@ pub enum TelemetrySource {
     Default,
 }
 
-pub fn handle_enable(start: Instant) -> Result<()> {
+impl TelemetrySource {
+    fn kind(&self) -> &'static str {
+        match self {
+            Self::Environment => "environment",
+            Self::Config => "config",
+            Self::Default => "default",
+        }
+    }
+
+    fn display(&self) -> String {
+        match self {
+            Self::Environment => "QIPU_NO_TELEMETRY environment variable".to_string(),
+            Self::Config => GlobalConfig::source_display(),
+            Self::Default => "default (disabled)".to_string(),
+        }
+    }
+}
+
+pub fn handle_enable(cli: &Cli, start: Instant) -> Result<()> {
     let mut config = GlobalConfig::load()?;
     config.set_telemetry_enabled(true);
     config.save()?;
-    println!("Telemetry enabled");
+    output_telemetry_update(cli, true)?;
     trace_command_always!(start, "telemetry_enable");
     Ok(())
 }
 
-pub fn handle_disable(start: Instant) -> Result<()> {
+pub fn handle_disable(cli: &Cli, start: Instant) -> Result<()> {
     let mut config = GlobalConfig::load()?;
     config.set_telemetry_enabled(false);
     config.save()?;
-    println!("Telemetry disabled");
+    output_telemetry_update(cli, false)?;
     trace_command_always!(start, "telemetry_disable");
     Ok(())
 }
 
-pub fn handle_status(start: Instant) -> Result<()> {
+fn output_telemetry_update(cli: &Cli, enabled: bool) -> Result<()> {
+    output_by_format_result!(cli.format,
+        json => {
+            let output = serde_json::json!({
+                "enabled": enabled,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok::<(), QipuError>(())
+        },
+        human => {
+            println!("Telemetry {}", if enabled { "enabled" } else { "disabled" });
+        },
+        records => {
+            println!("T telemetry enabled={}", enabled);
+        }
+    )
+}
+
+pub fn handle_status(cli: &Cli, start: Instant) -> Result<()> {
     let source;
     let enabled;
 
@@ -52,17 +90,33 @@ pub fn handle_status(start: Instant) -> Result<()> {
         }
     }
 
-    println!(
-        "Telemetry: {}",
-        if enabled { "enabled" } else { "disabled" }
-    );
+    let source_kind = source.kind();
+    let source_display = source.display();
 
-    let source_str = match source {
-        TelemetrySource::Environment => "QIPU_NO_TELEMETRY environment variable".to_string(),
-        TelemetrySource::Config => GlobalConfig::source_display(),
-        TelemetrySource::Default => "default (disabled)".to_string(),
-    };
-    println!("Source: {}", source_str);
+    output_by_format_result!(cli.format,
+        json => {
+            let output = serde_json::json!({
+                "enabled": enabled,
+                "source": source_display,
+                "source_kind": source_kind,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok::<(), QipuError>(())
+        },
+        human => {
+            println!(
+                "Telemetry: {}",
+                if enabled { "enabled" } else { "disabled" }
+            );
+            println!("Source: {}", source_display);
+        },
+        records => {
+            println!(
+                "T telemetry enabled={} source_kind={} source=\"{}\"",
+                enabled, source_kind, source_display
+            );
+        }
+    )?;
 
     trace_command_always!(start, "telemetry_status");
     Ok(())
@@ -173,18 +227,9 @@ fn print_event(idx: usize, event: &TelemetryEvent) {
     }
 }
 
-pub fn handle_show(start: Instant) -> Result<()> {
+pub fn handle_show(cli: &Cli, start: Instant) -> Result<()> {
     let config = TelemetryConfig::default();
     let collector = TelemetryCollector::new(config.clone());
-
-    println!(
-        "Telemetry status: {}\n",
-        if config.enabled {
-            "enabled"
-        } else {
-            "disabled"
-        }
-    );
 
     let events_dir = &config.events_dir;
     let events_file = events_dir.join("events.jsonl");
@@ -202,26 +247,57 @@ pub fn handle_show(start: Instant) -> Result<()> {
     let pending = collector.get_pending_events();
     all_events.extend(pending);
 
-    if all_events.is_empty() {
-        println!("No pending telemetry events.");
-        return Ok(());
-    }
+    output_by_format_result!(cli.format,
+        json => {
+            let output = serde_json::json!({
+                "enabled": config.enabled,
+                "events_count": all_events.len(),
+                "events": all_events,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok::<(), QipuError>(())
+        },
+        human => {
+            println!(
+                "Telemetry status: {}\n",
+                if config.enabled { "enabled" } else { "disabled" }
+            );
 
-    println!("Pending telemetry events ({}):", all_events.len());
-    println!("{}", "=".repeat(50));
+            if all_events.is_empty() {
+                println!("No pending telemetry events.");
+            } else {
+                println!("Pending telemetry events ({}):", all_events.len());
+                println!("{}", "=".repeat(50));
 
-    for (i, event) in all_events.iter().enumerate() {
-        print_event(i + 1, event);
-    }
+                for (i, event) in all_events.iter().enumerate() {
+                    print_event(i + 1, event);
+                }
 
-    println!("\n{}", "=".repeat(50));
-    println!("Total events ready for upload: {}", all_events.len());
+                println!("\n{}", "=".repeat(50));
+                println!("Total events ready for upload: {}", all_events.len());
+            }
+        },
+        records => {
+            println!(
+                "H qipu=1 records=1 mode=telemetry-show enabled={} events={}",
+                config.enabled,
+                all_events.len()
+            );
+            for (i, event) in all_events.iter().enumerate() {
+                println!(
+                    "E index={} {}",
+                    i + 1,
+                    serde_json::to_string(event).unwrap_or_else(|_| "{}".to_string())
+                );
+            }
+        }
+    )?;
 
     trace_command_always!(start, "telemetry_show");
     Ok(())
 }
 
-pub fn handle_upload(start: Instant) -> Result<()> {
+pub fn handle_upload(cli: &Cli, start: Instant) -> Result<()> {
     use qipu_core::telemetry::{EndpointConfig, TelemetryUploader};
     use std::sync::Arc;
 
@@ -229,15 +305,23 @@ pub fn handle_upload(start: Instant) -> Result<()> {
     let collector = TelemetryCollector::new(config.clone());
 
     if !collector.is_enabled() {
-        println!("Telemetry is disabled. Enable with: qipu telemetry enable");
+        output_upload_status(
+            cli,
+            "disabled",
+            "Telemetry is disabled. Enable with: qipu telemetry enable",
+            0,
+        )?;
         return Ok(());
     }
 
     let endpoint_config = EndpointConfig::from_env();
     if !endpoint_config.is_configured() {
-        println!("No telemetry endpoint configured.");
-        println!("Set QIPU_TELEMETRY_ENDPOINT to enable remote upload.");
-        println!("Example: export QIPU_TELEMETRY_ENDPOINT=https://telemetry.example.com/v1/batch");
+        output_upload_status(
+            cli,
+            "no_endpoint",
+            "No telemetry endpoint configured. Set QIPU_TELEMETRY_ENDPOINT to enable remote upload.",
+            0,
+        )?;
         return Ok(());
     }
 
@@ -246,25 +330,73 @@ pub fn handle_upload(start: Instant) -> Result<()> {
 
     let events = collector.get_pending_events();
     if events.is_empty() {
-        println!("No telemetry events to upload.");
+        output_upload_status(cli, "no_events", "No telemetry events to upload.", 0)?;
         return Ok(());
     }
 
-    println!("Uploading {} telemetry events...", events.len());
-
+    let event_count = events.len();
     let uploader = TelemetryUploader::new(Arc::new(collector));
 
     match uploader.upload_immediate() {
         Ok(()) => {
-            println!("✓ Upload successful");
-            println!("  Local events cleared.");
+            output_upload_status(
+                cli,
+                "uploaded",
+                "Upload successful. Local events cleared.",
+                event_count,
+            )?;
         }
         Err(e) => {
-            println!("✗ Upload failed: {}", e);
-            println!("  Events retained for retry.");
+            output_upload_status(
+                cli,
+                "failed",
+                &format!("Upload failed: {}. Events retained for retry.", e),
+                event_count,
+            )?;
         }
     }
 
     trace_command_always!(start, "telemetry_upload");
     Ok(())
+}
+
+fn output_upload_status(cli: &Cli, status: &str, message: &str, events_count: usize) -> Result<()> {
+    output_by_format_result!(cli.format,
+        json => {
+            let output = serde_json::json!({
+                "status": status,
+                "message": message,
+                "events_count": events_count,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok::<(), QipuError>(())
+        },
+        human => {
+            match status {
+                "no_endpoint" => {
+                    println!("No telemetry endpoint configured.");
+                    println!("Set QIPU_TELEMETRY_ENDPOINT to enable remote upload.");
+                    println!(
+                        "Example: export QIPU_TELEMETRY_ENDPOINT=https://telemetry.example.com/v1/batch"
+                    );
+                }
+                "uploaded" => {
+                    println!("Uploading {} telemetry events...", events_count);
+                    println!("✓ Upload successful");
+                    println!("  Local events cleared.");
+                }
+                "failed" => {
+                    println!("Uploading {} telemetry events...", events_count);
+                    println!("✗ {}", message);
+                }
+                _ => println!("{}", message),
+            }
+        },
+        records => {
+            println!(
+                "T telemetry_upload status={} events={} message=\"{}\"",
+                status, events_count, message
+            );
+        }
+    )
 }

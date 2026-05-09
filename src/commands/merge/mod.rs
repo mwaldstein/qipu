@@ -1,5 +1,5 @@
 //! Merge two notes into one
-use crate::cli::Cli;
+use crate::cli::{Cli, OutputFormat};
 use qipu_core::error::{QipuError, Result};
 use qipu_core::index::IndexBuilder;
 use qipu_core::note::Note;
@@ -7,7 +7,7 @@ use qipu_core::note::TypedLink;
 use qipu_core::store::Store;
 use std::collections::HashSet;
 
-pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -> Result<()> {
+pub fn execute(cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -> Result<()> {
     if id1 == id2 {
         return Err(QipuError::Other(
             "cannot merge a note into itself".to_string(),
@@ -17,19 +17,20 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
     let note1 = store.get_note(id1)?;
     let mut note2 = store.get_note(id2)?;
 
-    print_merge_message(id1, id2, dry_run);
-
     let final_tags = merge_tags(&note1, &note2);
     let links = merge_links(&note1, &note2, id2);
     let new_body = merge_bodies(&note1, &note2, id1);
 
     if dry_run {
-        println!("Tags would be: {:?}", final_tags);
-        println!("Links count would be: {}", links.len());
+        output_dry_run(cli, id1, id2, &final_tags, links.len())?;
         return Ok(());
     }
 
-    redirect_inbound_links(store, id1, id2)?;
+    if cli.format == OutputFormat::Human && !cli.quiet {
+        print_merge_message(id1, id2, dry_run);
+    }
+
+    let updated_inbound = redirect_inbound_links(cli, store, id1, id2)?;
 
     note2.frontmatter.tags = final_tags;
     note2.frontmatter.links = links;
@@ -37,7 +38,7 @@ pub fn execute(_cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -
     store.save_note(&mut note2)?;
     store.delete_note(id1)?;
 
-    println!("Merge complete. {} has been merged into {}.", id1, id2);
+    output_merge_complete(cli, id1, id2, &updated_inbound)?;
     Ok(())
 }
 
@@ -83,10 +84,90 @@ fn merge_bodies(note1: &Note, note2: &Note, source_id: &str) -> String {
     )
 }
 
-fn redirect_inbound_links(store: &Store, from_id: &str, to_id: &str) -> Result<()> {
+fn output_dry_run(
+    cli: &Cli,
+    source: &str,
+    target: &str,
+    tags: &[String],
+    links_count: usize,
+) -> Result<()> {
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "dry_run": true,
+                "source": source,
+                "target": target,
+                "tags": tags,
+                "links_count": links_count,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Human => {
+            if !cli.quiet {
+                println!("Dry run: would merge {} into {}", source, target);
+                println!("Tags would be: {:?}", tags);
+                println!("Links count would be: {}", links_count);
+            }
+        }
+        OutputFormat::Records => {
+            println!(
+                "M source={} target={} dry_run=true links={} tags={}",
+                source,
+                target,
+                links_count,
+                tags.join(",")
+            );
+        }
+    }
+    Ok(())
+}
+
+fn output_merge_complete(
+    cli: &Cli,
+    source: &str,
+    target: &str,
+    updated_inbound: &[String],
+) -> Result<()> {
+    match cli.format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "merged": true,
+                "source": source,
+                "target": target,
+                "updated_inbound": updated_inbound,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Human => {
+            if !cli.quiet {
+                println!(
+                    "Merge complete. {} has been merged into {}.",
+                    source, target
+                );
+            }
+        }
+        OutputFormat::Records => {
+            println!(
+                "M source={} target={} merged=true updated_inbound={}",
+                source,
+                target,
+                updated_inbound.len()
+            );
+        }
+    }
+    Ok(())
+}
+
+fn redirect_inbound_links(
+    cli: &Cli,
+    store: &Store,
+    from_id: &str,
+    to_id: &str,
+) -> Result<Vec<String>> {
     let index = IndexBuilder::new(store).build()?;
     let inbound = index.get_inbound_edges(from_id);
     let source_ids: HashSet<String> = inbound.iter().map(|e| e.from.clone()).collect();
+    let mut updated = Vec::new();
 
     for source_id in source_ids {
         if source_id == from_id {
@@ -126,10 +207,14 @@ fn redirect_inbound_links(store: &Store, from_id: &str, to_id: &str) -> Result<(
         }
 
         if modified {
-            println!("Updating inbound links in {}...", source_id);
+            if cli.format == OutputFormat::Human && !cli.quiet {
+                println!("Updating inbound links in {}...", source_id);
+            }
             store.save_note(&mut source_note)?;
+            updated.push(source_id);
         }
     }
 
-    Ok(())
+    updated.sort();
+    Ok(updated)
 }

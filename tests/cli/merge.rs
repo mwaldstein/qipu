@@ -54,3 +54,34 @@ fn test_merge_notes_basic() {
         .stdout(predicate::str::contains("\"tag1\""))
         .stdout(predicate::str::contains("\"tag2\""));
 }
+
+#[test]
+fn test_merge_json_format() {
+    let dir = setup_test_dir();
+
+    let output1 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "tag1", "Note One"])
+        .output()
+        .unwrap();
+    let id1 = extract_id(&output1);
+
+    let output2 = qipu()
+        .current_dir(dir.path())
+        .args(["create", "--tag", "tag2", "Note Two"])
+        .output()
+        .unwrap();
+    let id2 = extract_id(&output2);
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["--format", "json", "merge", &id1, &id2])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["source"], id1);
+    assert_eq!(json["target"], id2);
+    assert_eq!(json["merged"], true);
+}

@@ -317,11 +317,11 @@ pub(super) mod dispatch_command {
         use crate::commands::telemetry;
 
         match command {
-            TelemetryCommands::Enable => telemetry::handle_enable(start),
-            TelemetryCommands::Disable => telemetry::handle_disable(start),
-            TelemetryCommands::Status => telemetry::handle_status(start),
-            TelemetryCommands::Show => telemetry::handle_show(start),
-            TelemetryCommands::Upload => telemetry::handle_upload(start),
+            TelemetryCommands::Enable => telemetry::handle_enable(_cli, start),
+            TelemetryCommands::Disable => telemetry::handle_disable(_cli, start),
+            TelemetryCommands::Status => telemetry::handle_status(_cli, start),
+            TelemetryCommands::Show => telemetry::handle_show(_cli, start),
+            TelemetryCommands::Upload => telemetry::handle_upload(_cli, start),
         }
     }
 

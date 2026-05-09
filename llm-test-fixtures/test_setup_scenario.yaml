@@ -2,12 +2,17 @@ name: test_setup_commands
 description: "Test setup command execution and recording"
 tier: 0
 template_folder: qipu
+tags: [setup, smoke]
+target:
+  binary: qipu
 task:
-  prompt: "Test"
+  prompt: "Initialize qipu if needed. Create one note titled 'Setup Commands Note' that says the setup command test ran."
 evaluation:
   gates:
-    - type: min_notes
-      count: 1
+    - type: command_output_contains
+      command: qipu search "Setup Commands Note" --format records
+      substring: "Setup Commands Note"
+    - type: no_transcript_errors
 setup:
   commands:
     - "echo 'Setting up test environment'"

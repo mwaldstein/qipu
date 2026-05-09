@@ -2,13 +2,23 @@ name: search_basic
 description: "Basic search functionality test"
 template_folder: qipu
 tier: 1
+tags: [search, records]
+target:
+  binary: qipu
 task:
-  prompt: "Create three notes: one about 'Machine Learning' with content about supervised learning, one about 'Neural Networks' with content about deep learning, and one about 'Data Science' with content about data analysis. Then use qipu search to find the note about 'Neural Networks'."
+  prompt: "Initialize qipu if needed. Create three notes: 'Machine Learning' with content about supervised learning, 'Neural Networks' with content about deep learning, and 'Data Science' with content about data analysis. Use qipu search --format records to find the note about 'Neural Networks' and confirm the result."
 evaluation:
   gates:
-    - type: min_notes
-      count: 3
-    - type: search_hit
-      query: "Neural Networks"
-    - type: search_hit
-      query: "Machine Learning"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu search "Neural Networks" --format records
+      substring: "Neural Networks"
+    - type: command_output_contains
+      command: qipu search "supervised learning" --format records
+      substring: "Machine Learning"
+    - type: script
+      description: "Search scenario produced exactly three notes"
+      command: |
+        set -e
+        count=$(qipu list --format records | grep -c '^N ')
+        test "$count" -eq 3

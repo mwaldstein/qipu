@@ -2,11 +2,25 @@ name: link_navigation
 description: "Link navigation scenario"
 template_folder: qipu
 tier: 1
+tags: [links, graph]
+target:
+  binary: qipu
 task:
-  prompt: "Create two notes: one about 'Cats' and one about 'Dogs'. Then link 'Cats' to 'Dogs' with type 'related'."
+  prompt: "Initialize qipu if needed. Create two notes: one titled 'Cats' and one titled 'Dogs'. Link 'Cats' to 'Dogs' with type 'related'. Then verify the link with qipu link list."
 evaluation:
   gates:
-    - type: min_notes
-      count: 2
-    - type: min_links
-      count: 1
+    - type: no_transcript_errors
+    - type: script
+      description: "Cats and Dogs exist and are connected by a related link"
+      command: |
+        set -e
+        cats_id=$(qipu search Cats --format records | awk '/^N / {print $2; exit}')
+        dogs_id=$(qipu search Dogs --format records | awk '/^N / {print $2; exit}')
+        test -n "$cats_id"
+        test -n "$dogs_id"
+        qipu link list "$cats_id" --format records | grep -q "E $cats_id related $dogs_id"
+        qipu link path "$cats_id" "$dogs_id" --format records | grep -q "related"
+  judge:
+    enabled: true
+    rubric: rubrics/link_v1.yaml
+    pass_threshold: 0.7

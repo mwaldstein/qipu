@@ -181,15 +181,23 @@ Scenarios are YAML files that define a test case:
 ```yaml
 name: capture_basic
 description: "Basic note capture scenario"
-fixture: qipu
+template_folder: qipu
+tier: 1
+target:
+  binary: qipu
 task:
-  prompt: "Create a note about quantum entanglement with some basic facts."
+  prompt: "Initialize qipu if needed. Capture one note about quantum entanglement."
 evaluation:
   gates:
-    - type: min_notes
-      count: 1
-    - type: search_hit
-      query: "entanglement"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu search entanglement --format records
+      substring: "entanglement"
+    - type: script
+      description: "The context bundle can retrieve the captured note"
+      command: |
+        set -e
+        qipu context --query entanglement --format records --max-chars 8000 | grep -q entanglement
   judge:
     enabled: true
     rubric: rubrics/capture_v1.yaml
@@ -202,7 +210,8 @@ evaluation:
 |-------|----------|-------------|
 | `name` | Yes | Unique identifier |
 | `description` | Yes | Human-readable description |
-| `fixture` | Yes | Name of fixture directory to use |
+| `template_folder` | Yes | Name of fixture directory under `llm-test-fixtures/templates/` |
+| `target.binary` | Yes | Binary under test, usually `qipu` |
 | `task.prompt` | Yes | The prompt given to the LLM tool |
 | `evaluation.gates` | Yes | List of pass/fail gates |
 | `evaluation.judge` | No | LLM-as-judge configuration |
@@ -219,9 +228,15 @@ Test fixtures and scenarios are in `llm-test-fixtures/` at your workspace root:
 
 | Type | Parameters | Description |
 |------|------------|-------------|
-| `min_notes` | `count: N` | At least N notes exist |
-| `min_links` | `count: N` | At least N links exist |
-| `search_hit` | `query: "..."` | Search returns results |
+| `command_succeeds` | `command: "qipu ..."` | Command exits successfully |
+| `command_output_contains` | `command: "qipu ..."`, `substring: "..."` | Command output contains expected text |
+| `command_output_matches` | `command: "qipu ..."`, regex field | Command output matches a pattern |
+| `command_json_path` | `command: "qipu --format json ..."`, JSON path fields | JSON command output has expected data |
+| `file_exists` | file path field | Expected file exists |
+| `file_contains` | file path and substring fields | Expected file contains text |
+| `file_matches` | file path and regex fields | Expected file matches a pattern |
+| `no_transcript_errors` | none | Transcript contains no command errors |
+| `script` | `description: "..."`, `command: | ...` | Shell script exits successfully; best for multi-step qipu assertions |
 
 ## Rubrics
 
@@ -301,16 +316,23 @@ Use `--no-cache` to force re-execution.
 name: my_scenario
 description: "Test description"
 template_folder: qipu
+target:
+  binary: qipu
 task:
   prompt: |
+    Initialize qipu if needed.
     Create two notes about related topics and link them together.
     Use the 'related' link type.
 evaluation:
   gates:
-    - type: min_notes
-      count: 2
-    - type: min_links
-      count: 1
+    - type: no_transcript_errors
+    - type: script
+      description: "Two notes exist and a related link connects them"
+      command: |
+        set -e
+        count=$(qipu list --format records | grep -c '^N ')
+        test "$count" -eq 2
+        qipu link list "$(qipu list --format records | awk '/^N / {print $2; exit}')" --format records | grep -q related
 ```
 
 2. Optionally create a rubric in `llm-test-fixtures/rubrics/`:

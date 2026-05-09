@@ -2,13 +2,24 @@ name: compaction_workflow
 description: "Note compaction workflow"
 template_folder: qipu
 tier: 1
+tags: [compaction, context]
+target:
+  binary: qipu
 task:
-  prompt: "Create four brief notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four notes into this digest."
+  prompt: "Initialize qipu if needed. Create four brief source notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four source notes into this digest. Verify list/search/context resolve to the digest."
 evaluation:
   gates:
-    - type: min_notes
-      count: 5
-    - type: search_hit
-      query: "Web Development Overview"
-    - type: search_hit
-      query: "HTML Basics"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu search "Web Development Overview" --format records
+      substring: "Web Development Overview"
+    - type: script
+      description: "Digest compacts four source notes and context exposes compaction metadata"
+      command: |
+        set -e
+        digest_id=$(qipu search "Web Development Overview" --format records | awk '/^N / {print $2; exit}')
+        test -n "$digest_id"
+        qipu show "$digest_id" --format records --with-compaction-ids | grep -q '^D compacted '
+        compacted_count=$(qipu show "$digest_id" --format records --with-compaction-ids | grep -c '^D compacted ')
+        test "$compacted_count" -eq 4
+        qipu context --query "HTML Basics" --format records --with-compaction-ids --max-chars 12000 | grep -q "Web Development Overview"

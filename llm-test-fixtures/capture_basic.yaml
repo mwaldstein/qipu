@@ -3,11 +3,24 @@ description: "Basic note capture scenario"
 template_folder: qipu
 tier: 1
 tags: [capture, smoke]
+target:
+  binary: qipu
 task:
-  prompt: "Create a note about quantum entanglement with some basic facts."
+  prompt: "Initialize qipu if needed. Capture one literature note titled 'Quantum Entanglement Basics' about quantum entanglement. Include tags physics and quantum, and include at least three basic facts in the body. Then verify the note is searchable."
 evaluation:
   gates:
-    - type: min_notes
-      count: 1
-    - type: search_hit
-      query: "entanglement"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu search entanglement --format records
+      substring: "Quantum Entanglement"
+    - type: script
+      description: "The captured note has expected tags and searchable content"
+      command: |
+        set -e
+        qipu list --tag physics --format records | grep -q "Quantum Entanglement"
+        qipu list --tag quantum --format records | grep -q "Quantum Entanglement"
+        qipu context --query entanglement --format records --max-chars 8000 | grep -q "entanglement"
+  judge:
+    enabled: true
+    rubric: rubrics/capture_v1.yaml
+    pass_threshold: 0.7

@@ -1,11 +1,22 @@
 name: create_smoke
 description: "Tier 0 smoke test: single note creation"
 template_folder: qipu
+tier: 0
+tags: [capture, smoke]
+target:
+  binary: qipu
 task:
-  prompt: "Create a note with the title 'Test Note' and content 'This is a test note for smoke testing.'"
+  prompt: "Initialize qipu if needed. Create a note with the title 'Test Note' and content 'This is a test note for smoke testing.' Then verify you can find it."
 evaluation:
   gates:
-    - type: min_notes
-      count: 1
-    - type: search_hit
-      query: "Test Note"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu search "Test Note" --format records
+      substring: "Test Note"
+    - type: script
+      description: "The store contains exactly one note with the requested body"
+      command: |
+        set -e
+        count=$(qipu list --format records | grep -c '^N ')
+        test "$count" -eq 1
+        qipu search "smoke testing" --format records | grep -q "Test Note"

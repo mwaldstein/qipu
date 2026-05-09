@@ -2,13 +2,29 @@ name: context_retrieval
 description: "Context retrieval for LLM integration"
 template_folder: qipu
 tier: 1
+tags: [context, records, retrieval]
+target:
+  binary: qipu
 task:
-  prompt: "Create three notes about programming concepts: one titled 'Rust Ownership' with tags #rust #ownership, one titled 'Async Programming' with tags #rust #async, and one titled 'Error Handling' with tags #rust #errors. Then use qipu context with the tag #rust to retrieve all three notes."
+  prompt: "Initialize qipu if needed. Create three notes about programming concepts: one titled 'Rust Ownership' with tags rust and ownership, one titled 'Async Programming' with tags rust and async, and one titled 'Error Handling' with tags rust and errors. Then use qipu context --tag rust --format records --max-chars 12000 to retrieve all three notes."
 evaluation:
   gates:
-    - type: min_notes
-      count: 3
-    - type: search_hit
-      query: "Rust Ownership"
-    - type: search_hit
-      query: "Async Programming"
+    - type: no_transcript_errors
+    - type: command_output_contains
+      command: qipu context --tag rust --format records --max-chars 12000
+      substring: "Rust Ownership"
+    - type: command_output_contains
+      command: qipu context --tag rust --format records --max-chars 12000
+      substring: "Async Programming"
+    - type: command_output_contains
+      command: qipu context --tag rust --format records --max-chars 12000
+      substring: "Error Handling"
+    - type: script
+      description: "All three notes are retrievable through the rust context bundle"
+      command: |
+        set -e
+        output=$(qipu context --tag rust --format records --max-chars 12000)
+        printf '%s\n' "$output" | grep -q '^H qipu=1 records=1'
+        printf '%s\n' "$output" | grep -q "Rust Ownership"
+        printf '%s\n' "$output" | grep -q "Async Programming"
+        printf '%s\n' "$output" | grep -q "Error Handling"

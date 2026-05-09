@@ -2,12 +2,17 @@ name: setup_test
 description: "Test scenario with setup steps"
 template_folder: qipu
 tier: 1
+tags: [setup, smoke]
+target:
+  binary: qipu
 task:
-  prompt: "Create a new note about testing."
+  prompt: "Initialize qipu if needed. Create a new note titled 'Setup Test Note' about testing."
 setup:
   commands:
     - "echo Running setup for test scenario"
 evaluation:
   gates:
-    - type: min_notes
-      count: 1
+    - type: command_output_contains
+      command: qipu search "Setup Test Note" --format records
+      substring: "Setup Test Note"
+    - type: no_transcript_errors

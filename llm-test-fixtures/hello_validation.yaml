@@ -3,6 +3,8 @@ description: "Basic tool validation - verifies LLM tool communication without qi
 template_folder: hello
 tier: 0
 tags: [validation, smoke]
+target:
+  binary: qipu
 tool_matrix:
   - tool: opencode
     models:

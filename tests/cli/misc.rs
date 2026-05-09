@@ -92,6 +92,18 @@ fn test_subcommand_help() {
         .stdout(predicate::str::contains("Create a new note"));
 }
 
+#[test]
+fn test_min_value_help_does_not_claim_default_filter() {
+    for command in ["list", "search"] {
+        qipu()
+            .args([command, "--help"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("unset note values count as 50"))
+            .stdout(predicate::str::contains("default: 50").not());
+    }
+}
+
 // ============================================================================
 // Exit code tests (per specs/cli-tool.md)
 // ============================================================================

@@ -45,7 +45,7 @@ pub struct ContextArgs {
     #[arg(long)]
     pub walk_max_fanout: Option<usize>,
 
-    /// Filter by minimum value in graph walk (0-100, default: 50)
+    /// Filter by minimum value in graph walk (0-100; unset note values count as 50)
     #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
     pub walk_min_value: Option<u8>,
 

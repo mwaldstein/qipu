@@ -48,7 +48,7 @@ pub struct ListArgs {
     #[arg(long)]
     pub since: Option<String>,
 
-    /// Filter by minimum value (0-100, default: 50)
+    /// Filter by minimum value (0-100; unset note values count as 50)
     #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
     pub min_value: Option<u8>,
 
@@ -206,7 +206,7 @@ pub struct SearchArgs {
     #[arg(long)]
     pub exclude_mocs: bool,
 
-    /// Filter by minimum value (0-100, default: 50)
+    /// Filter by minimum value (0-100; unset note values count as 50)
     #[arg(long, value_parser = crate::cli::parse::parse_min_value)]
     pub min_value: Option<u8>,
 

@@ -27,5 +27,4 @@ pub mod search;
 pub mod similarity;
 pub mod store;
 pub mod telemetry;
-
-mod text;
+pub mod text;

@@ -348,33 +348,25 @@ fn copy_attachments(
     target_dir: &std::path::Path,
     cli: &Cli,
 ) -> Result<()> {
-    use regex::Regex;
+    use qipu_core::text::markdown::prefixed_attachment_targets;
     use std::fs;
-
-    // Pattern for ../attachments/filename.ext
-    let re =
-        Regex::new(r"(\.\./attachments/([^)\s\n]+))").map_err(|e| QipuError::FailedOperation {
-            operation: "compile regex".to_string(),
-            reason: e.to_string(),
-        })?;
 
     let mut copied_count = 0;
     let mut seen_attachments = std::collections::HashSet::new();
 
     for note in notes {
-        for cap in re.captures_iter(&note.body) {
-            let filename = &cap[2];
+        for filename in prefixed_attachment_targets(&note.body, &["../attachments/"]) {
             if seen_attachments.insert(filename.to_string()) {
-                let source_path = store.attachments_dir().join(filename);
+                let source_path = store.attachments_dir().join(&filename);
                 if source_path.exists() {
                     if !target_dir.exists() {
                         fs::create_dir_all(target_dir)?;
                     }
-                    let target_path = target_dir.join(filename);
+                    let target_path = target_dir.join(&filename);
                     fs::copy(&source_path, &target_path)?;
                     copied_count += 1;
                 } else if cli.verbose && !cli.quiet {
-                    tracing::info!(filename, note_id = note.id(), "attachment not found");
+                    tracing::info!(filename = %filename, note_id = note.id(), "attachment not found");
                 }
             }
         }

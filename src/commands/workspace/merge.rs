@@ -306,6 +306,7 @@ fn copy_note_with_rename(
 /// - Direct ID: [text](qp-xxxx)
 /// - Path with ID: [text](./qp-xxxx-slug.md) or [text](../other/qp-xxxx-slug.md)
 fn rewrite_body_file_references(body: &str, id_mappings: &HashMap<String, String>) -> String {
+    use qipu_core::text::markdown::{is_external_or_anchor_target, rewrite_qipu_id_in_target};
     use regex::Regex;
 
     let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
@@ -318,16 +319,11 @@ fn rewrite_body_file_references(body: &str, id_mappings: &HashMap<String, String
             let label = caps.get(1).map(|m| m.as_str()).unwrap_or("");
             let target = caps.get(2).map(|m| m.as_str()).unwrap_or("").trim();
 
-            // Skip external URLs and anchors
-            if target.starts_with("http://")
-                || target.starts_with("https://")
-                || target.starts_with('#')
-            {
+            if is_external_or_anchor_target(target) {
                 return caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string();
             }
 
-            // Try to find and rewrite ID in the target
-            let new_target = rewrite_target_id(target, id_mappings);
+            let new_target = rewrite_qipu_id_in_target(target, id_mappings);
 
             if new_target != target {
                 format!("[{}]({})", label, new_target)
@@ -336,35 +332,4 @@ fn rewrite_body_file_references(body: &str, id_mappings: &HashMap<String, String
             }
         })
         .to_string()
-}
-
-/// Rewrite an ID within a target path if it matches a mapping.
-/// Handles: qp-xxxx, ./qp-xxxx-slug.md, ../other/qp-xxxx-slug.md
-fn rewrite_target_id(target: &str, id_mappings: &HashMap<String, String>) -> String {
-    // Try to extract ID from the target
-    let id = if target.starts_with("qp-") {
-        // Direct ID: qp-xxxx
-        target.split('-').take(2).collect::<Vec<_>>().join("-")
-    } else if let Some(start) = target.find("qp-") {
-        // Path containing ID: ./qp-xxxx-slug.md or ../other/qp-xxxx-slug.md
-        let rest = &target[start..];
-        // Extract the ID portion (qp-xxxx)
-        let end = rest
-            .find('-')
-            .and_then(|first| rest[first + 1..].find('-').map(|second| first + 1 + second));
-        match end {
-            Some(end) => rest[..end].to_string(),
-            None => rest.trim_end_matches(".md").to_string(),
-        }
-    } else {
-        return target.to_string();
-    };
-
-    // If this ID is being renamed, rewrite the target
-    if let Some(new_id) = id_mappings.get(&id) {
-        // Replace the old ID with the new one
-        target.replace(&id, new_id)
-    } else {
-        target.to_string()
-    }
 }

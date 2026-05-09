@@ -1,5 +1,7 @@
 //! Text processing utilities for tokenization and ranking
 
+pub mod markdown;
+
 use rust_stemmers::{Algorithm, Stemmer};
 use std::collections::HashSet;
 use std::sync::OnceLock;

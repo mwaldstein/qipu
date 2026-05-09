@@ -7,6 +7,9 @@ use qipu_core::graph::{Direction, HopCost, TreeOptions};
 use qipu_core::index::{Index, LinkSource};
 use qipu_core::note::Note;
 use qipu_core::store::Store;
+use qipu_core::text::markdown::{
+    extract_qipu_id_from_target, is_external_or_anchor_target, markdown_links,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmptySelection {
@@ -201,20 +204,9 @@ fn extract_markdown_links(
     seen_ids: &mut HashSet<String>,
     linked_notes: &mut Vec<Note>,
 ) -> Result<()> {
-    use regex::Regex;
-
-    let md_link_re =
-        Regex::new(r"\[([^\]]*)\]\(([^)]+)\)").map_err(|e| QipuError::FailedOperation {
-            operation: "compile markdown link regex".to_string(),
-            reason: e.to_string(),
-        })?;
-
-    for cap in md_link_re.captures_iter(&moc.body) {
-        let target = cap[2].trim();
-        if target.starts_with("http://")
-            || target.starts_with("https://")
-            || target.starts_with('#')
-        {
+    for link in markdown_links(&moc.body) {
+        let target = link.target.as_str();
+        if is_external_or_anchor_target(target) {
             continue;
         }
 
@@ -237,20 +229,7 @@ fn extract_markdown_links(
 }
 
 fn extract_note_id_from_link_target(target: &str) -> Option<String> {
-    if target.starts_with("qp-") {
-        return Some(target.split('-').take(2).collect::<Vec<_>>().join("-"));
-    }
-
-    let start = target.find("qp-")?;
-    let rest = &target[start..];
-    let end = rest
-        .find('-')
-        .and_then(|first| rest[first + 1..].find('-').map(|second| first + 1 + second));
-
-    match end {
-        Some(end) => Some(rest[..end].to_string()),
-        None => Some(rest.trim_end_matches(".md").to_string()),
-    }
+    extract_qipu_id_from_target(target)
 }
 
 fn expand_by_traversal(

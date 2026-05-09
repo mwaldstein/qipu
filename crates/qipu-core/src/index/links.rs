@@ -3,6 +3,9 @@
 use super::types::{Edge, LinkSource};
 use crate::error::Result;
 use crate::note::Note;
+use crate::text::markdown::{
+    extract_qipu_id_from_target, is_external_or_anchor_target, markdown_links,
+};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -61,43 +64,16 @@ pub(crate) fn extract_links(
     }
 
     // Extract markdown links to qipu notes: [text](qp-xxxx) or [text](./qp-xxxx-slug.md) or [text](relative/path.md)
-    let md_link_re = match Regex::new(r"\[([^\]]*)\]\(([^)]+)\)") {
-        Ok(re) => re,
-        Err(e) => {
-            warn!(error = %e, "Failed to compile markdown link regex");
-            return edges; // Return empty edges if regex fails
-        }
-    };
-    for cap in md_link_re.captures_iter(&note.body) {
-        let target = cap[2].trim();
+    for link in markdown_links(&note.body) {
+        let target = link.target.as_str();
 
-        // Skip external URLs and anchors
-        if target.starts_with("http://")
-            || target.starts_with("https://")
-            || target.starts_with('#')
-        {
+        if is_external_or_anchor_target(target) {
             continue;
         }
 
         // Try to resolve the link to a note ID
-        let to_id = if target.starts_with("qp-") {
-            // Direct ID reference: [text](qp-xxxx)
-            Some(target.split('-').take(2).collect::<Vec<_>>().join("-"))
-        } else if target.contains("qp-") {
-            // Path reference containing ID: [text](./qp-xxxx-slug.md)
-            if let Some(start) = target.find("qp-") {
-                let rest = &target[start..];
-                // Extract the ID portion (qp-xxxx)
-                let end = rest
-                    .find('-')
-                    .and_then(|first| rest[first + 1..].find('-').map(|second| first + 1 + second));
-                match end {
-                    Some(end) => Some(rest[..end].to_string()),
-                    None => Some(rest.trim_end_matches(".md").to_string()),
-                }
-            } else {
-                None
-            }
+        let to_id = if target.starts_with("qp-") || target.contains("qp-") {
+            extract_qipu_id_from_target(target)
         } else if target.ends_with(".md") && source_path.is_some() {
             // Relative path to markdown file: [text](../other/note.md)
             let source = source_path.unwrap();

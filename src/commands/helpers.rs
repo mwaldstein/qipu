@@ -3,6 +3,8 @@
 use std::collections::HashSet;
 use std::env;
 
+use qipu_core::text::markdown::{markdown_links, strip_attachment_prefix};
+
 /// Resolve editor to use from override, EDITOR, VISUAL, or fallback
 ///
 /// Returns None if no editor is configured
@@ -20,26 +22,12 @@ pub fn resolve_editor(editor_override: Option<&str>) -> Option<String> {
 pub fn extract_attachment_references(body: &str) -> HashSet<String> {
     let mut attachments = HashSet::new();
 
-    // Pattern to match ![alt](../attachments/filename.ext) or [text](../attachments/filename.ext)
-    for line in body.lines() {
-        let mut search_start = 0;
-        while let Some(start) = line[search_start..].find("(") {
-            let actual_start = search_start + start;
-            if let Some(end) = line[actual_start..].find(")") {
-                let path_str = &line[actual_start + 1..actual_start + end];
-                // Check for attachments path
-                if path_str.starts_with("../attachments/") || path_str.starts_with("./attachments/")
-                {
-                    let filename = path_str
-                        .trim_start_matches("../attachments/")
-                        .trim_start_matches("./attachments/");
-                    if !filename.is_empty() && !filename.contains('/') {
-                        attachments.insert(filename.to_string());
-                    }
-                }
-                search_start = actual_start + end + 1;
-            } else {
-                break;
+    for link in markdown_links(body) {
+        if let Some(filename) =
+            strip_attachment_prefix(&link.target, &["../attachments/", "./attachments/"])
+        {
+            if !filename.is_empty() && !filename.contains('/') {
+                attachments.insert(filename.to_string());
             }
         }
     }

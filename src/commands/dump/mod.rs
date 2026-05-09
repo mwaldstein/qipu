@@ -155,42 +155,39 @@ fn collect_links(
 
 /// Collect attachments for selected notes
 fn collect_attachments(_store: &Store, selected_notes: &[Note]) -> Result<Vec<PackAttachment>> {
+    use qipu_core::text::markdown::{is_external_or_anchor_target, markdown_links};
+
     let mut attachments = Vec::new();
 
     for note in selected_notes {
         if let Some(note_path) = &note.path {
             let note_dir = note_path.parent().unwrap_or_else(|| Path::new("."));
 
-            // Extract file references from note content (simple approach)
-            let content_lines = note.body.lines();
-            for line in content_lines {
-                // Look for patterns like ![alt](path) or [text](path)
-                if let Some(start) = line.find('(') {
-                    if let Some(end) = line[start..].find(')') {
-                        let path_str = &line[start + 1..start + end];
-                        // Skip URLs, focus on local files
-                        if !path_str.starts_with("http://") && !path_str.starts_with("https://") {
-                            let attachment_path = note_dir.join(path_str);
-                            if attachment_path.exists() {
-                                // Try to read the attachment
-                                if let Ok(data) = std::fs::read(&attachment_path) {
-                                    let content_type: Option<String> =
-                                        mime_guess::from_path(&attachment_path)
-                                            .first()
-                                            .map(|mime| mime.to_string());
+            for line in note.body.lines() {
+                if let Some(link) = markdown_links(line).into_iter().next() {
+                    let path_str = link.target;
+                    if is_external_or_anchor_target(&path_str) {
+                        continue;
+                    }
 
-                                    attachments.push(PackAttachment {
-                                        path: path_str.to_string(),
-                                        name: attachment_path
-                                            .file_name()
-                                            .and_then(|n| n.to_str())
-                                            .unwrap_or("unknown")
-                                            .to_string(),
-                                        data,
-                                        content_type,
-                                    });
-                                }
-                            }
+                    let attachment_path = note_dir.join(&path_str);
+                    if attachment_path.exists() {
+                        if let Ok(data) = std::fs::read(&attachment_path) {
+                            let content_type: Option<String> =
+                                mime_guess::from_path(&attachment_path)
+                                    .first()
+                                    .map(|mime| mime.to_string());
+
+                            attachments.push(PackAttachment {
+                                path: path_str,
+                                name: attachment_path
+                                    .file_name()
+                                    .and_then(|n| n.to_str())
+                                    .unwrap_or("unknown")
+                                    .to_string(),
+                                data,
+                                content_type,
+                            });
                         }
                     }
                 }

@@ -30,6 +30,33 @@ pub fn generated_note_path(
     note_target_dir(store, note_type).join(filename(id, title))
 }
 
+pub fn placed_note_path(
+    store: &Store,
+    current_path: &Path,
+    note_type: &NoteType,
+    id: &NoteId,
+    title: &str,
+) -> Result<PathBuf> {
+    let target_dir = placed_note_dir(store, current_path, note_type)?;
+    Ok(target_dir.join(filename(id, title)))
+}
+
+pub fn move_note_to_placed_path(
+    store: &Store,
+    current_path: &Path,
+    note_type: &NoteType,
+    id: &NoteId,
+    title: &str,
+) -> Result<PathBuf> {
+    let target_path = placed_note_path(store, current_path, note_type, id, title)?;
+
+    if target_path != current_path {
+        std::fs::rename(current_path, &target_path)?;
+    }
+
+    Ok(target_path)
+}
+
 pub fn resolve_imported_note_path(
     store: &Store,
     note_type: &NoteType,
@@ -86,6 +113,22 @@ pub fn resolve_imported_note_path(
 
     ensure_under(&path, &note_target_dir(store, note_type), pack_path)?;
     Ok(path)
+}
+
+fn placed_note_dir(store: &Store, current_path: &Path, note_type: &NoteType) -> Result<PathBuf> {
+    let current_dir = current_path.parent().ok_or_else(|| {
+        QipuError::invalid_value("note path", "cannot determine parent directory")
+    })?;
+    let currently_in_mocs = current_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == MOCS_DIR);
+
+    if currently_in_mocs == note_type.is_moc() {
+        Ok(current_dir.to_path_buf())
+    } else {
+        Ok(note_target_dir(store, note_type))
+    }
 }
 
 fn normalize_relative(path: &Path, raw: &str) -> Result<PathBuf> {
@@ -167,5 +210,31 @@ mod tests {
         .unwrap();
 
         assert_eq!(path, store.root().join("notes/qp-test-test.md"));
+    }
+
+    #[test]
+    fn test_placed_note_path_renames_in_current_directory() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+        let id = NoteId::try_new("qp-test").unwrap();
+        let note_type = NoteType::from(NoteType::FLEETING);
+        let current_path = store.root().join("notes/qp-test-old-title.md");
+
+        let path = placed_note_path(&store, &current_path, &note_type, &id, "New Title").unwrap();
+
+        assert_eq!(path, store.root().join("notes/qp-test-new-title.md"));
+    }
+
+    #[test]
+    fn test_placed_note_path_moves_across_note_type_directories() {
+        let dir = tempdir().unwrap();
+        let store = Store::init(dir.path(), InitOptions::default()).unwrap();
+        let id = NoteId::try_new("qp-test").unwrap();
+        let note_type = NoteType::from(NoteType::MOC);
+        let current_path = store.root().join("notes/qp-test-map.md");
+
+        let path = placed_note_path(&store, &current_path, &note_type, &id, "Map").unwrap();
+
+        assert_eq!(path, store.root().join("mocs/qp-test-map.md"));
     }
 }

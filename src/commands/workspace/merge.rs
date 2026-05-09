@@ -1,6 +1,8 @@
 use crate::Cli;
 use qipu_core::bail_usage;
 use qipu_core::error::Result;
+use qipu_core::id::NoteId;
+use qipu_core::store::guards::generated_note_path;
 use qipu_core::store::Store;
 use std::collections::HashMap;
 use std::path::Path;
@@ -235,19 +237,13 @@ fn copy_note(
     // Rewrite file references in body based on ID mappings
     new_note.body = rewrite_body_file_references(&new_note.body, id_mappings);
 
-    // Determine target directory
-    let target_dir = if new_note.note_type().is_moc() {
-        dst.mocs_dir()
-    } else {
-        dst.notes_dir()
-    };
-
-    // Determine file path
-    let id_obj = qipu_core::id::NoteId::new_unchecked(new_note.id().to_string());
-    let file_name = qipu_core::id::filename(&id_obj, new_note.title());
-    let file_path = target_dir.join(&file_name);
-
-    new_note.path = Some(file_path);
+    let id = NoteId::new_unchecked(new_note.id().to_string());
+    new_note.path = Some(generated_note_path(
+        dst,
+        &new_note.note_type(),
+        &id,
+        new_note.title(),
+    ));
 
     dst.save_note(&mut new_note)?;
 
@@ -279,19 +275,13 @@ fn copy_note_with_rename(
     // Rewrite file references in body based on ID mappings
     new_note.body = rewrite_body_file_references(&new_note.body, id_mappings);
 
-    // Determine target directory
-    let target_dir = if new_note.note_type().is_moc() {
-        dst.mocs_dir()
-    } else {
-        dst.notes_dir()
-    };
-
-    // Determine file path
-    let id_obj = qipu_core::id::NoteId::new_unchecked(new_id.to_string());
-    let file_name = qipu_core::id::filename(&id_obj, new_note.title());
-    let file_path = target_dir.join(&file_name);
-
-    new_note.path = Some(file_path);
+    let id = NoteId::new_unchecked(new_id.to_string());
+    new_note.path = Some(generated_note_path(
+        dst,
+        &new_note.note_type(),
+        &id,
+        new_note.title(),
+    ));
 
     dst.save_note(&mut new_note)?;
 

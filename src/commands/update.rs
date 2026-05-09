@@ -7,71 +7,15 @@
 //! - Reading from stdin replaces note body (preserving frontmatter)
 
 use std::io::Read;
-use std::path::PathBuf;
 
 use tracing::debug;
 
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
 use qipu_core::error::{QipuError, Result};
+use qipu_core::id::NoteId;
+use qipu_core::store::guards::move_note_to_placed_path;
 use qipu_core::store::Store;
-
-fn rename_note_file_for_title(
-    note_id: &str,
-    note_title: &str,
-    note_path: &PathBuf,
-    new_title: &str,
-) -> Result<PathBuf> {
-    if new_title == note_title {
-        return Ok(note_path.clone());
-    }
-
-    let note_id_ref = qipu_core::id::NoteId::new_unchecked(note_id.to_string());
-    let new_file_name = qipu_core::id::filename(&note_id_ref, new_title);
-    let new_file_path = note_path
-        .parent()
-        .ok_or_else(|| QipuError::Other("cannot determine parent directory".to_string()))?
-        .join(&new_file_name);
-
-    if new_file_path != *note_path {
-        std::fs::rename(note_path, &new_file_path)?;
-    }
-
-    Ok(new_file_path)
-}
-
-fn move_note_to_type_directory(
-    note_path: &PathBuf,
-    new_type: &qipu_core::note::NoteType,
-    store: &Store,
-) -> Result<PathBuf> {
-    let is_moc = new_type.is_moc();
-    let was_moc: bool = note_path
-        .parent()
-        .and_then(|p| p.file_name())
-        .and_then(|n| n.to_str())
-        .map(|n| n == "mocs")
-        .unwrap_or(false);
-
-    if is_moc == was_moc {
-        return Ok(note_path.clone());
-    }
-
-    let target_dir = if is_moc {
-        store.root().join(qipu_core::store::paths::MOCS_DIR)
-    } else {
-        store.root().join(qipu_core::store::paths::NOTES_DIR)
-    };
-
-    let new_file_path = target_dir.join(
-        note_path
-            .file_name()
-            .ok_or_else(|| QipuError::Other("cannot determine filename".to_string()))?,
-    );
-
-    std::fs::rename(note_path, &new_file_path)?;
-    Ok(new_file_path)
-}
 
 /// Execute the update command
 #[allow(clippy::too_many_arguments)]
@@ -99,6 +43,7 @@ pub fn execute(
         .as_ref()
         .ok_or_else(|| QipuError::Other("note has no path".to_string()))?
         .clone();
+    let note_id_ref = NoteId::new_unchecked(note_id.clone());
 
     // Check if stdin has data (try to peek, but only if not reading from terminal)
     use std::io::IsTerminal;
@@ -108,10 +53,6 @@ pub fn execute(
 
     // Update title if provided
     if let Some(new_title) = title {
-        let old_title = note.title().to_string();
-        note.path = Some(rename_note_file_for_title(
-            &note_id, &old_title, &note_path, new_title,
-        )?);
         note.frontmatter.title = new_title.to_string();
         modified = true;
     }
@@ -120,10 +61,6 @@ pub fn execute(
     if let Some(new_type) = note_type {
         note.frontmatter.note_type = Some((*new_type).clone());
         modified = true;
-
-        if let Some(path) = &note.path {
-            note.path = Some(move_note_to_type_directory(path, new_type, store)?);
-        }
     }
 
     // Add tags if provided
@@ -215,6 +152,14 @@ pub fn execute(
         )?;
         return Ok(());
     }
+
+    note.path = Some(move_note_to_placed_path(
+        store,
+        &note_path,
+        &note.note_type(),
+        &note_id_ref,
+        note.title(),
+    )?);
 
     // Save the note (this updates both file and database atomically)
     store.save_note(&mut note)?;

@@ -133,7 +133,9 @@ pub enum QipuError {
     UsageError(String),
 
     // Data/store errors (exit code 3)
-    #[error("store not found (searched from {search_root:?})")]
+    #[error(
+        "store not found (searched from {search_root:?})\n\nUse: qipu init\nOther basic flags: --visible, --stealth.\nRun `qipu init --help` for full and advanced details."
+    )]
     StoreNotFound { search_root: PathBuf },
 
     #[error("invalid store: {reason}")]

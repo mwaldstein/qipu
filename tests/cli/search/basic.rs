@@ -14,6 +14,25 @@ fn test_search_empty_store() {
 }
 
 #[test]
+fn test_search_missing_query_shows_short_usage_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--tag", "quantum"])
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu search \"query\""))
+        .stderr(predicate::str::contains(
+            "Other basic flags: --tag, --type.",
+        ))
+        .stderr(predicate::str::contains(
+            "Run `qipu search --help` for full and advanced details.",
+        ));
+}
+
+#[test]
 fn test_search_finds_title() {
     let dir = setup_test_dir();
 

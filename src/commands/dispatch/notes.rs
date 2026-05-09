@@ -49,19 +49,29 @@ fn resolve_create_title(cli: &Cli, args: &crate::cli::CreateArgs) -> Result<Stri
         (None, Some(title)) => {
             if !cli.quiet {
                 eprintln!(
-                    "warning: prefer `qipu create \"...\" --body \"...\"` for new notes with inline body text"
+                    "warning: prefer intended create syntax:\n{}",
+                    create_usage_guidance()
                 );
             }
             Ok(title.clone())
         }
-        (Some(_), Some(_)) => Err(QipuError::UsageError(
-            "create received two title values; use `qipu create \"...\" --body \"...\"`"
-                .to_string(),
-        )),
-        (None, None) => Err(QipuError::UsageError(
-            "create requires a title: qipu create \"...\"".to_string(),
-        )),
+        (Some(_), Some(_)) => Err(QipuError::UsageError(format!(
+            "create received two title values\n\n{}",
+            create_usage_guidance()
+        ))),
+        (None, None) => Err(QipuError::UsageError(format!(
+            "create requires a title\n\n{}",
+            create_usage_guidance()
+        ))),
     }
+}
+
+fn create_usage_guidance() -> &'static str {
+    "Use: qipu create \"Title\" --body \"Body text\"\nOther basic flags: --type, --tag.\nRun `qipu create --help` for full and advanced details."
+}
+
+pub(super) fn search_usage_guidance() -> &'static str {
+    "Use: qipu search \"query\"\nOther basic flags: --tag, --type.\nRun `qipu search --help` for full and advanced details."
 }
 
 pub struct ListOptions<'a> {

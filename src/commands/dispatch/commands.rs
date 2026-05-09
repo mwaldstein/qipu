@@ -153,10 +153,16 @@ pub(super) mod dispatch_command {
     }
 
     fn execute_search(ctx: &CommandContext, args: &SearchArgs) -> Result<()> {
+        let Some(query) = args.query.as_deref() else {
+            return Err(qipu_core::error::QipuError::UsageError(
+                notes::search_usage_guidance().to_string(),
+            ));
+        };
+
         notes::handle_search(
             ctx.cli,
             ctx.root,
-            &args.query,
+            query,
             args.r#type.clone(),
             args.tag.as_deref(),
             args.exclude_mocs,

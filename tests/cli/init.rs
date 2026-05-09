@@ -20,7 +20,13 @@ fn test_init_creates_store() {
         .arg("init")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Initialized qipu store"));
+        .stdout(predicate::str::contains("Initialized qipu store"))
+        .stdout(predicate::str::contains(
+            "Create: qipu create \"Title\" --body \"Body text\"",
+        ))
+        .stdout(predicate::str::contains("Fetch: qipu show <id>"))
+        .stdout(predicate::str::contains("Search: qipu search \"query\""))
+        .stdout(predicate::str::contains("Edit: qipu edit <id>"));
 
     // Verify structure was created
     assert!(dir.path().join(".qipu").exists());

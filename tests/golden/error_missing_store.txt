@@ -1,1 +1,5 @@
 error: store not found (searched from "/nonexistent/store")
+
+Use: qipu init
+Other basic flags: --visible, --stealth.
+Run `qipu init --help` for full and advanced details.

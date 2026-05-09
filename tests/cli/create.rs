@@ -113,7 +113,16 @@ fn test_create_hidden_title_alias_warns() {
         .assert()
         .success()
         .stderr(predicate::str::contains(
-            "warning: prefer `qipu create \"...\" --body \"...\"`",
+            "warning: prefer intended create syntax",
+        ))
+        .stderr(predicate::str::contains(
+            "qipu create \"Title\" --body \"Body text\"",
+        ))
+        .stderr(predicate::str::contains(
+            "Other basic flags: --type, --tag.",
+        ))
+        .stderr(predicate::str::contains(
+            "Run `qipu create --help` for full and advanced details.",
         ));
 
     qipu()
@@ -133,7 +142,39 @@ fn test_create_rejects_positional_and_title_alias() {
         .args(["create", "Positional", "--title", "Alias"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("create received two title values"));
+        .stderr(predicate::str::contains("create received two title values"))
+        .stderr(predicate::str::contains(
+            "qipu create \"Title\" --body \"Body text\"",
+        ))
+        .stderr(predicate::str::contains(
+            "Other basic flags: --type, --tag.",
+        ))
+        .stderr(predicate::str::contains(
+            "Run `qipu create --help` for full and advanced details.",
+        ));
+}
+
+#[test]
+fn test_create_missing_title_shows_short_usage_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "--body", "Body without title"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("create requires a title"))
+        .stderr(predicate::str::contains(
+            "qipu create \"Title\" --body \"Body text\"",
+        ))
+        .stderr(predicate::str::contains(
+            "Other basic flags: --type, --tag.",
+        ))
+        .stderr(predicate::str::contains(
+            "Run `qipu create --help` for full and advanced details.",
+        ))
+        .stderr(predicate::str::contains("qipu capture").not())
+        .stderr(predicate::str::contains("qipu create --title").not());
 }
 
 #[test]

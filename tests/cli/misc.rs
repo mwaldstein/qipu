@@ -230,7 +230,14 @@ fn test_missing_store_exit_code_3() {
         .arg("list")
         .assert()
         .code(3)
-        .stderr(predicate::str::contains("store not found"));
+        .stderr(predicate::str::contains("store not found"))
+        .stderr(predicate::str::contains("Use: qipu init"))
+        .stderr(predicate::str::contains(
+            "Other basic flags: --visible, --stealth.",
+        ))
+        .stderr(predicate::str::contains(
+            "Run `qipu init --help` for full and advanced details.",
+        ));
 }
 
 // ============================================================================

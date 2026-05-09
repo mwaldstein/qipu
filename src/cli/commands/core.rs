@@ -192,7 +192,7 @@ pub struct IndexArgs {
 #[derive(Args, Debug)]
 pub struct SearchArgs {
     /// Search query
-    pub query: String,
+    pub query: Option<String>,
 
     /// Filter by note type
     #[arg(long, short = 'T', value_parser = parse_note_type)]

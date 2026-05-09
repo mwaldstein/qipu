@@ -122,10 +122,10 @@ pub fn execute(
             println!("Initialized qipu store at {}", store.root().display());
             if agents_md {
                 println!();
-                println!("Run `qipu prime` for workflow context.");
+                print_init_next_steps(false);
             } else {
                 println!();
-                println!("Run `qipu prime` for workflow context.");
+                print_init_next_steps(true);
                 println!("Run `qipu setup agents-md` to add instructions to AGENTS.md.");
             }
         },
@@ -139,4 +139,15 @@ pub fn execute(
     )?;
 
     Ok(())
+}
+
+fn print_init_next_steps(include_agents_md_hint: bool) {
+    println!("Create: qipu create \"Title\" --body \"Body text\"");
+    println!("Fetch: qipu show <id>");
+    println!("Search: qipu search \"query\"");
+    println!("Edit: qipu edit <id>");
+    println!("Run `qipu prime` for workflow context.");
+    if include_agents_md_hint {
+        println!("Run `qipu init --help` for full setup options.");
+    }
 }

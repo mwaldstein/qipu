@@ -28,6 +28,7 @@ pub mod quickstart;
 pub mod search;
 pub mod setup;
 pub mod show;
+pub mod status;
 pub mod store;
 pub mod sync;
 pub mod telemetry;

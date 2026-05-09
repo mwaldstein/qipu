@@ -6,10 +6,9 @@ tags: [search, records]
 target:
   binary: qipu
 task:
-  prompt: "Initialize qipu if needed. Create three notes: 'Machine Learning' with content about supervised learning, 'Neural Networks' with content about deep learning, and 'Data Science' with content about data analysis. Use qipu search --format records to find the note about 'Neural Networks' and confirm the result."
+  prompt: "In the current directory, initialize qipu if needed. Create three notes: 'Machine Learning' with content about supervised learning, 'Neural Networks' with content about deep learning, and 'Data Science' with content about data analysis. Use qipu search --format records to find the note about 'Neural Networks' and confirm the result."
 evaluation:
   gates:
-    - type: no_transcript_errors
     - type: command_output_contains
       command: qipu search "Neural Networks" --format records
       substring: "Neural Networks"

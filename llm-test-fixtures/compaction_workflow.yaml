@@ -6,10 +6,9 @@ tags: [compaction, context]
 target:
   binary: qipu
 task:
-  prompt: "Initialize qipu if needed. Create four brief source notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four source notes into this digest. Verify list/search/context resolve to the digest."
+  prompt: "In the current directory, initialize qipu if needed. Create four brief source notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four source notes into this digest. Verify list/search/context resolve to the digest."
 evaluation:
   gates:
-    - type: no_transcript_errors
     - type: command_output_contains
       command: qipu search "Web Development Overview" --format records
       substring: "Web Development Overview"

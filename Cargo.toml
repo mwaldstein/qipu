@@ -35,6 +35,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # TOML parsing (for tests)
 toml = "1.1"
 
+# SQLite status inspection
+rusqlite = { version = "0.39", features = ["bundled"] }
+
 # Regular expressions
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 

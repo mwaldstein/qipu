@@ -11,7 +11,8 @@ pub struct CreateArgs {
     /// Note title
     pub title: Option<String>,
 
-    /// Hidden compatibility alias for common agent mistakes.
+    /// Hidden compatibility alias for common agent mistakes; see ADR 0006 and
+    /// docs/maintainers/hidden-compatibility-aliases.md.
     /// Documented in ADR 0006; do not expose in user-facing help.
     #[arg(long = "title", hide = true)]
     pub title_alias: Option<String>,

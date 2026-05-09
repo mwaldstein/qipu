@@ -33,6 +33,10 @@ pub struct InitArgs {
     pub agents_md: bool,
 }
 
+/// Arguments for the status command.
+#[derive(Args, Debug)]
+pub struct StatusArgs {}
+
 /// Arguments for the list command.
 #[derive(Args, Debug)]
 pub struct ListArgs {

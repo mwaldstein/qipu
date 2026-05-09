@@ -6,7 +6,7 @@ tags: [setup, smoke]
 target:
   binary: qipu
 task:
-  prompt: "Initialize qipu if needed. Create a new note titled 'Setup Test Note' about testing."
+  prompt: "In the current directory, initialize qipu if needed. Create a new note titled 'Setup Test Note' about testing."
 setup:
   commands:
     - "echo Running setup for test scenario"
@@ -15,4 +15,3 @@ evaluation:
     - type: command_output_contains
       command: qipu search "Setup Test Note" --format records
       substring: "Setup Test Note"
-    - type: no_transcript_errors

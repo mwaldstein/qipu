@@ -29,6 +29,7 @@ mod rewrite_links;
 mod search;
 mod setup;
 mod show;
+mod status;
 mod store;
 mod store_discovery;
 

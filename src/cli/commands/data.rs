@@ -5,6 +5,11 @@ use std::path::PathBuf;
 
 #[derive(Args, Debug)]
 pub struct ContextArgs {
+    /// Hidden compatibility alias for `--note <ID>`; see ADR 0006 and
+    /// docs/maintainers/hidden-compatibility-aliases.md.
+    #[arg(value_name = "ID", hide = true)]
+    pub positional_note: Option<String>,
+
     /// Walk the graph from a note and bundle traversed notes
     #[arg(long)]
     pub walk: Option<String>,

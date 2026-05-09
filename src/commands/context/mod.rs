@@ -131,6 +131,10 @@ pub fn execute_with_args(
 ) -> Result<()> {
     let store = discover_or_open_store(cli, root)?;
     let use_full_body = !args.summary_only || args.with_body;
+    let mut note_ids = args.note.clone();
+    if let Some(id) = &args.positional_note {
+        note_ids.push(id.clone());
+    }
 
     let options = ContextOptions {
         walk: WalkOptions {
@@ -148,7 +152,7 @@ pub fn execute_with_args(
             ignore_value: args.walk_ignore_value,
         },
         selection: SelectionOptions {
-            note_ids: &args.note,
+            note_ids: &note_ids,
             tag: args.tag.as_deref(),
             moc_id: args.moc.as_deref(),
             query: args.query.as_deref(),

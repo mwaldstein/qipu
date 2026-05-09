@@ -160,6 +160,7 @@ fn print_top_level_help(include_advanced: bool) {
     println!();
     println!("Maintenance commands:");
     println!("  init        Initialize a new qipu store");
+    println!("  status      Check whether a usable qipu store is available");
     println!("  doctor      Validate store invariants and optionally repair issues");
     println!("  sync        Sync store: update indexes and optionally validate");
     println!("  index       Build or refresh derived indexes");

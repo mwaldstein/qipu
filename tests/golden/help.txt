@@ -32,6 +32,7 @@ Metadata commands:
 
 Maintenance commands:
   init        Initialize a new qipu store
+  status      Check whether a usable qipu store is available
   doctor      Validate store invariants and optionally repair issues
   sync        Sync store: update indexes and optionally validate
   index       Build or refresh derived indexes

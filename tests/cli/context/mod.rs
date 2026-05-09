@@ -10,6 +10,7 @@ mod expansion;
 mod filtering_custom;
 mod filtering_value;
 mod formats;
+mod hidden_positional;
 mod metadata;
 mod ontology_default;
 mod ontology_extended;

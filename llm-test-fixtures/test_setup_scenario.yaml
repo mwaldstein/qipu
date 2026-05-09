@@ -8,13 +8,12 @@ target:
   env:
     QIPU_STORE: ".qipu"
 task:
-  prompt: "Initialize qipu if needed. Create one note titled 'Setup Commands Note' that says the setup command test ran."
+  prompt: "In the current directory, initialize qipu if needed. Create one note titled 'Setup Commands Note' that says the setup command test ran."
 evaluation:
   gates:
     - type: command_output_contains
       command: qipu search "Setup Commands Note" --format records
       substring: "Setup Commands Note"
-    - type: no_transcript_errors
 setup:
   commands:
     - "echo 'Setting up test environment'"

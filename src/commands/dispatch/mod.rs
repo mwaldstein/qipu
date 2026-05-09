@@ -93,6 +93,7 @@ fn command_to_name(cmd: &crate::cli::Commands) -> CommandName {
     use crate::cli::Commands;
     match cmd {
         Commands::Init(_) => CommandName::Init,
+        Commands::Status(_) => CommandName::Status,
         Commands::Create(_) => CommandName::Create,
         Commands::New(_) => CommandName::New,
         Commands::List(_) => CommandName::List,

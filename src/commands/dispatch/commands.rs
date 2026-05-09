@@ -23,6 +23,7 @@ pub(super) mod dispatch_command {
     pub(super) fn execute(cmd: &Commands, ctx: &CommandContext) -> Result<()> {
         match cmd {
             Commands::Init(args) => execute_init(ctx, args),
+            Commands::Status(_) => execute_status(ctx),
             Commands::Create(args) => execute_create(ctx, args),
             Commands::New(args) => execute_create(ctx, args),
             Commands::List(args) => execute_list(ctx, args),
@@ -89,6 +90,10 @@ pub(super) mod dispatch_command {
                 agents_md: args.agents_md,
             },
         )
+    }
+
+    fn execute_status(ctx: &CommandContext) -> Result<()> {
+        maintenance::handle_status(ctx.cli, ctx.root, ctx.start)
     }
 
     fn execute_create(ctx: &CommandContext, args: &CreateArgs) -> Result<()> {

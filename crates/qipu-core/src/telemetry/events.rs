@@ -80,6 +80,7 @@ impl NoteCountBucket {
 #[serde(rename_all = "kebab-case")]
 pub enum CommandName {
     Init,
+    Status,
     Create,
     New,
     List,
@@ -118,6 +119,7 @@ impl CommandName {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Init => "init",
+            Self::Status => "status",
             Self::Create => "create",
             Self::New => "new",
             Self::List => "list",

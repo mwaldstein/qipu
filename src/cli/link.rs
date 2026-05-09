@@ -3,6 +3,7 @@
 use super::parse::parse_link_type;
 use clap::Subcommand;
 use qipu_core::note::LinkType;
+use std::ffi::OsString;
 
 /// Link subcommands
 #[derive(Subcommand, Debug)]
@@ -187,4 +188,9 @@ pub enum LinkCommands {
         #[arg(long)]
         remove_inline: bool,
     },
+
+    /// Hidden compatibility alias for `qipu link add <from> <to> --type <type>`;
+    /// see ADR 0006 and docs/maintainers/hidden-compatibility-aliases.md.
+    #[command(external_subcommand, hide = true)]
+    External(Vec<OsString>),
 }

@@ -18,6 +18,9 @@ pub enum Commands {
     /// Initialize a new qipu store
     Init(InitArgs),
 
+    /// Check whether a usable qipu store is available
+    Status(StatusArgs),
+
     /// Create a new note
     Create(CreateArgs),
 

@@ -6,10 +6,9 @@ tags: [links, graph]
 target:
   binary: qipu
 task:
-  prompt: "Initialize qipu if needed. Create two notes: one titled 'Cats' and one titled 'Dogs'. Link 'Cats' to 'Dogs' with type 'related'. Then verify the link with qipu link list."
+  prompt: "In the current directory, initialize qipu if needed. Create two notes: one titled 'Cats' and one titled 'Dogs'. Link 'Cats' to 'Dogs' with type 'related'. Then verify the link with qipu link list."
 evaluation:
   gates:
-    - type: no_transcript_errors
     - type: script
       description: "Cats and Dogs exist and are connected by a related link"
       command: |

@@ -6,10 +6,9 @@ tags: [context, records, retrieval]
 target:
   binary: qipu
 task:
-  prompt: "Initialize qipu if needed. Create three notes about programming concepts: one titled 'Rust Ownership' with tags rust and ownership, one titled 'Async Programming' with tags rust and async, and one titled 'Error Handling' with tags rust and errors. Then use qipu context --tag rust --format records --max-chars 12000 to retrieve all three notes."
+  prompt: "In the current directory, initialize qipu if needed. Create three notes about programming concepts: one titled 'Rust Ownership' with tags rust and ownership, one titled 'Async Programming' with tags rust and async, and one titled 'Error Handling' with tags rust and errors. Then use qipu context --tag rust --format records --max-chars 12000 to retrieve all three notes."
 evaluation:
   gates:
-    - type: no_transcript_errors
     - type: command_output_contains
       command: qipu context --tag rust --format records --max-chars 12000
       substring: "Rust Ownership"

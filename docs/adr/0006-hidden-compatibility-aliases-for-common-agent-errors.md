@@ -31,13 +31,16 @@ Hidden compatibility aliases must not appear in command help, quickstarts, user
 guides, or generated user-facing setup text. User-facing guidance should point
 only to the intended API.
 
-Compatibility behavior must be documented in ADRs or maintainer-facing notes so
-future maintainers understand why an undocumented shape works.
+Compatibility behavior must be documented in maintainer-facing notes so future
+maintainers understand why an undocumented shape works. ADR 0006 defines the
+policy; the active alias catalog lives in
+`docs/maintainers/hidden-compatibility-aliases.md`.
 
 Each hidden compatibility alias must be documented in three maintainer-facing
 places:
 
-- This ADR or a follow-on ADR, including the rationale and evidence pattern.
+- The hidden compatibility alias catalog, including the rationale and evidence
+  pattern.
 - The CLI argument or dispatch code, with a short comment pointing to the ADR.
 - Focused regression tests whose names make the hidden compatibility behavior
   explicit.
@@ -49,12 +52,6 @@ Hidden compatibility aliases must not be documented in user-facing surfaces:
 - user guides
 - generated setup text such as `AGENTS.md` or editor rules
 - public integration guidance
-
-For note creation:
-
-- Intended inline-body API: `qipu create "Title" --body "Body text"`
-- Intended stdin API: `echo "Body text" | qipu capture --title "Title"`
-- Hidden compatibility API: `qipu create --title "Title" --body "Body text"`
 
 When a hidden compatibility path succeeds and emits guidance, that guidance
 should recommend only the intended API. It should not teach or advertise the
@@ -72,6 +69,7 @@ decision, not incidental cleanup.
 ## References
 
 - `docs/adr/0005-qipu-is-llm-compatible-not-llm-powered.md`
+- `docs/maintainers/hidden-compatibility-aliases.md`
 - `specs/llm-user-validation.md`
 - `llm-test-fixtures/create_smoke.yaml`
 - `llm-test-fixtures/test_setup_scenario.yaml`

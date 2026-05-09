@@ -78,6 +78,12 @@ pub(super) fn handle_sync(
     Ok(())
 }
 
+pub(super) fn handle_status(cli: &Cli, root: &Path, start: Instant) -> Result<()> {
+    commands::status::execute(cli, root)?;
+    trace_command!(cli, start, "execute_command");
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn handle_index(
     cli: &Cli,

@@ -401,3 +401,84 @@ fn test_dump_by_query() {
     assert!(ids.contains(&"note-b"));
     assert!(!ids.contains(&"note-c"));
 }
+
+#[test]
+fn test_dump_by_moc_follows_relative_markdown_links() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path();
+    let pack_file = dir.path().join("test.pack");
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    std::fs::write(
+        store_path.join("notes/note-alpha-alpha.md"),
+        "---\nid: note-alpha\ntitle: Alpha\n---\nAlpha body",
+    )
+    .unwrap();
+    std::fs::write(
+        store_path.join("notes/note-beta-beta.md"),
+        "---\nid: note-beta\ntitle: Beta\n---\nBeta body",
+    )
+    .unwrap();
+    std::fs::write(
+        store_path.join("mocs/qp-map-map.md"),
+        "---\nid: qp-map\ntitle: Map\ntype: moc\n---\n[Beta](../notes/note-beta-beta.md)\n[Alpha](../notes/note-alpha-alpha.md)\n",
+    )
+    .unwrap();
+
+    qipu()
+        .arg("index")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("dump")
+        .arg("--moc")
+        .arg("qp-map")
+        .arg("--output")
+        .arg(&pack_file)
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    let dir2 = tempdir().unwrap();
+    let store2_path = dir2.path();
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("load")
+        .arg(&pack_file)
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    let output = qipu()
+        .arg("list")
+        .arg("--format")
+        .arg("json")
+        .env("QIPU_STORE", store2_path)
+        .output()
+        .unwrap();
+
+    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let ids: Vec<&str> = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap())
+        .collect();
+
+    assert_eq!(ids.len(), 2);
+    assert!(ids.contains(&"note-alpha"));
+    assert!(ids.contains(&"note-beta"));
+}

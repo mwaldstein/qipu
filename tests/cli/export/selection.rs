@@ -241,3 +241,43 @@ fn test_export_moc_selection_preserves_moc_order() {
         .stdout(predicate::str::contains("Body C\n\n---\n\n## Note: Note B"))
         .stdout(predicate::str::contains("Body B\n\n---\n\n## Note: Note A"));
 }
+
+#[test]
+fn test_export_moc_selection_follows_relative_markdown_links() {
+    let dir = setup_test_dir();
+
+    let notes_dir = dir.path().join(".qipu/notes");
+    let mocs_dir = dir.path().join(".qipu/mocs");
+
+    fs::write(
+        notes_dir.join("note-alpha-alpha.md"),
+        "---\nid: note-alpha\ntitle: Alpha\n---\nAlpha body",
+    )
+    .unwrap();
+    fs::write(
+        notes_dir.join("note-beta-beta.md"),
+        "---\nid: note-beta\ntitle: Beta\n---\nBeta body",
+    )
+    .unwrap();
+    fs::write(
+        mocs_dir.join("qp-map-map.md"),
+        "---\nid: qp-map\ntitle: Map\ntype: moc\n---\n[Beta](../notes/note-beta-beta.md)\n[Alpha](../notes/note-alpha-alpha.md)\n",
+    )
+    .unwrap();
+
+    qipu()
+        .current_dir(dir.path())
+        .arg("index")
+        .assert()
+        .success();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["export", "--moc", "qp-map"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("## Note: Beta (note-beta)"))
+        .stdout(predicate::str::contains(
+            "Beta body\n\n---\n\n## Note: Alpha",
+        ));
+}

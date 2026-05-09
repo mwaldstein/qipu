@@ -1,6 +1,7 @@
 //! Shared note selection for commands that operate on note sets.
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::path::PathBuf;
 
 use qipu_core::error::{QipuError, Result};
 use qipu_core::graph::{Direction, HopCost, TreeOptions};
@@ -143,93 +144,129 @@ fn add_note(
 
 fn get_moc_linked_notes(store: &Store, index: &Index, moc_id: &str) -> Result<Vec<Note>> {
     let moc = store.get_note(moc_id)?;
-    let mut linked_notes = Vec::new();
-    let mut seen_ids = HashSet::new();
-
-    extract_typed_links(&moc, index, store, &mut seen_ids, &mut linked_notes);
-    extract_wiki_links(&moc, index, store, &mut seen_ids, &mut linked_notes)?;
-    extract_markdown_links(&moc, index, store, &mut seen_ids, &mut linked_notes)?;
-
-    Ok(linked_notes)
+    MocLinkResolver::new(store, index).linked_notes(&moc)
 }
 
-fn extract_typed_links(
-    moc: &Note,
-    index: &Index,
-    store: &Store,
-    seen_ids: &mut HashSet<String>,
-    linked_notes: &mut Vec<Note>,
-) {
-    for typed_link in &moc.frontmatter.links {
-        let to_id = &typed_link.id;
-        if seen_ids.insert(to_id.clone()) && index.contains(to_id) {
-            if let Ok(note) = store.get_note(to_id) {
+struct MocLinkResolver<'a> {
+    store: &'a Store,
+    index: &'a Index,
+    path_to_id: HashMap<PathBuf, String>,
+}
+
+impl<'a> MocLinkResolver<'a> {
+    fn new(store: &'a Store, index: &'a Index) -> Self {
+        let path_to_id = index
+            .metadata
+            .values()
+            .map(|meta| {
+                (
+                    normalize_path(store.root().join(&meta.path)),
+                    meta.id.clone(),
+                )
+            })
+            .collect();
+
+        Self {
+            store,
+            index,
+            path_to_id,
+        }
+    }
+
+    fn linked_notes(&self, moc: &Note) -> Result<Vec<Note>> {
+        let mut linked_notes = Vec::new();
+        let mut seen_ids = HashSet::new();
+
+        self.extract_typed_links(moc, &mut seen_ids, &mut linked_notes);
+        self.extract_wiki_links(moc, &mut seen_ids, &mut linked_notes)?;
+        self.extract_markdown_links(moc, &mut seen_ids, &mut linked_notes);
+
+        Ok(linked_notes)
+    }
+
+    fn add_linked_note(
+        &self,
+        id: &str,
+        seen_ids: &mut HashSet<String>,
+        linked_notes: &mut Vec<Note>,
+    ) {
+        if !id.is_empty() && seen_ids.insert(id.to_string()) && self.index.contains(id) {
+            if let Ok(note) = self.store.get_note(id) {
                 linked_notes.push(note);
             }
         }
     }
-}
 
-fn extract_wiki_links(
-    moc: &Note,
-    index: &Index,
-    store: &Store,
-    seen_ids: &mut HashSet<String>,
-    linked_notes: &mut Vec<Note>,
-) -> Result<()> {
-    use regex::Regex;
+    fn extract_typed_links(
+        &self,
+        moc: &Note,
+        seen_ids: &mut HashSet<String>,
+        linked_notes: &mut Vec<Note>,
+    ) {
+        for typed_link in &moc.frontmatter.links {
+            self.add_linked_note(&typed_link.id, seen_ids, linked_notes);
+        }
+    }
 
-    let wiki_link_re =
-        Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| QipuError::FailedOperation {
-            operation: "compile wiki link regex".to_string(),
-            reason: e.to_string(),
+    fn extract_wiki_links(
+        &self,
+        moc: &Note,
+        seen_ids: &mut HashSet<String>,
+        linked_notes: &mut Vec<Note>,
+    ) -> Result<()> {
+        use regex::Regex;
+
+        let wiki_link_re = Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| {
+            QipuError::FailedOperation {
+                operation: "compile wiki link regex".to_string(),
+                reason: e.to_string(),
+            }
         })?;
 
-    for cap in wiki_link_re.captures_iter(&moc.body) {
-        let to_id = cap[1].trim().to_string();
-        if !to_id.is_empty() && seen_ids.insert(to_id.clone()) && index.contains(&to_id) {
-            if let Ok(note) = store.get_note(&to_id) {
-                linked_notes.push(note);
+        for cap in wiki_link_re.captures_iter(&moc.body) {
+            self.add_linked_note(cap[1].trim(), seen_ids, linked_notes);
+        }
+
+        Ok(())
+    }
+
+    fn extract_markdown_links(
+        &self,
+        moc: &Note,
+        seen_ids: &mut HashSet<String>,
+        linked_notes: &mut Vec<Note>,
+    ) {
+        for link in markdown_links(&moc.body) {
+            let target = link.target.as_str();
+            if is_external_or_anchor_target(target) {
+                continue;
             }
+
+            let Some(id) = extract_qipu_id_from_target(target)
+                .or_else(|| self.resolve_relative_target(target, moc))
+            else {
+                continue;
+            };
+
+            self.add_linked_note(&id, seen_ids, linked_notes);
         }
     }
 
-    Ok(())
-}
-
-fn extract_markdown_links(
-    moc: &Note,
-    index: &Index,
-    store: &Store,
-    seen_ids: &mut HashSet<String>,
-    linked_notes: &mut Vec<Note>,
-) -> Result<()> {
-    for link in markdown_links(&moc.body) {
-        let target = link.target.as_str();
-        if is_external_or_anchor_target(target) {
-            continue;
+    fn resolve_relative_target(&self, target: &str, source_note: &Note) -> Option<String> {
+        if !target.ends_with(".md") {
+            return None;
         }
 
-        let Some(id) = extract_note_id_from_link_target(target) else {
-            continue;
-        };
+        let source_path = source_note.path.as_ref()?;
+        let source_dir = source_path.parent()?;
+        let target_path = normalize_path(source_dir.join(target));
 
-        if !id.is_empty()
-            && id.starts_with("qp-")
-            && seen_ids.insert(id.clone())
-            && index.contains(&id)
-        {
-            if let Ok(note) = store.get_note(&id) {
-                linked_notes.push(note);
-            }
-        }
+        self.path_to_id.get(&target_path).cloned()
     }
-
-    Ok(())
 }
 
-fn extract_note_id_from_link_target(target: &str) -> Option<String> {
-    extract_qipu_id_from_target(target)
+fn normalize_path(path: PathBuf) -> PathBuf {
+    path.canonicalize().unwrap_or(path)
 }
 
 fn expand_by_traversal(

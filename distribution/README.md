@@ -2,6 +2,20 @@
 
 This directory contains package manager manifests for distributing qipu.
 
+## GitHub Release Binaries
+
+Linux release archives are published in two variants:
+
+- `*-unknown-linux-gnu` for most glibc-based distributions, including Debian, Ubuntu, Fedora, Arch, and RHEL.
+- `*-unknown-linux-musl` for Alpine Linux, minimal containers, and older distributions whose glibc is incompatible with the glibc binary.
+
+The Unix installer chooses the right target automatically for common systems. To force a specific asset:
+
+```bash
+QIPU_TARGET=x86_64-unknown-linux-musl ./scripts/install.sh
+./scripts/install.sh --target aarch64-unknown-linux-gnu
+```
+
 ## Winget
 
 Location: `distribution/winget/manifests/m/mwaldstein/qipu/`

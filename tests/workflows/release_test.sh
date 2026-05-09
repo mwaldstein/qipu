@@ -185,7 +185,7 @@ test_checksum_algorithm() {
 test_checksum_upload() {
     echo "TEST: Checksum files are uploaded"
     if grep -q 'SHA256SUMS' "$WORKFLOW_FILE" && \
-       grep -q 'upload-release-asset' "$WORKFLOW_FILE"; then
+       grep -q 'files: SHA256SUMS' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))
@@ -283,8 +283,9 @@ test_matrix_configuration() {
 
 # Test: upload_url is passed from create-release
 test_upload_url_output() {
-    echo "TEST: upload_url is passed from create-release job"
-    if grep -q 'upload_url:.*create-release' "$WORKFLOW_FILE"; then
+    echo "TEST: release assets are uploaded with action-gh-release"
+    if grep -q 'softprops/action-gh-release' "$WORKFLOW_FILE" && \
+       grep -q 'qipu-\${{ needs.create-release.outputs.version }}-\${{ matrix.target }}.\*' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))
@@ -308,8 +309,8 @@ test_version_output() {
 
 # Test: Workflow uses GITHUB_TOKEN
 test_github_token_usage() {
-    echo "TEST: Workflow uses GITHUB_TOKEN"
-    if grep -q 'GITHUB_TOKEN' "$WORKFLOW_FILE"; then
+    echo "TEST: Workflow has release write permissions"
+    if grep -q 'contents: write' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))
@@ -320,8 +321,9 @@ test_github_token_usage() {
 
 # Test: Content types are set correctly
 test_content_type_tarball() {
-    echo "TEST: Tarball content type is application/gzip"
-    if grep -q 'asset_content_type: application/gzip' "$WORKFLOW_FILE"; then
+    echo "TEST: Tarball assets are uploaded"
+    if grep -q 'qipu-\${{ needs.create-release.outputs.version }}-\${{ matrix.target }}.\*' "$WORKFLOW_FILE" && \
+       grep -q '\.tar\.gz' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))
@@ -332,8 +334,9 @@ test_content_type_tarball() {
 
 # Test: Content types are set correctly for zip
 test_content_type_zip() {
-    echo "TEST: Zip content type is application/zip"
-    if grep -q 'asset_content_type: application/zip' "$WORKFLOW_FILE"; then
+    echo "TEST: Zip assets are uploaded"
+    if grep -q 'qipu-\${{ needs.create-release.outputs.version }}-\${{ matrix.target }}.\*' "$WORKFLOW_FILE" && \
+       grep -q '\.zip' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))
@@ -350,6 +353,8 @@ test_all_required_targets() {
         "aarch64-apple-darwin"
         "x86_64-unknown-linux-gnu"
         "aarch64-unknown-linux-gnu"
+        "x86_64-unknown-linux-musl"
+        "aarch64-unknown-linux-musl"
         "x86_64-pc-windows-msvc"
     )
     local all_found=true
@@ -395,8 +400,8 @@ test_rust_toolchain_action() {
 
 # Test: create-release job uses actions/create-release
 test_create_release_action() {
-    echo "TEST: create-release job uses actions/create-release"
-    if grep -q 'actions/create-release' "$WORKFLOW_FILE"; then
+    echo "TEST: create-release job uses action-gh-release"
+    if grep -q 'softprops/action-gh-release' "$WORKFLOW_FILE"; then
         : $((TESTS_PASSED++))
     else
         : $((TESTS_FAILED++))

@@ -14,6 +14,40 @@ NC='\033[0m' # No Color
 REPO="mwaldstein/qipu"
 BINARY_NAME="qipu"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
+TARGET_OVERRIDE="${QIPU_TARGET:-}"
+
+usage() {
+    echo "Usage: install.sh [--target <rust-target>]"
+    echo ""
+    echo "Set QIPU_TARGET or pass --target to force a specific release asset."
+    echo "Examples:"
+    echo "  QIPU_TARGET=x86_64-unknown-linux-musl ./install.sh"
+    echo "  ./install.sh --target aarch64-unknown-linux-gnu"
+}
+
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --target)
+                if [ -z "${2:-}" ]; then
+                    echo -e "${RED}Error: --target requires a value${NC}"
+                    exit 1
+                fi
+                TARGET_OVERRIDE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Error: Unknown option: $1${NC}"
+                usage
+                exit 1
+                ;;
+        esac
+    done
+}
 
 detect_linux_target_env() {
     if command -v ldd >/dev/null 2>&1; then
@@ -64,8 +98,14 @@ detect_platform() {
             ;;
     esac
     
-    TARGET="${ARCH}-${OS}"
-    echo -e "${GREEN}Detected platform: ${TARGET}${NC}"
+    local detected_target="${ARCH}-${OS}"
+    if [ -n "$TARGET_OVERRIDE" ]; then
+        TARGET="$TARGET_OVERRIDE"
+        echo -e "${YELLOW}Using requested target: ${TARGET}${NC}"
+    else
+        TARGET="$detected_target"
+        echo -e "${GREEN}Detected platform: ${TARGET}${NC}"
+    fi
 }
 
 # Get the latest release version
@@ -79,6 +119,18 @@ get_latest_version() {
     fi
     
     echo -e "${GREEN}Latest version: v${VERSION}${NC}"
+}
+
+verify_checksum_file() {
+    local filename="$1"
+    local expected_file="SHA256SUMS.expected"
+
+    if ! awk -v file="$filename" '($2 == file || $2 == "*" file) { print; found = 1 } END { exit found ? 0 : 1 }' SHA256SUMS > "$expected_file"; then
+        echo -e "${RED}Error: Could not find checksum for ${filename}${NC}"
+        return 1
+    fi
+
+    shasum -a 256 -c "$expected_file" >/dev/null 2>&1
 }
 
 # Download and verify binary
@@ -105,8 +157,7 @@ download_binary() {
         echo -e "${YELLOW}Warning: Could not download checksum file${NC}"
     else
         echo "Verifying checksum..."
-        # Use sha256sum to verify against SHA256SUMS file
-        if ! shasum -a 256 -c SHA256SUMS 2>/dev/null | grep -q "${filename}: OK"; then
+        if ! verify_checksum_file "$filename"; then
             echo -e "${RED}Error: Checksum verification failed${NC}"
             exit 1
         fi
@@ -188,6 +239,7 @@ main() {
     echo "=============="
     echo ""
     
+    parse_args "$@"
     detect_platform
     get_latest_version
     download_binary
@@ -201,4 +253,6 @@ main() {
     check_path
 }
 
-main
+if [[ -z "${BASH_SOURCE[0]}" || "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

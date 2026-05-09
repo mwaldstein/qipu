@@ -29,6 +29,13 @@ Each tagged release publishes pre-built binaries for:
 
 Binary naming convention: `qipu-<version>-<target>.tar.gz` (or `.zip` for Windows).
 
+Linux releases include both glibc and musl variants:
+
+- Use `*-unknown-linux-gnu` for most Linux distributions. This is the default for glibc-based systems and is preferred for normal desktop/server installs.
+- Use `*-unknown-linux-musl` for Alpine Linux, minimal containers, or older distributions whose glibc is too old for the glibc binary.
+- The Unix install script detects musl systems automatically and falls back to musl if a glibc binary downloads but fails verification at runtime.
+- Users can force a specific release asset with `QIPU_TARGET=<target>` or `scripts/install.sh --target <target>`.
+
 ### Quick Install Scripts
 
 **Unix (macOS/Linux):**
@@ -43,6 +50,7 @@ The installer should:
 - Install to `~/.local/bin` (or `/usr/local/bin` with `sudo`)
 - Verify checksums
 - Provide PATH setup guidance if needed
+- Support explicit target override for advanced Linux users and automation
 
 **Windows (PowerShell):**
 

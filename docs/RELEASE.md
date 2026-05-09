@@ -88,6 +88,20 @@ The release workflow (`.github/workflows/release.yml`) handles:
 
 **Monitor:** https://github.com/mwaldstein/qipu/actions
 
+### Linux Binary Variants
+
+GitHub releases publish both glibc and musl Linux archives:
+
+- `*-unknown-linux-gnu`: default choice for most Linux distributions. Use for Debian, Ubuntu, Fedora, Arch, RHEL, and other glibc-based systems.
+- `*-unknown-linux-musl`: portable static fallback for Alpine Linux, minimal containers, and older distributions with incompatible glibc versions.
+
+The Unix install script detects musl systems and otherwise chooses glibc first. To force a specific asset during release validation or automation:
+
+```bash
+QIPU_TARGET=x86_64-unknown-linux-musl ./scripts/install.sh
+./scripts/install.sh --target aarch64-unknown-linux-gnu
+```
+
 ## Post-Release Manual Steps
 
 After the GitHub release is published, update external package managers:

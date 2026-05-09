@@ -13,10 +13,30 @@ fn test_help_flag() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Usage: qipu"))
-        .stdout(predicate::str::contains("Commands:"))
+        .stdout(predicate::str::contains("Core commands:"))
+        .stdout(predicate::str::contains("Graph and context commands:"))
+        .stdout(predicate::str::contains(
+            "Command aliases, extension commands, and advanced global options are hidden",
+        ))
+        .stdout(predicate::str::contains("qipu --help-advanced"))
         .stdout(predicate::str::contains("init"))
         .stdout(predicate::str::contains("create"))
-        .stdout(predicate::str::contains("list"));
+        .stdout(predicate::str::contains("list"))
+        .stdout(predicate::str::contains("--no-resolve-compaction").not());
+}
+
+#[test]
+fn test_subcommand_help_explains_hidden_global_options() {
+    qipu()
+        .args(["capture", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: qipu capture"))
+        .stdout(predicate::str::contains(
+            "Advanced global options are hidden",
+        ))
+        .stdout(predicate::str::contains("qipu --help-advanced"))
+        .stdout(predicate::str::contains("--no-resolve-compaction").not());
 }
 
 #[test]

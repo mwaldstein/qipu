@@ -21,6 +21,7 @@ pub enum Commands {
     /// Create a new note
     Create(CreateArgs),
 
+    #[command(hide = true)]
     /// Alias for create
     New(CreateArgs),
 
@@ -35,9 +36,6 @@ pub enum Commands {
 
     /// Create a new note from stdin
     Capture(CaptureArgs),
-
-    /// Build or refresh derived indexes
-    Index(IndexArgs),
 
     /// Search notes by title and body
     Search(SearchArgs),
@@ -94,6 +92,9 @@ pub enum Commands {
 
     /// Sync store: update indexes and optionally validate
     Sync(SyncArgs),
+
+    /// Build or refresh derived indexes
+    Index(IndexArgs),
 
     /// Manage note compaction (digest-first navigation)
     Compact(CompactSubcommand),

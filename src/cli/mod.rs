@@ -51,6 +51,9 @@ pub use workspace::WorkspaceCommands;
 #[command(name = "qipu")]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
+#[command(
+    after_help = "Command aliases, extension commands, and advanced global options are hidden from this help to keep common workflows readable. Run `qipu --help-advanced` to show hidden commands and compaction/traversal tuning flags."
+)]
 pub struct Cli {
     /// Base directory for resolving the store
     #[arg(long, global = true)]
@@ -81,23 +84,23 @@ pub struct Cli {
     pub log_json: bool,
 
     /// Disable compaction resolution (show raw compacted notes)
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub no_resolve_compaction: bool,
 
     /// Include compacted note IDs in output
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub with_compaction_ids: bool,
 
     /// Compaction traversal depth (requires --with-compaction-ids)
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub compaction_depth: Option<u32>,
 
     /// Maximum compacted notes to include in output
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub compaction_max_nodes: Option<usize>,
 
     /// Expand compacted notes to include full content (context command only)
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub expand_compaction: bool,
 
     /// Target workspace name
@@ -105,7 +108,7 @@ pub struct Cli {
     pub workspace: Option<String>,
 
     /// Disable semantic inversion for link listing/traversal
-    #[arg(long, global = true)]
+    #[arg(long, global = true, hide = true)]
     pub no_semantic_inversion: bool,
 
     #[command(subcommand)]

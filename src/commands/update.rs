@@ -108,14 +108,12 @@ pub fn execute(
 
     // Update title if provided
     if let Some(new_title) = title {
+        let old_title = note.title().to_string();
+        note.path = Some(rename_note_file_for_title(
+            &note_id, &old_title, &note_path, new_title,
+        )?);
         note.frontmatter.title = new_title.to_string();
         modified = true;
-        note.path = Some(rename_note_file_for_title(
-            &note_id,
-            note.title(),
-            &note_path,
-            new_title,
-        )?);
     }
 
     // Update type if provided

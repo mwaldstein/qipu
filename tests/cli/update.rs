@@ -1,5 +1,6 @@
 use crate::support::{extract_id, qipu, setup_test_dir};
 use predicates::prelude::*;
+use std::fs;
 
 #[test]
 fn test_update_title() {
@@ -12,6 +13,12 @@ fn test_update_title() {
         .output()
         .unwrap();
     let id = extract_id(&output);
+    let original_path = dir
+        .path()
+        .join(".qipu")
+        .join("notes")
+        .join(format!("{}-original-title.md", id));
+    assert!(original_path.exists());
 
     // Update the title
     qipu()
@@ -28,6 +35,22 @@ fn test_update_title() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"title\": \"New Title\""));
+
+    let renamed_path = dir
+        .path()
+        .join(".qipu")
+        .join("notes")
+        .join(format!("{}-new-title.md", id));
+    assert!(
+        renamed_path.exists(),
+        "title updates should rename the note file"
+    );
+    assert!(
+        !original_path.exists(),
+        "old title slug should not remain after title update"
+    );
+    let renamed_content = fs::read_to_string(renamed_path).unwrap();
+    assert!(renamed_content.contains("title: New Title"));
 }
 
 #[test]

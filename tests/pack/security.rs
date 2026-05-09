@@ -1,5 +1,6 @@
 use assert_cmd::{cargo::cargo_bin_cmd, Command};
 use base64::{engine::general_purpose, Engine as _};
+use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
@@ -175,6 +176,138 @@ fn test_malicious_attachment_absolute_path() {
     assert!(
         safe_file.exists(),
         "File should be safely written to attachments directory"
+    );
+}
+
+#[test]
+fn test_malicious_note_path_traversal() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path().join("store");
+    let pack_file = dir.path().join("malicious-note.pack.json");
+    let outside_path = dir.path().join("outside.md");
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", &store_path)
+        .assert()
+        .success();
+
+    let pack_content = format!(
+        r#"{{
+        "header": {{
+            "version": "1.0",
+            "store_version": 1,
+            "created": "2024-01-01T00:00:00Z",
+            "store_path": "/fake/store",
+            "notes_count": 1,
+            "attachments_count": 0,
+            "links_count": 0
+        }},
+        "notes": [
+            {{
+                "id": "qp-malicious",
+                "title": "Malicious Note",
+                "note_type": "fleeting",
+                "tags": [],
+                "created": null,
+                "updated": null,
+                "path": "{}",
+                "content": "body",
+                "sources": [],
+                "summary": null,
+                "compacts": [],
+                "source": null,
+                "author": null,
+                "generated_by": null,
+                "prompt_hash": null,
+                "verified": null,
+                "value": null,
+                "custom": {{}}
+            }}
+        ],
+        "links": [],
+        "attachments": []
+    }}"#,
+        outside_path.display()
+    );
+
+    fs::write(&pack_file, pack_content).unwrap();
+
+    qipu()
+        .arg("load")
+        .arg(&pack_file)
+        .env("QIPU_STORE", &store_path)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unsafe note path"));
+
+    assert!(
+        !outside_path.exists(),
+        "load must not write note files outside the target store"
+    );
+}
+
+#[test]
+fn test_malicious_note_relative_path_traversal() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path().join("store");
+    let pack_file = dir.path().join("malicious-relative-note.pack.json");
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", &store_path)
+        .assert()
+        .success();
+
+    let pack_content = r#"{
+        "header": {
+            "version": "1.0",
+            "store_version": 1,
+            "created": "2024-01-01T00:00:00Z",
+            "store_path": "/fake/store",
+            "notes_count": 1,
+            "attachments_count": 0,
+            "links_count": 0
+        },
+        "notes": [
+            {
+                "id": "qp-malicious",
+                "title": "Malicious Note",
+                "note_type": "fleeting",
+                "tags": [],
+                "created": null,
+                "updated": null,
+                "path": "../outside.md",
+                "content": "body",
+                "sources": [],
+                "summary": null,
+                "compacts": [],
+                "source": null,
+                "author": null,
+                "generated_by": null,
+                "prompt_hash": null,
+                "verified": null,
+                "value": null,
+                "custom": {}
+            }
+        ],
+        "links": [],
+        "attachments": []
+    }"#;
+
+    fs::write(&pack_file, pack_content).unwrap();
+
+    qipu()
+        .arg("load")
+        .arg(&pack_file)
+        .env("QIPU_STORE", &store_path)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unsafe note path"));
+
+    assert!(
+        !dir.path().join("outside.md").exists(),
+        "load must not honor relative traversal out of the store"
     );
 }
 

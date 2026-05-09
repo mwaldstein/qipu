@@ -5,11 +5,11 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::error::{QipuError, Result};
-use crate::id::{filename, NoteId};
+use crate::id::NoteId;
 use crate::note::{Note, NoteFrontmatter, NoteType};
 
 use super::notes;
-use super::paths::{MOCS_DIR, NOTES_DIR, TEMPLATES_DIR};
+use super::paths::TEMPLATES_DIR;
 use super::Store;
 
 impl Store {
@@ -26,7 +26,7 @@ impl Store {
             if self.note_exists(id) {
                 return Err(QipuError::already_exists("note", id));
             }
-            NoteId::new_unchecked(id.to_string())
+            NoteId::try_new(id.to_string())?
         } else {
             let existing_ids = self.existing_ids()?;
             NoteId::generate(self.config.id_scheme, title, &existing_ids)
@@ -42,16 +42,8 @@ impl Store {
 
         let note = Note::new(frontmatter, body);
 
-        // Determine target directory
-        let target_dir = if note_type.is_moc() {
-            self.root.join(MOCS_DIR)
-        } else {
-            self.root.join(NOTES_DIR)
-        };
-
         // Write note to disk
-        let file_name = filename(&id, title);
-        let file_path = target_dir.join(&file_name);
+        let file_path = super::guards::generated_note_path(self, &note_type, &id, title);
 
         let content = note.to_markdown()?;
         fs::write(&file_path, content)?;
@@ -81,7 +73,7 @@ impl Store {
             if existing_ids.contains(id) {
                 return Err(QipuError::already_exists("note", id));
             }
-            NoteId::new_unchecked(id.to_string())
+            NoteId::try_new(id.to_string())?
         } else {
             NoteId::generate(self.config.id_scheme, title, &existing_ids)
         };
@@ -94,16 +86,8 @@ impl Store {
         // Use provided content instead of template
         let note = Note::new(frontmatter, content.to_string());
 
-        // Determine target directory
-        let target_dir = if note_type.is_moc() {
-            self.root.join(MOCS_DIR)
-        } else {
-            self.root.join(NOTES_DIR)
-        };
-
         // Write note to disk
-        let file_name = filename(&id, title);
-        let file_path = target_dir.join(&file_name);
+        let file_path = super::guards::generated_note_path(self, &note_type, &id, title);
 
         let markdown = note.to_markdown()?;
         fs::write(&file_path, markdown)?;

@@ -42,3 +42,4 @@ __pycache__/
 
 # keep local for now
 .agents
+skills-lock.json

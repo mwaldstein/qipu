@@ -4,6 +4,7 @@
 //! Default location: `.qipu/` (hidden, git-trackable)
 
 pub mod config;
+pub mod guards;
 pub mod io;
 mod lifecycle;
 pub mod notes;

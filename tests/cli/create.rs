@@ -129,6 +129,23 @@ fn test_create_json_with_provenance() {
 }
 
 #[test]
+fn test_create_rejects_path_traversal_id() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["create", "Traversal", "--id", "../../outside"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid note ID"));
+
+    assert!(
+        !dir.path().join("outside-traversal.md").exists(),
+        "create must not write outside the store note directory"
+    );
+}
+
+#[test]
 fn test_new_alias() {
     let dir = setup_test_dir();
 

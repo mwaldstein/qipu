@@ -6,7 +6,9 @@ use super::model::{PackAttachment, PackLink, PackNote};
 use super::LoadStrategy;
 use qipu_core::bail_invalid;
 use qipu_core::error::{QipuError, Result};
+use qipu_core::id::NoteId;
 use qipu_core::note::{Note, NoteFrontmatter, NoteType, Source};
+use qipu_core::store::guards::resolve_imported_note_path;
 use qipu_core::store::Store;
 
 fn write_note_preserving_updated(
@@ -43,6 +45,7 @@ pub fn load_notes(
     store: &Store,
     pack_notes: &[PackNote],
     strategy: &LoadStrategy,
+    source_store_path: Option<&str>,
 ) -> Result<(usize, HashSet<String>, HashSet<String>)> {
     let mut loaded_count = 0;
     let mut loaded_ids: HashSet<String> = HashSet::new();
@@ -50,6 +53,7 @@ pub fn load_notes(
     let existing_ids = store.existing_ids()?;
 
     for pack_note in pack_notes {
+        let note_id = NoteId::try_new(pack_note.id.clone())?;
         let note_type = pack_note.note_type.parse::<NoteType>().map_err(|e| {
             QipuError::invalid_value(&format!("note type '{}'", pack_note.note_type), e)
         })?;
@@ -88,25 +92,19 @@ pub fn load_notes(
                 .collect(),
         };
 
-        let pack_path = pack_note.path.as_ref().map(|p| {
-            let path = std::path::Path::new(p);
-            if path.is_absolute() {
-                path.to_path_buf()
-            } else {
-                store.root().join(path)
-            }
-        });
+        let pack_path = resolve_imported_note_path(
+            store,
+            &note_type,
+            &note_id,
+            &pack_note.title,
+            pack_note.path.as_deref(),
+            source_store_path,
+        )?;
 
         let mut note = Note {
             frontmatter,
             body: pack_note.content.clone(),
-            path: pack_path.clone(),
-        };
-
-        let target_dir = if note_type.is_moc() {
-            store.mocs_dir()
-        } else {
-            store.notes_dir()
+            path: Some(pack_path),
         };
 
         let should_load = if existing_ids.contains(note.id()) {
@@ -116,11 +114,6 @@ pub fn load_notes(
                         note.path = Some(existing_path);
                     }
                 }
-            }
-
-            if note.path.is_none() {
-                let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
-                note.path = Some(target_dir.join(&file_name));
             }
 
             match strategy {
@@ -157,10 +150,6 @@ pub fn load_notes(
                 }
             }
         } else {
-            if note.path.is_none() {
-                let file_name = format!("{}-{}.md", note.id(), slug::slugify(note.title()));
-                note.path = Some(target_dir.join(&file_name));
-            }
             true
         };
 

@@ -63,6 +63,13 @@ impl NoteId {
         NoteId(id)
     }
 
+    /// Validate and create a NoteId from user or imported input.
+    pub fn try_new(id: impl Into<String>) -> Result<Self> {
+        let id = id.into();
+        validate_note_id(&id)?;
+        Ok(NoteId(id))
+    }
+
     /// Generate a new hash-based ID
     ///
     /// Uses adaptive length based on existing IDs to minimize collisions
@@ -112,6 +119,28 @@ impl NoteId {
             IdScheme::Timestamp => Self::generate_timestamp(),
         }
     }
+}
+
+/// Validate that a note ID is safe to embed in a store-owned filename.
+pub fn validate_note_id(id: &str) -> Result<()> {
+    if id.is_empty() {
+        return Err(QipuError::invalid_value(
+            "note ID",
+            "must include at least one character",
+        ));
+    }
+
+    if !id
+        .bytes()
+        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return Err(QipuError::invalid_value(
+            "note ID",
+            "must contain only ASCII letters, digits, hyphens, or underscores",
+        ));
+    }
+
+    Ok(())
 }
 
 impl std::fmt::Display for NoteId {
@@ -185,5 +214,14 @@ mod tests {
         let id = NoteId::new_unchecked("qp-a1b2".to_string());
         assert_eq!(filename(&id, "Hello World"), "qp-a1b2-hello-world.md");
         assert_eq!(filename(&id, ""), "qp-a1b2.md");
+    }
+
+    #[test]
+    fn test_validate_note_id_rejects_path_components() {
+        assert!(validate_note_id("../../outside").is_err());
+        assert!(validate_note_id("qp-../outside").is_err());
+        assert!(validate_note_id("qp-a/b").is_err());
+        assert!(validate_note_id("qp-ok-123").is_ok());
+        assert!(validate_note_id("note-a").is_ok());
     }
 }

@@ -16,6 +16,24 @@ fn test_capture_with_id() {
 }
 
 #[test]
+fn test_capture_rejects_path_traversal_id() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["capture", "--id", "../../outside", "--title", "Traversal"])
+        .write_stdin("Content")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid note ID"));
+
+    assert!(
+        !dir.path().join("outside-traversal.md").exists(),
+        "capture must not write outside the store note directory"
+    );
+}
+
+#[test]
 fn test_capture_verbose_output() {
     let dir = setup_test_dir();
 

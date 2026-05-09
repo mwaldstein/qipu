@@ -84,7 +84,12 @@ pub fn execute(
         }
     }
 
-    let (loaded_notes_count, loaded_ids, new_ids) = load_notes(store, &pack_data.notes, &strategy)?;
+    let (loaded_notes_count, loaded_ids, new_ids) = load_notes(
+        store,
+        &pack_data.notes,
+        &strategy,
+        Some(&pack_data.header.store_path),
+    )?;
 
     let all_existing_ids = store.existing_ids()?;
     let loaded_links_count = match strategy {

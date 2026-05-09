@@ -55,7 +55,7 @@ impl QueryTimer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::telemetry::{DurationBucket, ResultCountBucket, TelemetryConfig};
+    use crate::telemetry::{ResultCountBucket, TelemetryConfig};
     use std::path::PathBuf;
     use std::thread;
 

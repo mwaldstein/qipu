@@ -122,8 +122,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let config_path = dir.path().join("config.toml");
 
-        let mut config = GlobalConfig::default();
-        config.telemetry_enabled = true;
+        let config = GlobalConfig {
+            telemetry_enabled: true,
+        };
 
         let content = toml::to_string_pretty(&config).unwrap();
         fs::write(&config_path, content).unwrap();

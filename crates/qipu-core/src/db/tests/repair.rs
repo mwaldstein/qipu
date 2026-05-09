@@ -25,7 +25,6 @@ fn test_incremental_repair_updates_changed_notes() {
     note.body = "Updated content".to_string();
     store.save_note(&mut note).unwrap();
 
-    chrono::Utc::now().timestamp();
     std::thread::sleep(std::time::Duration::from_millis(10));
 
     db.incremental_repair(store.root(), None, None).unwrap();

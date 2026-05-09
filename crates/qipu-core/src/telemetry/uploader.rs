@@ -122,20 +122,29 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use super::super::TelemetryConfig;
+    use tempfile::tempdir;
+
+    use super::super::{CommandName, TelemetryConfig};
     use super::TelemetryCollector;
     use super::TelemetryUploader;
 
     #[test]
     fn test_uploader_stub_succeeds() {
-        let collector = Arc::new(TelemetryCollector::default());
+        let dir = tempdir().unwrap();
+        let config = TelemetryConfig {
+            enabled: true,
+            events_dir: dir.path().to_path_buf(),
+        };
+        let collector = Arc::new(TelemetryCollector::new(config));
+        collector.record_command(CommandName::List, true, 50, None);
 
         let uploader = TelemetryUploader::new(Arc::clone(&collector));
         uploader.start_background_upload();
 
         thread::sleep(Duration::from_millis(200));
 
-        assert!(!collector.get_pending_events().is_empty() || true);
+        assert!(collector.get_pending_events().is_empty());
+        assert!(dir.path().join("events.jsonl").exists());
     }
 
     #[test]

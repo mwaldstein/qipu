@@ -11,11 +11,9 @@
 //! NOTE: All benchmarks are marked #[ignore] and require --release flag to run.
 //! Debug builds are significantly slower than release builds and will fail benchmarks.
 
-use crate::config::SearchConfig;
-use crate::note::{NoteType, TypedLink};
+use crate::note::TypedLink;
 use crate::store::InitOptions;
 use crate::store::Store;
-use std::time::Instant;
 use tempfile::tempdir;
 
 /// Helper to create a test store with specified number of notes

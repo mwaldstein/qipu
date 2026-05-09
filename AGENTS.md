@@ -4,6 +4,20 @@ Qipu is a Rust CLI for knowledge graph management. This guide helps coding agent
 
 > **AI Skills Integration**: Qipu provides skill definitions for Claude Desktop (MCP), Cursor IDE, GitHub Copilot Extensions, and OpenCode. See the project repository for skill installation instructions.
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked with `bd` / beads in this repo. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the default five canonical labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo. See `docs/agents/domain.md`.
+
 ## Build & Test Commands
 
 ```bash

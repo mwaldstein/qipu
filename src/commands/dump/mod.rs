@@ -17,9 +17,7 @@ use std::io::Write;
 use std::path::Path;
 
 use crate::cli::Cli;
-use qipu_core::compaction::CompactionContext;
 use qipu_core::error::{QipuError, Result};
-use qipu_core::graph::{Direction, TreeOptions};
 use qipu_core::index::{Index, IndexBuilder};
 use qipu_core::note::Note;
 use qipu_core::store::Store;
@@ -93,123 +91,33 @@ fn collect_notes_with_traversal(
     index: &Index,
     options: &DumpOptions,
 ) -> Result<Vec<Note>> {
-    let mut selected_notes: Vec<Note> = Vec::new();
-    let mut seen_ids = std::collections::HashSet::new();
-
-    // Helper function to add notes to selection
-    fn add_note_internal(
-        store: &Store,
-        selected_notes: &mut Vec<Note>,
-        seen_ids: &mut std::collections::HashSet<String>,
-        id: &str,
-    ) -> Result<()> {
-        if seen_ids.insert(id.to_string()) {
-            match store.get_note(id) {
-                Ok(note) => selected_notes.push(note),
-                Err(_) => {
-                    return Err(QipuError::NoteNotFound { id: id.to_string() });
-                }
-            }
-        }
-        Ok(())
-    }
-
-    // Selection by explicit note IDs
-    for id in options.note_ids {
-        add_note_internal(store, &mut selected_notes, &mut seen_ids, id)?;
-    }
-
-    // Selection by tag
-    if let Some(tag_name) = options.tag {
-        let notes = store.list_notes()?;
-        for note in notes {
-            if note.frontmatter.tags.contains(&tag_name.to_string()) {
-                add_note_internal(store, &mut selected_notes, &mut seen_ids, note.id())?;
-            }
-        }
-    }
-
-    // Selection by MOC
-    if let Some(moc_id) = options.moc_id {
-        // Get notes linked from the MOC
-        let edges = index.get_outbound_edges(moc_id);
-        for edge in edges {
-            add_note_internal(store, &mut selected_notes, &mut seen_ids, &edge.to)?;
-        }
-    }
-
-    // Selection by query
-    if let Some(q) = options.query {
-        let results = store
-            .db()
-            .search(q, None, None, None, None, 200, &store.config().search)?;
-        for result in results {
-            add_note_internal(store, &mut selected_notes, &mut seen_ids, &result.id)?;
-        }
-    }
-
-    // If no selection criteria provided, dump all notes
-    if options.note_ids.is_empty()
-        && options.tag.is_none()
-        && options.moc_id.is_none()
-        && options.query.is_none()
-    {
-        let all_notes = store.list_notes()?;
-        for note in all_notes {
-            add_note_internal(store, &mut selected_notes, &mut seen_ids, note.id())?;
-        }
-    }
-
-    // Graph traversal expansion if needed
-    if !selected_notes.is_empty() && (options.max_hops > 0 || options.direction != Direction::Both)
-    {
-        let initial_ids: Vec<String> = selected_notes.iter().map(|n| n.id().to_string()).collect();
-
-        let traversal_options = TreeOptions {
+    let all_notes = store.list_notes()?;
+    let traversal =
+        (options.max_hops > 0).then_some(crate::commands::note_selection::TraversalSelection {
             direction: options.direction,
-            max_hops: qipu_core::graph::HopCost::from(options.max_hops),
+            max_hops: options.max_hops,
             type_include: options.type_include,
-            type_exclude: Vec::new(),
             typed_only: options.typed_only,
             inline_only: options.inline_only,
-            max_nodes: None,
-            max_edges: None,
-            max_fanout: None,
-            max_chars: None,
-            semantic_inversion: true,
-            min_value: None,
-            ignore_value: false,
-        };
+        });
 
-        // Build compaction context if needed
-        let notes = store.list_notes()?;
-        let compaction_ctx = Some(CompactionContext::build(&notes)?);
-
-        // For each initial note, perform simple traversal and collect discovered notes
-        for initial_id in &initial_ids {
-            perform_simple_traversal(
-                index,
-                initial_id,
-                &traversal_options,
-                compaction_ctx.as_ref(),
-                store,
-                &mut selected_notes,
-                &mut seen_ids,
-            )?;
-        }
-    }
+    let mut selected_notes = crate::commands::note_selection::collect_notes(
+        store,
+        index,
+        &all_notes,
+        &crate::commands::note_selection::NoteSelection {
+            note_ids: options.note_ids,
+            tag: options.tag,
+            moc_id: options.moc_id,
+            query: options.query,
+            query_limit: 200,
+            empty_selection: crate::commands::note_selection::EmptySelection::FullStore,
+            traversal,
+        },
+    )?;
 
     // Sort notes deterministically (by created, then by id)
-    selected_notes.sort_by(
-        |a, b| match (&a.frontmatter.created, &b.frontmatter.created) {
-            (Some(a_created), Some(b_created)) => {
-                a_created.cmp(b_created).then_with(|| a.id().cmp(b.id()))
-            }
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => a.id().cmp(b.id()),
-        },
-    );
+    crate::commands::note_selection::sort_notes_by_created_id(&mut selected_notes);
 
     Ok(selected_notes)
 }
@@ -243,92 +151,6 @@ fn collect_links(
     links.sort_by(|a, b| a.from.cmp(&b.from).then(a.to.cmp(&b.to)));
 
     Ok(links)
-}
-
-/// Perform simple graph traversal for dump command
-fn perform_simple_traversal(
-    index: &Index,
-    root: &str,
-    opts: &TreeOptions,
-    _compaction_ctx: Option<&CompactionContext>,
-    store: &Store,
-    selected_notes: &mut Vec<Note>,
-    seen_ids: &mut std::collections::HashSet<String>,
-) -> Result<()> {
-    use std::collections::{HashSet, VecDeque};
-
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(String, qipu_core::graph::HopCost)> = VecDeque::new();
-
-    queue.push_back((root.to_string(), qipu_core::graph::HopCost::from(0)));
-    visited.insert(root.to_string());
-
-    while let Some((current_id, accumulated_cost)) = queue.pop_front() {
-        if accumulated_cost.value() >= opts.max_hops.value() {
-            continue;
-        }
-
-        // Get outbound edges from current note
-        for edge in &index.edges {
-            let should_follow = match opts.direction {
-                Direction::Out => edge.from == current_id,
-                Direction::In => edge.to == current_id,
-                Direction::Both => edge.from == current_id || edge.to == current_id,
-            };
-
-            if should_follow {
-                // Apply link type filters to determine if we should follow this edge
-                if !opts.type_include.is_empty()
-                    && !opts
-                        .type_include
-                        .iter()
-                        .any(|t| t == edge.link_type.as_str())
-                {
-                    continue;
-                }
-
-                // Determine if this is an inline link based on source
-                let is_inline = matches!(edge.source, qipu_core::index::LinkSource::Inline);
-
-                if !is_inline && opts.inline_only {
-                    continue;
-                }
-                if is_inline && opts.typed_only {
-                    continue;
-                }
-
-                let neighbor_id = if edge.from == current_id {
-                    &edge.to
-                } else {
-                    &edge.from
-                };
-
-                if !visited.contains(neighbor_id) {
-                    visited.insert(neighbor_id.clone());
-                    let edge_cost = qipu_core::graph::get_link_type_cost(
-                        edge.link_type.as_str(),
-                        store.config(),
-                    );
-                    queue.push_back((neighbor_id.clone(), accumulated_cost + edge_cost));
-
-                    // Add note if not already in selection
-                    if !seen_ids.contains(neighbor_id) {
-                        match store.get_note(neighbor_id) {
-                            Ok(note) => {
-                                selected_notes.push(note);
-                                seen_ids.insert(neighbor_id.clone());
-                            }
-                            Err(_) => {
-                                // Note not found, skip silently
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 /// Collect attachments for selected notes

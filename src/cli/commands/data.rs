@@ -143,7 +143,7 @@ pub struct DumpArgs {
     pub direction: String,
 
     /// Maximum traversal depth
-    #[arg(long, default_value = "3")]
+    #[arg(long, default_value = "0")]
     pub max_hops: u32,
 
     /// Include only these link types (can be repeated)

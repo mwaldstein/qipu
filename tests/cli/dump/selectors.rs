@@ -97,6 +97,94 @@ fn test_dump_by_tag() {
 }
 
 #[test]
+fn test_dump_by_tag_does_not_traverse_by_default() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path();
+    let pack_file = dir.path().join("test.pack");
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("create")
+        .arg("Tagged note")
+        .arg("--id")
+        .arg("note-a")
+        .arg("--tag")
+        .arg("start")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("create")
+        .arg("Linked note")
+        .arg("--id")
+        .arg("note-b")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("link")
+        .arg("add")
+        .arg("note-a")
+        .arg("note-b")
+        .arg("--type")
+        .arg("related")
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("dump")
+        .arg("--tag")
+        .arg("start")
+        .arg("--output")
+        .arg(&pack_file)
+        .env("QIPU_STORE", store_path)
+        .assert()
+        .success();
+
+    let dir2 = tempdir().unwrap();
+    let store2_path = dir2.path();
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    qipu()
+        .arg("load")
+        .arg(&pack_file)
+        .env("QIPU_STORE", store2_path)
+        .assert()
+        .success();
+
+    let output = qipu()
+        .arg("list")
+        .arg("--format")
+        .arg("json")
+        .env("QIPU_STORE", store2_path)
+        .output()
+        .unwrap();
+
+    let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let ids: Vec<&str> = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["id"].as_str().unwrap())
+        .collect();
+
+    assert_eq!(ids, vec!["note-a"]);
+}
+
+#[test]
 fn test_dump_by_moc() {
     let dir = tempdir().unwrap();
     let store_path = dir.path();

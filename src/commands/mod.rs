@@ -20,6 +20,7 @@ pub mod link;
 pub mod list;
 pub mod load;
 pub mod merge;
+pub mod note_selection;
 pub mod ontology;
 pub mod prime;
 pub mod provenance;

@@ -145,17 +145,30 @@ impl Database {
         Ok(db)
     }
 
-    /// Check if an error indicates database corruption
+    /// Check if an error indicates database corruption.
+    ///
+    /// Transient availability errors such as SQLite lock/busy errors must not
+    /// be treated as corruption. The recovery path deletes and rebuilds the
+    /// derived database, so it should only run for errors that indicate the
+    /// database file itself cannot be read as SQLite data.
     fn is_corruption_error(error: &QipuError) -> bool {
         match error {
             QipuError::Other(msg) => {
                 let msg_lower = msg.to_lowercase();
+                if msg_lower.contains("database is locked")
+                    || msg_lower.contains("database table is locked")
+                    || msg_lower.contains("database is busy")
+                    || msg_lower.contains("sqlite_busy")
+                    || msg_lower.contains("sqlite_locked")
+                {
+                    return false;
+                }
+
                 msg_lower.contains("database disk image is malformed")
                     || msg_lower.contains("corrupt")
                     || msg_lower.contains("malformed")
                     || msg_lower.contains("database is malformed")
                     || msg_lower.contains("file is not a database")
-                    || msg_lower.contains("database is locked")
             }
             _ => false,
         }

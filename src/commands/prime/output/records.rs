@@ -7,7 +7,7 @@ use qipu_core::records::escape_quotes;
 pub fn build_base_records(store_path: &str, is_empty: bool) -> String {
     let store_status = if is_empty { "empty" } else { "populated" };
     format!(
-        "H qipu=1 records=1 store={} mode=prime mocs=0 recent=0 status={} truncated=false\nD Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content.\nC list \"List notes\"\nC search \"Search notes by title and body\"\nC show \"Display a note\"\nC create \"Create a new note\"\nC capture \"Create note from stdin\"\nC link.tree \"Show traversal tree from a note\"\nC link.path \"Find path between notes\"\nC context \"Build context bundle for LLM\"\nS 1 \"Capture any new insights\" \"qipu capture --title \\\"...\\\"\"\nS 2 \"Link new notes to existing knowledge\" \"qipu link add <new> <existing> --type <type>\"\nS 3 \"Commit changes\" \"git add .qipu && git commit -m \\\"knowledge: ...\\\"\"\nW Knowledge not committed is knowledge lost. The graph only grows if you save your work.\n",
+        "H qipu=1 records=1 store={} mode=prime mocs=0 recent=0 status={} truncated=false\nD Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and linked collection roots.\nC list \"List notes\"\nC search \"Search notes by title and body\"\nC show \"Display a note\"\nC create \"Create a new note\"\nC capture \"Create note from stdin\"\nC link.tree \"Show traversal tree from a note\"\nC link.path \"Find path between notes\"\nC context \"Build context bundle for LLM\"\nS 1 \"Capture any new insights\" \"qipu capture --title \\\"...\\\"\"\nS 2 \"Link new notes to existing knowledge\" \"qipu link add <new> <existing> --type <type>\"\nS 3 \"Commit changes\" \"git add .qipu && git commit -m \\\"knowledge: ...\\\"\"\nW Knowledge not committed is knowledge lost. The graph only grows if you save your work.\n",
         store_path, store_status
     )
 }
@@ -34,7 +34,7 @@ pub fn output_records(
     print_note_type_records(ontology, config);
     print_link_type_records(ontology, config);
 
-    println!("D Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content.");
+    println!("D Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and linked collection roots.");
 
     print_command_records();
     print_session_records();

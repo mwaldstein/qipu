@@ -2,7 +2,7 @@ use crate::support::qipu;
 use tempfile::tempdir;
 
 #[test]
-fn test_dump_moc_selector_accepts_custom_root_type() {
+fn test_dump_collection_root_selector_accepts_custom_root_type() {
     let dir = tempdir().unwrap();
     let store_path = dir.path();
     let pack_file = dir.path().join("test.pack");
@@ -32,7 +32,7 @@ fn test_dump_moc_selector_accepts_custom_root_type() {
 
     qipu()
         .arg("dump")
-        .arg("--moc")
+        .arg("--collection-root")
         .arg("project-index")
         .arg("--output")
         .arg(&pack_file)
@@ -65,12 +65,13 @@ fn test_dump_moc_selector_accepts_custom_root_type() {
         .unwrap();
 
     let list: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let ids: Vec<&str> = list
+    let mut ids: Vec<&str> = list
         .as_array()
         .unwrap()
         .iter()
         .map(|note| note["id"].as_str().unwrap())
         .collect();
+    ids.sort();
 
-    assert_eq!(ids, vec!["claim-one"]);
+    assert_eq!(ids, vec!["claim-one", "project-index"]);
 }

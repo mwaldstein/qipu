@@ -1,7 +1,7 @@
 //! Note selection for context command
 //!
 //! This module handles selecting notes for context bundles based on various
-//! selection criteria like --note, --tag, --moc, --query, --walk.
+//! selection criteria like --note, --tag, --moc/--collection-root, --query, --walk.
 
 pub mod expansion;
 pub mod filter;

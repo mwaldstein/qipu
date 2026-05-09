@@ -110,7 +110,7 @@ fn test_dump_selector_moc_roundtrip() {
         .assert()
         .success();
 
-    // 8. Verify notes linked from MOC are loaded (A and B)
+    // 8. Verify linked root and notes linked from MOC are loaded (root, A, and B)
     let output = qipu()
         .arg("list")
         .arg("--format")
@@ -128,6 +128,7 @@ fn test_dump_selector_moc_roundtrip() {
         .collect();
     ids.sort();
 
+    assert!(ids.contains(&"my-moc"), "Should contain linked root");
     assert!(ids.contains(&"note-a"), "Should contain note-a");
     assert!(ids.contains(&"note-b"), "Should contain note-b");
     assert!(

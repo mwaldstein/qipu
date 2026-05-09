@@ -144,8 +144,8 @@ fn add_note(
 
 fn get_moc_linked_notes(store: &Store, index: &Index, root_id: &str) -> Result<Vec<Note>> {
     let root = store.get_note(root_id)?;
-    // `--moc` is a legacy flag name. Export/dump use it as a linked-root selector
-    // and intentionally return linked children only, not the root note itself.
+    // `--moc` is a legacy flag name. The selector treats the supplied note as a
+    // linked collection root and returns the root plus its outbound children.
     MocLinkResolver::new(store, index).linked_notes(&root)
 }
 
@@ -179,6 +179,7 @@ impl<'a> MocLinkResolver<'a> {
         let mut linked_notes = Vec::new();
         let mut seen_ids = HashSet::new();
 
+        self.add_linked_note(moc.id(), &mut seen_ids, &mut linked_notes);
         self.extract_typed_links(moc, &mut seen_ids, &mut linked_notes);
         self.extract_wiki_links(moc, &mut seen_ids, &mut linked_notes)?;
         self.extract_markdown_links(moc, &mut seen_ids, &mut linked_notes);

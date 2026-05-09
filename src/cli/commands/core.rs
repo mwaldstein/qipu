@@ -79,7 +79,7 @@ pub struct ShowArgs {
 /// Arguments for the inbox command.
 #[derive(Args, Debug)]
 pub struct InboxArgs {
-    /// Exclude notes already linked into a MOC
+    /// Exclude notes already linked from a collection root
     #[arg(long)]
     pub exclude_linked: bool,
 }
@@ -171,8 +171,8 @@ pub struct IndexArgs {
     #[arg(long)]
     pub recent: Option<usize>,
 
-    /// Index MOC and its linked notes
-    #[arg(long)]
+    /// Index a linked collection root and its linked notes
+    #[arg(long = "moc", visible_alias = "collection-root")]
     pub moc: Option<String>,
 
     /// Index only notes modified since timestamp

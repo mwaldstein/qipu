@@ -11,9 +11,9 @@ pub use records::{build_base_records, output_records};
 
 pub fn primer_description(is_empty: bool) -> &'static str {
     if is_empty {
-        "Welcome to qipu! Your knowledge store is empty. Start by capturing your first insights with `qipu capture` or `qipu create`. Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs)."
+        "Welcome to qipu! Your knowledge store is empty. Start by capturing your first insights with `qipu capture` or `qipu create`. Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and linked collection roots."
     } else {
-        "Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content (MOCs)."
+        "Qipu is a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and linked collection roots."
     }
 }
 

@@ -249,7 +249,7 @@ Index only a subset of notes based on criteria.
 **Selectors:**
 - `--tag <tag>`: Index only notes with specified tag
 - `--type <type>`: Index only notes of specified type (e.g., `--type permanent`)
-- `--moc <id>`: Index MOC and its linked notes
+- `--collection-root <id>` or legacy `--moc <id>`: Index a linked collection root and its linked notes
 - `--recent <n>`: Index N most recently updated notes
 - `--quick`: Index only "critical" notes (MOCs + recent 100)
 - `--modified-since <date>`: Index notes modified since timestamp
@@ -730,7 +730,7 @@ qipu index [OPTIONS]
 - `--quick`: Index only MOCs + 100 recent notes
 - `--tag <tag>`: Index only notes with tag
 - `--type <type>`: Index only notes of type
-- `--moc <id>`: Index MOC and linked notes
+- `--collection-root <id>` or legacy `--moc <id>`: Index a linked collection root and linked notes
 - `--recent <n>`: Index N most recent notes
 - `--modified-since <time>`: Index notes modified since timestamp
 - `--batch <n>`: Set batch size (default: 1000)

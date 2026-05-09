@@ -159,12 +159,14 @@ fn test_export_bundle_preserves_moc_order() {
         .args(["export", "--moc", "qp-moc1", "--mode", "bundle"])
         .assert()
         .success()
+        .stdout(predicate::str::contains("## Note: Bundle (qp-moc1)"))
         .stdout(predicate::str::contains("## Note: Note B (qp-bbbb)"))
         .stdout(predicate::str::contains("## Note: Note C (qp-cccc)"))
         .stdout(predicate::str::contains("## Note: Note A (qp-aaaa)"))
         .stdout(predicate::str::contains(
-            "## Note: Note B (qp-bbbb)\n\n**Type:** fleeting",
+            "[[qp-bbbb]]\n[[qp-cccc]]\n[[qp-aaaa]]",
         ))
+        .stdout(predicate::str::contains("---\n\n## Note: Note B (qp-bbbb)"))
         .stdout(predicate::str::contains("Body B\n\n---\n\n## Note: Note C"))
         .stdout(predicate::str::contains("Body C\n\n---\n\n## Note: Note A"));
 }

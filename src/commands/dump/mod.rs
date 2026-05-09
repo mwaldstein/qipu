@@ -2,7 +2,7 @@
 //!
 //! Per spec (specs/pack.md):
 //! - Single-file dump with notes, links, and attachments
-//! - Selection: `--note`, `--tag`, `--moc`, `--query` with graph traversal options
+//! - Selection: `--note`, `--tag`, `--moc`/`--collection-root`, `--query` with graph traversal options
 //! - Default: dump full store if no selectors
 //! - Include attachments by default, `--no-attachments` flag
 //! - Output: stdout by default, or `--output <path>` for file

@@ -286,29 +286,29 @@ This classification is available via `CompactionContext::classify_note()` and is
 - Metrics that distinguish tree depth and branching
 - Future filtering capabilities (e.g., "show only leaf sources")
 
-## MOC Treatment in Compaction
+## Default MOC Type Treatment in Compaction
 
-MOCs (Maps of Content) are **excluded from compaction suggestions by default**.
+Default-ontology `moc` notes are **excluded from compaction suggestions by default**.
 
 ### Rationale
 
-1. **Structural purpose**: MOCs are organizational/navigation hubs meant to surface and structure content. Compacting them would hide their organizational structure, defeating their primary purpose.
+1. **Structural purpose**: Linked collection root notes are organizational/navigation hubs meant to surface and structure content. Compacting them would hide their organizational structure, defeating their primary purpose.
 
-2. **Value alignment**: Per the value model (value-model.md), high-quality MOCs typically warrant high value (≥80). The compaction scoring algorithm already penalizes high-value notes, making MOCs poor compaction candidates.
+2. **Value alignment**: Per the value model (value-model.md), high-quality collection roots typically warrant high value (≥80). The compaction scoring algorithm already penalizes high-value notes, making them poor compaction candidates.
 
-3. **Navigation preservation**: Compacting a MOC would break navigation paths that users/LLMs rely on for exploration. The `qipu prime` command specifically surfaces key MOCs as starting points.
+3. **Navigation preservation**: Compacting a collection root would break navigation paths that users/LLMs rely on for exploration. The `qipu prime` command specifically surfaces key collection roots as starting points.
 
 ### Implementation
 
-- **`qipu compact suggest`**: Excludes MOCs by default from candidate clusters
-- **`qipu compact suggest --include-mocs`**: Opt-in flag to include MOCs in suggestions (rarely needed)
+- **`qipu compact suggest`**: Excludes default `moc` notes by default from candidate clusters
+- **`qipu compact suggest --include-mocs`**: Opt-in flag to include default `moc` notes in suggestions (rarely needed)
 - **`qipu compact apply`**: No restriction - users can still manually compact a MOC if they explicitly choose to
 
-### When to Compact MOCs
+### When to Compact Collection Roots
 
-Manual compaction of MOCs may be appropriate in rare cases:
-- An experimental/draft MOC that was superseded by a better-organized one
-- A MOC that has been fully subsumed by a digest covering the same domain
+Manual compaction of collection roots may be appropriate in rare cases:
+- An experimental/draft root that was superseded by a better-organized one
+- A root that has been fully subsumed by a digest covering the same domain
 - Cleanup of abandoned organizational attempts
 
 ## Design Decisions

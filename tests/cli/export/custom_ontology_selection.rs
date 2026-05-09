@@ -3,7 +3,7 @@ use predicates::prelude::*;
 use std::fs;
 
 #[test]
-fn test_export_moc_selector_accepts_custom_root_type() {
+fn test_export_collection_root_selector_accepts_custom_root_type() {
     let dir = setup_test_dir();
 
     fs::write(
@@ -25,16 +25,18 @@ fn test_export_moc_selector_accepts_custom_root_type() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["export", "--moc", "project-index"])
+        .args(["export", "--collection-root", "project-index"])
         .assert()
         .success()
+        .stdout(predicate::str::contains(
+            "## Note: Project Index (project-index)",
+        ))
         .stdout(predicate::str::contains("## Note: Claim One (claim-one)"))
-        .stdout(predicate::str::contains("Claim body"))
-        .stdout(predicate::str::contains("Project Index").not());
+        .stdout(predicate::str::contains("Claim body"));
 }
 
 #[test]
-fn test_export_outline_uses_shared_moc_selection_for_relative_markdown_links() {
+fn test_export_outline_uses_shared_linked_root_selection_for_relative_markdown_links() {
     let dir = setup_test_dir();
 
     fs::write(
@@ -56,7 +58,13 @@ fn test_export_outline_uses_shared_moc_selection_for_relative_markdown_links() {
 
     qipu()
         .current_dir(dir.path())
-        .args(["export", "--moc", "project-index", "--mode", "outline"])
+        .args([
+            "export",
+            "--collection-root",
+            "project-index",
+            "--mode",
+            "outline",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("# Project Index"))

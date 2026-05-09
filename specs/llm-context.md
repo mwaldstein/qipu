@@ -27,7 +27,7 @@ Recommended contents:
 - short explanation of what qipu is (knowledge memory, not tasks)
 - quick command reference
 - store location
-- a small list of key MOCs and/or recently updated notes
+- a small list of key linked collection roots and/or recently updated notes
 
 ### `qipu context` (bundle)
 `qipu context` outputs a bundle of notes.
@@ -46,9 +46,9 @@ Output formats:
 Selection methods (composable):
 - explicit: `--note <id>`
 - by tag: `--tag <tag>`
-- by linked collection root: `--moc <id>` (include links listed from that
-  root note; named for the standard `moc` type but usable with custom
-  ontology outline/index types)
+- by linked collection root: `--collection-root <id>` or legacy `--moc <id>`
+  (include the root note plus notes linked outward from that root; the root type
+  is ontology-defined and does not need to be `moc`)
 - by search: `--query <text>`
 
 Additional selectors/filters:
@@ -77,10 +77,11 @@ Notes:
 `qipu context` distinguishes selectors that name concrete graph objects from
 selectors that search or filter the graph:
 
-- `--note <id>`, `--moc <id>`, and `--walk <id>` name concrete note roots.
-  Missing roots are data errors. `--moc <id>` uses the resolved note as a
-  linked-collection root rather than requiring the note's type to literally be
-  `moc`, so replacement ontologies can use domain-specific outline/index types.
+- `--note <id>`, `--collection-root <id>`/`--moc <id>`, and `--walk <id>` name
+  concrete note roots. Missing roots are data errors. Linked collection root
+  selection uses the resolved note as a root rather than requiring literal
+  `type: moc`, so replacement ontologies can use domain-specific outline/index
+  types.
 - `--query <text>`, `--tag <tag>`, `--min-value <n>`, and
   `--custom-filter <expr>` are retrieval/filter selectors. Matching zero notes
   is a successful empty result, not an error.

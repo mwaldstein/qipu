@@ -22,7 +22,7 @@ Selection options:
 - **Note selectors** (same "language" as note-fetching commands such as `qipu context`):
   - `--note <id>` (repeatable)
   - `--tag <tag>`
-  - `--moc <id>` (legacy-named linked collection root selector)
+  - `--collection-root <id>` (preferred linked collection root selector; `--moc` is the legacy name)
   - `--query <text>`
 - **Graph traversal** (same options as `qipu link` traversal):
   - `--direction <out|in|both>`
@@ -35,10 +35,11 @@ Defaults:
 - If no selectors are provided, dump the full store.
 - Attachments are included by default; `--no-attachments` disables them.
 
-`--moc` selects notes linked from the supplied root note. The root does not need
-literal `type: moc`; replacement ontologies can use custom outline/index/root
-note types. Dump includes the linked child notes in the pack, not the root note
-itself unless it is selected through another selector or traversal.
+The linked collection root selector selects the supplied root note plus notes
+linked from that root. The root does not need literal `type: moc`; replacement
+ontologies can use custom outline/index/root note types. Stored links are
+directional: the root links outward to the child notes that belong to the
+collection.
 
 Traversal semantics:
 - Traversal-based selection must be closed over the traversal rules: if a note is

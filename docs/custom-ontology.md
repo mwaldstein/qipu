@@ -5,7 +5,7 @@ Last updated: 2026-01-28
 
 ## Overview
 
-Qipu provides a built-in ontology for organizing notes and links, with standard note types (`fleeting`, `literature`, `permanent`, `moc`) and standard link types (`related`, `supports`, `contradicts`, `part-of`, etc.).
+Qipu provides a built-in ontology for organizing notes and links, with standard note types (`fleeting`, `literature`, `permanent`, `moc`) and standard link types (`related`, `supports`, `contradicts`, `part-of`, etc.). These are defaults, not privileged concepts: custom ontologies can use different names for the same roles.
 
 Custom ontology lets you extend or replace these standard types with domain-specific types that better match your workflow, terminology, and research needs.
 
@@ -95,12 +95,13 @@ usage = "Use when one idea improves or refines another"
 - You must define all types you need
 - Useful for complete domain-specific implementations
 
-MOC-related CLI flags are compatibility terminology. In replacement mode, you
-can still use `qipu context --moc <id>`, `qipu export --moc <id>`, and
-`qipu dump --moc <id>` with a custom linked collection root type such as
-`outline`, `index`, or `project-map`. You only need a literal `moc` type if your
-ontology wants that term. New notes with custom root types live under
-`.qipu/notes/`; only literal `type: moc` notes are stored under `.qipu/mocs/`.
+Linked collection root selectors are ontology-neutral. The legacy `--moc` flag
+name remains for compatibility, and the neutral `--collection-root` alias is
+preferred in new scripts. In replacement mode, use either selector with custom
+root types such as `outline`, `index`, or `project-map`. You only need a literal
+`moc` type if your ontology wants that term. New notes with custom root types
+live under `.qipu/notes/`; only literal `type: moc` notes are stored under
+`.qipu/mocs/`.
 
 ### Configuration Fields
 
@@ -125,6 +126,14 @@ cost = 1.0  # Hop cost for graph traversal (optional, default 1.0)
 - `cost`: Hop cost for graph traversal (default 1.0). Lower costs create stronger cohesion in the graph.
   - Structural types (e.g., `part-of`, `same-as`) typically use 0.5
   - Standard relationships (e.g., `supports`, `contradicts`) typically use 1.0
+
+Stored typed links are directional. The source note asserts the relationship to
+the target note: `qipu link add <source> <target> --type <type>` stores
+`source --type--> target`. Choose type names and usage guidance that read
+naturally in that direction, such as `study supports guideline`,
+`component depends-on dependency`, or `chapter part-of book`. The `inverse`
+field names the virtual relationship qipu presents when traversing inbound
+edges with semantic inversion enabled; it does not change how the link is stored.
 
 ## Domain Examples
 
@@ -159,7 +168,7 @@ description = "Overruling relationship"
 inverse = "overrules"
 usage = "Use when a case is overruled by another case"
 
-[ontology.link_tests.distinguishes]
+[ontology.link_types.distinguishes]
 description = "Distinguishing relationship"
 inverse = "distinguished-by"
 usage = "Use when a case distinguishes itself from another case"
@@ -426,6 +435,9 @@ usage = "Use when task A is required for task B to start"
 ```
 
 You can define both inverses, or just one (qipu will generate the other).
+When defining only one direction, prefer the direction that users will store most
+often. For example, store `task depends-on dependency`; qipu can present
+`dependency required-by task` as the inverse during inbound traversal.
 
 ## Commands
 
@@ -520,7 +532,7 @@ The `graph.types` field will be deprecated in a future version. Migrate to `onto
 7. **Document your ontology** for team members and future maintainers
 
 8. **Name collection roots in your domain language** (`outline`, `index`,
-   `project-map`) and use their IDs with the legacy `--moc` selectors.
+   `project-map`) and use their IDs with the linked collection root selectors.
 
 ## Common Pitfalls
 

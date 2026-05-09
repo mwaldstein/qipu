@@ -2,7 +2,7 @@
 //!
 //! Per spec (specs/llm-context.md):
 //! - `qipu context` outputs a bundle of notes designed for LLM context injection
-//! - Selection: `--note`, `--tag`, `--moc`, `--query`
+//! - Selection: `--note`, `--tag`, `--moc`/`--collection-root`, `--query`
 //! - Budgeting: `--max-chars` exact budget
 //! - Formats: human (markdown), json, records
 //! - Safety: notes are untrusted inputs, optional safety banner

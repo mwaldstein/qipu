@@ -1,9 +1,9 @@
 //! `qipu export` command - export notes to a single document
 //!
 //! Per spec (specs/export.md):
-//! - Export modes: bundle (concatenate), outline (MOC-first), bibliography (sources only)
-//! - Selection: `--note`, `--tag`, `--moc`, `--query`
-//! - Deterministic ordering: MOC order or (created_at, id)
+//! - Export modes: bundle (concatenate), outline (linked-root first), bibliography (sources only)
+//! - Selection: `--note`, `--tag`, `--moc`/`--collection-root`, `--query`
+//! - Deterministic ordering: linked-root order or (created_at, id)
 //! - Output: stdout by default, or `--output <path>` for file
 //! - Link handling: preserve, markdown, anchors
 
@@ -25,7 +25,7 @@ use qipu_core::store::Store;
 pub enum ExportMode {
     /// Bundle export: concatenate notes with metadata headers
     Bundle,
-    /// Outline export: use MOC ordering
+    /// Outline export: use linked-root ordering
     Outline,
     /// Bibliography export: extract sources
     Bibliography,

@@ -26,7 +26,7 @@ Add this section to your agent tool's configuration or prompt:
 ```
 ## Qipu Knowledge Memory
 
-You have access to qipu, a knowledge management CLI for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
+You have access to qipu, a knowledge management CLI for capturing research notes and navigating knowledge via links, tags, and linked collection roots.
 
 ### Important: Always Use the CLI
 
@@ -39,14 +39,14 @@ You have access to qipu, a knowledge management CLI for capturing research notes
 
 ### Core Commands
 
-- `qipu prime` - Get a session-start primer (store overview, key MOCs, recent notes)
+- `qipu prime` - Get a session-start primer (store overview, key collection roots, recent notes)
 - `qipu create <title>` - Create a new note
 - `qipu capture` - Capture note from stdin
 - `qipu list` - List notes (filter by --tag, --type, --since)
 - `qipu show <id>` - Display a note
 - `qipu search <query>` - Search notes by title and body
 - `qipu inbox` - Show unprocessed notes (fleeting/literature)
-- `qipu context` - Build context bundle for LLM (use --note, --tag, --moc, or --query to select)
+- `qipu context` - Build context bundle for LLM (use --note, --tag, --collection-root, or --query to select)
 - `qipu link list <id>` - List links for a note
 - `qipu link tree <id>` - Show link tree (graph neighborhood)
 - `qipu link path <from> <to>` - Find path between notes
@@ -92,7 +92,7 @@ qipu inbox --exclude-linked
 1. **Progressive Disclosure**: Use `qipu link tree` with `--max-chars` to get summaries, then `qipu context --with-body` for details
 2. **Deterministic Output**: All commands produce stable, deterministic output for reproducible workflows
 3. **Budgeting**: Use `--max-chars` to fit within context limits
-4. **Types**: Use note types (fleeting, literature, permanent, moc) to organize knowledge lifecycle
+4. **Types**: Use ontology-defined note types to organize the knowledge lifecycle
 5. **Links**: Use typed links (derived-from, supports, contradicts, part-of) for explicit relationships
 ```
 
@@ -128,7 +128,7 @@ glob: "**/*"
 
 # Qipu Knowledge Management
 
-You have access to qipu, a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and Maps of Content.
+You have access to qipu, a knowledge graph CLI for scripts and agents, for capturing research notes and navigating knowledge via links, tags, and linked collection roots.
 
 ## Critical: Always Use the CLI
 
@@ -141,14 +141,14 @@ You have access to qipu, a knowledge graph CLI for scripts and agents, for captu
 
 ## Core Commands
 
-- `qipu prime` - Get a session-start primer (store overview, key MOCs, recent notes)
+- `qipu prime` - Get a session-start primer (store overview, key collection roots, recent notes)
 - `qipu create <title>` - Create a new note
 - `qipu capture` - Capture note from stdin
 - `qipu list` - List notes (filter by --tag, --type, --since)
 - `qipu show <id>` - Display a note
 - `qipu search <query>` - Search notes by title and body
 - `qipu inbox` - Show unprocessed notes (fleeting/literature)
-- `qipu context` - Build context bundle for LLM (use --note, --tag, --moc, or --query to select)
+- `qipu context` - Build context bundle for LLM (use --note, --tag, --collection-root, or --query to select)
 - `qipu link list <id>` - List links for a note
 - `qipu link tree <id>` - Show link tree (graph neighborhood)
 - `qipu link path <from> <to>` - Find path between notes
@@ -194,7 +194,7 @@ qipu inbox --exclude-linked
 1. **Progressive Disclosure**: Use `qipu link tree` with `--max-chars` to get summaries, then `qipu context --with-body` for details
 2. **Deterministic Output**: All commands produce stable, deterministic output for reproducible workflows
 3. **Budgeting**: Use `--max-chars` to fit within context limits
-4. **Types**: Use note types (fleeting, literature, permanent, moc) to organize knowledge lifecycle
+4. **Types**: Use ontology-defined note types to organize the knowledge lifecycle
 5. **Links**: Use typed links (derived-from, supports, contradicts, part-of) for explicit relationships
 
 ## Store Location

@@ -2,7 +2,7 @@ use crate::support::{qipu, setup_test_dir};
 use std::fs;
 
 #[test]
-fn test_context_moc_selector_accepts_replacement_ontology_root_type() {
+fn test_context_collection_root_selector_accepts_replacement_ontology_root_type() {
     let dir = setup_test_dir();
 
     fs::write(
@@ -49,7 +49,7 @@ inverse = "related"
             "--format",
             "json",
             "context",
-            "--moc",
+            "--collection-root",
             "project-index",
             "--related",
             "0",

@@ -34,7 +34,13 @@ fn export_outline_impl(ctx: &ExportContext) -> Result<String> {
     let compaction_note_map = CompactionContext::build_note_map(ctx.all_notes);
 
     // ctx.notes is already selected and ordered by the shared linked-root selector.
+    // The linked collection root itself is rendered above as the outline title
+    // and introduction, so do not duplicate it as a child section.
     for note in ctx.notes {
+        if note.id() == moc.id() {
+            continue;
+        }
+
         output.push_str("\n---\n\n");
         // Add anchor if using anchor mode
         if ctx.options.link_mode == super::super::LinkMode::Anchors {

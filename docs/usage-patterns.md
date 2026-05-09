@@ -20,25 +20,25 @@ Beads encourages a consistent session shape (find ready work -> do work -> sync)
    - `qipu capture --type literature --tag <topic>`
 4. Distill raw research into durable notes:
    - `qipu create "<insight>" --type permanent --open`
-5. Curate via a MOC (topic index / whitepaper outline):
+5. Curate via a linked collection root (for example, a default `moc` note):
    - `qipu create "<topic>" --type moc --open`
 6. When working with an LLM tool, generate a working set:
-   - `qipu context --moc <moc-id> --max-chars 20000`
+   - `qipu context --collection-root <root-id> --max-chars 20000`
 7. End session by ensuring indexes/validations are current:
    - `qipu sync`
 
 ## Workflow: research-heavy implementation task
 Goal: keep external research and intermediate insights available throughout a coding task.
 
-1. Create a MOC for the task topic:
+1. Create a linked collection root for the task topic:
    - `qipu create "OAuth provider research" --type moc --tag auth --open`
 2. Capture sources as literature notes:
    - `qipu create "Auth0 docs: PKCE flow" --type literature --tag auth --tag oauth --open`
 3. Distill key takeaways into permanent notes:
    - `qipu create "When to use PKCE" --type permanent --tag oauth --open`
-4. Link distilled notes into the MOC.
+4. Link distilled notes from the root note.
 5. When working with an LLM tool, generate a bundle:
-   - `qipu context --moc <moc-id> --max-chars 20000`
+   - `qipu context --collection-root <root-id> --max-chars 20000`
 
 ## Workflow: "insight that isn't a spec yet"
 Goal: capture ideas before they become commitments.
@@ -50,11 +50,11 @@ Goal: capture ideas before they become commitments.
 ## Workflow: authoring a white paper
 Goal: structure research so it can be turned into a publishable document.
 
-1. Create a MOC representing the paper outline.
+1. Create a linked collection root representing the paper outline.
 2. Capture sources as literature notes (each with URL/title/access date).
 3. Distill claims into permanent notes, each referencing supporting literature notes.
 4. Export a draft bundle:
-   - `qipu export --moc <paper-moc-id> --format markdown > paper-notes.md`
+   - `qipu export --collection-root <paper-root-id> --format markdown > paper-notes.md`
 
 ## Workflow: team collaboration
 - Commit `.qipu/notes/` and `.qipu/mocs/` to the repo.
@@ -73,7 +73,7 @@ Qipu is intentionally not a task tracker, but it should support a clean boundary
 
 ## Anti-patterns
 - Putting large code excerpts into qipu notes instead of linking to source files.
-- Treating qipu as a dumping ground with no links/tags/MOCs.
+- Treating qipu as a dumping ground with no links, tags, or linked collection roots.
 - Using deep folder hierarchies as the primary organization mechanism.
 
 ## Open questions

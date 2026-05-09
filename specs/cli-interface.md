@@ -175,7 +175,8 @@ Build an LLM-friendly context bundle.
 Selection options (one or more):
 - `--note <id>` (repeatable)
 - `--tag <tag>`
-- `--moc <id>` (linked collection root; includes the root and its linked notes)
+- `--collection-root <id>` (linked collection root; includes the root and its linked notes)
+- `--moc <id>` (legacy alias for `--collection-root`)
 - `--query <text>` (search-based selection)
 
 Additional selection filters:
@@ -186,8 +187,9 @@ Selection rule:
 - `--min-value` and/or `--custom-filter` count as selection criteria.
   - Example: `qipu context --min-value 80` is valid and selects all notes with `value >= 80`.
   - Example: `qipu context --custom-filter workflow_state=review` is valid and selects notes matching that filter.
-- `--moc` is a legacy flag name from the standard `moc` type. The supplied ID is
-  resolved as a linked collection root and does not need literal `type: moc`.
+- `--moc` is a legacy flag name from the standard `moc` type. New docs and
+  scripts should prefer `--collection-root`. The supplied ID is resolved as a
+  linked collection root and does not need literal `type: moc`.
 
 Budgeting:
 - `--max-chars <n>` (exact)

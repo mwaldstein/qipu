@@ -300,6 +300,7 @@ fn test_dump_by_moc() {
     ids.sort();
 
     eprintln!("Loaded notes: {:?}", ids);
+    assert!(ids.contains(&"my-moc"), "Should contain linked root");
     assert!(ids.contains(&"note-a"), "Should contain note-a");
     assert!(ids.contains(&"note-b"), "Should contain note-b");
     assert!(
@@ -478,7 +479,8 @@ fn test_dump_by_moc_follows_relative_markdown_links() {
         .map(|n| n["id"].as_str().unwrap())
         .collect();
 
-    assert_eq!(ids.len(), 2);
+    assert_eq!(ids.len(), 3);
+    assert!(ids.contains(&"qp-map"));
     assert!(ids.contains(&"note-alpha"));
     assert!(ids.contains(&"note-beta"));
 }

@@ -30,7 +30,7 @@ This outputs a compact (~4-8k characters) introduction to qipu that teaches the 
 - What qipu is and how it works
 - Available commands and their purposes
 - The current store location
-- Key MOCs and recently updated notes
+- Key linked collection roots and recently updated notes
 
 **Recommended:** Inject `qipu prime` output into your system prompt or initial context automatically.
 Note: `qipu prime` is internally size-bounded using character counts. Qipu uses character-based budgets, not token counting, as it manages text output rather than tokenized API responses. Use `--max-chars` for exact character budgets.
@@ -43,14 +43,14 @@ During task execution, provide the LLM with relevant knowledge:
 # By topic/tag
 qipu context --tag authentication --max-chars 8000
 
-# By linked collection root (legacy flag name: MOC)
-qipu context --moc qp-oauth-research --max-chars 12000
+# By linked collection root
+qipu context --collection-root qp-oauth-research --max-chars 12000
 
 # By search query
 qipu context --query "token validation" --max-chars 6000
 
 # Multiple selectors (combined)
-qipu context --moc qp-api-design --tag security --min-value 70 --max-chars 10000
+qipu context --collection-root qp-api-design --tag security --min-value 70 --max-chars 10000
 ```
 
 **Key points:**
@@ -169,7 +169,7 @@ qipu list --custom workflow_state=review
 qipu list --tag api --custom priority=1 --min-value 70
 
 # Context with custom filters
-qipu context --moc qp-sprint-23 --custom-filter assignee="alice@example.com"
+qipu context --collection-root qp-sprint-23 --custom-filter assignee="alice@example.com"
 
 # Numeric comparisons
 qipu context --custom-filter "priority>=2" --custom-filter "score<90"
@@ -292,23 +292,24 @@ Custom ontology allows your application to extend qipu's core type system with d
 
 For detailed configuration guidance, see `docs/custom-ontology.md`.
 
-### Linked Collection Roots and MOCs
+### Linked Collection Roots
 
 Several CLI flags use the legacy name `--moc` because qipu's standard ontology
-calls curated outline notes "maps of content." The selector itself is more
-general: it resolves the supplied note ID as a linked collection root and follows
-links from that note.
+includes a `moc` note type for curated outline notes. The selector itself is
+ontology-neutral: it resolves the supplied note ID as a linked collection root
+and follows links from that note. Prefer the `--collection-root` alias in new
+scripts and examples.
 
 If you use replacement ontology mode, you do not need to define a literal `moc`
-note type for `qipu context --moc`, `qipu export --moc`, or `qipu dump --moc`.
-Define domain types such as `outline`, `index`, `collection`, or `project-map`,
-then pass that note's ID to `--moc`.
+note type for `qipu context --collection-root`, `qipu export --collection-root`,
+or `qipu dump --collection-root`. Define domain types such as `outline`,
+`index`, `collection`, or `project-map`, then pass that note's ID to the linked
+collection root selector.
 
-Current nuance: `qipu context --moc <id>` includes the root note in the context
-bundle. `qipu export --moc <id>` and `qipu dump --moc <id>` select the root's
-linked child notes; outline export uses the root's title and body as the outline
-introduction. Transitive context traversal currently recurses through nested
-literal `moc` notes only.
+The linked collection root selector includes the root note plus notes linked
+outward from that root. The root provides collection framing; the outbound links
+define the child notes and their ordering. Transitive context traversal currently
+recurses through nested literal `moc` notes only.
 
 ### Programmatic Ontology Inspection
 
@@ -454,7 +455,7 @@ qipu prime
 # - fleeting (Quick capture, low ceremony)
 # - literature (External source material)
 # - permanent (Distilled insight, author's own words)
-# - moc (Map of Content, curated index)
+# - moc (default linked collection root note type)
 # - task (A task or action item)
 #   Usage: Use for tracking tasks and action items
 #

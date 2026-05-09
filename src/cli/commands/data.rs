@@ -61,8 +61,8 @@ pub struct ContextArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a collection root (legacy name: MOC)
-    #[arg(long, short = 'm')]
+    /// Select notes from a linked collection root
+    #[arg(long = "moc", short = 'm', visible_alias = "collection-root")]
     pub moc: Option<String>,
 
     /// Select notes by search query
@@ -73,7 +73,7 @@ pub struct ContextArgs {
     #[arg(long)]
     pub max_chars: Option<usize>,
 
-    /// Follow nested MOC links transitively
+    /// Follow nested default-ontology MOC links transitively
     #[arg(long)]
     pub transitive: bool,
 
@@ -130,8 +130,8 @@ pub struct DumpArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a collection root (legacy name: MOC)
-    #[arg(long, short = 'm')]
+    /// Select notes from a linked collection root
+    #[arg(long = "moc", short = 'm', visible_alias = "collection-root")]
     pub moc: Option<String>,
 
     /// Select notes by search query
@@ -177,8 +177,8 @@ pub struct ExportArgs {
     #[arg(long)]
     pub tag: Option<String>,
 
-    /// Select notes linked from a collection root (legacy name: MOC)
-    #[arg(long, short = 'm')]
+    /// Select notes from a linked collection root
+    #[arg(long = "moc", short = 'm', visible_alias = "collection-root")]
     pub moc: Option<String>,
 
     /// Select notes by search query

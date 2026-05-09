@@ -16,7 +16,7 @@ Qipu stores attachments (images, PDFs, diagrams, etc.) in the `.qipu/attachments
 │   ├── paper.pdf
 │   └── screenshot.jpg
 ├── notes/               # Your notes
-└── mocs/                # Maps of Content
+└── mocs/                # Default-ontology MOC notes
 ```
 
 ## Referencing Attachments

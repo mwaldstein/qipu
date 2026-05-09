@@ -4,7 +4,7 @@
 //! - `qipu prime` outputs a short, bounded primer suitable for automatic injection
 //!   at the start of an agent session.
 //! - Requirements: deterministic ordering, stable formatting, bounded size (~1-2k tokens)
-//! - Contents: qipu explanation, command reference, store location, key MOCs, recent notes
+//! - Contents: qipu explanation, command reference, store location, key collection roots, recent notes
 //!
 //! MCP Mode: Detects if running in MCP/agent environment and outputs minimal primer (~50 tokens).
 //! Detection methods: QIPU_MCP_MODE env var, MCP_SERVER env var, or MCP settings file.

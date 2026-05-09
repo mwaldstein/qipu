@@ -43,7 +43,7 @@ fn test_prime_with_mocs() {
         .arg("prime")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Key Maps of Content"))
+        .stdout(predicate::str::contains("Key Collection Roots"))
         .stdout(predicate::str::contains("Research Topics"));
 }
 

@@ -230,14 +230,18 @@ fn test_export_moc_selection_preserves_moc_order() {
         .assert()
         .success();
 
-    // MOC-driven export should preserve MOC order, NOT sort by created_at
-    // Expected order: C -> B -> A (as linked in MOC, not by created_at)
+    // Linked-root export should include the root, then preserve child order,
+    // NOT sort by created_at. Expected order: root -> C -> B -> A.
     qipu()
         .current_dir(dir.path())
         .args(["export", "--moc", "qp-moc1"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("## Note: Note C (qp-cccc)"))
+        .stdout(predicate::str::contains("## Note: Order Test (qp-moc1)"))
+        .stdout(predicate::str::contains(
+            "[[qp-cccc]]\n[[qp-bbbb]]\n[[qp-aaaa]]",
+        ))
+        .stdout(predicate::str::contains("---\n\n## Note: Note C (qp-cccc)"))
         .stdout(predicate::str::contains("Body C\n\n---\n\n## Note: Note B"))
         .stdout(predicate::str::contains("Body B\n\n---\n\n## Note: Note A"));
 }
@@ -276,7 +280,11 @@ fn test_export_moc_selection_follows_relative_markdown_links() {
         .args(["export", "--moc", "qp-map"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("## Note: Beta (note-beta)"))
+        .stdout(predicate::str::contains("## Note: Map (qp-map)"))
+        .stdout(predicate::str::contains(
+            "[Beta](../notes/note-beta-beta.md)\n[Alpha](../notes/note-alpha-alpha.md)",
+        ))
+        .stdout(predicate::str::contains("---\n\n## Note: Beta (note-beta)"))
         .stdout(predicate::str::contains(
             "Beta body\n\n---\n\n## Note: Alpha",
         ));

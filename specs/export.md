@@ -12,8 +12,12 @@ Beads has "compaction" (memory decay) to keep agent context small. In qipu, expo
 Exports can be driven by:
 - explicit notes (`--note`)
 - a tag (`--tag`)
-- a linked collection root (`--moc`; legacy name from the standard `moc` type)
+- a linked collection root (`--collection-root`, or legacy `--moc`)
 - a query (`--query`)
+
+The linked collection root selector includes the root note plus notes linked
+outward from that root. The root provides the collection framing; the outbound
+links define its children and ordering.
 
 ## Export modes
 ### 1) Bundle export (concatenate)
@@ -21,7 +25,7 @@ Exports can be driven by:
 - Includes metadata headers per note.
 
 ### 2) Outline export (linked-root first)
-- Uses the `--moc` root note as the outline.
+- Uses the linked collection root note as the outline.
 - Follows the root note's linked-note ordering.
 - The root note does not need literal `type: moc`; custom ontology users may
   use domain-specific outline/index/root note types.
@@ -32,7 +36,7 @@ Exports can be driven by:
 
 ## Deterministic ordering
 Exports must be deterministic:
-- For `--moc` driven exports: follow linked-root ordering.
+- For linked-root driven exports: follow linked-root ordering.
 - For tag/query-driven exports: sort by `(created_at, id)`.
 
 ## Link handling

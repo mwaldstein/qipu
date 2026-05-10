@@ -12,6 +12,7 @@ use qipu_core::error::Result;
 use qipu_core::store::Store;
 
 /// Execute `qipu compact apply`
+#[allow(clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     root: &Path,

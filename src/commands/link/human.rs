@@ -207,6 +207,7 @@ pub fn output_path_human(
 }
 
 /// Output tree in human-readable format
+#[allow(clippy::too_many_lines)]
 pub fn output_tree_human(
     cli: &Cli,
     result: &TreeResult,
@@ -237,6 +238,7 @@ pub fn output_tree_human(
         all_notes: &'a [Note],
     }
 
+    #[allow(clippy::too_many_lines)]
     fn print_tree(
         id: &str,
         children: &HashMap<String, Vec<&SpanningTreeEntry>>,

@@ -1,7 +1,7 @@
 Plan code cleanup tasks using beads.
 
 Source: `src/*`, `crates/qipu-core/src/*`, `tests/*`, `crates/llm-tool-test/src/*`
-Enforcement: `scripts/check_function_complexity.py`, CI rules (500-line file limit)
+Enforcement: workspace Clippy `too_many_lines`, CI rules (500-line file limit)
 Guidance: `AGENTS.md` (code style guidelines)
 Issues: Use `bd` commands to manage tasks
 
@@ -215,7 +215,7 @@ bd sync       # Save to git
 - Use dependencies to sequence work properly
 - Focus on high-impact items first (P1 > P2 > P3)
 - Run `bd sync` after creating issues
-- Respect grandfathered exceptions in `check_function_complexity.py`
+- Respect explicit Clippy lint allowances only when there is a documented exception
 - Poor descriptions (just "fix X", "clean up Y") are unacceptable
 
 If no violations found: COMPLETE

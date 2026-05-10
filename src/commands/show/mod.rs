@@ -137,6 +137,7 @@ pub fn execute(
 
 /// Execute show with --links flag
 /// Shows inline + typed links, both directions
+#[allow(clippy::too_many_lines)]
 fn execute_show_links(
     cli: &Cli,
     store: &Store,

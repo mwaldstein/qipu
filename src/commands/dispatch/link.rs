@@ -12,6 +12,7 @@ use qipu_core::store::Store;
 use super::command::discover_or_open_store;
 use super::trace_command;
 
+#[allow(clippy::too_many_lines)]
 pub(super) fn handle_link(
     cli: &Cli,
     root: &Path,

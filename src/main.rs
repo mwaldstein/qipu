@@ -136,6 +136,17 @@ fn print_top_level_help(include_advanced: bool) {
     println!();
     println!("Usage: qipu [OPTIONS] [COMMAND]");
     println!();
+    print_top_level_command_groups();
+    print_top_level_options();
+    println!();
+    println!("{TOP_LEVEL_HIDDEN_HELP_NOTICE}");
+
+    if include_advanced {
+        print_top_level_advanced_help();
+    }
+}
+
+fn print_top_level_command_groups() {
     println!("Core commands:");
     println!("  capture     Create a new note from stdin");
     println!("  create      Create a new note");
@@ -187,6 +198,9 @@ fn print_top_level_help(include_advanced: bool) {
     println!("  <command> --help");
     println!("              Print help for a command");
     println!();
+}
+
+fn print_top_level_options() {
     println!("Options:");
     println!("      --root <ROOT>            Base directory for resolving the store");
     println!("      --store <STORE>          Explicit store root path [env: QIPU_STORE=]");
@@ -198,13 +212,9 @@ fn print_top_level_help(include_advanced: bool) {
     println!("      --workspace <WORKSPACE>  Target workspace name");
     println!("  -h, --help                   Print help");
     println!("  -V, --version                Print version");
-    println!();
-    println!("{TOP_LEVEL_HIDDEN_HELP_NOTICE}");
+}
 
-    if !include_advanced {
-        return;
-    }
-
+fn print_top_level_advanced_help() {
     println!();
     println!("Hidden commands:");
     println!("  new         Alias for create");

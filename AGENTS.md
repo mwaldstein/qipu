@@ -102,7 +102,7 @@ specs/              # Implementable specifications
 ## CI Enforcement
 
 - **File Size Limit**: 500 lines max per file. No exceptions.
-- **Function Complexity**: 100 lines max per function. Checked by `scripts/check_function_complexity.py`.
+- **Function Complexity**: 100 lines max per function. Enforced by workspace Clippy lint `too_many_lines`.
 - **All Warnings as Errors**: `cargo clippy -- -D warnings` is enforced.
 
 ## Test Patterns

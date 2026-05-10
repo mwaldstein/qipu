@@ -39,65 +39,18 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
     let expr = expr.trim();
 
     if let Some(key) = expr.strip_prefix('!') {
-        let key = key.trim().to_string();
-        if key.is_empty() {
-            return Err(QipuError::UsageError(
-                "custom filter expression '!key' is missing key".to_string(),
-            ));
-        }
-        return Ok(Arc::new(
-            move |custom: &HashMap<String, serde_yaml::Value>| !custom.contains_key(&key),
-        ));
+        return parse_absence_filter(key);
     }
 
-    let (_op_str, op, key, value) = if let Some((k, v)) = expr.split_once(">=") {
-        (">=", ComparisonOp::GreaterEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once('>') {
-        (">", ComparisonOp::Greater, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once("<=") {
-        ("<=", ComparisonOp::LessEqual, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once('<') {
-        ("<", ComparisonOp::Less, k.trim(), v.trim())
-    } else if let Some((k, v)) = expr.split_once('=') {
-        let key = k.trim().to_string();
-        let value = v.trim().to_string();
-        if key.is_empty() {
-            return Err(QipuError::UsageError(
-                "custom filter expression 'key=value' is missing key".to_string(),
-            ));
+    if !expr.contains(">=") && !expr.contains("<=") && !expr.contains('>') && !expr.contains('<') {
+        if let Some((key, value)) = expr.split_once('=') {
+            return parse_equality_filter(key, value);
         }
-        if value.is_empty() {
-            return Err(QipuError::UsageError(
-                "custom filter expression 'key=value' is missing value".to_string(),
-            ));
-        }
-        return Ok(Arc::new(
-            move |custom: &HashMap<String, serde_yaml::Value>| {
-                custom
-                    .get(&key)
-                    .map(|v| match v {
-                        serde_yaml::Value::String(s) => s == &value,
-                        serde_yaml::Value::Number(num) => num.to_string() == value,
-                        serde_yaml::Value::Bool(b) => b.to_string() == value,
-                        _ => false,
-                    })
-                    .unwrap_or(false)
-            },
-        ));
-    } else {
-        let key = expr.trim().to_string();
-        if key.is_empty() {
-            return Err(QipuError::UsageError(
-                "custom filter expression is empty".to_string(),
-            ));
-        }
-        return Ok(Arc::new(
-            move |custom: &HashMap<String, serde_yaml::Value>| custom.contains_key(&key),
-        ));
-    };
+    }
 
-    let key = key.to_string();
-    let value = value.to_string();
+    let Some((op, key, value)) = parse_comparison_parts(expr)? else {
+        return parse_existence_filter(expr);
+    };
 
     if key.is_empty() {
         bail_invalid!(
@@ -113,25 +66,7 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
     }
 
     if is_iso_date(&value) {
-        let compare_fn: fn(&str, &str) -> bool = match op {
-            ComparisonOp::GreaterEqual => |a, b| a >= b,
-            ComparisonOp::Greater => |a, b| a > b,
-            ComparisonOp::LessEqual => |a, b| a <= b,
-            ComparisonOp::Less => |a, b| a < b,
-        };
-
-        return Ok(Arc::new(
-            move |custom: &HashMap<String, serde_yaml::Value>| {
-                custom
-                    .get(&key)
-                    .and_then(|v| match v {
-                        serde_yaml::Value::String(s) => Some(s.as_str()),
-                        _ => None,
-                    })
-                    .map(|actual_value| compare_fn(actual_value, &value))
-                    .unwrap_or(false)
-            },
-        ));
+        return Ok(date_comparison_filter(key, value, op));
     }
 
     let target_value: f64 = value.parse().map_err(|_| {
@@ -144,6 +79,102 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
         )
     })?;
 
+    Ok(numeric_comparison_filter(key, target_value, op))
+}
+
+fn parse_absence_filter(key: &str) -> Result<CustomFilterPredicate> {
+    let key = key.trim().to_string();
+    if key.is_empty() {
+        return Err(QipuError::UsageError(
+            "custom filter expression '!key' is missing key".to_string(),
+        ));
+    }
+    Ok(Arc::new(
+        move |custom: &HashMap<String, serde_yaml::Value>| !custom.contains_key(&key),
+    ))
+}
+
+fn parse_existence_filter(expr: &str) -> Result<CustomFilterPredicate> {
+    let key = expr.trim().to_string();
+    if key.is_empty() {
+        return Err(QipuError::UsageError(
+            "custom filter expression is empty".to_string(),
+        ));
+    }
+    Ok(Arc::new(
+        move |custom: &HashMap<String, serde_yaml::Value>| custom.contains_key(&key),
+    ))
+}
+
+fn parse_equality_filter(key: &str, value: &str) -> Result<CustomFilterPredicate> {
+    let key = key.trim().to_string();
+    let value = value.trim().to_string();
+    if key.is_empty() {
+        return Err(QipuError::UsageError(
+            "custom filter expression 'key=value' is missing key".to_string(),
+        ));
+    }
+    if value.is_empty() {
+        return Err(QipuError::UsageError(
+            "custom filter expression 'key=value' is missing value".to_string(),
+        ));
+    }
+    Ok(Arc::new(
+        move |custom: &HashMap<String, serde_yaml::Value>| {
+            custom
+                .get(&key)
+                .map(|v| match v {
+                    serde_yaml::Value::String(s) => s == &value,
+                    serde_yaml::Value::Number(num) => num.to_string() == value,
+                    serde_yaml::Value::Bool(b) => b.to_string() == value,
+                    _ => false,
+                })
+                .unwrap_or(false)
+        },
+    ))
+}
+
+fn parse_comparison_parts(expr: &str) -> Result<Option<(ComparisonOp, String, String)>> {
+    let comparison = if let Some((k, v)) = expr.split_once(">=") {
+        Some((ComparisonOp::GreaterEqual, k.trim(), v.trim()))
+    } else if let Some((k, v)) = expr.split_once('>') {
+        Some((ComparisonOp::Greater, k.trim(), v.trim()))
+    } else if let Some((k, v)) = expr.split_once("<=") {
+        Some((ComparisonOp::LessEqual, k.trim(), v.trim()))
+    } else if let Some((k, v)) = expr.split_once('<') {
+        Some((ComparisonOp::Less, k.trim(), v.trim()))
+    } else {
+        None
+    };
+
+    Ok(comparison.map(|(op, key, value)| (op, key.to_string(), value.to_string())))
+}
+
+fn date_comparison_filter(key: String, value: String, op: ComparisonOp) -> CustomFilterPredicate {
+    let compare_fn: fn(&str, &str) -> bool = match op {
+        ComparisonOp::GreaterEqual => |a, b| a >= b,
+        ComparisonOp::Greater => |a, b| a > b,
+        ComparisonOp::LessEqual => |a, b| a <= b,
+        ComparisonOp::Less => |a, b| a < b,
+    };
+
+    Arc::new(move |custom: &HashMap<String, serde_yaml::Value>| {
+        custom
+            .get(&key)
+            .and_then(|v| match v {
+                serde_yaml::Value::String(s) => Some(s.as_str()),
+                _ => None,
+            })
+            .map(|actual_value| compare_fn(actual_value, &value))
+            .unwrap_or(false)
+    })
+}
+
+fn numeric_comparison_filter(
+    key: String,
+    target_value: f64,
+    op: ComparisonOp,
+) -> CustomFilterPredicate {
     let compare_fn = match op {
         ComparisonOp::GreaterEqual => |a: f64, b: f64| a >= b,
         ComparisonOp::Greater => |a: f64, b: f64| a > b,
@@ -151,20 +182,18 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
         ComparisonOp::Less => |a: f64, b: f64| a < b,
     };
 
-    Ok(Arc::new(
-        move |custom: &HashMap<String, serde_yaml::Value>| {
-            custom
-                .get(&key)
-                .and_then(|v| match v {
-                    serde_yaml::Value::Number(num) => num.as_f64(),
-                    serde_yaml::Value::String(s) => s.parse::<f64>().ok(),
-                    serde_yaml::Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-                    _ => None,
-                })
-                .map(|actual_value| compare_fn(actual_value, target_value))
-                .unwrap_or(false)
-        },
-    ))
+    Arc::new(move |custom: &HashMap<String, serde_yaml::Value>| {
+        custom
+            .get(&key)
+            .and_then(|v| match v {
+                serde_yaml::Value::Number(num) => num.as_f64(),
+                serde_yaml::Value::String(s) => s.parse::<f64>().ok(),
+                serde_yaml::Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
+                _ => None,
+            })
+            .map(|actual_value| compare_fn(actual_value, target_value))
+            .unwrap_or(false)
+    })
 }
 
 pub fn matches_custom_filter(custom: &HashMap<String, serde_yaml::Value>, expr: &str) -> bool {

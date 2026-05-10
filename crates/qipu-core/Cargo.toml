@@ -9,6 +9,9 @@ repository = "https://github.com/mwaldstein/qipu"
 keywords = ["zettelkasten", "knowledge-management"]
 categories = ["data-structures"]
 
+[lints]
+workspace = true
+
 [dependencies]
 # Serialization
 serde = { version = "1", features = ["derive"] }

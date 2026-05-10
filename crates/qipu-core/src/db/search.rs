@@ -5,6 +5,7 @@ use crate::error::{QipuError, Result};
 use crate::index::types::SearchResult;
 use crate::index::weights::{BODY_WEIGHT, TAGS_WEIGHT, TITLE_WEIGHT};
 use crate::note::NoteType;
+use rusqlite::Row;
 use std::str::FromStr;
 
 fn convert_qipu_error_to_sqlite(e: QipuError) -> rusqlite::Error {
@@ -21,6 +22,169 @@ fn parse_tags(tags_str: &str) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
         .collect()
+}
+
+struct SearchQuery {
+    sql: String,
+    params: Vec<Box<dyn rusqlite::ToSql>>,
+}
+
+struct SearchFilterSql {
+    clause: String,
+    params: Vec<Box<dyn rusqlite::ToSql>>,
+}
+
+fn build_search_filters(
+    type_filter: Option<NoteType>,
+    tag_filter: Option<&str>,
+    min_value: Option<u8>,
+    equivalent_tags: Option<&[String]>,
+) -> SearchFilterSql {
+    let mut clause = String::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    let mut next_param = 5;
+
+    if let Some(note_type) = type_filter {
+        clause.push_str(&format!(" AND n.type = ?{} ", next_param));
+        params.push(Box::new(note_type.to_string()));
+        next_param += 1;
+    }
+
+    if let Some(tags) = equivalent_tags.filter(|tags| !tags.is_empty()) {
+        let placeholders: Vec<String> = tags
+            .iter()
+            .map(|tag| {
+                let placeholder = format!("?{}", next_param);
+                next_param += 1;
+                params.push(Box::new(tag.clone()));
+                placeholder
+            })
+            .collect();
+        clause.push_str(&format!(
+            " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag IN ({})) ",
+            placeholders.join(", ")
+        ));
+    } else if let Some(tag) = tag_filter {
+        clause.push_str(&format!(
+            " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = ?{}) ",
+            next_param
+        ));
+        params.push(Box::new(tag.to_string()));
+        next_param += 1;
+    }
+
+    if let Some(min_val) = min_value {
+        clause.push_str(&format!(" AND COALESCE(n.value, 50) >= ?{} ", next_param));
+        params.push(Box::new(i64::from(min_val)));
+    }
+
+    SearchFilterSql { clause, params }
+}
+
+fn recency_formula(search_config: &SearchConfig) -> String {
+    format!(
+        "({} / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / {}))",
+        search_config.recency_boost_numerator,
+        search_config.recency_decay_days
+    )
+}
+
+fn build_search_sql(where_clause: &str, search_config: &SearchConfig) -> String {
+    let recency_formula = recency_formula(search_config);
+    let weighted_rank = format!(
+        "bm25(notes_fts, {}, {}, {}) + {} AS rank",
+        TITLE_WEIGHT, BODY_WEIGHT, TAGS_WEIGHT, recency_formula
+    );
+
+    format!(
+        r#"
+        WITH ranked_results AS (
+          SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                 n.value, n.created, n.updated, {weighted_rank}
+          FROM notes_fts
+          JOIN notes n ON notes_fts.rowid = n.rowid
+          WHERE notes_fts MATCH ?1 {where_clause}
+
+          UNION ALL
+
+          SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                 n.value, n.created, n.updated, {weighted_rank}
+          FROM notes_fts
+          JOIN notes n ON notes_fts.rowid = n.rowid
+          WHERE notes_fts MATCH ?2 {where_clause}
+
+          UNION ALL
+
+          SELECT n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags,
+                 n.value, n.created, n.updated, {weighted_rank}
+          FROM notes_fts
+          JOIN notes n ON notes_fts.rowid = n.rowid
+          WHERE notes_fts MATCH ?3 {where_clause}
+        )
+        SELECT rowid, id, title, path, type, tags, value, created, updated, MAX(rank) AS rank
+        FROM ranked_results
+        GROUP BY rowid
+        ORDER BY rank DESC
+        LIMIT ?4
+        "#
+    )
+}
+
+fn build_search_query(
+    query: &str,
+    type_filter: Option<NoteType>,
+    tag_filter: Option<&str>,
+    min_value: Option<u8>,
+    equivalent_tags: Option<&[String]>,
+    limit: usize,
+    search_config: &SearchConfig,
+) -> SearchQuery {
+    let fts_query = query.replace('-', " ").replace('"', "\"\"");
+    let title_query = format!("title:{}", &fts_query);
+    let tags_query = format!("tags:{}", &fts_query);
+    let filters = build_search_filters(type_filter, tag_filter, min_value, equivalent_tags);
+
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![
+        Box::new(fts_query),
+        Box::new(title_query),
+        Box::new(tags_query),
+        Box::new(limit as i64),
+    ];
+    params.extend(filters.params);
+
+    SearchQuery {
+        sql: build_search_sql(&filters.clause, search_config),
+        params,
+    }
+}
+
+fn search_result_from_row(row: &Row<'_>) -> rusqlite::Result<SearchResult> {
+    let note_type_str: String = row.get(4)?;
+    let note_type = NoteType::from_str(&note_type_str).map_err(convert_qipu_error_to_sqlite)?;
+    let tags_str: String = row.get(5)?;
+    let value: Option<i64> = row.get(6)?;
+    let created: Option<String> = row.get(7)?;
+    let updated: Option<String> = row.get(8)?;
+
+    Ok(SearchResult {
+        id: row.get(1)?,
+        title: row.get(2)?,
+        note_type,
+        tags: parse_tags(&tags_str),
+        path: row.get(3)?,
+        match_context: None,
+        relevance: row.get(9)?,
+        via: None,
+        value: value.and_then(|v| u8::try_from(v).ok()),
+        created: parse_rfc3339_utc(created),
+        updated: parse_rfc3339_utc(updated),
+    })
+}
+
+fn parse_rfc3339_utc(value: Option<String>) -> Option<chrono::DateTime<chrono::Utc>> {
+    value
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
 }
 
 impl super::Database {
@@ -45,131 +209,16 @@ impl super::Database {
             return Ok(Vec::new());
         }
 
-        // Use unquoted query for AND semantics (terms can appear separately)
-        // Replace hyphens with spaces to avoid FTS5 special character interpretation
-        let fts_query = query.replace('-', " ").replace('"', "\"\"");
-        let title_query = format!("title:{}", &fts_query);
-        let tags_query = format!("tags:{}", &fts_query);
-
-        let limit_i64 = limit as i64;
-
-        // Build filter conditions for type, tag, and value
-        let type_filter_str = type_filter.map(|t| t.to_string());
-        let tag_filter_str = tag_filter.map(|t| t.to_string());
-
-        let mut where_clause = String::new();
-
-        if let Some(ref tf) = type_filter_str {
-            where_clause.push_str(&format!(" AND n.type = '{}' ", tf));
-        }
-
-        // Handle tag filtering with equivalent tags for alias resolution
-        if let Some(equiv_tags) = equivalent_tags {
-            // If multiple equivalent tags exist (alias resolution), use IN clause
-            if equiv_tags.len() > 1 {
-                let tags_list: Vec<String> =
-                    equiv_tags.iter().map(|t| format!("'{}'", t)).collect();
-                where_clause.push_str(&format!(
-                    " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag IN ({})) ",
-                    tags_list.join(", ")
-                ));
-            } else {
-                // Single tag, use simple equality
-                where_clause.push_str(&format!(
-                    " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = '{}') ",
-                    equiv_tags.first().unwrap_or(&tag_filter_str.unwrap_or_default())
-                ));
-            }
-        } else if let Some(ref tg) = tag_filter_str {
-            // Fall back to single tag filter if no equivalent tags provided
-            where_clause.push_str(&format!(
-                " AND EXISTS (SELECT 1 FROM tags WHERE tags.note_id = n.id AND tags.tag = '{}') ",
-                tg
-            ));
-        }
-
-        if let Some(min_val) = min_value {
-            // Use COALESCE to treat NULL values as 50 (the default value)
-            where_clause.push_str(&format!(" AND COALESCE(n.value, 50) >= {} ", min_val));
-        }
-
-        // Recency boost: decay factor for age in days
-        // - Notes updated within configured decay days get boost (default: ~0.1 for 7 days)
-        // - Notes updated 30+ days ago get minimal boost
-        // - Notes updated 90+ days ago get essentially no boost
-        // Formula: recency_boost_numerator / (1 + age_days / recency_decay_days)
-        // BM25 returns negative scores (closer to 0 is better), so we ADD the boost
-        // to make recent notes less negative (higher ranking)
-        // BM25 column weights provide multiplicative field weighting:
-        // - Title: TITLE_WEIGHT (2.0)
-        // - Tags: TAGS_WEIGHT (1.5)
-        // - Body: BODY_WEIGHT (1.0, baseline)
-        // COALESCE handles NULL dates: use updated, then created, then 'now' as fallback
-        let recency_formula = format!(
-            "({} / (1.0 + COALESCE((julianday('now') - julianday(COALESCE(n.updated, n.created))), 0.0) / {}))",
-            search_config.recency_boost_numerator,
-            search_config.recency_decay_days
+        let search_query = build_search_query(
+            query,
+            type_filter,
+            tag_filter,
+            min_value,
+            equivalent_tags,
+            limit,
+            search_config,
         );
-
-        let sql = format!(
-            r#"
-            WITH ranked_results AS (
-              SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) + {} AS rank
-              FROM notes_fts
-              JOIN notes n ON notes_fts.rowid = n.rowid
-              WHERE notes_fts MATCH ?1 {}
-
-              UNION ALL
-
-              SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) + {} AS rank
-              FROM notes_fts
-              JOIN notes n ON notes_fts.rowid = n.rowid
-              WHERE notes_fts MATCH ?2 {}
-
-              UNION ALL
-
-              SELECT
-                n.rowid, n.id, n.title, n.path, n.type, notes_fts.tags, n.value, n.created, n.updated,
-                bm25(notes_fts, {}, {}, {}) + {} AS rank
-              FROM notes_fts
-              JOIN notes n ON notes_fts.rowid = n.rowid
-              WHERE notes_fts MATCH ?3 {}
-            )
-            SELECT rowid, id, title, path, type, tags, value, created, updated, MAX(rank) AS rank
-            FROM ranked_results
-            GROUP BY rowid
-            ORDER BY rank DESC
-            LIMIT ?4
-        "#,
-            TITLE_WEIGHT,
-            BODY_WEIGHT,
-            TAGS_WEIGHT,
-            recency_formula,
-            where_clause,
-            TITLE_WEIGHT,
-            BODY_WEIGHT,
-            TAGS_WEIGHT,
-            recency_formula,
-            where_clause,
-            TITLE_WEIGHT,
-            BODY_WEIGHT,
-            TAGS_WEIGHT,
-            recency_formula,
-            where_clause
-        );
-
-        let params: Vec<Box<dyn rusqlite::ToSql>> = vec![
-            Box::new(fts_query.clone()),
-            Box::new(title_query.clone()),
-            Box::new(tags_query.clone()),
-            Box::new(limit_i64),
-        ];
-
-        let mut stmt = self.conn.prepare(&sql).map_err(|e| {
+        let mut stmt = self.conn.prepare(&search_query.sql).map_err(|e| {
             QipuError::Other(format!(
                 "failed to prepare search query for '{}': {}",
                 query, e
@@ -178,7 +227,8 @@ impl super::Database {
 
         let mut results = Vec::new();
 
-        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> =
+            search_query.params.iter().map(|p| p.as_ref()).collect();
 
         let mut rows = stmt.query(param_refs.as_slice()).map_err(|e| {
             QipuError::Other(format!(
@@ -191,61 +241,9 @@ impl super::Database {
             .next()
             .map_err(|e| QipuError::Other(format!("failed to read search results: {}", e)))?
         {
-            let _rowid: i64 = row
-                .get(0)
-                .map_err(|e| QipuError::Other(format!("failed to get rowid: {}", e)))?;
-            let id: String = row
-                .get(1)
-                .map_err(|e| QipuError::Other(format!("failed to get id: {}", e)))?;
-            let title: String = row
-                .get(2)
-                .map_err(|e| QipuError::Other(format!("failed to get title: {}", e)))?;
-            let path: String = row
-                .get(3)
-                .map_err(|e| QipuError::Other(format!("failed to get path: {}", e)))?;
-            let note_type_str: String = row
-                .get(4)
-                .map_err(|e| QipuError::Other(format!("failed to get type: {}", e)))?;
-            let tags_str: String = row
-                .get(5)
-                .map_err(|e| QipuError::Other(format!("failed to get tags: {}", e)))?;
-            let value: Option<i64> = row
-                .get(6)
-                .map_err(|e| QipuError::Other(format!("failed to get value: {}", e)))?;
-            let created: Option<String> = row
-                .get(7)
-                .map_err(|e| QipuError::Other(format!("failed to get created: {}", e)))?;
-            let updated: Option<String> = row
-                .get(8)
-                .map_err(|e| QipuError::Other(format!("failed to get updated: {}", e)))?;
-            let rank: f64 = row
-                .get(9)
-                .map_err(|e| QipuError::Other(format!("failed to get rank: {}", e)))?;
-
-            let note_type =
-                NoteType::from_str(&note_type_str).map_err(convert_qipu_error_to_sqlite)?;
-            let tags = parse_tags(&tags_str);
-            let value_opt = value.and_then(|v| u8::try_from(v).ok());
-            let created_opt = created
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let updated_opt = updated
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-
-            results.push(SearchResult {
-                id,
-                title,
-                note_type,
-                tags,
-                path,
-                match_context: None,
-                relevance: rank,
-                via: None,
-                value: value_opt,
-                created: created_opt,
-                updated: updated_opt,
-            });
+            results.push(search_result_from_row(row).map_err(|e| {
+                QipuError::Other(format!("failed to read search result row: {}", e))
+            })?);
         }
 
         Ok(results)

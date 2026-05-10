@@ -9,6 +9,7 @@ use std::path::Path;
 use std::time::Instant;
 use tracing::debug;
 
+#[allow(clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     root: &Path,

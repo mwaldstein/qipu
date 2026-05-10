@@ -41,6 +41,7 @@ fn write_note_preserving_updated(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn load_notes(
     store: &Store,
     pack_notes: &[PackNote],

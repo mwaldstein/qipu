@@ -7,6 +7,7 @@ use qipu_core::records::escape_quotes;
 use qipu_core::store::Store;
 
 /// Serialize pack in records format (compact, line-oriented)
+#[allow(clippy::too_many_lines)]
 pub fn serialize_pack_records(
     notes: &[Note],
     links: &[PackLink],

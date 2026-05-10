@@ -29,6 +29,7 @@ use output::{
 };
 
 /// Execute the prime command
+#[allow(clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

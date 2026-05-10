@@ -40,6 +40,7 @@ fn parse_strategy(s: &str) -> Result<LoadStrategy> {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

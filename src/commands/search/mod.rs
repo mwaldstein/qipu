@@ -23,7 +23,7 @@ use qipu_core::store::Store;
 use self::format::{output_human, output_json, output_records};
 
 /// Execute the search command
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

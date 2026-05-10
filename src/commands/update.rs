@@ -18,7 +18,7 @@ use qipu_core::store::guards::move_note_to_placed_path;
 use qipu_core::store::Store;
 
 /// Execute the update command
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

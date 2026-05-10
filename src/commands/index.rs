@@ -20,7 +20,7 @@ use qipu_core::note::{Note, NoteType};
 use qipu_core::store::Store;
 
 /// Execute index command
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

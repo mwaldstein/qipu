@@ -13,7 +13,7 @@ use super::{
 /// Execute the link list command
 ///
 /// Lists all links for a note, with optional direction and type filters.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub fn execute(
     cli: &Cli,
     store: &Store,

@@ -12,6 +12,12 @@ repository = "https://github.com/mwaldstein/qipu"
 keywords = ["knowledge-graph", "knowledge-management", "cli", "llm", "agents"]
 categories = ["command-line-utilities"]
 
+[lints]
+workspace = true
+
+[workspace.lints.clippy]
+too_many_lines = "deny"
+
 [dependencies]
 qipu-core = { version = "0.3.32", path = "crates/qipu-core" }
 

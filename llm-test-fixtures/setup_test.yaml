@@ -5,6 +5,8 @@ tier: 1
 tags: [setup, smoke]
 target:
   binary: qipu
+  env:
+    QIPU_STORE: "${LLM_TOOL_TEST_FIXTURE_DIR}/.qipu"
 task:
   prompt: "In the current directory, initialize qipu if needed. Create a new note titled 'Setup Test Note' about testing."
 setup:

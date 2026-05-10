@@ -5,6 +5,8 @@ tier: 1
 tags: [context, records, retrieval]
 target:
   binary: qipu
+  env:
+    QIPU_STORE: "${LLM_TOOL_TEST_FIXTURE_DIR}/.qipu"
 task:
   prompt: "In the current directory, initialize qipu if needed. Create three notes about programming concepts: one titled 'Rust Ownership' with tags rust and ownership, one titled 'Async Programming' with tags rust and async, and one titled 'Error Handling' with tags rust and errors. Then use qipu context --tag rust --format records --max-chars 12000 to retrieve all three notes."
 evaluation:

@@ -5,6 +5,8 @@ tier: 1
 tags: [capture, smoke]
 target:
   binary: qipu
+  env:
+    QIPU_STORE: "${LLM_TOOL_TEST_FIXTURE_DIR}/.qipu"
 task:
   prompt: "In the current directory, initialize qipu if needed. Capture one literature note titled 'Quantum Entanglement Basics' about quantum entanglement. Include tags physics and quantum, and include at least three basic facts in the body. Then verify the note is searchable."
 evaluation:

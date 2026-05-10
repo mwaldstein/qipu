@@ -21,6 +21,23 @@ pub(super) fn handle_doctor(
     check: Option<&[String]>,
     start: Instant,
 ) -> Result<()> {
+    if !(0.0..=1.0).contains(&threshold) {
+        return Err(QipuError::UsageError(
+            "invalid --threshold; expected a value from 0.0 to 1.0\n\nUse: qipu doctor --duplicates --threshold 0.85\nOther basic flags: --fix, --check ontology.\nRun `qipu doctor --help` for full and advanced details."
+                .to_string(),
+        ));
+    }
+    if let Some(checks) = check {
+        for value in checks {
+            if value != "ontology" {
+                return Err(QipuError::UsageError(format!(
+                    "unknown doctor check: {}\n\nUse: qipu doctor --check ontology\nOther basic flags: --fix, --duplicates, --threshold.\nRun `qipu doctor --help` for full and advanced details.",
+                    value
+                )));
+            }
+        }
+    }
+
     // For doctor, always use unchecked open to avoid auto-repair
     // We want to detect issues, not fix them automatically
 

@@ -29,9 +29,17 @@ pub fn parse_link_type(s: &str) -> std::result::Result<LinkType, String> {
 
 /// Parse minimum value (must be 0-100)
 pub fn parse_min_value(s: &str) -> std::result::Result<u8, String> {
-    let value: u8 = s.parse().map_err(|e| format!("Invalid value: {}", e))?;
+    let value: u8 = s.parse().map_err(|_| {
+        format!(
+            "invalid value \"{}\" for value score; expected an integer 0-100, not words like high/medium/low",
+            s
+        )
+    })?;
     if value > 100 {
-        Err("Value must be between 0 and 100".to_string())
+        Err(format!(
+            "invalid value \"{}\" for value score; expected an integer 0-100",
+            s
+        ))
     } else {
         Ok(value)
     }
@@ -43,7 +51,7 @@ pub fn parse_bool(s: &str) -> std::result::Result<bool, String> {
         "true" | "1" | "yes" | "y" => Ok(true),
         "false" | "0" | "no" | "n" => Ok(false),
         _ => Err(format!(
-            "Invalid boolean value: {}. Use true/false, 1/0, yes/no, or y/n",
+            "invalid --verified \"{}\"; use true/false, 1/0, yes/no, or y/n",
             s
         )),
     }

@@ -11,6 +11,7 @@ pub enum ValueCommands {
         id_or_path: String,
 
         /// Value score (0-100)
+        #[arg(value_parser = crate::cli::parse::parse_min_value)]
         score: u8,
     },
 

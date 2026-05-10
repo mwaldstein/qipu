@@ -60,6 +60,17 @@ fn test_link_materialize_wiki_links() {
 }
 
 #[test]
+fn test_link_materialize_note_flag_shows_guidance() {
+    qipu()
+        .args(["link", "materialize", "--note", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu link materialize <id-or-path>",
+        ));
+}
+
+#[test]
 fn test_link_materialize_dry_run() {
     let dir = setup_test_dir();
 

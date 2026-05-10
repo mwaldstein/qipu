@@ -1,6 +1,7 @@
 //! Tests for compaction status command
 
 use crate::support::{qipu, setup_test_dir};
+use predicates::prelude::*;
 use std::fs;
 
 #[test]
@@ -97,4 +98,13 @@ This digest summarizes the source note."#;
     assert!(stdout.contains("H qipu=1 records=1 mode=compact.status"));
     assert!(stdout.contains("note=qp-source"));
     assert!(stdout.contains("compactor qp-digest"));
+}
+
+#[test]
+fn test_compact_status_note_flag_shows_guidance() {
+    qipu()
+        .args(["compact", "status", "--note", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu compact status <id>"));
 }

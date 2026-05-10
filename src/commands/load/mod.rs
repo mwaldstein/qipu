@@ -33,11 +33,10 @@ fn parse_strategy(s: &str) -> Result<LoadStrategy> {
         "skip" => Ok(LoadStrategy::Skip),
         "overwrite" => Ok(LoadStrategy::Overwrite),
         "merge-links" => Ok(LoadStrategy::MergeLinks),
-        _ => Err(QipuError::unsupported(
-            "strategy",
-            s,
-            "skip, overwrite, merge-links",
-        )),
+        _ => Err(QipuError::UsageError(format!(
+            "unknown load strategy: {}\n\nUse: qipu load <pack-file> --strategy merge-links\nOther strategies: skip, overwrite.\nRun `qipu load --help` for full and advanced details.",
+            s
+        ))),
     }
 }
 
@@ -50,13 +49,19 @@ pub fn execute(
 ) -> Result<()> {
     let strategy = parse_strategy(strategy)?;
 
-    let pack_content = std::fs::read_to_string(pack_file)
-        .map_err(|e| QipuError::io_operation("read", "pack file", e))?;
+    let pack_content = std::fs::read_to_string(pack_file).map_err(|e| {
+        QipuError::UsageError(format!(
+            "failed to read pack file {}: {}\n\n{}",
+            pack_file.display(),
+            e,
+            load_usage_guidance()
+        ))
+    })?;
 
     let pack_data = if deserialize::looks_like_json(&pack_content) {
-        deserialize::parse_json_pack(&pack_content)?
+        deserialize::parse_json_pack(&pack_content).map_err(add_load_guidance)?
     } else {
-        deserialize::parse_records_pack(&pack_content)?
+        deserialize::parse_records_pack(&pack_content).map_err(add_load_guidance)?
     };
 
     if pack_data.header.version != "1.0" {
@@ -158,4 +163,12 @@ pub fn execute(
     }
 
     Ok(())
+}
+
+fn add_load_guidance(error: QipuError) -> QipuError {
+    QipuError::UsageError(format!("{}\n\n{}", error, load_usage_guidance()))
+}
+
+fn load_usage_guidance() -> &'static str {
+    "Use: qipu load <pack-file>\nCreate a pack with: qipu dump -o notes.pack\nRun `qipu load --help` for full and advanced details."
 }

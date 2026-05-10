@@ -1,6 +1,7 @@
 //! Tests for link command
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
+use predicates::prelude::*;
 use std::fs;
 
 #[test]
@@ -80,6 +81,20 @@ fn test_link_path_with_compaction() {
     assert!(stdout.contains(&end_id));
     assert!(!stdout.contains(&middle_id));
     assert!(stdout.contains("Path length: 2 hop"));
+}
+
+#[test]
+fn test_link_path_invalid_direction_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "path", "qp-a", "qp-b", "--direction", "sideways"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "qipu link path <from> <to> --direction",
+        ));
 }
 
 #[test]

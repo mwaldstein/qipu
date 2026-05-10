@@ -30,9 +30,10 @@ pub(super) fn handle_link(
             inline_only,
             max_chars,
         } => {
-            let dir = direction
-                .parse::<qipu_core::graph::Direction>()
-                .map_err(QipuError::Other)?;
+            let dir = parse_link_direction(
+                direction,
+                "qipu link list <id-or-path> --direction out|in|both",
+            )?;
             commands::link::list::execute(
                 cli,
                 &store,
@@ -47,12 +48,14 @@ pub(super) fn handle_link(
             Ok(())
         }
         LinkCommands::Add { from, to, r#type } => {
-            commands::link::add::execute(cli, &store, from, to, r#type.clone())?;
+            let link_type = r#type.clone().ok_or_else(|| link_type_required("add"))?;
+            commands::link::add::execute(cli, &store, from, to, link_type)?;
             trace_command!(cli, start, "execute_command");
             Ok(())
         }
         LinkCommands::Remove { from, to, r#type } => {
-            commands::link::remove::execute(cli, &store, from, to, r#type.clone())?;
+            let link_type = r#type.clone().ok_or_else(|| link_type_required("remove"))?;
+            commands::link::remove::execute(cli, &store, from, to, link_type)?;
             trace_command!(cli, start, "execute_command");
             Ok(())
         }
@@ -71,11 +74,10 @@ pub(super) fn handle_link(
             min_value,
             ignore_value,
         } => {
-            let dir = direction
-                .parse::<qipu_core::graph::Direction>()
-                .map_err(|e| {
-                    QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
-                })?;
+            let dir = parse_link_direction(
+                direction,
+                "qipu link tree <id-or-path> --direction out|in|both",
+            )?;
             let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
                 max_hops: qipu_core::graph::HopCost::from(*max_hops),
@@ -111,11 +113,10 @@ pub(super) fn handle_link(
             min_value,
             ignore_value,
         } => {
-            let dir = direction
-                .parse::<qipu_core::graph::Direction>()
-                .map_err(|e| {
-                    QipuError::UsageError(format!("invalid --direction '{}': {}", direction, e))
-                })?;
+            let dir = parse_link_direction(
+                direction,
+                "qipu link path <from> <to> --direction out|in|both",
+            )?;
             let opts = qipu_core::graph::TreeOptions {
                 direction: dir,
                 max_hops: qipu_core::graph::HopCost::from(*max_hops),
@@ -159,6 +160,24 @@ pub(super) fn handle_link(
             Ok(())
         }
     }
+}
+
+fn link_type_required(command: &str) -> QipuError {
+    QipuError::UsageError(format!(
+        "link type required\n\nUse: qipu link {} <from> <to> --type <type>\nValid types: related, derived-from, supports, contradicts, part-of, answers, refines, same-as, alias-of, follows\nRun `qipu link --help` for full and advanced details.",
+        command
+    ))
+}
+
+fn parse_link_direction(direction: &str, usage: &str) -> Result<qipu_core::graph::Direction> {
+    direction
+        .parse::<qipu_core::graph::Direction>()
+        .map_err(|_| {
+            QipuError::UsageError(format!(
+                "invalid --direction '{}'. Use one of: out, in, both.\n\nUse: {}",
+                direction, usage
+            ))
+        })
 }
 
 fn parse_hidden_link_add(

@@ -99,7 +99,17 @@ pub fn execute(
             }
         } else if let Some(note_id) = from_note {
             let index = IndexBuilder::new(&primary_store).build()?;
-            copy_graph_slice(&primary_store, &index, &[note_id.to_string()], &ws_store)?;
+            copy_graph_slice(&primary_store, &index, &[note_id.to_string()], &ws_store).map_err(
+                |e| match e {
+                    qipu_core::error::QipuError::NoteNotFound { .. } => {
+                        qipu_core::error::QipuError::UsageError(format!(
+                            "{}\n\nUse: qipu workspace new {} --from-note <id>\nFind note IDs with: qipu list\nRun `qipu workspace new --help` for full and advanced details.",
+                            e, name
+                        ))
+                    }
+                    other => other,
+                },
+            )?;
         } else if let Some(query) = from_query {
             // Collect all notes matching the query, then perform graph slice from them
             let notes = primary_store.list_notes()?;

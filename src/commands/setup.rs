@@ -60,8 +60,9 @@ pub fn execute(
         let valid = ["agents-md", "cursor"];
         if !valid.contains(&normalized.as_str()) {
             bail_usage!(format!(
-                "Unknown integration: '{}'. Run `qipu setup --list` to see available integrations.",
-                tool_name
+                "Unknown integration: '{}'\n\n{}",
+                tool_name,
+                setup_usage_guidance()
             ));
         }
         if check {
@@ -92,9 +93,11 @@ pub fn execute(
     }
 
     // No flags specified - show usage
-    Err(QipuError::UsageError(
-        "Specify --list, --print, or provide a tool name. See `qipu setup --help`".to_string(),
-    ))
+    Err(QipuError::UsageError(setup_usage_guidance().to_string()))
+}
+
+fn setup_usage_guidance() -> &'static str {
+    "Use: qipu setup agents-md\nOther basic modes: --list, --print, --check, --remove.\nRun `qipu setup --help` for full and advanced details."
 }
 
 /// Execute the onboard command - display minimal AGENTS.md snippet

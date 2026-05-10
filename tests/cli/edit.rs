@@ -73,6 +73,16 @@ fn test_edit_fails_without_editor() {
 }
 
 #[test]
+fn test_edit_missing_id_shows_short_usage_guidance() {
+    qipu()
+        .arg("edit")
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("edit requires a note id or path"))
+        .stderr(predicate::str::contains("Use: qipu edit <id-or-path>"));
+}
+
+#[test]
 fn test_edit_with_editor_override() {
     let dir = setup_test_dir();
 

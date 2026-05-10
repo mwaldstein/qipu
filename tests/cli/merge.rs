@@ -56,6 +56,23 @@ fn test_merge_notes_basic() {
 }
 
 #[test]
+fn test_merge_same_id_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["merge", "qp-a", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu merge <source-id> <target-id>",
+        ))
+        .stderr(predicate::str::contains(
+            "Source and target must be different notes",
+        ));
+}
+
+#[test]
 fn test_merge_json_format() {
     let dir = setup_test_dir();
 

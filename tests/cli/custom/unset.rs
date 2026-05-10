@@ -1,5 +1,6 @@
 use crate::support::setup_test_dir;
 use crate::support::{extract_id, qipu};
+use predicates::prelude::*;
 
 #[test]
 fn test_custom_unset_json() {
@@ -58,4 +59,27 @@ fn test_custom_unset_json_nonexistent_field() {
         ])
         .assert()
         .failure();
+}
+
+#[test]
+fn test_custom_unset_missing_field_shows_guidance() {
+    let dir = setup_test_dir();
+
+    let output = qipu()
+        .current_dir(dir.path())
+        .args(["create", "Test Note"])
+        .output()
+        .unwrap();
+    let note_id = extract_id(&output);
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["custom", "unset", &note_id, "missing"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "custom field \"missing\" not found",
+        ))
+        .stderr(predicate::str::contains("qipu custom show"))
+        .stderr(predicate::str::contains("qipu custom set"));
 }

@@ -56,6 +56,20 @@ fn test_link_tree_direction_out() {
 }
 
 #[test]
+fn test_link_tree_invalid_direction_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "tree", "qp-a", "--direction", "sideways"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "qipu link tree <id-or-path> --direction",
+        ));
+}
+
+#[test]
 fn test_link_tree_direction_in() {
     let dir = setup_test_dir();
 

@@ -1,4 +1,5 @@
 use crate::support::qipu;
+use predicates::prelude::*;
 use tempfile::tempdir;
 
 #[test]
@@ -94,6 +95,46 @@ fn test_dump_by_tag() {
     assert!(ids.contains(&"note-a"));
     assert!(ids.contains(&"note-b"));
     assert!(!ids.contains(&"note-c"));
+}
+
+#[test]
+fn test_dump_id_flag_shows_selector_guidance() {
+    qipu()
+        .args(["dump", "--id", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu dump --note <id>"))
+        .stderr(predicate::str::contains(
+            "Positional FILE is the pack output path",
+        ));
+}
+
+#[test]
+fn test_dump_positional_existing_note_shows_output_file_guidance() {
+    let dir = tempdir().unwrap();
+
+    qipu()
+        .arg("init")
+        .env("QIPU_STORE", dir.path())
+        .assert()
+        .success();
+    qipu()
+        .args(["create", "--id", "note-a", "Note A"])
+        .env("QIPU_STORE", dir.path())
+        .assert()
+        .success();
+
+    qipu()
+        .args(["dump", "note-a"])
+        .env("QIPU_STORE", dir.path())
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "positional argument is an output file",
+        ))
+        .stderr(predicate::str::contains(
+            "Use: qipu dump --note note-a --output <file>",
+        ));
 }
 
 #[test]

@@ -17,6 +17,16 @@ fn test_context_no_selection() {
 }
 
 #[test]
+fn test_context_id_flag_shows_selector_guidance() {
+    qipu()
+        .args(["context", "--id", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu context --note <id>"))
+        .stderr(predicate::str::contains("Other selectors"));
+}
+
+#[test]
 fn test_context_by_note_id() {
     let dir = setup_test_dir();
 

@@ -137,6 +137,31 @@ fn test_unknown_format_exit_code_2() {
 }
 
 #[test]
+fn test_unknown_format_shows_short_usage_guidance() {
+    qipu()
+        .args(["--format", "yaml", "status"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu --format json status"))
+        .stderr(predicate::str::contains("Other formats: human, records"));
+}
+
+#[test]
+fn test_missing_subcommand_shows_short_usage_guidance() {
+    qipu()
+        .arg("store")
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu store stats"));
+
+    qipu()
+        .arg("workspace")
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu workspace list"));
+}
+
+#[test]
 fn test_unknown_argument_json_usage_error() {
     qipu()
         .args(["--format", "json", "list", "--bogus-flag"]) // parse/usage error

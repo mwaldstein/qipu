@@ -8,6 +8,7 @@ mod dump;
 mod duplicates;
 mod edit;
 mod export;
+mod hooks;
 mod inbox;
 mod index;
 mod init;

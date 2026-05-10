@@ -31,6 +31,34 @@ fn test_doctor_healthy_store() {
 }
 
 #[test]
+fn test_doctor_invalid_check_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--check", "typo"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu doctor --check ontology",
+        ));
+}
+
+#[test]
+fn test_doctor_invalid_threshold_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["doctor", "--duplicates", "--threshold", "2"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu doctor --duplicates --threshold 0.85",
+        ));
+}
+
+#[test]
 fn test_doctor_json_format() {
     let dir = setup_test_dir();
 

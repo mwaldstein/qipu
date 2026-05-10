@@ -390,6 +390,32 @@ fn test_update_body_from_stdin() {
 }
 
 #[test]
+fn test_update_missing_id_shows_short_usage_guidance() {
+    qipu()
+        .args(["update", "--title", "New"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "update requires a note id or path",
+        ))
+        .stderr(predicate::str::contains("Replace body: printf"));
+}
+
+#[test]
+fn test_update_body_flag_shows_stdin_guidance() {
+    qipu()
+        .args(["update", "qp-test", "--body", "New text"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "update reads replacement body from stdin",
+        ))
+        .stderr(predicate::str::contains(
+            "printf \"new text\" | qipu update",
+        ));
+}
+
+#[test]
 fn test_update_multiple_fields() {
     let dir = setup_test_dir();
 

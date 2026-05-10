@@ -145,7 +145,8 @@ fn test_execute_no_args() {
 
     match result.unwrap_err() {
         QipuError::UsageError(msg) => {
-            assert!(msg.contains("Specify --list, --print, or provide a tool name"));
+            assert!(msg.contains("Use: qipu setup agents-md"));
+            assert!(msg.contains("Other basic modes: --list, --print, --check, --remove."));
         }
         _ => panic!("Expected UsageError"),
     }

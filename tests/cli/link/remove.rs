@@ -49,6 +49,21 @@ fn test_link_remove() {
 }
 
 #[test]
+fn test_link_remove_requires_type_with_short_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "remove", "qp-a", "qp-b"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("link type required"))
+        .stderr(predicate::str::contains(
+            "qipu link remove <from> <to> --type <type>",
+        ));
+}
+
+#[test]
 fn test_link_add_remove_updates_database() {
     let dir = setup_test_dir();
 

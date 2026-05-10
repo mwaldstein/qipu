@@ -42,6 +42,17 @@ fn test_show_nonexistent() {
 }
 
 #[test]
+fn test_show_missing_id_shows_short_usage_guidance() {
+    qipu()
+        .arg("show")
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("show requires a note id or path"))
+        .stderr(predicate::str::contains("Use: qipu show <id-or-path>"))
+        .stderr(predicate::str::contains("Find notes: qipu list"));
+}
+
+#[test]
 fn test_show_links_no_links() {
     let dir = setup_test_dir();
 

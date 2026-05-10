@@ -41,7 +41,7 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
     if let Some(key) = expr.strip_prefix('!') {
         let key = key.trim().to_string();
         if key.is_empty() {
-            return Err(QipuError::Other(
+            return Err(QipuError::UsageError(
                 "custom filter expression '!key' is missing key".to_string(),
             ));
         }
@@ -62,8 +62,13 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
         let key = k.trim().to_string();
         let value = v.trim().to_string();
         if key.is_empty() {
-            return Err(QipuError::Other(
+            return Err(QipuError::UsageError(
                 "custom filter expression 'key=value' is missing key".to_string(),
+            ));
+        }
+        if value.is_empty() {
+            return Err(QipuError::UsageError(
+                "custom filter expression 'key=value' is missing value".to_string(),
             ));
         }
         return Ok(Arc::new(
@@ -82,7 +87,7 @@ pub fn parse_custom_filter_expression(expr: &str) -> Result<CustomFilterPredicat
     } else {
         let key = expr.trim().to_string();
         if key.is_empty() {
-            return Err(QipuError::Other(
+            return Err(QipuError::UsageError(
                 "custom filter expression is empty".to_string(),
             ));
         }

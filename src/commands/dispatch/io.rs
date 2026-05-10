@@ -81,18 +81,36 @@ pub(super) fn handle_dump(params: DumpParams) -> Result<()> {
     let dir = params
         .direction
         .parse::<commands::link::Direction>()
-        .map_err(QipuError::Other)?;
+        .map_err(|_| {
+            QipuError::UsageError(format!(
+                "invalid --direction '{}'. Use one of: out, in, both.\n\nUse: qipu dump --direction out|in|both",
+                params.direction
+            ))
+        })?;
 
     let resolved_output = match (params.file, params.output) {
         (Some(_), Some(_)) => {
-            return Err(QipuError::Other(
-                "both positional file and --output were provided; use one".to_string(),
+            return Err(QipuError::UsageError(
+                "both positional file and --output were provided; use one\n\nUse: qipu dump --note <id> --output notes.pack"
+                    .to_string(),
             ))
         }
         (Some(file_path), None) => Some(file_path.as_path()),
         (None, Some(output_path)) => Some(output_path.as_path()),
         (None, None) => None,
     };
+
+    if params.note_ids.is_empty() {
+        if let Some(file_path) = params.file {
+            let value = file_path.to_string_lossy();
+            if store.note_exists(&value) {
+                return Err(QipuError::UsageError(format!(
+                    "positional argument is an output file, not a note selector.\n\nUse: qipu dump --note {} --output <file>",
+                    value
+                )));
+            }
+        }
+    }
 
     commands::dump::execute(
         params.cli,

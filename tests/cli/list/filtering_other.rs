@@ -101,6 +101,22 @@ fn test_list_filter_by_tag_no_matches() {
 }
 
 #[test]
+fn test_list_invalid_custom_filter_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--custom", "priority>high"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("invalid --custom filter"))
+        .stderr(predicate::str::contains(
+            "Use: qipu list --custom key=value",
+        ))
+        .stderr(predicate::str::contains("key>=2024-01-01"));
+}
+
+#[test]
 fn test_list_filter_by_since() {
     let dir = setup_test_dir();
 

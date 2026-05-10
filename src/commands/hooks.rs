@@ -36,6 +36,10 @@ const AVAILABLE_HOOKS: &[(&str, &str)] = &[
 /// Qipu marker in hooks for identification
 const QIPU_HOOK_MARKER: &str = "# QIPU HOOK - Managed by qipu hooks command";
 
+fn hooks_usage_guidance() -> &'static str {
+    "Use: qipu hooks install\nOther basic forms: qipu hooks install pre-commit, qipu hooks list, qipu hooks status.\nRun `qipu hooks --help` for full and advanced details."
+}
+
 /// Get the git hooks directory
 fn get_git_hooks_dir() -> Result<PathBuf> {
     let output = std::process::Command::new("git")
@@ -47,7 +51,9 @@ fn get_git_hooks_dir() -> Result<PathBuf> {
         })?;
 
     if !output.status.success() {
-        return Err(QipuError::Other("Not in a git repository".to_string()));
+        return Err(QipuError::UsageError(
+            "Not in a git repository.\n\nUse: git init\nThen: qipu hooks install\nRun `qipu hooks --help` for full and advanced details.".to_string(),
+        ));
     }
 
     let path = String::from_utf8(output.stdout)
@@ -132,13 +138,14 @@ fn execute_install(cli: &Cli, hook: Option<&str>, force: bool) -> Result<()> {
         // Validate single hook name
         if !AVAILABLE_HOOKS.iter().any(|(name, _)| *name == h) {
             return Err(QipuError::UsageError(format!(
-                "Unknown hook: '{}'. Available hooks: {}",
+                "Unknown hook: '{}'. Available hooks: {}\n\n{}",
                 h,
                 AVAILABLE_HOOKS
                     .iter()
                     .map(|(n, _)| *n)
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", "),
+                hooks_usage_guidance()
             )));
         }
         vec![h]
@@ -160,8 +167,9 @@ fn execute_install(cli: &Cli, hook: Option<&str>, force: bool) -> Result<()> {
                 continue;
             } else {
                 // Non-qipu hook exists
-                return Err(QipuError::Other(format!(
-                    "Hook {} already exists and is not managed by qipu. Use --force to overwrite.",
+                return Err(QipuError::UsageError(format!(
+                    "Hook {} already exists and is not managed by qipu.\n\nUse: qipu hooks install {} --force\nRun `qipu hooks --help` for full and advanced details.",
+                    hook_name,
                     hook_name
                 )));
             }
@@ -220,13 +228,14 @@ fn execute_run(_cli: &Cli, hook: &str, _args: &[String]) -> Result<()> {
     // Validate hook name
     if !AVAILABLE_HOOKS.iter().any(|(name, _)| *name == hook) {
         return Err(QipuError::UsageError(format!(
-            "Unknown hook: '{}'. Available hooks: {}",
+            "Unknown hook: '{}'. Available hooks: {}\n\n{}",
             hook,
             AVAILABLE_HOOKS
                 .iter()
                 .map(|(n, _)| *n)
                 .collect::<Vec<_>>()
-                .join(", ")
+                .join(", "),
+            hooks_usage_guidance()
         )));
     }
 
@@ -291,13 +300,14 @@ fn execute_uninstall(cli: &Cli, hook: Option<&str>) -> Result<()> {
     let hooks_to_uninstall: Vec<&str> = if let Some(h) = hook {
         if !AVAILABLE_HOOKS.iter().any(|(name, _)| *name == h) {
             return Err(QipuError::UsageError(format!(
-                "Unknown hook: '{}'. Available hooks: {}",
+                "Unknown hook: '{}'. Available hooks: {}\n\n{}",
                 h,
                 AVAILABLE_HOOKS
                     .iter()
                     .map(|(n, _)| *n)
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", "),
+                hooks_usage_guidance()
             )));
         }
         vec![h]

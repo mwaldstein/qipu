@@ -48,6 +48,20 @@ fn test_list_filter_by_min_value_all_match() {
 }
 
 #[test]
+fn test_list_min_value_words_show_numeric_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["list", "--min-value", "high"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "expected an integer 0-100, not words like high/medium/low",
+        ));
+}
+
+#[test]
 fn test_list_filter_by_min_value_some_match() {
     let dir = setup_test_dir();
 

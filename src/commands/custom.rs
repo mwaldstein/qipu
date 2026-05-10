@@ -136,10 +136,7 @@ pub fn get_custom_field(
                 }
             )
         }
-        None => Err(QipuError::UsageError(format!(
-            "Custom field '{}' not found on note {}",
-            key, note_id
-        ))),
+        None => Err(custom_field_not_found(key, &note_id)),
     }
 }
 
@@ -252,11 +249,15 @@ pub fn unset_custom_field(
         }
         Ok(())
     } else {
-        Err(QipuError::UsageError(format!(
-            "Custom field '{}' not found on note {}",
-            key, note_id
-        )))
+        Err(custom_field_not_found(key, &note_id))
     }
+}
+
+fn custom_field_not_found(key: &str, note_id: &str) -> QipuError {
+    QipuError::UsageError(format!(
+        "custom field \"{}\" not found on {}\n\nList fields: qipu custom show {}\nSet it: qipu custom set {} {} <value>",
+        key, note_id, note_id, note_id, key
+    ))
 }
 
 #[cfg(test)]

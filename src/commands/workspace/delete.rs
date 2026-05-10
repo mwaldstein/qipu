@@ -23,7 +23,10 @@ pub fn execute(cli: &Cli, root: &Path, name: &str, force: bool) -> Result<()> {
                 for change in changes {
                     tracing::warn!("  - {}", change);
                 }
-                bail_usage!("Use --force to delete anyway");
+                bail_usage!(format!(
+                    "Use: qipu workspace delete {} --force\nThis discards unmerged workspace changes.\nRun `qipu workspace delete --help` for full and advanced details.",
+                    name
+                ));
             }
         }
     }

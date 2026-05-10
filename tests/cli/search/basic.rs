@@ -33,6 +33,23 @@ fn test_search_missing_query_shows_short_usage_guidance() {
 }
 
 #[test]
+fn test_search_invalid_sort_shows_short_usage_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["search", "--sort", "invalid", "body"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "invalid --sort \"invalid\"; valid values: relevance, value",
+        ))
+        .stderr(predicate::str::contains(
+            "Use: qipu search --sort value \"query\"",
+        ));
+}
+
+#[test]
 fn test_search_finds_title() {
     let dir = setup_test_dir();
 

@@ -51,6 +51,16 @@ fn test_export_tag_selection_deterministic_ordering() {
 }
 
 #[test]
+fn test_export_positional_note_shows_selector_guidance() {
+    qipu()
+        .args(["export", "qp-a"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu export --note <id>"))
+        .stderr(predicate::str::contains("Other selectors"));
+}
+
+#[test]
 fn test_export_tag_selection_with_same_created_at() {
     let dir = setup_test_dir();
 

@@ -40,6 +40,7 @@ fn main() -> ExitCode {
     let cli = match parse_cli() {
         Ok(cli) => cli,
         Err(err) => {
+            let guidance = custom_parse_error_guidance(&err);
             // `--format` is a global flag, but clap may fail parsing before we can
             // inspect `Cli.format`. If the user requested JSON output, emit a
             // structured error envelope.
@@ -53,7 +54,7 @@ fn main() -> ExitCode {
                     | clap::error::ErrorKind::InvalidSubcommand
                     | clap::error::ErrorKind::UnknownArgument
                     | clap::error::ErrorKind::MissingRequiredArgument => {
-                        QipuError::UsageError(err.to_string())
+                        QipuError::UsageError(guidance.unwrap_or_else(|| err.to_string()))
                     }
                     clap::error::ErrorKind::ArgumentConflict => {
                         // This includes duplicate `--format`.
@@ -64,6 +65,11 @@ fn main() -> ExitCode {
 
                 eprintln!("{}", qipu_error.to_json());
                 return ExitCode::from(qipu_error.exit_code() as u8);
+            }
+
+            if let Some(guidance) = guidance {
+                eprintln!("error: {}", guidance);
+                return ExitCode::from(QipuExitCode::Usage as u8);
             }
 
             err.exit();
@@ -243,4 +249,104 @@ fn argv_requests_json() -> bool {
         }
     }
     false
+}
+
+fn custom_parse_error_guidance(err: &clap::Error) -> Option<String> {
+    use clap::error::ErrorKind;
+
+    if matches!(
+        err.kind(),
+        ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+    ) {
+        return None;
+    }
+
+    let args: Vec<String> = env::args().skip(1).collect();
+    let command_args: Vec<&str> = args
+        .iter()
+        .filter(|arg| !matches!(arg.as_str(), "--format" | "human" | "json" | "records"))
+        .map(String::as_str)
+        .collect();
+
+    if args
+        .windows(2)
+        .any(|w| w[0] == "--format" && w[1] == "yaml")
+        || args.iter().any(|arg| arg == "--format=yaml")
+    {
+        return Some(
+            "unknown format: yaml (expected: human, json, or records)\n\nUse: qipu --format json status\nOther formats: human, records.\nRun `qipu status --help` for command details."
+                .to_string(),
+        );
+    }
+
+    match command_args.as_slice() {
+        ["show"] => Some(note_id_guidance("show", "qipu show <id-or-path>")),
+        ["edit"] => Some(note_id_guidance("edit", "qipu edit <id-or-path>")),
+        ["update", ..] if err.kind() == ErrorKind::MissingRequiredArgument => {
+            Some("update requires a note id or path\n\nUse: qipu update <id-or-path> --title \"Title\"\nReplace body: printf \"new body\" | qipu update <id-or-path>\nFind notes: qipu list OR qipu search \"query\"\nRun `qipu update --help` for full and advanced details.".to_string())
+        }
+        ["verify"] => Some(note_id_guidance("verify", "qipu verify <id-or-path>")),
+        ["link", "add", ..] | ["link", "remove", ..]
+            if command_args.iter().any(|arg| matches!(*arg, "--from" | "--to")) =>
+        {
+            Some("use positional note IDs\n\nUse: qipu link add <from> <to> --type <type>\nRun `qipu link --help` for full and advanced details.".to_string())
+        }
+        ["context", ..] if command_args.contains(&"--id") => Some(
+            "Use: qipu context --note <id>\nOther selectors: --tag, --moc/--collection-root, --query, --walk.\nRun `qipu context --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["export", value, ..] if !value.starts_with('-') => Some(
+            "Use: qipu export --note <id> [--output <file>]\nOther selectors: --tag, --moc/--collection-root, --query.\nRun `qipu export --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["dump", ..] if command_args.contains(&"--id") => Some(
+            "Use: qipu dump --note <id> [--output <file>]\nPositional FILE is the pack output path, not a note selector.\nRun `qipu dump --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["link", "materialize", ..] if command_args.contains(&"--note") => Some(
+            "Use: qipu link materialize <id-or-path> [--type <type>] [--dry-run]\nRun `qipu link materialize --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["compact", "apply", ..] if command_args.contains(&"--digest") => Some(
+            "Use: qipu compact apply <digest-id> --note <source-id> [--note <source-id>...]\nRun `qipu compact apply --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["compact", "show", ..] if command_args.contains(&"--digest") => Some(
+            "Use: qipu compact show <digest-id>\nRun `qipu compact show --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["compact", "status", ..] if command_args.contains(&"--note") => Some(
+            "Use: qipu compact status <id>\nRun `qipu compact status --help` for full and advanced details."
+                .to_string(),
+        ),
+        ["store"] => Some(missing_subcommand_guidance("store", "qipu store stats")),
+        ["ontology"] => Some(missing_subcommand_guidance("ontology", "qipu ontology show")),
+        ["telemetry"] => Some(missing_subcommand_guidance("telemetry", "qipu telemetry status")),
+        ["hooks"] => Some(missing_subcommand_guidance("hooks", "qipu hooks status")),
+        ["workspace"] => Some(missing_subcommand_guidance("workspace", "qipu workspace list")),
+        ["capture", value, ..] if !value.starts_with('-') => Some(capture_usage_guidance()),
+        ["capture", ..] if command_args.contains(&"--body") => Some(capture_usage_guidance()),
+        ["update", _, "--body", ..] | ["update", _, "-c", ..] => Some(
+            "update reads replacement body from stdin\n\nUse: printf \"new text\" | qipu update <id-or-path>\nTo update metadata only: qipu update <id-or-path> --title \"Title\" --tag tag\nRun `qipu update --help` for full and advanced details."
+                .to_string(),
+        ),
+        _ => None,
+    }
+}
+
+fn note_id_guidance(command: &str, usage: &str) -> String {
+    format!(
+        "{command} requires a note id or path\n\nUse: {usage}\nFind notes: qipu list OR qipu search \"query\"\nRun `qipu {command} --help` for full and advanced details."
+    )
+}
+
+fn missing_subcommand_guidance(command: &str, usage: &str) -> String {
+    format!(
+        "missing {command} subcommand\n\nUse: {usage}\nRun `qipu {command} --help` for full and advanced details."
+    )
+}
+
+fn capture_usage_guidance() -> String {
+    "capture reads content from stdin\n\nUse: printf \"Body text\" | qipu capture --title \"Title\"\nFor inline body text: qipu create \"Title\" --body \"Body text\"\nRun `qipu capture --help` for full and advanced details."
+        .to_string()
 }

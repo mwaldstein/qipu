@@ -78,8 +78,20 @@ fn test_value_set_validation_over_100() {
         .args(["value", "set", &note_id, "101"])
         .assert()
         .failure()
+        .stderr(predicate::str::contains("expected an integer 0-100"));
+}
+
+#[test]
+fn test_value_set_words_show_numeric_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["value", "set", "qp-test", "high"])
+        .assert()
+        .code(2)
         .stderr(predicate::str::contains(
-            "Value score must be between 0 and 100",
+            "expected an integer 0-100, not words like high/medium/low",
         ));
 }
 

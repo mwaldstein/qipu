@@ -9,13 +9,18 @@ use std::collections::HashSet;
 
 pub fn execute(cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) -> Result<()> {
     if id1 == id2 {
-        return Err(QipuError::Other(
-            "cannot merge a note into itself".to_string(),
+        return Err(QipuError::UsageError(
+            "Use: qipu merge <source-id> <target-id>\nSource and target must be different notes.\nRun `qipu merge --help` for full and advanced details."
+                .to_string(),
         ));
     }
 
-    let note1 = store.get_note(id1)?;
-    let mut note2 = store.get_note(id2)?;
+    let note1 = store
+        .get_note(id1)
+        .map_err(|e| merge_note_lookup_error(e, id1, id2))?;
+    let mut note2 = store
+        .get_note(id2)
+        .map_err(|e| merge_note_lookup_error(e, id1, id2))?;
 
     let final_tags = merge_tags(&note1, &note2);
     let links = merge_links(&note1, &note2, id2);
@@ -40,6 +45,16 @@ pub fn execute(cli: &Cli, store: &Store, id1: &str, id2: &str, dry_run: bool) ->
 
     output_merge_complete(cli, id1, id2, &updated_inbound)?;
     Ok(())
+}
+
+fn merge_note_lookup_error(error: QipuError, source: &str, target: &str) -> QipuError {
+    match error {
+        QipuError::NoteNotFound { .. } => QipuError::UsageError(format!(
+            "{}\n\nUse: qipu merge {} {}\nFind note IDs with: qipu list\nRun `qipu merge --help` for full and advanced details.",
+            error, source, target
+        )),
+        other => other,
+    }
 }
 
 fn print_merge_message(id1: &str, id2: &str, dry_run: bool) {

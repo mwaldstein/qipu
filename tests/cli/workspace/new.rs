@@ -16,6 +16,21 @@ fn test_workspace_new_creates_workspace() {
 }
 
 #[test]
+fn test_workspace_new_missing_from_note_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["workspace", "new", "scratch", "--from-note", "missing"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu workspace new scratch --from-note <id>",
+        ))
+        .stderr(predicate::str::contains("Find note IDs with: qipu list"));
+}
+
+#[test]
 fn test_workspace_new_empty() {
     let dir = setup_test_dir();
 

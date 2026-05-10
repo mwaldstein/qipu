@@ -61,7 +61,9 @@ fn test_workspace_delete_with_unmerged_changes() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unmerged"))
-        .stderr(predicate::str::contains("--force"));
+        .stderr(predicate::str::contains(
+            "Use: qipu workspace delete test-workspace --force",
+        ));
 }
 
 #[test]

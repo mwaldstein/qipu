@@ -2,13 +2,19 @@
 
 use crate::cli::Cli;
 use crate::commands::format::output_by_format_result;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
 
 /// Execute the verify command
 pub fn execute(cli: &Cli, store: &Store, id_or_path: &str, status: Option<bool>) -> Result<()> {
     // Load note by ID or path
-    let mut note = store.load_note_by_id_or_path(id_or_path)?;
+    let mut note = store.load_note_by_id_or_path(id_or_path).map_err(|e| match e {
+        QipuError::NoteNotFound { .. } => QipuError::UsageError(format!(
+            "{}\n\nUse: qipu verify <id-or-path>\nFind note IDs with: qipu list\nRun `qipu verify --help` for full and advanced details.",
+            e
+        )),
+        other => other,
+    })?;
 
     let old_status = note.frontmatter.verified.unwrap_or(false);
     let new_status = status.unwrap_or(!old_status);

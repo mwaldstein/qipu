@@ -22,8 +22,8 @@ pub fn execute(
 
     if !matches!(strategy, "overwrite" | "merge-links" | "skip" | "rename") {
         bail_usage!(format!(
-            "unknown merge strategy: '{}' (expected: overwrite, merge-links, skip, or rename)",
-            strategy
+            "unknown merge strategy: '{}'\n\nUse: qipu workspace merge {} {} --strategy merge-links\nOther strategies: skip, overwrite, rename.\nRun `qipu workspace merge --help` for full and advanced details.",
+            strategy, source_name, target_name
         ));
     }
 

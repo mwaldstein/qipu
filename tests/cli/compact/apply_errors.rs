@@ -35,3 +35,21 @@ A digest."#;
             "no source note IDs provided (use --note, --from-stdin, or --notes-file)",
         ));
 }
+
+#[test]
+fn test_compact_apply_digest_flag_shows_guidance() {
+    qipu()
+        .args([
+            "compact",
+            "apply",
+            "--digest",
+            "qp-digest",
+            "--note",
+            "qp-a",
+        ])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu compact apply <digest-id> --note <source-id>",
+        ));
+}

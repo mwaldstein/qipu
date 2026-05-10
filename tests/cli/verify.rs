@@ -39,6 +39,19 @@ fn test_verify_toggle() {
 }
 
 #[test]
+fn test_verify_missing_note_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["verify", "missing"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Use: qipu verify <id-or-path>"))
+        .stderr(predicate::str::contains("Find note IDs with: qipu list"));
+}
+
+#[test]
 fn test_verify_set_true() {
     let dir = setup_test_dir();
 

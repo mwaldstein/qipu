@@ -105,6 +105,22 @@ fn test_link_list_empty() {
 }
 
 #[test]
+fn test_link_list_invalid_direction_shows_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "list", "qp-a", "--direction", "sideways"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("invalid --direction 'sideways'"))
+        .stderr(predicate::str::contains("Use one of: out, in, both"))
+        .stderr(predicate::str::contains(
+            "qipu link list <id-or-path> --direction",
+        ));
+}
+
+#[test]
 fn test_link_list_json_format() {
     let dir = setup_test_dir();
 

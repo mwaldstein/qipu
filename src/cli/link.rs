@@ -43,8 +43,8 @@ pub enum LinkCommands {
         to: String,
 
         /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
-        r#type: LinkType,
+        #[arg(long, short = 'T', value_parser = parse_link_type)]
+        r#type: Option<LinkType>,
     },
 
     /// Remove a typed link between notes
@@ -56,8 +56,8 @@ pub enum LinkCommands {
         to: String,
 
         /// Link type (related, derived-from, supports, contradicts, part-of)
-        #[arg(long, short = 'T', value_parser = parse_link_type, required = true)]
-        r#type: LinkType,
+        #[arg(long, short = 'T', value_parser = parse_link_type)]
+        r#type: Option<LinkType>,
     },
 
     /// Show traversal tree from a note

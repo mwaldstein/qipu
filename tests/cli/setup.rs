@@ -187,7 +187,8 @@ fn test_setup_unknown_integration() {
         .args(["setup", "unknown-tool"])
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("Unknown integration"));
+        .stderr(predicate::str::contains("Unknown integration"))
+        .stderr(predicate::str::contains("Use: qipu setup agents-md"));
 }
 
 #[test]
@@ -196,7 +197,5 @@ fn test_setup_no_args_usage_error() {
         .arg("setup")
         .assert()
         .code(2)
-        .stderr(predicate::str::contains(
-            "Specify --list, --print, or provide a tool name",
-        ));
+        .stderr(predicate::str::contains("Use: qipu setup agents-md"));
 }

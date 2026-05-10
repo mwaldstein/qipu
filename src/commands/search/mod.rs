@@ -15,7 +15,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use qipu_core::compaction::CompactionContext;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::note::NoteType;
 use qipu_core::search;
 use qipu_core::store::Store;
@@ -35,6 +35,15 @@ pub fn execute(
     sort: Option<&str>,
 ) -> Result<()> {
     let start = Instant::now();
+
+    if let Some(sort_field) = sort {
+        if !matches!(sort_field, "relevance" | "value") {
+            return Err(QipuError::UsageError(format!(
+                "invalid --sort \"{}\"; valid values: relevance, value\n\nUse: qipu search --sort value \"query\"",
+                sort_field
+            )));
+        }
+    }
 
     // Resolve tag aliases for filtering
     let equivalent_tags = tag_filter.map(|t| store.config().get_equivalent_tags(t));

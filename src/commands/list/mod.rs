@@ -13,7 +13,7 @@ use chrono::{DateTime, Utc};
 
 use crate::cli::{Cli, OutputFormat};
 use qipu_core::compaction::CompactionContext;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::note::NoteType;
 use qipu_core::query::NoteFilter;
 use qipu_core::store::Store;
@@ -32,6 +32,15 @@ pub fn execute(
     custom: Option<&str>,
     show_custom: bool,
 ) -> Result<()> {
+    if let Some(expr) = custom {
+        qipu_core::query::custom_filter::parse_custom_filter_expression(expr).map_err(|e| {
+            QipuError::UsageError(format!(
+                "invalid --custom filter \"{}\": {}\n\nUse: qipu list --custom key=value\nOther forms: key, !key, key>10, key>=2024-01-01",
+                expr, e
+            ))
+        })?;
+    }
+
     let all_notes = store.list_notes()?;
 
     let compaction_ctx = CompactionContext::build(&all_notes)?;

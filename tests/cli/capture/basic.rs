@@ -138,6 +138,16 @@ fn test_capture_empty_content() {
 }
 
 #[test]
+fn test_capture_body_flag_shows_stdin_guidance() {
+    qipu()
+        .args(["capture", "--body", "Inline"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("capture reads content from stdin"))
+        .stderr(predicate::str::contains("qipu create \"Title\" --body"));
+}
+
+#[test]
 fn test_capture_empty_content_requires_allow_empty() {
     let dir = setup_test_dir();
 

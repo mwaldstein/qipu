@@ -50,7 +50,7 @@ pub struct CreateArgs {
     pub prompt_hash: Option<String>,
 
     /// Flag indicating if a human has manually reviewed the content
-    #[arg(long)]
+    #[arg(long, value_parser = super::parse::parse_bool)]
     pub verified: Option<bool>,
 
     /// Note ID (for testing and advanced use cases)

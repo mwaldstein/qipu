@@ -10,7 +10,7 @@ use tracing::debug;
 
 use crate::cli::Cli;
 use qipu_core::compaction::CompactionContext;
-use qipu_core::error::Result;
+use qipu_core::error::{QipuError, Result};
 use qipu_core::store::Store;
 
 use super::utils::{discover_compact_store, estimate_size};
@@ -245,6 +245,15 @@ pub fn execute(cli: &Cli, root: &Path, digest_id: &str, depth: u32) -> Result<()
 
     let all_notes = store.list_notes()?;
     let ctx = CompactionContext::build(&all_notes)?;
+
+    if !store.note_exists(digest_id) {
+        return Err(QipuError::NoteNotFound {
+            id: format!(
+                "{}. Use qipu compact status <id> to inspect any note, or qipu compact show <digest-id> for digest contents.",
+                digest_id
+            ),
+        });
+    }
 
     if cli.verbose {
         debug!(note_count = all_notes.len(), "build_compaction_context");

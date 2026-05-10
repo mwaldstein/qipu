@@ -141,6 +141,30 @@ Content from source note 2."#;
 }
 
 #[test]
+fn test_compact_show_digest_flag_shows_guidance() {
+    qipu()
+        .args(["compact", "show", "--digest", "qp-digest"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains(
+            "Use: qipu compact show <digest-id>",
+        ));
+}
+
+#[test]
+fn test_compact_show_missing_note_is_data_error() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["compact", "show", "no-such"])
+        .assert()
+        .code(3)
+        .stderr(predicate::str::contains("note not found: no-such"))
+        .stderr(predicate::str::contains("qipu compact status <id>"));
+}
+
+#[test]
 fn test_compact_show_truncation() {
     use std::fs;
 

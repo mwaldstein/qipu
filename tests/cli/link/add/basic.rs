@@ -163,6 +163,36 @@ fn test_link_hidden_add_shorthand_requires_type() {
 }
 
 #[test]
+fn test_link_add_requires_type_with_short_guidance() {
+    let dir = setup_test_dir();
+
+    qipu()
+        .current_dir(dir.path())
+        .args(["link", "add", "qp-a", "qp-b"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("link type required"))
+        .stderr(predicate::str::contains(
+            "qipu link add <from> <to> --type <type>",
+        ))
+        .stderr(predicate::str::contains("Valid types: related"));
+}
+
+#[test]
+fn test_link_add_rejects_from_to_flags_with_guidance() {
+    qipu()
+        .args([
+            "link", "add", "--from", "qp-a", "--to", "qp-b", "--type", "related",
+        ])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("use positional note IDs"))
+        .stderr(predicate::str::contains(
+            "qipu link add <from> <to> --type <type>",
+        ));
+}
+
+#[test]
 fn test_link_hidden_add_shorthand_does_not_swallow_typos() {
     let dir = setup_test_dir();
 

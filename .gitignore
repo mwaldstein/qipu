@@ -29,7 +29,9 @@ dist/
 # LLM validation transcripts (volatile test artifacts)
 tests/transcripts/
 
-# LLM tool test results
+# ax-eval results
+ax-eval-results/
+# legacy results dir from the former llm-tool-test name
 llm-tool-test-results/
 
 .beads/export-state

@@ -56,7 +56,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `similarity-ranking.md` | ✅ | ✅ | ✅ | BM25 multiplicative weights correct; AND semantics working |
 | `records-output.md` | ✅ | ✅ | ✅ | `via` annotation present; truncation/S-prefix tests complete |
 | `llm-context.md` | ✅ | ✅ | ✅ | Character budgeting implemented (4000-8000 chars); tests complete; `--max-tokens` intentionally removed |
-| `llm-user-validation.md` | ✅ | ✅ | ✅ | **MOVED**: Implementation moved to standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) project |
+| `llm-user-validation.md` | ✅ | ✅ | ✅ | **MOVED**: Implementation moved to standalone [ax-eval](https://github.com/mwaldstein/ax-eval) project |
 | `progressive-indexing.md` | ✅ | ✅ | ✅ | All features implemented: --basic, --full, --modified-since, --quick, --resume, --tag, --type, --recent |
 | `provenance.md` | ✅ | ✅ | ✅ | Bibliography correctly handles both `source` (singular) and `sources[]` |
 | `export.md` | ✅ | ✅ | ✅ | All features implemented; outline ordering uses wiki-links only (spec unclear on typed/markdown) |
@@ -89,8 +89,8 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `provenance.md` | ✅ FIXED: Bibliography now handles both `source` (singular) and `sources[]` | Tests: `tests/cli/export/bibliography.rs:325,359` |
 | `operational-database.md` | ✅ FIXED: Consistency check result now triggers incremental repair when auto_repair is enabled | `crates/qipu-core/src/db/mod.rs:138-141` |
 | `operational-database.md` | ✅ FIXED: Corruption detection and auto-rebuild implemented with tests | `crates/qipu-core/src/db/mod.rs:46-91` |
-| `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | External: `llm-tool-test/src/adapter/*.rs` |
-| `llm-user-validation.md` | Budget warning doesn't enforce limits | External: `llm-tool-test/src/run.rs:417-424` |
+| `llm-user-validation.md` | Token usage uses char/4 approximation instead of parsing actual tool output | External: `ax-eval/src/adapter/*.rs` |
+| `llm-user-validation.md` | Budget warning doesn't enforce limits | Resolved: budgets removed from ax-eval; cost only reported when adapter self-reports |
 
 
 ### P2/P3: Missing Coverage or Features

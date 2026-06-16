@@ -1,6 +1,6 @@
 Plan code cleanup tasks using beads.
 
-Source: `src/*`, `crates/qipu-core/src/*`, `tests/*`, `crates/llm-tool-test/src/*`
+Source: `src/*`, `crates/qipu-core/src/*`, `tests/*`
 Enforcement: workspace Clippy `too_many_lines`, CI rules (500-line file limit)
 Guidance: `AGENTS.md` (code style guidelines)
 Issues: Use `bd` commands to manage tasks

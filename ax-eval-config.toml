@@ -1,0 +1,43 @@
+# ax-eval configuration file
+# Copy this file to your workspace root to customize tool/model profiles.
+# See: https://github.com/mwaldstein/ax-eval
+
+# Path to the fixtures directory (scenario YAML, templates, rubrics)
+fixtures_path = "fixtures"
+
+# Path where evaluation results are stored
+results_path = "ax-eval-results"
+
+# Tool configurations define known agent CLIs and their supported models.
+# Adapter binaries are selected by tool name in the runner.
+[tools]
+
+[tools.opencode]
+name = "opencode"
+command = "opencode"
+models = ["gpt-4o", "claude-sonnet"]
+
+[tools.claude-code]
+name = "claude-code"
+command = "claude"
+models = ["claude-sonnet", "claude-haiku"]
+
+[tools.codex]
+name = "codex"
+command = "codex"
+models = ["gpt-5-codex"]
+
+# Profiles build a Cartesian product of tools x models; every selected model
+# must be supported by every selected tool. Use a scenario's `tool_matrix`
+# field for heterogeneous matrices.
+[profiles]
+
+[profiles.quick]
+name = "quick"
+tools = ["opencode"]
+models = ["gpt-4o"]
+
+[profiles.standard]
+name = "standard"
+tools = ["opencode", "claude-code"]
+models = ["claude-sonnet"]

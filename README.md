@@ -177,7 +177,7 @@ specs/              # Implementable specifications
 ```
 
 **External Tools:**
-- [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) - Standalone testing framework for validating qipu with LLM agents (sibling project)
+- [ax-eval](https://github.com/mwaldstein/ax-eval) - Agent-experience eval harness for validating qipu with LLM agents (sibling project)
 
 The `qipu-core` crate is a reusable library that can be used independently of the CLI.
 
@@ -226,19 +226,23 @@ cargo clippy                # Lint
 
 ### Testing with LLM Agents
 
-To validate qipu works correctly with LLM coding agents, install the standalone [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) testing framework:
+To validate qipu works correctly with LLM coding agents, install the standalone [ax-eval](https://github.com/mwaldstein/ax-eval) evaluation harness:
 
 ```bash
-# Install llm-tool-test from crates.io (when published)
-cargo install llm-tool-test
+# Install the latest release (macOS/Linux)
+curl -fsSL https://raw.githubusercontent.com/mwaldstein/ax-eval/master/scripts/install.sh | sh
 
-# Or install from source
-git clone https://github.com/mwaldstein/llm-tool-test
-cd llm-tool-test
-cargo install --path .
+# Windows (PowerShell)
+# irm https://raw.githubusercontent.com/mwaldstein/ax-eval/master/scripts/install.ps1 | iex
+
+# Or build from source
+git clone https://github.com/mwaldstein/ax-eval
+cd ax-eval
+cargo build --release   # binary at target/release/ax-eval
 
 # Run qipu validation scenarios (from your qipu project directory)
-llm-tool-test run --all --tool opencode
+# AX_EVAL_ENABLED=1 consents to real agent runs (may spend LLM API credits)
+AX_EVAL_ENABLED=1 ax-eval run --all --tool opencode
 ```
 
 See `docs/llm-testing.md` for detailed usage instructions.

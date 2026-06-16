@@ -68,7 +68,7 @@ specs/              # Implementable specifications
 ```
 
 **External Tools:**
-- [llm-tool-test](https://github.com/mwaldstein/llm-tool-test) - Standalone testing framework for validating qipu with LLM agents
+- [ax-eval](https://github.com/mwaldstein/ax-eval) - Agent-experience eval harness for validating qipu with LLM agents
 
 ## Code Style Guidelines
 

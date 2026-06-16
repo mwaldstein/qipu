@@ -4,7 +4,7 @@
 
 Validate that qipu achieves its core goal: being usable by an LLM as the primary user.
 
-This spec defines a **separate testing harness** (`llm-tool-test`) that invokes real LLM CLI tools, captures complete transcripts, and evaluates both structural outcomes and qualitative interaction quality.
+This spec defines a **separate testing harness** (`ax-eval`) that invokes real LLM CLI tools, captures complete transcripts, and evaluates both structural outcomes and qualitative interaction quality.
 
 ## Core Goal
 
@@ -16,12 +16,12 @@ This test confirms that goal by having actual LLMs attempt to use qipu given onl
 
 ## Architecture Overview
 
-The test harness is a **separate binary** (`llm-tool-test`) that tests qipu as a black box. This keeps test infrastructure out of the distributed qipu binary and allows the harness to be reused for testing other LLM-facing CLI tools.
+The test harness is a **separate binary** (`ax-eval`) that tests qipu as a black box. This keeps test infrastructure out of the distributed qipu binary and allows the harness to be reused for testing other LLM-facing CLI tools.
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Scenarios     │────▶│  llm-tool-test  │────▶│  Tool Adapters  │
-│   (YAML)        │     │  (separate bin) │     │  amp, opencode  │
+│   Scenarios     │────▶│    ax-eval      │────▶│  Tool Adapters  │
+│   (YAML)        │     │  (separate bin) │     │  opencode, etc  │
 └─────────────────┘     └────────┬────────┘     └────────┬────────┘
                                  │                       │
                                  ▼                       ▼
@@ -39,7 +39,7 @@ The test harness is a **separate binary** (`llm-tool-test`) that tests qipu as a
 
 ### Key Architectural Decisions
 
-1. **Separate binary**: `llm-tool-test` is NOT part of qipu. It lives in a [standalone project](https://github.com/mwaldstein/llm-tool-test) that can be used to test any CLI tool.
+1. **Separate binary**: `ax-eval` is NOT part of qipu. It lives in a [standalone project](https://github.com/mwaldstein/ax-eval) that can be used to test any CLI tool.
 
 2. **Black-box testing**: The harness treats qipu as an external CLI tool. It doesn't link against qipu's library code.
 
@@ -444,69 +444,66 @@ Compare against baseline runs:
 
 ## CLI Interface
 
-The harness is invoked via `llm-tool-test`, a separate binary.
+The harness is invoked via `ax-eval`, a separate binary.
 
 ### Commands
 
 ```bash
-# Run scenarios
-llm-tool-test run                           # Run all scenarios
-llm-tool-test run --scenario capture_basic  # Run specific scenario
-llm-tool-test run --tags capture,links      # Run by tags
-llm-tool-test run --tool amp                # Run with specific tool
-llm-tool-test run --max-usd 1.00            # Budget limit
+# Run scenarios (AX_EVAL_ENABLED=1 consents to real agent runs)
+AX_EVAL_ENABLED=1 ax-eval run --all --tool opencode            # Run all scenarios
+AX_EVAL_ENABLED=1 ax-eval run --scenario capture_basic         # Run specific scenario
+ax-eval run --tags capture,links                               # Select by tags
+ax-eval run --tool claude-code                                 # Use a specific adapter
+ax-eval run --profile quick                                    # Configured tool/model matrix
 
-# Dry run (no LLM calls)
-llm-tool-test run --dry-run                 # Show what would run + cost estimate
+# Validate / dry run (no LLM calls, no safety flag needed)
+ax-eval validate --scenario fixtures/capture_basic.yaml
+ax-eval run --scenario capture_basic --dry-run
+
+# Bootstrap a scenario set by inspecting the target CLI
+AX_EVAL_ENABLED=1 ax-eval discover qipu --tool opencode
 
 # Results
-llm-tool-test list                          # List recent runs
-llm-tool-test show <run-id>                 # Show run details
-llm-tool-test compare <run-id> <run-id>     # Compare two runs
-llm-tool-test report                        # Generate summary report
+ax-eval show <run-id>                                          # Show run details
 
 # Maintenance
-llm-tool-test clean --older-than 30d        # Clean old transcripts
+ax-eval clean --older-than 30d                                 # Clean old transcripts
 ```
 
 ### Environment Variables
 
 ```bash
-LLM_TOOL_TEST_ENABLED=1       # Must be set to run tests (safety)
-LLM_TOOL_TEST_BUDGET_USD=5.00 # Session budget limit
-LLM_TOOL_TEST_TOOL=amp        # Default LLM tool
-LLM_TOOL_TEST_JUDGE=gpt-4o-mini  # Judge model
+AX_EVAL_ENABLED=1          # Real-run consent; required to launch agent adapters
 ```
+
+The only documented scenario env placeholders are `${AX_EVAL_FIXTURE_DIR}` and
+`${AX_EVAL_RESULTS_DIR}`, substituted into `target.env` values.
 
 ---
 
-## Cost Management
+## Cost Reporting
 
-### Budget Enforcement
+Manual cost calculation and per-scenario budgets were removed. Cost is captured
+only when an adapter self-reports it (e.g., opencode):
 
-1. **Per-run limit**: From scenario `cost.max_usd`
-2. **Session limit**: From `--max-usd` or `QIPU_LLM_BUDGET_USD`
-3. **Estimate before run**: Warn if estimated cost exceeds limit
-4. **Track actual cost**: Log to results for trend analysis
+1. **Reported cost**: Logged to the run record when the adapter exposes it
+2. **Token usage**: Reported from adapter output when available
+3. **No pricing tables**: The harness does not maintain model pricing or enforce budgets
 
 ### Caching
 
 Cache key components:
 - Scenario YAML hash
-- Prompt file hash
-- qipu prime output hash
+- Prompt hash
 - Tool + model identifier
-- qipu version/commit
+- Target version/commit
 
 If cache hit, reuse transcript and evaluation results.
 
 ### Dry Run Mode
 
-`--dry-run` shows:
-- Scenarios that would run
-- Estimated prompt sizes
-- Estimated costs
-- Cache status (hit/miss)
+`--dry-run` validates scenario selection, fixture setup, cache keys, and run
+planning without launching an agent or requiring `AX_EVAL_ENABLED=1`.
 
 ---
 

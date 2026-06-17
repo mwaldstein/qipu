@@ -16,12 +16,10 @@ task:
     were found.
 evaluation:
   gates:
-    - type: command_output_contains
-      command: qipu doctor --format records
-      substring: "errors=0"
     - type: script
-      description: "Doctor reports a clean store with at least two linked notes"
+      description: "The store has linked notes and doctor reports no errors"
       command: |
         set -e
-        qipu doctor --format records | grep -q 'errors=0'
+        export QIPU_STORE=".qipu"
         test "$(qipu list --format records | grep -c '^N ')" -ge 2
+        qipu doctor --format records | grep -q 'errors=0'

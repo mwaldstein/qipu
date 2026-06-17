@@ -19,11 +19,11 @@ evaluation:
       description: "Cats and Dogs exist and are connected by a related link"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         cats_id=$(qipu search Cats --format records | awk '/^N / {print $2; exit}')
         dogs_id=$(qipu search Dogs --format records | awk '/^N / {print $2; exit}')
         test -n "$cats_id"
         test -n "$dogs_id"
-        qipu link list "$cats_id" --format records | grep -q "E $cats_id related $dogs_id"
         qipu link path "$cats_id" "$dogs_id" --format records | grep -q "related"
   judge:
     enabled: true

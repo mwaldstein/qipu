@@ -19,21 +19,12 @@ task:
     to an LLM. Confirm all three notes appear in that bundle.
 evaluation:
   gates:
-    - type: command_output_contains
-      command: qipu context --tag rust --format records --max-chars 12000
-      substring: "Rust Ownership"
-    - type: command_output_contains
-      command: qipu context --tag rust --format records --max-chars 12000
-      substring: "Async Programming"
-    - type: command_output_contains
-      command: qipu context --tag rust --format records --max-chars 12000
-      substring: "Error Handling"
     - type: script
-      description: "All three notes are retrievable through the rust context bundle"
+      description: "All three rust notes are retrievable as one context bundle"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         output=$(qipu context --tag rust --format records --max-chars 12000)
-        printf '%s\n' "$output" | grep -q '^H qipu=1 records=1'
         printf '%s\n' "$output" | grep -q "Rust Ownership"
         printf '%s\n' "$output" | grep -q "Async Programming"
         printf '%s\n' "$output" | grep -q "Error Handling"

@@ -22,4 +22,5 @@ evaluation:
       description: "At least four project notes were captured"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         test "$(qipu list --format records | grep -c '^N ')" -ge 4

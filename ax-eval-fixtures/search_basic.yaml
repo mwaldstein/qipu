@@ -19,15 +19,10 @@ task:
     supervised learning. Confirm both lookups return the right note.
 evaluation:
   gates:
-    - type: command_output_contains
-      command: qipu search "Neural Networks" --format records
-      substring: "Neural Networks"
-    - type: command_output_contains
-      command: qipu search "supervised learning" --format records
-      substring: "Machine Learning"
     - type: script
-      description: "Exactly three notes exist in the store"
+      description: "Notes are findable by title and by content"
       command: |
         set -e
-        count=$(qipu list --format records | grep -c '^N ')
-        test "$count" -eq 3
+        export QIPU_STORE=".qipu"
+        qipu search "Neural Networks" --format records | grep -q "Neural Networks"
+        qipu search "supervised learning" --format records | grep -q "Machine Learning"

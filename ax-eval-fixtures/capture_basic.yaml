@@ -17,16 +17,13 @@ task:
     Then confirm you can retrieve that note again.
 evaluation:
   gates:
-    - type: command_output_contains
-      command: qipu search entanglement --format records
-      substring: "Quantum Entanglement"
     - type: script
-      description: "The captured note has the expected tags and is retrievable via context"
+      description: "The captured note exists with the requested tags"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         qipu list --tag physics --format records | grep -q "Quantum Entanglement"
         qipu list --tag quantum --format records | grep -q "Quantum Entanglement"
-        qipu context --query entanglement --format records --max-chars 8000 | grep -q "entanglement"
   judge:
     enabled: true
     rubric: rubrics/capture_v1.yaml

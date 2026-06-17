@@ -4,8 +4,9 @@ Qipu is a knowledge-graph CLI built for scripts and agents. Notes are typed, lin
 queryable, with a line-oriented `records` output format designed for LLM context injection.
 
 ## Setup
-- `qipu init` — create a store in the current directory (run once). Notes live under `.qipu/`.
-- The store resolves from the current directory unless `QIPU_STORE` is set.
+- A store is provisioned for you via the `QIPU_STORE` environment variable — operate on it directly.
+- Do **not** unset `QIPU_STORE` or pass `--store`/`--root`. If no store exists yet, run `qipu init`
+  (it honors `QIPU_STORE` and creates the provisioned store).
 
 ## Core workflow
 1. `qipu create "Title" --body "..." --type literature -t tag1 -t tag2` — capture a note.

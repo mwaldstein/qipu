@@ -16,12 +16,10 @@ task:
     the store: the available note and link types, the core commands, and what is currently in it.
 evaluation:
   gates:
-    - type: command_output_contains
-      command: qipu prime --format records
-      substring: "mode=prime"
     - type: script
-      description: "The primer advertises the link ontology and the store is populated"
+      description: "The primer runs over a populated store and advertises the link ontology"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         qipu prime --format records | grep -q '^L link_type='
         test "$(qipu list --format records | grep -c '^N ')" -ge 1

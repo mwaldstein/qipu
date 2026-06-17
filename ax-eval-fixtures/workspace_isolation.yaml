@@ -21,5 +21,6 @@ evaluation:
       description: "The workspace was created and its note merged into the primary store"
       command: |
         set -e
+        export QIPU_STORE=".qipu"
         qipu workspace list --format records | grep -q 'research'
         qipu search "Workspace Finding" --format records | grep -q "Workspace Finding"

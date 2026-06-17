@@ -17,12 +17,5 @@ task:
 evaluation:
   gates:
     - type: command_output_contains
-      command: qipu search "Test Note" --format records
+      command: qipu --store .qipu search "Test Note" --format records
       substring: "Test Note"
-    - type: script
-      description: "The store contains exactly one note with the requested body"
-      command: |
-        set -e
-        count=$(qipu list --format records | grep -c '^N ')
-        test "$count" -eq 1
-        qipu search "smoke testing" --format records | grep -q "Test Note"

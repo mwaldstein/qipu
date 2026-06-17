@@ -15,7 +15,7 @@ results_path = "ax-eval-results"
 [tools.opencode]
 name = "opencode"
 command = "opencode"
-models = ["openai/gpt-5.5", "opencode/claude-sonnet-4-5"]
+models = ["openai/gpt-5.5", "opencode/claude-sonnet-4-5", "opencode/kimi-k2.6"]
 
 [tools.claude-code]
 name = "claude-code"

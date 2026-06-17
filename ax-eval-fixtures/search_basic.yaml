@@ -26,3 +26,11 @@ evaluation:
         export QIPU_STORE=".qipu"
         qipu search "Neural Networks" --format records | grep -q "Neural Networks"
         qipu search "supervised learning" --format records | grep -q "Machine Learning"
+
+  judge:
+    enabled: true
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

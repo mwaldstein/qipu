@@ -24,3 +24,11 @@ evaluation:
         set -e
         export QIPU_STORE=".qipu"
         test "$(qipu list --format records | grep -c '^N ')" -ge 4
+
+  judge:
+    enabled: true
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

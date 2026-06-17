@@ -28,3 +28,11 @@ evaluation:
         printf '%s\n' "$output" | grep -q "Rust Ownership"
         printf '%s\n' "$output" | grep -q "Async Programming"
         printf '%s\n' "$output" | grep -q "Error Handling"
+
+  judge:
+    enabled: true
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

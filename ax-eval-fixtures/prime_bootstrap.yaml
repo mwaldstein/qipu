@@ -23,3 +23,11 @@ evaluation:
         export QIPU_STORE=".qipu"
         qipu prime --format records | grep -q '^L link_type='
         test "$(qipu list --format records | grep -c '^N ')" -ge 1
+
+  judge:
+    enabled: true
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

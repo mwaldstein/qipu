@@ -24,3 +24,11 @@ evaluation:
         export QIPU_STORE=".qipu"
         qipu workspace list --format records | grep -q 'research'
         qipu search "Workspace Finding" --format records | grep -q "Workspace Finding"
+
+  judge:
+    enabled: true
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

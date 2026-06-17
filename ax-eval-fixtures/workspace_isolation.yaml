@@ -1,0 +1,25 @@
+name: workspace_isolation
+description: "Explore in a scratch workspace and merge findings back"
+template_folder: qipu
+tier: 2
+tags: [workspace, graph]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    Set up a qipu store in this directory if needed. Without cluttering the main store, open an
+    isolated workspace named "research" and capture a note titled "Workspace Finding" inside it.
+    Once you are happy with it, merge the workspace's contents back into the main store and
+    confirm the note arrived there.
+evaluation:
+  gates:
+    - type: script
+      description: "The workspace was created and its note merged into the primary store"
+      command: |
+        set -e
+        qipu workspace list --format records | grep -q 'research'
+        qipu search "Workspace Finding" --format records | grep -q "Workspace Finding"

@@ -1,0 +1,25 @@
+name: guidance_rich
+description: "Multi-step capture task against rich fixture guidance"
+template_folder: qipu
+tier: 1
+tags: [guidance-test, rich-docs]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    Capture notes about a distributed-systems project across these concerns: database migration,
+    API design, monitoring, and deployment. Organize them with a shared tag and link related notes
+    together. Then retrieve the related set as a single context bundle.
+interaction:
+  target_commands: required
+evaluation:
+  gates:
+    - type: script
+      description: "At least four project notes were captured"
+      command: |
+        set -e
+        test "$(qipu list --format records | grep -c '^N ')" -ge 4

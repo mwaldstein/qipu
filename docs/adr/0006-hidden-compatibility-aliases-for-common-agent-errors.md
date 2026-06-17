@@ -72,4 +72,4 @@ decision, not incidental cleanup.
 - `docs/maintainers/hidden-compatibility-aliases.md`
 - `specs/llm-user-validation.md`
 - `ax-eval-fixtures/create_smoke.yaml`
-- `ax-eval-fixtures/test_setup_scenario.yaml`
+- `ax-eval-fixtures/context_retrieval.yaml`

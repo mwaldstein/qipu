@@ -1,21 +1,27 @@
 name: capture_basic
-description: "Basic note capture scenario"
+description: "Capture a literature note and confirm it is retrievable"
 template_folder: qipu
 tier: 1
 tags: [capture, smoke]
 target:
   binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
   env:
     QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
 task:
-  prompt: "In the current directory, initialize qipu if needed. Capture one literature note titled 'Quantum Entanglement Basics' about quantum entanglement. Include tags physics and quantum, and include at least three basic facts in the body. Then verify the note is searchable."
+  prompt: |
+    Set up a qipu knowledge store in this directory if one does not already exist.
+    Capture a literature note about quantum entanglement titled "Quantum Entanglement Basics",
+    tagged `physics` and `quantum`, with at least three core facts in the body.
+    Then confirm you can retrieve that note again.
 evaluation:
   gates:
     - type: command_output_contains
       command: qipu search entanglement --format records
       substring: "Quantum Entanglement"
     - type: script
-      description: "The captured note has expected tags and searchable content"
+      description: "The captured note has the expected tags and is retrievable via context"
       command: |
         set -e
         qipu list --tag physics --format records | grep -q "Quantum Entanglement"
@@ -25,3 +31,7 @@ evaluation:
     enabled: true
     rubric: rubrics/capture_v1.yaml
     pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

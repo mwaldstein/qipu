@@ -1,14 +1,19 @@
 name: create_smoke
-description: "Tier 0 smoke test: single note creation"
+description: "Tier 0 smoke test: single note creation and retrieval"
 template_folder: qipu
 tier: 0
 tags: [capture, smoke]
 target:
   binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
   env:
     QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
 task:
-  prompt: "In the current directory, initialize qipu if needed. Create a note with the title 'Test Note' and content 'This is a test note for smoke testing.' Then verify you can find it."
+  prompt: |
+    Set up a qipu store in this directory if one does not already exist.
+    Create a note titled "Test Note" with the body "This is a test note for smoke testing."
+    Then confirm you can find it again.
 evaluation:
   gates:
     - type: command_output_contains

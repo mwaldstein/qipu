@@ -1,14 +1,18 @@
 name: link_navigation
-description: "Link navigation scenario"
+description: "Connect notes and traverse between them"
 template_folder: qipu
 tier: 1
 tags: [links, graph]
 target:
   binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
   env:
     QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
 task:
-  prompt: "In the current directory, initialize qipu if needed. Create two notes: one titled 'Cats' and one titled 'Dogs'. Link 'Cats' to 'Dogs' with type 'related'. Then verify the link with qipu link list."
+  prompt: |
+    Set up a qipu store in this directory if needed. Create two notes: "Cats" and "Dogs".
+    Connect them as related concepts, then confirm you can traverse from Cats to Dogs.
 evaluation:
   gates:
     - type: script
@@ -25,3 +29,7 @@ evaluation:
     enabled: true
     rubric: rubrics/link_v1.yaml
     pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

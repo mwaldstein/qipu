@@ -1,14 +1,22 @@
 name: search_basic
-description: "Basic search functionality test"
+description: "Create notes and retrieve them by query"
 template_folder: qipu
 tier: 1
 tags: [search, records]
 target:
   binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
   env:
     QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
 task:
-  prompt: "In the current directory, initialize qipu if needed. Create three notes: 'Machine Learning' with content about supervised learning, 'Neural Networks' with content about deep learning, and 'Data Science' with content about data analysis. Use qipu search --format records to find the note about 'Neural Networks' and confirm the result."
+  prompt: |
+    Set up a qipu store in this directory if needed. Create three notes:
+    - "Machine Learning" — about supervised learning
+    - "Neural Networks" — about deep learning
+    - "Data Science" — about data analysis
+    Then find the note about neural networks, and separately find any note that mentions
+    supervised learning. Confirm both lookups return the right note.
 evaluation:
   gates:
     - type: command_output_contains
@@ -18,7 +26,7 @@ evaluation:
       command: qipu search "supervised learning" --format records
       substring: "Machine Learning"
     - type: script
-      description: "Search scenario produced exactly three notes"
+      description: "Exactly three notes exist in the store"
       command: |
         set -e
         count=$(qipu list --format records | grep -c '^N ')

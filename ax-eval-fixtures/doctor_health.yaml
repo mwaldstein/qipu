@@ -1,0 +1,27 @@
+name: doctor_health
+description: "Build a small graph and run a store health check"
+template_folder: qipu
+tier: 1
+tags: [doctor, maintenance]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    Set up a qipu store in this directory if needed and add a few notes. Connect at least two of
+    them together. Then run a health check on the store and confirm whether any inconsistencies
+    were found.
+evaluation:
+  gates:
+    - type: command_output_contains
+      command: qipu doctor --format records
+      substring: "errors=0"
+    - type: script
+      description: "Doctor reports a clean store with at least two linked notes"
+      command: |
+        set -e
+        qipu doctor --format records | grep -q 'errors=0'
+        test "$(qipu list --format records | grep -c '^N ')" -ge 2

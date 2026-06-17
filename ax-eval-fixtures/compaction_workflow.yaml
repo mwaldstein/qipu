@@ -1,21 +1,32 @@
 name: compaction_workflow
-description: "Note compaction workflow"
+description: "Consolidate source notes into a digest via compaction"
 template_folder: qipu
 tier: 1
 tags: [compaction, context]
 target:
   binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
   env:
     QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
 task:
-  prompt: "In the current directory, initialize qipu if needed. Create four brief source notes about web development: 'HTML Basics' about structure, 'CSS Styling' about design, 'JavaScript Fundamentals' about interactivity, and 'React Components' about UI building. Then create a digest note titled 'Web Development Overview' and use qipu compact apply to compact the four source notes into this digest. Verify list/search/context resolve to the digest."
+  prompt: |
+    Set up a qipu store in this directory if needed. Create four brief source notes about web
+    development:
+    - "HTML Basics" (structure)
+    - "CSS Styling" (design)
+    - "JavaScript Fundamentals" (interactivity)
+    - "React Components" (UI building)
+    Then consolidate these four sources into one overview digest titled "Web Development Overview"
+    so that future readers get the digest instead of the four separate pieces. Confirm that the
+    digest is what search and context now resolve to.
 evaluation:
   gates:
     - type: command_output_contains
       command: qipu search "Web Development Overview" --format records
       substring: "Web Development Overview"
     - type: script
-      description: "Digest compacts four source notes and context exposes compaction metadata"
+      description: "The digest compacts the four source notes and context exposes compaction metadata"
       command: |
         set -e
         digest_id=$(qipu search "Web Development Overview" --format records | awk '/^N / {print $2; exit}')
@@ -24,3 +35,11 @@ evaluation:
         compacted_count=$(qipu show "$digest_id" --format records --with-compaction-ids | grep -c '^D compacted ')
         test "$compacted_count" -eq 4
         qipu context --query "HTML Basics" --format records --with-compaction-ids --max-chars 12000 | grep -q "Web Development Overview"
+  judge:
+    enabled: true
+    rubric: rubrics/semantic_quality.yaml
+    pass_threshold: 0.7
+  composite:
+    judge_weight: 0.4
+    gate_weight: 0.4
+    interaction_weight: 0.2

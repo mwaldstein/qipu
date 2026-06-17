@@ -1,0 +1,27 @@
+name: prime_bootstrap
+description: "Orient to a qipu store with the session primer"
+template_folder: qipu
+tier: 1
+tags: [prime, context]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    You are about to work with a qipu knowledge store in this directory. Set it up and add a
+    couple of notes on a topic of your choice. Then produce a session primer that orients you to
+    the store: the available note and link types, the core commands, and what is currently in it.
+evaluation:
+  gates:
+    - type: command_output_contains
+      command: qipu prime --format records
+      substring: "mode=prime"
+    - type: script
+      description: "The primer advertises the link ontology and the store is populated"
+      command: |
+        set -e
+        qipu prime --format records | grep -q '^L link_type='
+        test "$(qipu list --format records | grep -c '^N ')" -ge 1

@@ -457,7 +457,7 @@ ax-eval run --tool claude-code                                 # Use a specific 
 ax-eval run --profile quick                                    # Configured tool/model matrix
 
 # Validate / dry run (no LLM calls, no safety flag needed)
-ax-eval validate --scenario fixtures/capture_basic.yaml
+ax-eval validate --scenario ax-eval-fixtures/capture_basic.yaml
 ax-eval run --scenario capture_basic --dry-run
 
 # Bootstrap a scenario set by inspecting the target CLI

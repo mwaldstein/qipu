@@ -3,7 +3,7 @@
 # See: https://github.com/mwaldstein/ax-eval
 
 # Path to the fixtures directory (scenario YAML, templates, rubrics)
-fixtures_path = "fixtures"
+fixtures_path = "ax-eval-fixtures"
 
 # Path where evaluation results are stored
 results_path = "ax-eval-results"

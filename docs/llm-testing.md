@@ -90,7 +90,7 @@ run planning **without** the safety flag or any LLM spend.
 ax-eval scenarios
 
 # Validate a scenario's YAML without running
-ax-eval validate --scenario fixtures/capture_basic.yaml
+ax-eval validate --scenario ax-eval-fixtures/capture_basic.yaml
 
 # Dry run: parse, set up fixtures, compute cache keys — no LLM
 ax-eval run --scenario capture_basic --dry-run
@@ -130,7 +130,7 @@ An optional `ax-eval-config.toml` in the workspace root customizes fixture/resul
 paths, tool/model validation, and matrix profiles:
 
 ```toml
-fixtures_path = "fixtures"
+fixtures_path = "ax-eval-fixtures"
 results_path = "ax-eval-results"
 
 [tools.opencode]
@@ -186,7 +186,7 @@ Options:
 ### `validate` - Check scenario YAML
 
 ```bash
-ax-eval validate --scenario fixtures/capture_basic.yaml
+ax-eval validate --scenario ax-eval-fixtures/capture_basic.yaml
 ax-eval validate --all
 ```
 
@@ -218,7 +218,7 @@ ax-eval clean [--older-than <DURATION>]   # e.g. "30d", "7d", "1h"
 ### `template` - Print copyable schemas
 
 ```bash
-ax-eval template scenario > fixtures/my_scenario.yaml
+ax-eval template scenario > ax-eval-fixtures/my_scenario.yaml
 ax-eval template config > ax-eval-config.toml
 ax-eval template script-gate
 ax-eval template evaluator
@@ -227,7 +227,7 @@ ax-eval template evaluator
 ## Scenarios
 
 Scenarios are YAML files defining the agent task, the environment, and post-run
-evaluation. Example from `fixtures/capture_basic.yaml`:
+evaluation. Example from `ax-eval-fixtures/capture_basic.yaml`:
 
 ```yaml
 name: capture_basic
@@ -266,7 +266,7 @@ evaluation:
 |-------|----------|-------------|
 | `name` | Yes | Unique identifier |
 | `description` | Yes | Human-readable description |
-| `template_folder` | Yes | Name of fixture directory under `fixtures/templates/` |
+| `template_folder` | Yes | Name of fixture directory under `ax-eval-fixtures/templates/` |
 | `target.binary` | Yes | Binary under test, usually `qipu` |
 | `target.env` | No | Env vars; supports `${AX_EVAL_FIXTURE_DIR}` / `${AX_EVAL_RESULTS_DIR}` placeholders |
 | `task.prompt` | Yes | The prompt given to the agent |
@@ -276,7 +276,7 @@ evaluation:
 
 ### Fixtures Location
 
-Test fixtures and scenarios live in `fixtures/` at the workspace root:
+Test fixtures and scenarios live in `ax-eval-fixtures/` at the workspace root:
 
 - **templates/qipu/**: Test environment templates (AGENTS.md, README.md)
 - **rubrics/**: Evaluation rubrics for LLM-as-judge scoring
@@ -398,7 +398,7 @@ name, and target git commit). Use `--no-cache` to force re-execution.
 1. Print a template to start from:
 
 ```bash
-ax-eval template scenario > fixtures/my_scenario.yaml
+ax-eval template scenario > ax-eval-fixtures/my_scenario.yaml
 ```
 
 2. Edit it (example with two linked notes):
@@ -428,7 +428,7 @@ evaluation:
 3. Validate, then dry-run, then run for real:
 
 ```bash
-ax-eval validate --scenario fixtures/my_scenario.yaml
+ax-eval validate --scenario ax-eval-fixtures/my_scenario.yaml
 ax-eval run --scenario my_scenario --dry-run
 AX_EVAL_ENABLED=1 ax-eval run --scenario my_scenario --tool opencode
 ```
@@ -468,7 +468,7 @@ which opencode && opencode --version
 Check the fixtures directory and list discovered scenarios:
 
 ```bash
-ls fixtures/
+ls ax-eval-fixtures/
 ax-eval scenarios
 ```
 

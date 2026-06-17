@@ -71,5 +71,5 @@ decision, not incidental cleanup.
 - `docs/adr/0005-qipu-is-llm-compatible-not-llm-powered.md`
 - `docs/maintainers/hidden-compatibility-aliases.md`
 - `specs/llm-user-validation.md`
-- `fixtures/create_smoke.yaml`
-- `fixtures/test_setup_scenario.yaml`
+- `ax-eval-fixtures/create_smoke.yaml`
+- `ax-eval-fixtures/test_setup_scenario.yaml`

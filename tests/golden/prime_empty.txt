@@ -64,4 +64,10 @@ Mode: default
   supported-by -> supports
   supports -> supported-by
 
+### Grouping Notes with a Collection Root (MOC)
+  To add a note to a map-of-content, link *from* the MOC:
+    qipu link add <moc-id> <member-id> --type has-part
+  The MOC must be the link source, or the member will not appear in `qipu context --collection-root <moc-id>` (alias `--moc`).
+  Run `qipu doctor` to catch an empty collection root.
+
 Use `qipu context --note <id>` to fetch full note content.

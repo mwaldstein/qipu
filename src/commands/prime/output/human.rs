@@ -42,6 +42,11 @@ pub fn output_human(
 
     print_link_types(ontology, config);
 
+    if !compact {
+        println!();
+        print_moc_guidance();
+    }
+
     let has_mocs = !compact && !mocs.is_empty();
     if has_mocs {
         println!();
@@ -90,6 +95,16 @@ fn print_link_types(ontology: &Ontology, config: &OntologyConfig) {
             println!("    Usage: {}", usage);
         }
     }
+}
+
+fn print_moc_guidance() {
+    println!("### Grouping Notes with a Collection Root (MOC)");
+    println!("  To add a note to a map-of-content, link *from* the MOC:");
+    println!("    qipu link add <moc-id> <member-id> --type has-part");
+    println!(
+        "  The MOC must be the link source, or the member will not appear in `qipu context --collection-root <moc-id>` (alias `--moc`)."
+    );
+    println!("  Run `qipu doctor` to catch an empty collection root.");
 }
 
 fn print_mocs_section(mocs: &[&qipu_core::note::Note], compact: bool) {

@@ -58,6 +58,10 @@ qipu context --collection-root qp-api-design --tag security --min-value 70 --max
 - `--format json` for programmatic consumption
 - `--format records` for line-oriented parsing
 - Default format (`--format human`) is human-friendly markdown for direct LLM injection
+- `qipu context` expands the selected set with tag-similar notes by default
+  (`--related 0.3`). For a closed-world bundle of exactly what you selected, pass
+  `--related 0`. Notes added by this expansion are marked with a `via=shared-tags`
+  provenance annotation in the output.
 
 ### 3. Knowledge Capture
 
@@ -310,6 +314,25 @@ The linked collection root selector includes the root note plus notes linked
 outward from that root. The root provides collection framing; the outbound links
 define the child notes and their ordering. Transitive context traversal currently
 recurses through nested literal `moc` notes only.
+
+#### Grouping notes with a collection root (membership direction)
+
+Because the selector follows links **outward from the root**, membership is
+directional: the collection root must be the *source* of the membership link.
+To add a note to a collection root:
+
+```bash
+qipu link add <root-id> <member-id> --type has-part
+```
+
+Linking the other way (`qipu link add <member-id> <root-id> --type part-of`)
+records a semantically valid relationship and displays as membership in
+`qipu link list`, but the member will **not** appear in
+`qipu context --collection-root <root-id>` (alias `--moc`), because the root has
+no outbound edge to it. Run `qipu doctor`, which flags a collection root with no
+resolvable members. If you prefer to author the natural `part-of` direction, add
+the reciprocal `has-part` from the root (or an inline `[[member-id]]` link in the
+root's body) so the root has an outbound edge to the member.
 
 ### Programmatic Ontology Inspection
 

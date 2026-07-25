@@ -40,6 +40,12 @@ pub fn build_base_json(store_path: &str, is_empty: bool) -> serde_json::Value {
                     {"number": 3, "action": "Commit changes", "command": "git add .qipu && git commit -m \"knowledge: ...\""}
                 ]
             },
+            "moc_guidance": {
+                "summary": "To add a note to a map-of-content, link from the MOC so the MOC is the link source.",
+                "command": "qipu link add <moc-id> <member-id> --type has-part",
+                "why": "The MOC must be the link source, or the member will not appear in `qipu context --collection-root <moc-id>` (alias `--moc`).",
+                "verify": "qipu doctor flags an empty collection root."
+            },
         },
         "mocs": [],
         "recent_notes": [],

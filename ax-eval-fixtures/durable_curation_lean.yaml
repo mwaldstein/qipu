@@ -1,0 +1,47 @@
+name: durable_curation_lean
+description: >
+  Lean-guidance variant of durable_curation (2026-07-25). Identical task prompt and rubric; the
+  template is qipu_lean, whose AGENTS.md is trimmed from the 37-line rich guide — it drops the
+  compact/workspace tour, the output-formats verbosity, and the blanket "prefer context" tip, while
+  adding the two load-bearing rules the evidence showed were missing: the MOC membership-direction
+  rule and a `--related 0` heads-up. Run alongside durable_curation (rich) and
+  durable_curation_minimal (bare) to test whether a shorter, better-targeted guide keeps curation
+  quality high while eliminating the direction/empty-MOC and related-leak footguns.
+template_folder: qipu_lean
+tier: 2
+tags: [curation, structure, usability, moc-adoption, guidance-ab]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    You're setting up a qipu knowledge base for the "Harbor" project so a future session — one that
+    won't have this conversation — can get up to speed quickly and reliably. Capture the following
+    project facts into qipu. Beyond getting the facts in, set things up however you think best serves
+    that future session actually finding and using what matters.
+
+    - Harbor is a Go web service backed by Postgres; the frontend is a React SPA.
+    - Auth uses short-lived JWTs with refresh tokens stored in httpOnly cookies.
+    - Known bug: the job queue drops tasks under load because retries aren't idempotent.
+    - Known bug: PDF export times out on documents over ~50 pages.
+    - Deploys go out via GitHub Actions to Fly.io; migrations run automatically on boot.
+    - The team decided against GraphQL in favor of REST to keep the client simple.
+    - Postgres connection pool is capped at 20; raising it caused OOM on the smallest Fly VM.
+    - Onboarding docs live in the repo wiki, not in-code.
+interaction:
+  target_commands: required
+evaluation:
+  gates:
+    - type: script
+      description: "Guardrail: the project facts were actually captured (store is non-trivially populated)"
+      command: |
+        set -e
+        export QIPU_STORE=".qipu"
+        test "$(qipu list --format records | grep -c '^N ')" -ge 6
+  judge:
+    enabled: true
+    rubric: rubrics/durable_curation_v1.yaml
+    pass_threshold: 0.7

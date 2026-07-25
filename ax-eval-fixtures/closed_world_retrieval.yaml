@@ -1,0 +1,41 @@
+name: closed_world_retrieval
+description: >
+  AI-usability probe for the `context --related 0.3` default footgun (audit 2026-07-23, trial
+  finding #2). When an agent asks for a single note's context, qipu injects other notes that merely
+  share a tag, labeled `Compaction: via=shared-tags`. This scenario measures whether that injected
+  noise pollutes the agent's output: given a request scoped to one topic, does the final summary
+  stay on-topic, or does the agent fold the unrelated same-tag note into it? The footgun shows up
+  in the judge score (topical focus) and in whether the agent recognized the intruder, not in a
+  pass/fail gate.
+template_folder: qipu
+tier: 2
+tags: [context, retrieval, related, usability]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    Add two notes to this qipu knowledge base, each with a short body in your own words, and tag
+    both `ops`:
+    - "Postgres Backups" — running and restoring database backups
+    - "Team Offsite Ideas" — planning the next team offsite
+
+    Then answer this for the user, drawing on the knowledge base: "What does our knowledge base say
+    about Postgres backups? Give me a short summary."
+interaction:
+  target_commands: required
+evaluation:
+  gates:
+    - type: script
+      description: "Guardrail: the agent actually created the Postgres Backups note"
+      command: |
+        set -e
+        export QIPU_STORE=".qipu"
+        qipu search "Postgres Backups" --format records | grep -q '^N '
+  judge:
+    enabled: true
+    rubric: rubrics/scoped_retrieval_v1.yaml
+    pass_threshold: 0.7

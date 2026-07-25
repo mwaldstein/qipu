@@ -1,0 +1,32 @@
+criteria:
+  - id: topical_focus
+    weight: 0.45
+    description: >
+      The final summary is strictly about Postgres backups. It does NOT incorporate content from
+      the unrelated "Team Offsite Ideas" note (venues, agendas, offsite logistics). Bleed-through of
+      the same-tag decoy is the core failure this scenario probes — the agent treating qipu's
+      tag-similarity injection as if it were relevant context.
+
+  - id: noise_recognition
+    weight: 0.35
+    description: >
+      If qipu surfaced the unrelated note (e.g. pulled in via shared-tags and labeled under a
+      Compaction/via header), the agent recognized it as off-topic and excluded it, rather than
+      assuming everything the tool returned belonged in a single-topic summary. Credit explicit
+      scoping or explicit exclusion of the intruder.
+
+  - id: retrieval_efficiency
+    weight: 0.20
+    description: >
+      The agent produced the scoped summary without excessive commands or retries, and did not have
+      to be told twice to keep the summary on-topic.
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights
+    - rationale

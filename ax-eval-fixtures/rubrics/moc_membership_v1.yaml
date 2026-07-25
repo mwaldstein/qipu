@@ -1,0 +1,33 @@
+criteria:
+  - id: briefing_completeness
+    weight: 0.40
+    description: >
+      The final briefing substantively covers all three concepts the agent filed under the MOC
+      (ownership, borrowing, lifetimes). A briefing that silently drops members it created is the
+      core failure this scenario probes — the agent believing its retrieval succeeded when it did
+      not.
+
+  - id: retrieval_integrity
+    weight: 0.35
+    description: >
+      The agent verified that pulling the MOC actually returns the notes it filed under it, rather
+      than trusting a confirming display (e.g. `link list` showing membership) while retrieval
+      returns nothing. If its first attempt to read the MOC came back empty or partial, it noticed,
+      diagnosed the direction/membership mismatch, and corrected it before writing the briefing.
+
+  - id: retrieval_efficiency
+    weight: 0.25
+    description: >
+      The agent reached a correct, complete result without excessive flailing — few retries, no
+      abandoned dead-ends left uncorrected, and it did not hand back a confidently-empty or
+      confidently-partial result as if it were complete.
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights
+    - rationale

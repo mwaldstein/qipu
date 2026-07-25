@@ -1,0 +1,46 @@
+name: durable_curation_guided
+description: >
+  Guidance-A/B counterpart to durable_curation (2026-07-25). Identical task prompt and rubric; the
+  only difference is the fixture template (qipu_moc_guided) whose AGENTS.md adds a concise "when to
+  make a MOC + correct membership-direction rule + verify with doctor" section. Compared against the
+  unguided baseline, this measures whether stating the MOC trigger and the `MOC --has-part-->
+  member` direction rule keeps spontaneous adoption high while eliminating the observed
+  inverted-direction and empty-MOC errors.
+template_folder: qipu_moc_guided
+tier: 2
+tags: [curation, structure, usability, moc-adoption, guidance-ab]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    You're setting up a qipu knowledge base for the "Harbor" project so a future session — one that
+    won't have this conversation — can get up to speed quickly and reliably. Capture the following
+    project facts into qipu. Beyond getting the facts in, set things up however you think best serves
+    that future session actually finding and using what matters.
+
+    - Harbor is a Go web service backed by Postgres; the frontend is a React SPA.
+    - Auth uses short-lived JWTs with refresh tokens stored in httpOnly cookies.
+    - Known bug: the job queue drops tasks under load because retries aren't idempotent.
+    - Known bug: PDF export times out on documents over ~50 pages.
+    - Deploys go out via GitHub Actions to Fly.io; migrations run automatically on boot.
+    - The team decided against GraphQL in favor of REST to keep the client simple.
+    - Postgres connection pool is capped at 20; raising it caused OOM on the smallest Fly VM.
+    - Onboarding docs live in the repo wiki, not in-code.
+interaction:
+  target_commands: required
+evaluation:
+  gates:
+    - type: script
+      description: "Guardrail: the project facts were actually captured (store is non-trivially populated)"
+      command: |
+        set -e
+        export QIPU_STORE=".qipu"
+        test "$(qipu list --format records | grep -c '^N ')" -ge 6
+  judge:
+    enabled: true
+    rubric: rubrics/durable_curation_v1.yaml
+    pass_threshold: 0.7

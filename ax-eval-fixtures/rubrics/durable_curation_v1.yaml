@@ -1,0 +1,40 @@
+criteria:
+  - id: capture_fidelity
+    weight: 0.25
+    description: >
+      All eight project facts were captured into qipu, accurately and without loss or invented
+      additions. Splitting or merging facts is fine; dropping or distorting them is not.
+
+  - id: theme_coherence
+    weight: 0.30
+    description: >
+      Related facts are grouped or connected by theme (e.g. architecture/tech decisions, known bugs,
+      deploy/ops) rather than left as a pile of isolated atoms. Credit thematic tags, typed links
+      between related facts, or an index/overview note that clusters them — any deliberate means of
+      expressing that some facts belong together.
+
+  - id: future_navigability
+    weight: 0.35
+    description: >
+      Would a fresh session that knows nothing about this conversation be able to find the key facts
+      and understand how they relate, using only what the agent left in the store? Reward a clear
+      entry point (an overview/index/collection note, or discoverable tags) over a flat set of
+      unconnected notes that a newcomer would have to already know the titles of to retrieve.
+
+  - id: organizational_intent
+    weight: 0.10
+    description: >
+      Did the agent make a deliberate organizing choice at all, versus dumping flat notes and
+      stopping? In your rationale, explicitly name which qipu primitives the agent used to organize
+      the knowledge — a MOC / collection root, tags, typed links, or none — and whether that choice
+      looked deliberate or incidental.
+
+output:
+  format: json
+  require_fields:
+    - scores
+    - weighted_score
+    - confidence
+    - issues
+    - highlights
+    - rationale

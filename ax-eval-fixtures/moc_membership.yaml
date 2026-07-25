@@ -1,0 +1,43 @@
+name: moc_membership
+description: >
+  AI-usability probe for the MOC-membership direction footgun (audit 2026-07-23, trial finding #1).
+  A natural agent links a member with `part-of`, sees `link list` confirm the (virtual) `has-part`
+  membership, then finds `context --moc` returns nothing — and may hand back a confidently-empty
+  briefing. This scenario measures whether an agent can actually organize-then-retrieve a topic via
+  a MOC, and whether it detects and recovers when its own organization does not round-trip. The
+  cost of the footgun shows up in the judge score (was the briefing complete) and in the interaction
+  metrics (retries/errors after an empty `context --moc`), not in a pass/fail gate.
+template_folder: qipu
+tier: 2
+tags: [moc, membership, links, usability]
+target:
+  binary: qipu
+  command_pattern: "qipu\\s+(\\S+)"
+  health_check: "qipu --version"
+  env:
+    QIPU_STORE: "${AX_EVAL_FIXTURE_DIR}/.qipu"
+task:
+  prompt: |
+    You're curating a qipu knowledge base for whoever picks up this project next. Capture three
+    Rust concepts as notes, each with a short body in your own words: ownership, borrowing, and
+    lifetimes. Organize them under a single map-of-content (MOC) note titled "Rust Learning" so the
+    topic can be pulled up as a unit later.
+
+    Now imagine a later session that only knows the "Rust Learning" map exists. From that starting
+    point, pull up what the map contains and write a short briefing on Rust's memory model for that
+    teammate.
+interaction:
+  target_commands: required
+evaluation:
+  gates:
+    - type: script
+      description: "Guardrail: the agent actually built a MOC and at least the three member notes"
+      command: |
+        set -e
+        export QIPU_STORE=".qipu"
+        test "$(qipu list --format records | awk '$1=="N" && $3=="moc"' | wc -l)" -ge 1
+        test "$(qipu list --format records | grep -c '^N ')" -ge 4
+  judge:
+    enabled: true
+    rubric: rubrics/moc_membership_v1.yaml
+    pass_threshold: 0.7

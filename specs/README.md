@@ -34,6 +34,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | [`value-model.md`](value-model.md) | Ranking | Note importance/quality scores and weighted traversal |
 | [`distribution.md`](distribution.md) | Distribution | Installation methods and release automation |
 | [`custom-metadata.md`](custom-metadata.md) | Metadata | Application-specific metadata in frontmatter |
+| [`obsidian-vault.md`](obsidian-vault.md) | Interoperability | Use an Obsidian vault as an optional Qipu content layout |
 | [`telemetry.md`](telemetry.md) | Telemetry | Approved - local collection ready, endpoint pending |
 
 ## Status Tracking
@@ -68,6 +69,7 @@ Project-level vision/goals live in the repo root `README.md`. Non-spec guidance/
 | `value-model.md` | ✅ | ✅ | ✅ | All features working; `ignore_value` default false (weighted by default) |
 | `distribution.md` | ✅ | ✅ | ✅ | Release workflow + install scripts work; Homebrew formula current (v0.3.26); tap repo creation is future infrastructure |
 | `custom-metadata.md` | ✅ | ✅ | ✅ | Custom metadata fully implemented + tested |
+| `obsidian-vault.md` | ✅ | ❌ | ❌ | Approved feature; implementation not started |
 | `telemetry.md` | ✅ | ✅ | ✅ | Local collection complete; `telemetry show` implemented; remote endpoint stubbed pending infrastructure |
 
 ## Legend
